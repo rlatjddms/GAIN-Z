@@ -1,0 +1,8 @@
+.idea/
+.DS_Store
+*.iml
+
+# Secret files
+application-secret.yml
+*-secret.yml
+.env
