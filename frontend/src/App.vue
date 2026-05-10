@@ -2,17 +2,9 @@
 </script>
 
 <template>
-  <div id="app">
-    <header>
-      <h1>GAIN-Z</h1>
-    </header>
-
-    <main>
-      <p>프론트엔드 환경 세팅 완료</p>
-    </main>
-
-  </div>
+  <router-view />
 </template>
+
 
 <style scoped>
 
