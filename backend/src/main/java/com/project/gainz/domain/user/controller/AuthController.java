@@ -6,9 +6,11 @@ import com.project.gainz.domain.user.dto.request.SignupRequest;
 import com.project.gainz.domain.user.dto.response.TokenResponseDto;
 import com.project.gainz.domain.user.service.AuthService;
 import com.project.gainz.global.common.dto.ApiResponse;
+import com.project.gainz.global.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -56,5 +58,14 @@ public class AuthController {
             @Valid @RequestBody ReissueRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(authService.reissue(request)));
+    }
+
+    // 로그아웃
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        authService.logout(principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

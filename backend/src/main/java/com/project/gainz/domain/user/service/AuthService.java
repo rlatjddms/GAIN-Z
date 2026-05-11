@@ -99,4 +99,9 @@ public class AuthService {
 
         return new TokenResponseDto(newAccessToken, newRefreshTokenValue);
     }
+
+    // 로그아웃
+    public void logout(String email) {
+        refreshTokenRepository.deleteById(email);
+    }
 }
