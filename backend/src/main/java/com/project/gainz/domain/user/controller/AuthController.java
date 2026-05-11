@@ -41,10 +41,10 @@ public class AuthController {
 
     // 로그인
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<Void>> login(
+    public ResponseEntity<ApiResponse<String>> login(
             @Valid @RequestBody LoginRequest request
     ) {
-        authService.login(request);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        String token = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(token));
     }
 }

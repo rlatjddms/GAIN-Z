@@ -8,6 +8,7 @@ import com.project.gainz.domain.user.enums.UserRole;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
     // 회원가입
     public void signup(SignupRequest request) {
@@ -50,7 +52,7 @@ public class AuthService {
 
     // 로그인
     @Transactional(readOnly = true)
-    public void login(LoginRequest request) {
+    public String login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -58,5 +60,7 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BusinessException(ErrorCode.INVALID_PASSWORD);
         }
+
+        return jwtTokenProvider.createToken(user.getEmail(), user.getRole().name());
     }
 }
