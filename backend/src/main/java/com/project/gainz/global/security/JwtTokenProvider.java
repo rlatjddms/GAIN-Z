@@ -14,32 +14,47 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 @Component
 public class JwtTokenProvider {
 
     private final SecretKey key;
-    private final long validityInMilliseconds;
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secretKey,
             @Value("${jwt.expiration}") long validityInMilliseconds) {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
-        this.validityInMilliseconds = validityInMilliseconds;
     }
 
-    // 토큰 생성
-    public String createToken(String email, String role) {
-        Date now = new Date();
-        Date validity = new Date(now.getTime() + validityInMilliseconds);
+    // Access 토큰 생성
+    public String createAccessToken(String email, String role) {
+        long accessTokenValidityTime = 1000L * 60 * 30;  // 30분
+        return createToken(email, role, accessTokenValidityTime);
+    }
 
-        return Jwts.builder()
+    // Refresh 토큰 생성
+    public String createRefreshToken(String email) {
+        long refreshTokenValidityTime = 1000L * 60 * 60 * 24 * 14;  // 14일
+        return createToken(email, null, refreshTokenValidityTime);
+    }
+
+    // 공통 토큰 생성 메서드
+    private String createToken(String email, String role, long validityTime) {
+        Date now = new Date();
+        Date validity = new Date(now.getTime() + validityTime);
+
+        var builder = Jwts.builder()
                 .setSubject(email)
-                .claim("role", role)
                 .setIssuedAt(now)
                 .setExpiration(validity)
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+                .signWith(key, SignatureAlgorithm.HS256);
+
+        if (role != null) {
+            builder.claim("role", role);
+        }
+
+        return builder.compact();
     }
 
     // 토큰 유효성 검증
@@ -63,7 +78,10 @@ public class JwtTokenProvider {
         String email = claims.getSubject();
         String role = claims.get("role", String.class);
 
-        return new UsernamePasswordAuthenticationToken(email, "",
-                Collections.singletonList(new SimpleGrantedAuthority(role)));
+        List<SimpleGrantedAuthority> authorities = (role != null)
+                ? Collections.singletonList(new SimpleGrantedAuthority(role))
+                : Collections.emptyList();
+
+        return new UsernamePasswordAuthenticationToken(email, "", authorities);
     }
 }

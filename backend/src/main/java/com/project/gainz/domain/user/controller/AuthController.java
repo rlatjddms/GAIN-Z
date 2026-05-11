@@ -2,6 +2,7 @@ package com.project.gainz.domain.user.controller;
 
 import com.project.gainz.domain.user.dto.request.LoginRequest;
 import com.project.gainz.domain.user.dto.request.SignupRequest;
+import com.project.gainz.domain.user.dto.response.TokenResponseDto;
 import com.project.gainz.domain.user.service.AuthService;
 import com.project.gainz.global.common.dto.ApiResponse;
 import jakarta.validation.Valid;
@@ -41,10 +42,10 @@ public class AuthController {
 
     // 로그인
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<String>> login(
+    public ResponseEntity<ApiResponse<TokenResponseDto>> login(
             @Valid @RequestBody LoginRequest request
     ) {
-        String token = authService.login(request);
-        return ResponseEntity.ok(ApiResponse.success(token));
+        TokenResponseDto tokenResponse = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(tokenResponse));
     }
 }

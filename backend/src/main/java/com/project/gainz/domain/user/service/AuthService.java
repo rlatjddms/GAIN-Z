@@ -2,9 +2,11 @@ package com.project.gainz.domain.user.service;
 
 import com.project.gainz.domain.user.dto.request.LoginRequest;
 import com.project.gainz.domain.user.dto.request.SignupRequest;
+import com.project.gainz.domain.user.dto.response.TokenResponseDto;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.SocialProvider;
 import com.project.gainz.domain.user.enums.UserRole;
+import com.project.gainz.domain.user.repository.RefreshTokenRepository;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -52,7 +55,7 @@ public class AuthService {
 
     // 로그인
     @Transactional(readOnly = true)
-    public String login(LoginRequest request) {
+    public TokenResponseDto login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -61,6 +64,13 @@ public class AuthService {
             throw new BusinessException(ErrorCode.INVALID_PASSWORD);
         }
 
-        return jwtTokenProvider.createToken(user.getEmail(), user.getRole().name());
+        String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), user.getRole().name());
+        String refreshTokenValue = jwtTokenProvider.createRefreshToken(user.getEmail());
+
+        com.project.gainz.domain.user.entity.RefreshToken refreshToken =
+                new com.project.gainz.domain.user.entity.RefreshToken(user.getEmail(), refreshTokenValue);
+        refreshTokenRepository.save(refreshToken);
+
+        return new TokenResponseDto(accessToken, refreshTokenValue);
     }
 }
