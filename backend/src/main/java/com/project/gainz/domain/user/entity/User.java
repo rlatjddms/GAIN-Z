@@ -1,10 +1,14 @@
 package com.project.gainz.domain.user.entity;
 
 import com.project.gainz.domain.character.entity.Character;
+import com.project.gainz.domain.user.enums.SocialProvider;
+import com.project.gainz.domain.user.enums.UserRole;
 import com.project.gainz.global.common.BaseEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -27,9 +31,8 @@ public class User extends BaseEntity {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String loginId;
+    private String email;
 
-    @Column(nullable = false)
     private String password;
 
     @Column(nullable = false)
@@ -38,8 +41,13 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String nickname;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String email;
+    private SocialProvider provider;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Character character;
