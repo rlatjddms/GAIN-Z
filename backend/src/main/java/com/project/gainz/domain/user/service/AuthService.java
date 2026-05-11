@@ -1,8 +1,10 @@
 package com.project.gainz.domain.user.service;
 
 import com.project.gainz.domain.user.dto.request.LoginRequest;
+import com.project.gainz.domain.user.dto.request.ReissueRequest;
 import com.project.gainz.domain.user.dto.request.SignupRequest;
 import com.project.gainz.domain.user.dto.response.TokenResponseDto;
+import com.project.gainz.domain.user.entity.RefreshToken;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.SocialProvider;
 import com.project.gainz.domain.user.enums.UserRole;
@@ -72,5 +74,29 @@ public class AuthService {
         refreshTokenRepository.save(refreshToken);
 
         return new TokenResponseDto(accessToken, refreshTokenValue);
+    }
+
+    // 토큰 재발급
+    public TokenResponseDto reissue(ReissueRequest request) {
+        String refreshTokenValue = request.refreshToken();
+
+        if (!jwtTokenProvider.validateToken(refreshTokenValue)) {
+            throw new BusinessException(ErrorCode.INVALID_TOKEN);
+        }
+
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenValue)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
+
+        User user = userRepository.findByEmail(refreshToken.getEmail())
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        String newAccessToken = jwtTokenProvider.createAccessToken(user.getEmail(), user.getRole().name());
+        String newRefreshTokenValue = jwtTokenProvider.createRefreshToken(user.getEmail());
+
+        refreshTokenRepository.delete(refreshToken);
+        RefreshToken newRefreshToken = new RefreshToken(user.getEmail(), newRefreshTokenValue);
+        refreshTokenRepository.save(newRefreshToken);
+
+        return new TokenResponseDto(newAccessToken, newRefreshTokenValue);
     }
 }
