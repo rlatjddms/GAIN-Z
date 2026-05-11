@@ -1,7 +1,7 @@
 package com.project.gainz.domain.practice.entity;
 
 import com.project.gainz.domain.user.entity.User;
-import com.project.gainz.global.common.BaseEntity;
+import com.project.gainz.global.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

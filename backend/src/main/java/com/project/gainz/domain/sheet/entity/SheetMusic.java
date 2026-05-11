@@ -1,8 +1,8 @@
 package com.project.gainz.domain.sheet.entity;
 
-import com.project.gainz.global.enums.InstrumentType;
+import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.sheet.enums.SheetType;
-import com.project.gainz.global.common.BaseEntity;
+import com.project.gainz.global.common.entity.BaseEntity;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;

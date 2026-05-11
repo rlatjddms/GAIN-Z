@@ -1,4 +1,4 @@
-package com.project.gainz.global.common;
+package com.project.gainz.global.common.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

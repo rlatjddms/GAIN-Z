@@ -1,4 +1,4 @@
-package com.project.gainz.global.enums;
+package com.project.gainz.global.common.enums;
 
 public enum InstrumentType {
 

@@ -1,4 +1,4 @@
-package com.project.gainz.global.config;
+package com.project.gainz.global.security;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

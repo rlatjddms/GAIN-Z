@@ -2,9 +2,9 @@ package com.project.gainz.domain.character.entity;
 
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
-import com.project.gainz.global.enums.InstrumentType;
+import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.user.entity.User;
-import com.project.gainz.global.common.BaseEntity;
+import com.project.gainz.global.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

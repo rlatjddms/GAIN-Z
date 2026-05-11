@@ -3,7 +3,7 @@ package com.project.gainz.domain.user.entity;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.user.enums.SocialProvider;
 import com.project.gainz.domain.user.enums.UserRole;
-import com.project.gainz.global.common.BaseEntity;
+import com.project.gainz.global.common.entity.BaseEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

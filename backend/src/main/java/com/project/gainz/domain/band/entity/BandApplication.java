@@ -3,7 +3,7 @@ package com.project.gainz.domain.band.entity;
 import com.project.gainz.domain.band.enums.ApplicationStatus;
 import com.project.gainz.domain.band.enums.ApplicationType;
 import com.project.gainz.domain.user.entity.User;
-import com.project.gainz.global.common.BaseEntity;
+import com.project.gainz.global.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
