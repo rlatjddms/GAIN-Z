@@ -1,5 +1,6 @@
 package com.project.gainz.domain.user.controller;
 
+import com.project.gainz.domain.user.dto.request.LoginRequest;
 import com.project.gainz.domain.user.dto.request.SignupRequest;
 import com.project.gainz.domain.user.service.AuthService;
 import com.project.gainz.global.common.dto.ApiResponse;
@@ -36,5 +37,14 @@ public class AuthController {
     ) {
         boolean isDuplicate = authService.checkEmailDuplicate(email);
         return ResponseEntity.ok(ApiResponse.success(isDuplicate));
+    }
+
+    // 로그인
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<Void>> login(
+            @Valid @RequestBody LoginRequest request
+    ) {
+        authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }
