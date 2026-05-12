@@ -48,9 +48,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/logout").authenticated()
                         .requestMatchers(
                                 "/api/v1/auth/**",
+                                "/login/oauth2/**",
+                                "/oauth2/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/error")
+                                "/error"
+                        )
                         .permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exception -> exception
