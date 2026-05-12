@@ -1,5 +1,7 @@
-package com.project.gainz.global.security;
+package com.project.gainz.global.security.config;
 
+import com.project.gainz.global.security.jwt.JwtAuthenticationFilter;
+import com.project.gainz.global.security.jwt.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

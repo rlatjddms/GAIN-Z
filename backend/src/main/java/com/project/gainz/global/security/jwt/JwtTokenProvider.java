@@ -1,5 +1,6 @@
-package com.project.gainz.global.security;
+package com.project.gainz.global.security.jwt;
 
+import com.project.gainz.global.security.principal.CustomUserDetailsService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

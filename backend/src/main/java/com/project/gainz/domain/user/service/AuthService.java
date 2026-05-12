@@ -12,7 +12,7 @@ import com.project.gainz.domain.user.repository.RefreshTokenRepository;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
-import com.project.gainz.global.security.JwtTokenProvider;
+import com.project.gainz.global.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

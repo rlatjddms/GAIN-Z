@@ -1,4 +1,4 @@
-package com.project.gainz.global.security;
+package com.project.gainz.global.security.jwt;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

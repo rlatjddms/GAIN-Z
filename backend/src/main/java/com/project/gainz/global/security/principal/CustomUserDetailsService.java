@@ -1,4 +1,4 @@
-package com.project.gainz.global.security;
+package com.project.gainz.global.security.principal;
 
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.repository.UserRepository;

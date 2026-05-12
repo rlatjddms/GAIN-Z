@@ -6,7 +6,7 @@ import com.project.gainz.domain.user.dto.request.SignupRequest;
 import com.project.gainz.domain.user.dto.response.TokenResponseDto;
 import com.project.gainz.domain.user.service.AuthService;
 import com.project.gainz.global.common.dto.ApiResponse;
-import com.project.gainz.global.security.UserPrincipal;
+import com.project.gainz.global.security.principal.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
