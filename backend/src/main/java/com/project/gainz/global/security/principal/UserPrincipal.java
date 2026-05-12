@@ -4,11 +4,29 @@ import com.project.gainz.domain.user.entity.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 
-public record UserPrincipal(User user) implements UserDetails {
+public record UserPrincipal(
+        User user,
+        Map<String, Object> attributes
+) implements UserDetails, OAuth2User {
+
+    public static UserPrincipal create(User user) {
+        return new UserPrincipal(user, null);
+    }
+
+    public static UserPrincipal create(User user, Map<String, Object> attributes) {
+        return new UserPrincipal(user, attributes);
+    }
+
+    @Override
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -26,22 +44,12 @@ public record UserPrincipal(User user) implements UserDetails {
     }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
+    public String getName() {
+        return user.getEmail();
     }
 
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
+    @Override public boolean isAccountNonExpired() { return true; }
+    @Override public boolean isAccountNonLocked() { return true; }
+    @Override public boolean isCredentialsNonExpired() { return true; }
+    @Override public boolean isEnabled() { return true; }
 }

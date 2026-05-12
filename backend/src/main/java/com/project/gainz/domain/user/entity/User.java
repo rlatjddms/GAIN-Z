@@ -62,4 +62,9 @@ public class User extends BaseEntity {
         this.provider = provider;
         this.role = role;
     }
+
+    public User update(String name) {
+        this.name = name;
+        return this;
+    }
 }
