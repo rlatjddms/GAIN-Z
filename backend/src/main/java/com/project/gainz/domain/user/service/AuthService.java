@@ -41,7 +41,6 @@ public class AuthService {
                 .email(request.email())
                 .password(encodedPassword)
                 .name(request.name())
-                .nickname(request.nickname())
                 .provider(SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER)
                 .build();

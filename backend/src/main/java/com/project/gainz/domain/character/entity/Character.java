@@ -40,6 +40,9 @@ public class Character extends BaseEntity {
     private User user;
 
     @Column(nullable = false)
+    private String nickname;
+
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private InstrumentType instrumentType;
 
