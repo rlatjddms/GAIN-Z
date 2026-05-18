@@ -18,6 +18,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
@@ -61,21 +62,39 @@ public class Character extends BaseEntity {
     private String hairColor;
 
     @Column(nullable = false)
-    private Integer level = 1;
+    private Integer level;
 
     @Column(nullable = false)
-    private Long exp = 0L;
+    private Long exp;
 
     @Column(nullable = false)
-    private Integer currentStreak = 0;
+    private Integer currentStreak;
 
     @Column(nullable = false)
-    private Integer maxStreak = 0;
+    private Integer maxStreak;
 
     @Column(nullable = false)
-    private Long totalPracticeTime = 0L;
+    private Long totalPracticeTime;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_outfit_id", nullable = false)
     private OutfitItem currentOutfit;
+
+    @Builder
+    public Character(User user, String nickname, InstrumentType instrumentType, String instrumentColor,
+                     Gender gender, HairStyle hairStyle, String hairColor, OutfitItem currentOutfit) {
+        this.user = user;
+        this.nickname = nickname;
+        this.instrumentType = instrumentType;
+        this.instrumentColor = instrumentColor;
+        this.gender = gender;
+        this.hairStyle = hairStyle;
+        this.hairColor = hairColor;
+        this.currentOutfit = currentOutfit;
+        this.level = 1;
+        this.exp = 0L;
+        this.currentStreak = 0;
+        this.maxStreak = 0;
+        this.totalPracticeTime = 0L;
+    }
 }

@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -29,4 +30,10 @@ public class UserOutfit extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "outfit_item_id", nullable = false)
     private OutfitItem outfitItem;
+
+    @Builder
+    public UserOutfit(User user, OutfitItem outfitItem) {
+        this.user = user;
+        this.outfitItem = outfitItem;
+    }
 }

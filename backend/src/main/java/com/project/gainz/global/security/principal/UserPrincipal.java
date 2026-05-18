@@ -1,6 +1,7 @@
 package com.project.gainz.global.security.principal;
 
 import com.project.gainz.domain.user.entity.User;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,17 +11,31 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-public record UserPrincipal(
-        User user,
-        Map<String, Object> attributes
-) implements UserDetails, OAuth2User {
+@Getter
+public class UserPrincipal implements UserDetails, OAuth2User {
+
+    private final User user;
+    private Map<String, Object> attributes;
+
+    private UserPrincipal(User user) {
+        this.user = user;
+    }
+
+    private UserPrincipal(User user, Map<String, Object> attributes) {
+        this.user = user;
+        this.attributes = attributes;
+    }
 
     public static UserPrincipal create(User user) {
-        return new UserPrincipal(user, null);
+        return new UserPrincipal(user);
     }
 
     public static UserPrincipal create(User user, Map<String, Object> attributes) {
         return new UserPrincipal(user, attributes);
+    }
+
+    public Long getUserId() {
+        return user.getId();
     }
 
     @Override
@@ -45,7 +60,7 @@ public record UserPrincipal(
 
     @Override
     public String getName() {
-        return user.getEmail();
+        return String.valueOf(user.getId());
     }
 
     @Override public boolean isAccountNonExpired() { return true; }
