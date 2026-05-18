@@ -22,7 +22,7 @@
           </button>
           <div class="user-info">
             <span class="avatar"></span>
-            <span class="name">성은</span>
+            <span class="name">{{ authStore.displayName }}</span>
           </div>
           <button class="logout-icon-btn" title="로그아웃" @click="handleLogout">
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -140,10 +140,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const isBandMode = ref(false)
-const userNickname = ref('성은')
 const showSpeech = ref(false)
 const selectedBandId = ref(1)
 const toggleSpeech = () => { showSpeech.value = !showSpeech.value }
@@ -153,7 +154,8 @@ const myBands = ref([
 ])
 const activeBand = computed(() => myBands.value.find(b => b.id === selectedBandId.value))
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  await authStore.logout()
   router.push('/')
 }
 </script>
