@@ -99,7 +99,15 @@ const handleLogin = async () => {
 
   try {
     await authStore.login(email.value, password.value, keepLoggedIn.value)
-    router.push('/home')
+
+    const firstLoginKey = `firstLogin_${email.value.trim()}`
+    const isFirstLogin = localStorage.getItem(firstLoginKey) === 'true'
+    if (isFirstLogin) {
+      localStorage.removeItem(firstLoginKey) // Clear the flag
+      router.push('/character-create')
+    } else {
+      router.push('/home')
+    }
   } catch (error) {
     console.error(error)
     if (error.response && error.response.data && error.response.data.message) {
@@ -244,7 +252,7 @@ const handleSocialLogin = (provider) => {
 
 .login-btn-main {
   width: 100%;
-  padding: 15px;
+  padding: 18px;
   background: #2d5bff;
   color: #fff;
   border: none;

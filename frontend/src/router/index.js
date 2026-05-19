@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import SignupView from '../views/SignupView.vue'
 import HomeView from '../views/HomeView.vue'
+import CharacterCreateView from '../views/CharacterCreateView.vue'
 import OAuth2RedirectView from '../views/OAuth2RedirectView.vue'
 import { useAuthStore } from '../stores/auth'
 
@@ -24,6 +25,11 @@ const router = createRouter({
       component: HomeView
     },
     {
+      path: '/character-create',
+      name: 'character-create',
+      component: CharacterCreateView
+    },
+    {
       path: '/oauth2/redirect',
       name: 'oauth2-redirect',
       component: OAuth2RedirectView
@@ -31,8 +37,7 @@ const router = createRouter({
   ]
 })
 
-// Global Navigation Guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
   if (to.path === '/home') {
@@ -40,14 +45,41 @@ router.beforeEach((to, from, next) => {
       // Direct unauthorized access to login
       next('/')
     } else {
-      next()
+      if (!authStore.isCharacterChecked) {
+        await authStore.fetchCharacter()
+      }
+      if (!authStore.character) {
+        next('/character-create')
+      } else {
+        next()
+      }
+    }
+  } else if (to.path === '/character-create') {
+    if (!authStore.isAuthenticated) {
+      next('/')
+    } else {
+      if (!authStore.isCharacterChecked) {
+        await authStore.fetchCharacter()
+      }
+      if (to.query.edit !== 'true' && authStore.character) {
+        next('/home')
+      } else {
+        next()
+      }
     }
   } else if ((to.path === '/' || to.path === '/signup') && authStore.isAuthenticated) {
-    // Redirect authenticated users to home instead of login/signup
-    next('/home')
+    if (!authStore.isCharacterChecked) {
+      await authStore.fetchCharacter()
+    }
+    if (!authStore.character) {
+      next('/character-create')
+    } else {
+      next('/home')
+    }
   } else {
     next()
   }
 })
 
 export default router
+

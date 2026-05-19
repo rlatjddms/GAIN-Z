@@ -199,6 +199,7 @@ const handleSignup = async () => {
       formData.value.email,
       formData.value.password
     )
+    localStorage.setItem(`firstLogin_${formData.value.email.trim()}`, 'true')
     alert('GAIN-Z 가입을 진심으로 축하합니다! 로그인 후 이용해주세요.')
     router.push('/')
   } catch (error) {
@@ -259,7 +260,6 @@ const handleSignup = async () => {
 .check-btn:hover:not(:disabled) { background: #e9ecef; }
 .check-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* 안내 메시지 스타일 */
 .status-msg { font-size: 0.78rem; margin: 6px 0 0 4px; line-height: 1.3; }
 .status-msg.error { color: #fa5252; font-weight: 500; }
 .status-msg.success { color: #37b24d; font-weight: 600; }
