@@ -30,7 +30,7 @@
               <span v-if="isEditMode" class="edit-badge">수정 모드</span>
             </div>
             <h2>{{ isEditMode ? '캐릭터 정보 수정' : '나만의 캐릭터 생성' }}</h2>
-            <p>GAIN-Z 무대에 오를 뮤지션의 프로필과 시그니처 악기를 설정하세요.</p>
+            <p>프로필과 시그니처 악기를 설정하세요.</p>
           </div>
 
           <!-- Step Indicator Bar -->
@@ -255,16 +255,19 @@ const instrumentColor = ref('#B91C1C')
 const isLoading = ref(false)
 const isNicknameValid = ref(false)
 
-// Load existing character details if edit mode or if already saved
-onMounted(() => {
-  const savedChar = JSON.parse(localStorage.getItem(`userCharacter_${authStore.userEmail}`))
-  if (savedChar) {
-    nickname.value = savedChar.nickname || ''
-    gender.value = savedChar.gender || 'MALE'
-    hairStyle.value = savedChar.hairStyle || 'SHORT_CUT'
-    hairColor.value = savedChar.hairColor || '#111827'
-    instrumentType.value = savedChar.instrumentType || 'GUITAR'
-    instrumentColor.value = savedChar.instrumentColor || '#B91C1C'
+onMounted(async () => {
+  if (!authStore.isCharacterChecked) {
+    await authStore.fetchCharacter()
+  }
+
+  const char = authStore.character
+  if (char) {
+    nickname.value = char.nickname || ''
+    gender.value = char.gender || 'MALE'
+    hairStyle.value = char.hairStyle || 'SHORT_CUT'
+    hairColor.value = char.hairColor || '#111827'
+    instrumentType.value = char.instrumentType || 'GUITAR'
+    instrumentColor.value = char.instrumentColor || '#B91C1C'
     
     if (nickname.value) {
       validateNickname()
@@ -413,43 +416,41 @@ const handleSubmit = async () => {
     hairColor: hairColor.value
   }
 
-  // Helper to save data to local storage
-  const saveLocalCharacter = () => {
-    localStorage.setItem(`hasCharacter_${authStore.userEmail}`, 'true')
-    localStorage.setItem(`userCharacter_${authStore.userEmail}`, JSON.stringify({
-      ...payload,
-      emoji: selectedEmoji.value
-    }))
-  }
-
   if (isEditMode.value) {
-    saveLocalCharacter()
-    alert('캐릭터 정보가 수정되었습니다')
-    router.push('/home')
-    isLoading.value = false
+    try {
+      await axiosInstance.put('/api/v1/characters/me', payload)
+      await authStore.fetchCharacter()
+      alert('캐릭터 정보가 수정되었습니다')
+      router.push('/home')
+    } catch (error) {
+      console.error('Character update failed:', error)
+      if (error.response && error.response.data && error.response.data.message) {
+        alert(`수정 에러: ${error.response.data.message}`)
+      } else {
+        alert('캐릭터 수정 중 오류가 발생했습니다. 다시 시도해 주세요.')
+      }
+    } finally {
+      isLoading.value = false
+    }
     return
   }
 
   try {
-    const response = await axiosInstance.post('/api/v1/characters', payload)
-    
-    // Character creation successful
-    saveLocalCharacter()
+    await axiosInstance.post('/api/v1/characters', payload)
+    await authStore.fetchCharacter()
     alert('캐릭터 생성 성공! 합주실로 이동합니다')
     router.push('/home')
   } catch (error) {
     console.error('Character creation failed:', error)
-    
     if (error.response) {
       if (error.response.status === 409) {
         const responseData = error.response.data
         if (responseData && responseData.code === 'C001') {
-          // Character already exists - save state locally and redirect
-          saveLocalCharacter()
+          await authStore.fetchCharacter()
           alert('이미 보유하고 있는 캐릭터가 있습니다. 합주실로 이동합니다!')
           router.push('/home')
         } else if (responseData && responseData.message) {
-          alert(`캐릭터 설정 에러: ${responseData.message}`)
+          alert(`캐릭터 생성 에러: ${responseData.message}`)
         } else {
           alert('중복된 캐릭터 닉네임이거나 이미 캐릭터를 보유하고 있습니다.')
         }
@@ -457,10 +458,7 @@ const handleSubmit = async () => {
         alert('캐릭터를 생성하는 동안 서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')
       }
     } else {
-      // Network/Offline fallback: allow saving locally for demonstration
-      saveLocalCharacter()
-      alert('데뷔 설정이 로컬에 저장되었습니다. 합주실로 이동합니다!')
-      router.push('/home')
+      alert('서버 연결 실패. 네트워크 연결 상태를 확인하고 다시 시도해 주세요.')
     }
   } finally {
     isLoading.value = false

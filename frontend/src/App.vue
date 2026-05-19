@@ -19,3 +19,18 @@ main {
   text-align: center;
 }
 </style>
+
+<style>
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: #f8f9fb;
+  width: 100%;
+  height: 100%;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+</style>
