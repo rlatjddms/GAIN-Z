@@ -36,13 +36,20 @@
 
         <template v-if="!isBandMode">
           <section class="stage solo-stage">
-            <div class="level-tag">Lv.7 방구석 락스타</div>
+            <div class="level-tag">Lv.7 {{ charNickname }}</div>
             <div class="character-box" @click="toggleSpeech">
-              <div class="char-icon">👩‍🎤</div>
+              <div class="char-icon">{{ charEmoji }}</div>
               <transition name="pop">
                 <div v-if="showSpeech" class="speech-bubble">오늘도 달려볼까?</div>
               </transition>
             </div>
+            <button class="edit-char-btn" @click="goToEditCharacter" title="캐릭터 수정">
+              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              캐릭터 수정
+            </button>
           </section>
 
           <section class="quick-grid grid-3">
@@ -148,6 +155,27 @@ const isBandMode = ref(false)
 const showSpeech = ref(false)
 const selectedBandId = ref(1)
 const toggleSpeech = () => { showSpeech.value = !showSpeech.value }
+
+// Load character settings from store
+const charNickname = computed(() => authStore.character?.nickname || '방구석 락스타')
+
+const charEmoji = computed(() => {
+  const character = authStore.character
+  if (!character) return '👩‍🎤'
+  
+  const type = character.instrumentType
+  const gender = character.gender
+
+  if (type === 'DRUM') return '🥁'
+  if (type === 'KEYBOARD') return '🎹'
+  if (type === 'VOCAL') return '🎤'
+  return gender === 'MALE' ? '👨‍🎤' : '👩‍🎤'
+})
+
+const goToEditCharacter = () => {
+  router.push('/character-create?edit=true')
+}
+
 const myBands = ref([
   { id: 1, name: '락앤롤 베이비', members: [{id:1, emoji:'🥁', role:'DR'}, {id:2, emoji:'🎤', role:'VO'}, {id:3, emoji:'🎸', role:'GT1'}, {id:4, emoji:'🎸', role:'GT2'}]},
   { id: 2, name: '락스타들', members: [{id:1, emoji:'🎸', role:'GT'}, {id:2, emoji:'🎹', role:'KB'}]}
@@ -224,7 +252,7 @@ button::-moz-focus-inner { border: 0 !important; }
 /* 스테이지 공통 */
 .stage {
   background: #fff; border: 1px solid #e9ecef; border-radius: 28px;
-  padding: 60px 40px; text-align: center; margin-bottom: 24px;
+  padding: 70px 40px; text-align: center; margin-bottom: 24px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.02); position: relative;
   z-index: 1; /* 탭보다 낮게 설정 */
 }
@@ -327,5 +355,30 @@ button::-moz-focus-inner { border: 0 !important; }
 @keyframes pop-in {
   0% { transform: translate(-50%, 10px) scale(0.8); opacity: 0; }
   100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+
+.edit-char-btn {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #495057;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.edit-char-btn:hover {
+  background: #f1f3f5;
+  color: #2d5bff;
+  border-color: #2d5bff;
 }
 </style>

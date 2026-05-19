@@ -97,4 +97,14 @@ public class Character extends BaseEntity {
         this.maxStreak = 0;
         this.totalPracticeTime = 0L;
     }
+
+    public void update(String nickname, InstrumentType instrumentType, String instrumentColor,
+                       Gender gender, HairStyle hairStyle, String hairColor) {
+        this.nickname = nickname;
+        this.instrumentType = instrumentType;
+        this.instrumentColor = instrumentColor;
+        this.gender = gender;
+        this.hairStyle = hairStyle;
+        this.hairColor = hairColor;
+    }
 }

@@ -3,7 +3,7 @@ package com.project.gainz.domain.user.controller;
 import com.project.gainz.domain.user.dto.request.LoginRequest;
 import com.project.gainz.domain.user.dto.request.ReissueRequest;
 import com.project.gainz.domain.user.dto.request.SignupRequest;
-import com.project.gainz.domain.user.dto.response.TokenResponseDto;
+import com.project.gainz.domain.user.dto.response.TokenResponse;
 import com.project.gainz.domain.user.service.AuthService;
 import com.project.gainz.global.common.dto.ApiResponse;
 import com.project.gainz.global.security.principal.UserPrincipal;
@@ -45,16 +45,16 @@ public class AuthController {
 
     // 로그인
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<TokenResponseDto>> login(
+    public ResponseEntity<ApiResponse<TokenResponse>> login(
             @Valid @RequestBody LoginRequest request
     ) {
-        TokenResponseDto tokenResponse = authService.login(request);
+        TokenResponse tokenResponse = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success(tokenResponse));
     }
 
     // 토큰 재발급
     @PostMapping("/reissue")
-    public ResponseEntity<ApiResponse<TokenResponseDto>> reissue(
+    public ResponseEntity<ApiResponse<TokenResponse>> reissue(
             @Valid @RequestBody ReissueRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(authService.reissue(request)));

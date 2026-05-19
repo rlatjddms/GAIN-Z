@@ -3,7 +3,7 @@ package com.project.gainz.domain.user.service;
 import com.project.gainz.domain.user.dto.request.LoginRequest;
 import com.project.gainz.domain.user.dto.request.ReissueRequest;
 import com.project.gainz.domain.user.dto.request.SignupRequest;
-import com.project.gainz.domain.user.dto.response.TokenResponseDto;
+import com.project.gainz.domain.user.dto.response.TokenResponse;
 import com.project.gainz.domain.user.entity.RefreshToken;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.SocialProvider;
@@ -56,7 +56,7 @@ public class AuthService {
 
     // 로그인
     @Transactional(readOnly = true)
-    public TokenResponseDto login(LoginRequest request) {
+    public TokenResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -72,11 +72,11 @@ public class AuthService {
                 new com.project.gainz.domain.user.entity.RefreshToken(user.getEmail(), refreshTokenValue);
         refreshTokenRepository.save(refreshToken);
 
-        return new TokenResponseDto(accessToken, refreshTokenValue);
+        return new TokenResponse(accessToken, refreshTokenValue);
     }
 
     // 토큰 재발급
-    public TokenResponseDto reissue(ReissueRequest request) {
+    public TokenResponse reissue(ReissueRequest request) {
         String refreshTokenValue = request.refreshToken();
 
         if (!jwtTokenProvider.validateToken(refreshTokenValue)) {
@@ -96,7 +96,7 @@ public class AuthService {
         RefreshToken newRefreshToken = new RefreshToken(user.getEmail(), newRefreshTokenValue);
         refreshTokenRepository.save(newRefreshToken);
 
-        return new TokenResponseDto(newAccessToken, newRefreshTokenValue);
+        return new TokenResponse(newAccessToken, newRefreshTokenValue);
     }
 
     // 로그아웃

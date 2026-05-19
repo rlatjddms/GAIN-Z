@@ -1,6 +1,8 @@
 package com.project.gainz.domain.character.service;
 
 import com.project.gainz.domain.character.dto.request.CharacterCreateRequest;
+import com.project.gainz.domain.character.dto.request.CharacterUpdateRequest;
+import com.project.gainz.domain.character.dto.response.CharacterResponse;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.entity.UserOutfit;
@@ -63,5 +65,34 @@ public class CharacterService {
         userOutfitRepository.save(userOutfit);
 
         return character.getId();
+    }
+
+    // 캐릭터 조회
+    @Transactional(readOnly = true)
+    public CharacterResponse getCharacter(Long userId) {
+        Character character = characterRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
+        return CharacterResponse.from(character);
+    }
+
+    // 캐릭터 수정
+    public void updateCharacter(Long userId, CharacterUpdateRequest request) {
+
+        Character character = characterRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
+
+        if (!character.getNickname().equals(request.nickname()) &&
+                characterRepository.existsByNickname(request.nickname())) {
+            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+        }
+
+        character.update(
+                request.nickname(),
+                request.instrumentType(),
+                request.instrumentColor(),
+                request.gender(),
+                request.hairStyle(),
+                request.hairColor()
+        );
     }
 }

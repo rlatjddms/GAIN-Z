@@ -25,6 +25,8 @@ export const useAuthStore = defineStore('auth', {
     refreshToken: localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken') || null,
     userEmail: localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail') || null,
     userName: localStorage.getItem('userName') || sessionStorage.getItem('userName') || null,
+    character: null,
+    isCharacterChecked: false,
   }),
 
   getters: {
@@ -137,8 +139,11 @@ export const useAuthStore = defineStore('auth', {
         // Always clean up frontend state regardless of API success
         this.accessToken = null
         this.refreshToken = null
+        const email = this.userEmail
         this.userEmail = null
         this.userName = null
+        this.character = null
+        this.isCharacterChecked = false
 
         const cleanups = [localStorage, sessionStorage]
         cleanups.forEach((storage) => {
@@ -146,7 +151,35 @@ export const useAuthStore = defineStore('auth', {
           storage.removeItem('refreshToken')
           storage.removeItem('userEmail')
           storage.removeItem('userName')
+          if (email) {
+            storage.removeItem(`hasCharacter_${email}`)
+            storage.removeItem(`userCharacter_${email}`)
+          }
         })
+      }
+    },
+
+    // Fetch character details from backend
+    async fetchCharacter() {
+      if (!this.accessToken) {
+        this.character = null
+        this.isCharacterChecked = false
+        return null
+      }
+      try {
+        const response = await axiosInstance.get('/api/v1/characters/me')
+        this.character = response.data.data
+        this.isCharacterChecked = true
+        return this.character
+      } catch (error) {
+        console.error('Failed to fetch character:', error)
+        if (error.response && error.response.status === 404) {
+          this.character = null
+          this.isCharacterChecked = true
+        } else {
+          this.character = null
+        }
+        return null
       }
     },
   },
