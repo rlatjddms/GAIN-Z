@@ -101,9 +101,9 @@ public class CharacterService {
     }
 
     // 경험치 추가 후 레벨업 및 아이템 해금
-    public ExperienceResult processExperienceAndUnlocks(Long characterId, int expAmount, long practiceTimeMinutes) {
+    public ExperienceResult processExperienceAndUnlocks(Long userId, int expAmount, long practiceTimeMinutes) {
 
-        Character character = characterRepository.findById(characterId)
+        Character character = characterRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
 
         int prevLevel = character.getLevel();
