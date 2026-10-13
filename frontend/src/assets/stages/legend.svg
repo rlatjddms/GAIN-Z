@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 360" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#050505"/>
+      <stop offset="1" stop-color="#2a1a05"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a3a0a"/>
+      <stop offset="1" stop-color="#1f1403"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.75" r="0.5">
+      <stop offset="0" stop-color="#fbbf24" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#fbbf24" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fde68a" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#fde68a" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1040" height="360" fill="url(#sky)"/>
+  <rect y="280" width="1040" height="80" fill="url(#floor)"/>
+  <rect width="1040" height="360" fill="url(#halo)"/>
+  <polygon points="120,0 360,300 0,300" fill="url(#beam)"/>
+  <polygon points="520,0 760,300 280,300" fill="url(#beam)"/>
+  <polygon points="920,0 1040,300 680,300" fill="url(#beam)"/>
+  <g stroke="#fde68a" stroke-width="2" stroke-linecap="round" opacity="0.9">
+    <g transform="translate(160 90)"><line x1="0" y1="-26" x2="0" y2="26"/><line x1="-26" y1="0" x2="26" y2="0"/><line x1="-18" y1="-18" x2="18" y2="18"/><line x1="-18" y1="18" x2="18" y2="-18"/></g>
+    <g transform="translate(880 70)"><line x1="0" y1="-30" x2="0" y2="30"/><line x1="-30" y1="0" x2="30" y2="0"/><line x1="-21" y1="-21" x2="21" y2="21"/><line x1="-21" y1="21" x2="21" y2="-21"/></g>
+    <g transform="translate(400 50)" stroke="#f472b6"><line x1="0" y1="-18" x2="0" y2="18"/><line x1="-18" y1="0" x2="18" y2="0"/><line x1="-13" y1="-13" x2="13" y2="13"/><line x1="-13" y1="13" x2="13" y2="-13"/></g>
+    <g transform="translate(660 110)" stroke="#60a5fa"><line x1="0" y1="-18" x2="0" y2="18"/><line x1="-18" y1="0" x2="18" y2="0"/><line x1="-13" y1="-13" x2="13" y2="13"/><line x1="-13" y1="13" x2="13" y2="-13"/></g>
+  </g>
+  <g fill="#fff7d6" opacity="0.9">
+    <circle cx="60" cy="150" r="2"/><circle cx="240" cy="40" r="2"/><circle cx="300" cy="170" r="1.5"/><circle cx="560" cy="150" r="2"/>
+    <circle cx="740" cy="30" r="2"/><circle cx="800" cy="180" r="1.5"/><circle cx="1000" cy="130" r="2"/>
+  </g>
+  <g fill="#0a0703">
+    <ellipse cx="30" cy="372" rx="58" ry="58"/><ellipse cx="135" cy="380" rx="62" ry="62"/><ellipse cx="240" cy="372" rx="58" ry="56"/><ellipse cx="345" cy="380" rx="64" ry="64"/>
+    <ellipse cx="695" cy="380" rx="64" ry="64"/><ellipse cx="800" cy="372" rx="58" ry="56"/><ellipse cx="905" cy="380" rx="62" ry="62"/><ellipse cx="1010" cy="372" rx="58" ry="58"/>
+  </g>
+  <g stroke="#fde68a" stroke-width="3" stroke-linecap="round">
+    <line x1="80" y1="330" x2="80" y2="296"/><line x1="190" y1="335" x2="190" y2="300"/><line x1="300" y1="330" x2="300" y2="294"/>
+    <line x1="740" y1="330" x2="740" y2="294"/><line x1="850" y1="335" x2="850" y2="300"/><line x1="960" y1="330" x2="960" y2="296"/>
+  </g>
+  <text x="520" y="52" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="22" font-weight="900" fill="#fde68a" opacity="0.75" letter-spacing="8">WORLD TOUR</text>
+</svg>

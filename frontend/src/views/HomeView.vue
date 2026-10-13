@@ -35,14 +35,7 @@
       <div class="content-wrapper">
 
         <template v-if="!isBandMode">
-          <section class="stage solo-stage">
-            <div class="level-tag">Lv.7 {{ charNickname }}</div>
-            <div class="character-box" @click="toggleSpeech">
-              <div class="char-icon">{{ charEmoji }}</div>
-              <transition name="pop">
-                <div v-if="showSpeech" class="speech-bubble">오늘도 달려볼까?</div>
-              </transition>
-            </div>
+          <CharacterStage :character="authStore.character">
             <button class="edit-char-btn" @click="goToEditCharacter" title="캐릭터 수정">
               <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -50,7 +43,7 @@
               </svg>
               캐릭터 수정
             </button>
-          </section>
+          </CharacterStage>
 
           <section class="quick-grid grid-3">
             <button class="card-btn">
@@ -78,7 +71,7 @@
             </div>
             <div class="data-card">
               <div class="card-title">PRACTICE LOG <span>›</span></div>
-              <div class="streak">1일 연속 연습 중! 🔥</div>
+              <div class="streak">{{ currentStreak }}일 연속 연습 중! 🔥</div>
               <div class="fret-board">
                 <div v-for="i in 35" :key="i" :class="['fret', { on: i % 5 === 0 }]"></div>
               </div>
@@ -148,29 +141,14 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import CharacterStage from '../components/CharacterStage.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const isBandMode = ref(false)
-const showSpeech = ref(false)
 const selectedBandId = ref(1)
-const toggleSpeech = () => { showSpeech.value = !showSpeech.value }
 
-// Load character settings from store
-const charNickname = computed(() => authStore.character?.nickname || '방구석 락스타')
-
-const charEmoji = computed(() => {
-  const character = authStore.character
-  if (!character) return '👩‍🎤'
-  
-  const type = character.instrumentType
-  const gender = character.gender
-
-  if (type === 'DRUM') return '🥁'
-  if (type === 'KEYBOARD') return '🎹'
-  if (type === 'VOCAL') return '🎤'
-  return gender === 'MALE' ? '👨‍🎤' : '👩‍🎤'
-})
+const currentStreak = computed(() => authStore.character?.currentStreak ?? 0)
 
 const goToEditCharacter = () => {
   router.push('/character-create?edit=true')
@@ -259,13 +237,6 @@ button::-moz-focus-inner { border: 0 !important; }
 /* 탭과 연결되는 밴드 스테이지 상단 모서리 조정 */
 .band-stage { border-top-left-radius: 0; border-top-right-radius: 0; }
 
-.level-tag { color: #2d5bff; font-weight: 800; margin-bottom: 16px; font-size: 0.9rem; background: #f0f4ff; display: inline-block; padding: 4px 12px; border-radius: 20px; }
-.char-icon { font-size: 5rem; cursor: pointer; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.1)); }
-.speech-bubble {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: 20px; background: #1a1a1a; color: #fff; padding: 10px 20px;
-  border-radius: 14px; font-size: 0.85rem; font-weight: 500;
-}
 
 /* 밴드 매칭 탭 (양쪽 잘림 수정 완료) */
 .band-nav { margin-bottom: -1px; position: relative; z-index: 10; }
@@ -349,13 +320,6 @@ button::-moz-focus-inner { border: 0 !important; }
 .lounge-msg strong { color: #2d5bff; margin-right: 6px; font-weight: 800; }
 .lounge-input { width: 100%; border: 1px solid #e9ecef; padding: 12px; border-radius: 12px; background: #fdfdfd; font-size: 0.85rem; outline: none; transition: 0.2s; }
 .lounge-input:focus { border-color: #2d5bff; background: #fff; }
-
-/* 애니메이션 */
-.pop-enter-active { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-@keyframes pop-in {
-  0% { transform: translate(-50%, 10px) scale(0.8); opacity: 0; }
-  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
-}
 
 .edit-char-btn {
   position: absolute;

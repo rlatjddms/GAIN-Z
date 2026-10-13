@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 360" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1026"/>
+      <stop offset="1" stop-color="#2a1b5e"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#241a45"/>
+      <stop offset="1" stop-color="#120c25"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beam2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#60a5fa" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#60a5fa" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1040" height="360" fill="url(#sky)"/>
+  <rect y="280" width="1040" height="80" fill="url(#floor)"/>
+  <rect x="0" y="0" width="1040" height="26" fill="#0a0a1a"/>
+  <polygon points="200,26 420,300 60,300" fill="url(#beam)"/>
+  <polygon points="520,26 700,300 340,300" fill="url(#beam2)"/>
+  <polygon points="840,26 980,300 640,300" fill="url(#beam)"/>
+  <g fill="#c4b5fd">
+    <circle cx="200" cy="20" r="9"/><circle cx="520" cy="20" r="9"/><circle cx="840" cy="20" r="9"/>
+    <circle cx="360" cy="20" r="6" fill="#93c5fd"/><circle cx="680" cy="20" r="6" fill="#93c5fd"/>
+  </g>
+  <g fill="#ffffff" opacity="0.8">
+    <circle cx="90" cy="90" r="2"/><circle cx="150" cy="140" r="1.5"/><circle cx="320" cy="70" r="2"/><circle cx="470" cy="120" r="1.5"/>
+    <circle cx="620" cy="80" r="2"/><circle cx="760" cy="150" r="1.5"/><circle cx="900" cy="95" r="2"/><circle cx="980" cy="160" r="1.5"/>
+  </g>
+  <g fill="#07051a">
+    <ellipse cx="40" cy="372" rx="60" ry="60"/><ellipse cx="150" cy="378" rx="62" ry="62"/><ellipse cx="260" cy="372" rx="60" ry="58"/><ellipse cx="370" cy="380" rx="64" ry="64"/>
+    <ellipse cx="670" cy="380" rx="64" ry="64"/><ellipse cx="780" cy="372" rx="60" ry="58"/><ellipse cx="890" cy="378" rx="62" ry="62"/><ellipse cx="1000" cy="372" rx="60" ry="60"/>
+  </g>
+  <g stroke="#f5d0fe" stroke-width="3" stroke-linecap="round" opacity="0.9">
+    <line x1="90" y1="330" x2="90" y2="300"/><line x1="210" y1="335" x2="210" y2="305"/><line x1="320" y1="330" x2="320" y2="298"/>
+    <line x1="720" y1="330" x2="720" y2="298"/><line x1="830" y1="335" x2="830" y2="305"/><line x1="950" y1="330" x2="950" y2="300"/>
+  </g>
+</svg>
