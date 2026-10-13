@@ -15,7 +15,7 @@ public record CharacterResponse(
         HairStyle hairStyle,
         String hairColor,
         Integer level,
-        Long exp,
+        Integer exp,
         Integer currentStreak,
         Integer maxStreak,
         Long totalPracticeTime

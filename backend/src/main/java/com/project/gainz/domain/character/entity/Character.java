@@ -2,6 +2,7 @@ package com.project.gainz.domain.character.entity;
 
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
+import com.project.gainz.domain.character.enums.LevelPolicy;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
@@ -17,6 +18,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -65,7 +67,7 @@ public class Character extends BaseEntity {
     private Integer level;
 
     @Column(nullable = false)
-    private Long exp;
+    private Integer exp;
 
     @Column(nullable = false)
     private Integer currentStreak;
@@ -80,6 +82,9 @@ public class Character extends BaseEntity {
     @JoinColumn(name = "current_outfit_id", nullable = false)
     private OutfitItem currentOutfit;
 
+    @Version
+    private Long version;
+
     @Builder
     public Character(User user, String nickname, InstrumentType instrumentType, String instrumentColor,
                      Gender gender, HairStyle hairStyle, String hairColor, OutfitItem currentOutfit) {
@@ -92,7 +97,7 @@ public class Character extends BaseEntity {
         this.hairColor = hairColor;
         this.currentOutfit = currentOutfit;
         this.level = 1;
-        this.exp = 0L;
+        this.exp = 0;
         this.currentStreak = 0;
         this.maxStreak = 0;
         this.totalPracticeTime = 0L;
@@ -106,5 +111,29 @@ public class Character extends BaseEntity {
         this.gender = gender;
         this.hairStyle = hairStyle;
         this.hairColor = hairColor;
+    }
+
+    public boolean gainExperience(int amount) {
+
+        if (this.level >= 50) return false;
+
+        this.exp += amount;
+        boolean leveledUp = false;
+
+        while (this.exp >= LevelPolicy.getRequiredExpForLevel(this.level)) {
+            this.exp -= LevelPolicy.getRequiredExpForLevel(this.level);
+            this.level++;
+            leveledUp = true;
+
+            if (this.level >= 50) {
+                this.exp = 0;
+                break;
+            }
+        }
+        return leveledUp;
+    }
+
+    public void addPracticeTime(long minutes) {
+        this.totalPracticeTime += minutes;
     }
 }

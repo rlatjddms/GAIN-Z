@@ -68,8 +68,7 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), user.getRole().name());
         String refreshTokenValue = jwtTokenProvider.createRefreshToken(user.getEmail());
 
-        com.project.gainz.domain.user.entity.RefreshToken refreshToken =
-                new com.project.gainz.domain.user.entity.RefreshToken(user.getEmail(), refreshTokenValue);
+        RefreshToken refreshToken = new RefreshToken(user.getEmail(), refreshTokenValue);
         refreshTokenRepository.save(refreshToken);
 
         return new TokenResponse(accessToken, refreshTokenValue);
