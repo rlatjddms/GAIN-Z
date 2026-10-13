@@ -3,6 +3,7 @@ package com.project.gainz.domain.character.service;
 import com.project.gainz.domain.character.dto.request.CharacterCreateRequest;
 import com.project.gainz.domain.character.dto.request.CharacterUpdateRequest;
 import com.project.gainz.domain.character.dto.response.CharacterResponse;
+import com.project.gainz.domain.character.dto.response.ExperienceResult;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.entity.UserOutfit;
@@ -17,6 +18,9 @@ import com.project.gainz.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -93,6 +97,47 @@ public class CharacterService {
                 request.gender(),
                 request.hairStyle(),
                 request.hairColor()
+        );
+    }
+
+    // 경험치 추가 후 레벨업 및 아이템 해금
+    public ExperienceResult processExperienceAndUnlocks(Long userId, int expAmount, long practiceTimeMinutes) {
+
+        Character character = characterRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
+
+        int prevLevel = character.getLevel();
+        character.addPracticeTime(practiceTimeMinutes);
+
+        boolean isLeveledUp = character.gainExperience(expAmount);
+        int currentLevel = character.getLevel();
+
+        List<ExperienceResult.NewUnlockedOutfit> unlockedOutfits = new ArrayList<>();
+
+        if (isLeveledUp) {
+            List<OutfitItem> targetItems = outfitItemRepository.findUnlockableItems(prevLevel, currentLevel);
+
+            for (OutfitItem item : targetItems) {
+                boolean alreadyOwned = userOutfitRepository.existsByUserAndOutfitItem(character.getUser(), item);
+
+                if (!alreadyOwned) {
+                    UserOutfit userOutfit = UserOutfit.builder()
+                            .user(character.getUser())
+                            .outfitItem(item)
+                            .build();
+                    userOutfitRepository.save(userOutfit);
+
+                    unlockedOutfits.add(ExperienceResult.NewUnlockedOutfit.from(item));
+                }
+            }
+        }
+
+        return new ExperienceResult(
+                prevLevel,
+                currentLevel,
+                character.getExp(),
+                isLeveledUp,
+                unlockedOutfits
         );
     }
 }
