@@ -16,7 +16,7 @@ const KEY_LABEL = {
 const FIXED_COLORS = [
   '#f8d7b5', '#e3b48d', '#9c5b36', '#fde7cf',   // 피부 밝음·그림자·선·하이라이트
   '#3a2622', '#ffffff', '#f4a5a0', '#c76a6a',   // 눈, 흰자, 볼, 입
-  '#4d5583', '#3a4066', '#2b2f4d', '#5a3d2b',   // 바지, 바지 그림자, 바지 선, 신발
+  '#4a7bc8', '#3762a6', '#274a80', '#1f1f23', '#0b0b0d',   // 청바지, 청바지 그림자, 청바지 선, 신발, 신발 선
   '#c08a52', '#8e6035', '#e9e9ec', '#9b9ba3', '#f6f1e4', // 나무, 나무 그림자, 금속, 금속 그림자, 드럼헤드
 ];
 
@@ -30,7 +30,7 @@ const S = {
   undo: [], redo: [],
   others_cache: {},   // `${layer}/${name}` -> grid
   pv: { body: 'FEMALE', outfit: 'DEFAULT', hair: 'LONG_STRAIGHT', instrument: 'GUITAR',
-        hairColor: '#EC4899', instrumentColor: '#B91C1C', outfitColor: '#3B82F6' },
+        hairColor: '#EC4899', instrumentColor: '#B91C1C', outfitColor: '#FFFFFF' },
 };
 function blank() { return Array.from({ length: H }, () => Array(W).fill(null)); }
 const clone = (g) => g.map((r) => [...r]);
