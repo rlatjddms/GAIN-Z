@@ -1,7 +1,7 @@
-import rookieStage from '../assets/stages/rookie.svg'
-import clubStage from '../assets/stages/club.svg'
-import concertStage from '../assets/stages/concert.svg'
-import legendStage from '../assets/stages/legend.svg'
+import rookieStage from '../assets/stages/rookie.png'
+import clubStage from '../assets/stages/club.png'
+import concertStage from '../assets/stages/concert.png'
+import legendStage from '../assets/stages/legend.png'
 
 export const MAX_LEVEL = 50
 
@@ -24,7 +24,6 @@ export const LEVEL_TIERS = [
     accent: '#2d5bff',
     accentSoft: '#f0f4ff',
     textColor: '#1a1a1a',
-    props: ['🎧', '📻'],
     scale: 1,
     aura: 'none',
     speech: '오늘도 달려볼까?',
@@ -38,7 +37,6 @@ export const LEVEL_TIERS = [
     accent: '#e8590c',
     accentSoft: '#fff4e6',
     textColor: '#ffffff',
-    props: ['🔊', '🎪'],
     scale: 1.1,
     aura: 'soft',
     speech: '오늘 공연, 관객이 꽤 모였어!',
@@ -52,7 +50,6 @@ export const LEVEL_TIERS = [
     accent: '#7c3aed',
     accentSoft: '#f3f0ff',
     textColor: '#ffffff',
-    props: ['🎆', '📸'],
     scale: 1.2,
     aura: 'glow',
     speech: '다음 도시로 떠날 준비 됐어?',
@@ -66,7 +63,6 @@ export const LEVEL_TIERS = [
     accent: '#f59e0b',
     accentSoft: '#fff8e1',
     textColor: '#ffffff',
-    props: ['🎇', '🏆'],
     scale: 1.3,
     aura: 'legend',
     speech: '이제 전설은 내 이름으로 쓰인다.',

@@ -8,7 +8,7 @@
         <section class="preview-panel">
           <div class="stage-spotlight">
             <div class="avatar-circle">
-              <span class="preview-emoji">{{ selectedEmoji }}</span>
+              <PixelCharacter :character="previewCharacter" :scale="5" />
             </div>
             <div class="spotlight-shadow"></div>
           </div>
@@ -233,6 +233,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import axiosInstance from '../api/axios'
+import PixelCharacter from '../components/PixelCharacter.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -346,20 +347,14 @@ const validateNickname = () => {
   isNicknameValid.value = true
 }
 
-// Map choices to single emoji
-const selectedEmoji = computed(() => {
-  if (instrumentType.value === 'DRUM') {
-    return '🥁'
-  }
-  if (instrumentType.value === 'KEYBOARD') {
-    return '🎹'
-  }
-  if (instrumentType.value === 'VOCAL') {
-    return '🎤'
-  }
-  // For GUITAR & BASS (guitarists)
-  return gender.value === 'MALE' ? '👨‍🎤' : '👩‍🎤'
-})
+// 선택한 값으로 바로 그려지는 픽셀 캐릭터 미리보기
+const previewCharacter = computed(() => ({
+  gender: gender.value,
+  hairStyle: hairStyle.value,
+  hairColor: hairColor.value,
+  instrumentType: instrumentType.value,
+  instrumentColor: instrumentColor.value,
+}))
 
 // Validation for current step
 const isStepValid = computed(() => {
@@ -544,11 +539,11 @@ const handleSubmit = async () => {
 }
 
 .avatar-circle {
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
   background: #ffffff;
   border: 2px solid #e9ecef;
-  border-radius: 50%;
+  border-radius: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -559,12 +554,6 @@ const handleSubmit = async () => {
 
 .avatar-circle:hover {
   transform: scale(1.05);
-}
-
-.preview-emoji {
-  font-size: 6.5rem;
-  line-height: 1;
-  filter: drop-shadow(0 8px 10px rgba(0,0,0,0.08));
 }
 
 .spotlight-shadow {

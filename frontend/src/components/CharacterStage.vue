@@ -12,18 +12,15 @@
     </div>
 
     <div class="stage-floor">
-      <span class="stage-prop prop-left">{{ tier.props[0] }}</span>
-
       <div class="character-box" @click="toggleSpeech">
         <div v-if="tier.aura !== 'none'" class="aura" :class="`aura-${tier.aura}`"></div>
-        <div v-if="tier.key === 'LEGEND'" class="crown">👑</div>
-        <div class="char-icon" :style="{ transform: `scale(${tier.scale})` }">{{ emoji }}</div>
+        <div class="char-icon">
+          <PixelCharacter :character="character" :scale="pixelScale" />
+        </div>
         <transition name="pop">
           <div v-if="showSpeech" class="speech-bubble">{{ tier.speech }}</div>
         </transition>
       </div>
-
-      <span class="stage-prop prop-right">{{ tier.props[1] }}</span>
     </div>
 
     <div class="exp-area">
@@ -47,6 +44,7 @@ import {
   getRequiredExp,
   getExpProgress,
 } from '../constants/levelTier'
+import PixelCharacter from './PixelCharacter.vue'
 
 const props = defineProps({
   character: { type: Object, default: null },
@@ -71,14 +69,9 @@ const expLabel = computed(() => {
   return `${base} · 다음 무대 「${nextTier.value.name}」까지 Lv.${nextTier.value.minLevel}`
 })
 
-const emoji = computed(() => {
-  const character = props.character
-  if (!character) return '👩‍🎤'
-  if (character.instrumentType === 'DRUM') return '🥁'
-  if (character.instrumentType === 'KEYBOARD') return '🎹'
-  if (character.instrumentType === 'VOCAL') return '🎤'
-  return character.gender === 'MALE' ? '👨‍🎤' : '👩‍🎤'
-})
+// 무대가 커질수록 캐릭터도 커진다 (정수 배율만 사용해야 도트가 깨지지 않음)
+const pixelScale = computed(() => Math.round(5 * tier.value.scale))
+const character = computed(() => props.character)
 
 const stageStyle = computed(() => ({
   backgroundImage: `url(${tier.value.background})`,
@@ -100,6 +93,8 @@ const stageStyle = computed(() => ({
   background-size: cover;
   background-position: center bottom;
   background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
   color: var(--stage-text, #1a1a1a);
   text-align: center;
@@ -160,13 +155,6 @@ const stageStyle = computed(() => ({
   gap: 48px;
   min-height: 150px;
 }
-.stage-prop {
-  font-size: 2.2rem;
-  opacity: 0.85;
-  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.18));
-  animation: prop-sway 4s ease-in-out infinite;
-}
-.prop-right { animation-delay: 2s; }
 
 .character-box {
   position: relative;
@@ -181,11 +169,8 @@ const stageStyle = computed(() => ({
 .char-icon {
   position: relative;
   z-index: 2;
-  font-size: 5rem;
-  line-height: 1;
-  transform-origin: center bottom;
-  filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.18));
-  animation: idle-bounce 2.6s ease-in-out infinite;
+  line-height: 0;
+  filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.25));
 }
 
 .aura {
@@ -214,15 +199,6 @@ const stageStyle = computed(() => ({
   height: 230px;
   background: radial-gradient(circle, rgba(253, 230, 138, 0.8) 0%, rgba(251, 191, 36, 0.35) 45%, rgba(251, 191, 36, 0) 72%);
   animation: aura-pulse 1.8s ease-in-out infinite, aura-spin 10s linear infinite;
-}
-
-.crown {
-  position: absolute;
-  top: -8px;
-  z-index: 3;
-  font-size: 2rem;
-  filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.6));
-  animation: crown-float 2.2s ease-in-out infinite;
 }
 
 .speech-bubble {
@@ -270,10 +246,6 @@ const stageStyle = computed(() => ({
   from { opacity: 0; transform: translateX(-50%) scale(0.6); }
   to { opacity: 1; transform: translateX(-50%) scale(1); }
 }
-@keyframes idle-bounce {
-  0%, 100% { translate: 0 0; }
-  50% { translate: 0 -6px; }
-}
 @keyframes aura-pulse {
   0%, 100% { opacity: 0.7; scale: 0.92; }
   50% { opacity: 1; scale: 1.08; }
@@ -282,24 +254,14 @@ const stageStyle = computed(() => ({
   from { rotate: 0deg; }
   to { rotate: 360deg; }
 }
-@keyframes crown-float {
-  0%, 100% { translate: 0 0; }
-  50% { translate: 0 -5px; }
-}
-@keyframes prop-sway {
-  0%, 100% { rotate: -4deg; }
-  50% { rotate: 4deg; }
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .char-icon, .aura, .crown, .stage-prop { animation: none; }
+  .aura { animation: none; }
 }
 
 @media (max-width: 640px) {
   .character-stage { padding: 48px 20px 28px; }
   .stage-floor { gap: 20px; }
-  .stage-prop { font-size: 1.6rem; }
-  .char-icon { font-size: 4rem; }
   .speech-bubble { white-space: normal; max-width: 220px; }
 }
 </style>

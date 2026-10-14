@@ -36,6 +36,11 @@
     </section>
 
     <section class="panel">
+      <h2>레벨 구간별 무대</h2>
+      <CharacterStage v-for="lv in [3, 14, 35, 50]" :key="lv" :character="{ ...character, nickname: '미리보기', level: lv, exp: 40 }" />
+    </section>
+
+    <section class="panel">
       <h2>머리 스타일 {{ hairStyles.length }}종</h2>
       <div class="grid">
         <figure v-for="h in hairStyles" :key="h">
@@ -60,6 +65,7 @@
 <script setup>
 import { reactive } from 'vue'
 import PixelCharacter from '../components/PixelCharacter.vue'
+import CharacterStage from '../components/CharacterStage.vue'
 import { listSprites } from '../pixel/sprites'
 
 const hairStyles = listSprites('hair')
