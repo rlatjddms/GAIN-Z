@@ -6,9 +6,7 @@ import CharacterCreateView from '../views/CharacterCreateView.vue'
 import OAuth2RedirectView from '../views/OAuth2RedirectView.vue'
 import { useAuthStore } from '../stores/auth'
 
-const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
+const routes = [
     {
       path: '/',
       name: 'login',
@@ -34,7 +32,20 @@ const router = createRouter({
       name: 'oauth2-redirect',
       component: OAuth2RedirectView
     }
-  ]
+]
+
+// 개발 모드 전용: 픽셀 스프라이트 미리보기 (/dev/sprites)
+if (import.meta.env.DEV) {
+  routes.push({
+    path: '/dev/sprites',
+    name: 'dev-sprites',
+    component: () => import('../views/SpritePreviewView.vue')
+  })
+}
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes
 })
 
 router.beforeEach(async (to, from, next) => {
