@@ -347,14 +347,19 @@ const validateNickname = () => {
   isNicknameValid.value = true
 }
 
-// 선택한 값으로 바로 그려지는 픽셀 캐릭터 미리보기
-const previewCharacter = computed(() => ({
-  gender: gender.value,
-  hairStyle: hairStyle.value,
-  hairColor: hairColor.value,
-  instrumentType: instrumentType.value,
-  instrumentColor: instrumentColor.value,
-}))
+// 선택한 값으로 바로 그려지는 픽셀 캐릭터 미리보기.
+// 아직 가지 않은 단계의 요소는 그리지 않는다 (1단계: 대머리·악기 없음, 2단계: 머리, 3단계: 악기). 수정 모드는 전부 표시.
+const previewCharacter = computed(() => {
+  const showHair = isEditMode.value || currentStep.value >= 2
+  const showInstrument = isEditMode.value || currentStep.value >= 3
+  return {
+    gender: gender.value,
+    hairStyle: showHair ? hairStyle.value : null,
+    hairColor: hairColor.value,
+    instrumentType: showInstrument ? instrumentType.value : null,
+    instrumentColor: instrumentColor.value,
+  }
+})
 
 // Validation for current step
 const isStepValid = computed(() => {

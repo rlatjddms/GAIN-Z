@@ -30,13 +30,14 @@ let timer = null
 let layers = []          // [{ layer, canvas }]
 let loadToken = 0
 
+// hairStyle / instrumentType 이 null 이면 그 레이어를 그리지 않는다 (온보딩에서 아직 고르기 전)
 const spec = computed(() => {
   const c = props.character || {}
   return {
     body: c.gender === 'MALE' ? 'MALE' : 'FEMALE',
     outfit: props.outfit,
-    hair: c.hairStyle || 'SHORT_CUT',
-    instrument: c.instrumentType || 'GUITAR',
+    hair: c.hairStyle === null ? null : (c.hairStyle || 'SHORT_CUT'),
+    instrument: c.instrumentType === null ? null : (c.instrumentType || 'GUITAR'),
     colors: {
       hairColor: c.hairColor || DEFAULT_COLORS.hairColor,
       instrumentColor: c.instrumentColor || DEFAULT_COLORS.instrumentColor,
@@ -45,7 +46,11 @@ const spec = computed(() => {
   }
 })
 
-const label = computed(() => `${spec.value.hair} 머리의 ${spec.value.instrument} 연주자 픽셀 캐릭터`)
+const label = computed(() => {
+  const hair = spec.value.hair ? `${spec.value.hair} 머리` : '머리 없음'
+  const inst = spec.value.instrument ? `${spec.value.instrument} 연주자` : '악기 없음'
+  return `${hair}, ${inst} 픽셀 캐릭터`
+})
 
 // 악기는 몸과 반대 위상으로 1px 움직여서 "연주 중" 느낌을 준다
 const INSTRUMENT_COUNTER_BOB = new Set(['GUITAR', 'BASS', 'VOCAL'])
