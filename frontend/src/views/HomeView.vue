@@ -46,16 +46,28 @@
               </div>
             </div>
             <div class="data-card">
-              <div class="card-title">PRACTICE LOG <small>최근 {{ GRASS_WEEKS }}주</small></div>
-              <div class="streak">{{ currentStreak }}일 연속 연습 중! 🔥</div>
+              <div class="card-title">
+                PRACTICE LOG
+                <span class="grass-legend">
+                  적음
+                  <span v-for="lv in 5" :key="lv" class="g" :class="`lv${lv - 1}`"></span>
+                  많음
+                </span>
+              </div>
+              <!-- 요약 수치: 이번 달 값은 #43(기간별 연습 로그 조회 API)에서 연결 -->
+              <div class="log-stats">
+                <div class="log-stat streak-stat">
+                  <span>연속 연습</span>
+                  <strong>{{ currentStreak }}일 🔥</strong>
+                </div>
+                <div v-for="s in monthStats" :key="s.label" class="log-stat">
+                  <span>{{ s.label }}</span>
+                  <strong :class="{ empty: s.value == null }">{{ s.value ?? '—' }}</strong>
+                </div>
+              </div>
               <!-- 연습 잔디: 세로 7칸(요일) × 가로 주, 왼쪽이 오래된 주. #43·#44에서 실제 기록 연결 -->
               <div class="grass">
                 <span v-for="i in GRASS_WEEKS * 7" :key="i" class="g"></span>
-              </div>
-              <div class="grass-legend">
-                적음
-                <span v-for="lv in 5" :key="lv" class="g" :class="`lv${lv - 1}`"></span>
-                많음
               </div>
             </div>
           </section>
@@ -141,7 +153,12 @@ const goToEditCharacter = () => {
 }
 
 const isPickCaseOpen = ref(false)
-const GRASS_WEEKS = 26
+const GRASS_WEEKS = 30
+// 이번 달 요약 (null = 아직 데이터 없음)
+const monthStats = computed(() => [
+  { label: `${new Date().getMonth() + 1}월 연습 시간`, value: null },
+  { label: `${new Date().getMonth() + 1}월 연습한 날`, value: null },
+])
 
 const myBands = ref([
   { id: 1, name: '락앤롤 베이비', members: [{id:1, emoji:'🥁', role:'DR'}, {id:2, emoji:'🎤', role:'VO'}, {id:3, emoji:'🎸', role:'GT1'}, {id:4, emoji:'🎸', role:'GT2'}]},
@@ -254,19 +271,24 @@ button::-moz-focus-inner { border: 0 !important; }
 .pick { background: #f8f9fa; height: 64px; display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1px solid #f1f3f5; font-size: 1.2rem; }
 .pick.locked { opacity: 0.3; }
 
-.streak { color: #ff922b; font-weight: 800; margin-bottom: 12px; font-size: 0.9rem; }
+.log-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.log-stat {
+  background: #f8f9fa; border: 1px solid #f1f3f5; border-radius: 12px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
+}
+.log-stat span { font-size: 0.7rem; font-weight: 700; color: #868e96; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-stat strong { font-size: 1rem; font-weight: 900; color: #1a1a1a; white-space: nowrap; }
+.log-stat strong.empty { color: #ced4da; }
+.streak-stat { background: #fff4e6; border-color: #ffe8cc; }
+.streak-stat strong { color: #ff922b; }
 .pick-box.clickable { cursor: pointer; }
-.card-title small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 
 .grass {
   display: grid; grid-auto-flow: column;
-  grid-template-rows: repeat(7, auto); grid-template-columns: repeat(26, minmax(0, 1fr)); gap: 3px;
+  grid-template-rows: repeat(7, auto); grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px;
 }
 .g { display: block; aspect-ratio: 1; border-radius: 3px; background: #f1f3f5; }
-.grass-legend {
-  display: flex; align-items: center; justify-content: flex-end; gap: 4px;
-  margin-top: 10px; font-size: 0.7rem; font-weight: 700; color: #adb5bd;
-}
+.grass-legend { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 .grass-legend .g { width: 10px; }
 .g.lv1 { background: #c9d6ff; }
 .g.lv2 { background: #8ea8ff; }
