@@ -130,7 +130,8 @@ const saveParts = async (parts) => {
 }
 
 const showSaved = (seconds, exp) => {
-  savedMessage.value = `${durationText(seconds)} 기록했어요 · +${exp} EXP`
+  // 경험치는 하루 합계 1분 단위라 짧은 구간은 0일 수 있다. 받았을 때만 표시
+  savedMessage.value = exp > 0 ? `${durationText(seconds)} 기록했어요 · +${exp} EXP` : `${durationText(seconds)} 기록했어요`
   clearTimeout(savedTimer)
   savedTimer = setTimeout(() => { savedMessage.value = '' }, 6000)
 }
