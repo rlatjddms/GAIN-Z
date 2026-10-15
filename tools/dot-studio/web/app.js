@@ -28,6 +28,8 @@ const S = {
   color: KEY_COLORS.HAIR.color, recent: [],
   zoom: 18, pan: { x: 0, y: 0 },
   undo: [], redo: [],
+  sel: null,    // 선택 영역 { x, y, w, h, float, base }. float가 있으면 떼어 낸 칸이 base 위에 떠 있는 상태
+  clip: null,   // 복사한 칸 { x, y, g } (스프라이트·레이어를 바꿔도 유지)
   others_cache: {},   // `${layer}/${name}` -> grid
   pv: { body: 'FEMALE', outfit: 'DEFAULT_FEMALE', hair: 'LONG_STRAIGHT', instrument: 'GUITAR',
         skinColor: '#F8D7B5', hairColor: '#EC4899', instrumentColor: '#B91C1C', outfitColor: '#FFFFFF' },
@@ -135,6 +137,15 @@ function drawPaint() {
     pctx.fillStyle = 'rgba(45,91,255,.25)';
     pctx.fillRect(W / 2 * CELL - 1, 0, 2, H * CELL);
   }
+  if (S.sel) {
+    const { x, y, w, h } = S.sel;
+    pctx.save();
+    pctx.lineWidth = 3;
+    pctx.fillStyle = 'rgba(45,91,255,.08)'; pctx.fillRect(x * CELL, y * CELL, w * CELL, h * CELL);
+    pctx.strokeStyle = '#fff'; pctx.strokeRect(x * CELL + 1.5, y * CELL + 1.5, w * CELL - 3, h * CELL - 3);
+    pctx.setLineDash([8, 6]); pctx.strokeStyle = '#2d5bff'; pctx.strokeRect(x * CELL + 1.5, y * CELL + 1.5, w * CELL - 3, h * CELL - 3);
+    pctx.restore();
+  }
 }
 
 function applyZoom(animate = true) {
@@ -161,9 +172,10 @@ function setZoom(z, cx, cy) {
   }
   applyZoom();
 }
-function cellAt(e) {
+function cellAt(e, clamp = true) {
   const r = paint.getBoundingClientRect();
   const x = Math.floor((e.clientX - r.left) / r.width * W), y = Math.floor((e.clientY - r.top) / r.height * H);
+  if (!clamp) return { x, y };
   return x >= 0 && x < W && y >= 0 && y < H ? { x, y } : null;
 }
 function moveCursor(c) {
@@ -206,12 +218,72 @@ function flood(g, x, y, c) {
     st.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]);
   }
 }
+// 그림 전체를 (dx, dy)칸 옮긴 새 격자. 밖으로 나간 칸은 버린다
+function shifted(g, dx, dy) {
+  const out = blank();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const nx = x + dx, ny = y + dy;
+    if (g[y][x] && nx >= 0 && nx < W && ny >= 0 && ny < H) out[ny][nx] = g[y][x];
+  }
+  return out;
+}
+const cutsOff = (g, dx, dy) => g.some((row, y) => row.some((c, x) => c && (x + dx < 0 || x + dx >= W || y + dy < 0 || y + dy >= H)));
+function nudge(dx, dy) {
+  if (!S.name) return;
+  if (cutsOff(S.grid, dx, dy)) { toast('가장자리에 닿아서 더 옮기면 잘려요. 이동 도구(V)로 드래그하면 옮길 수 있어요'); return; }
+  pushUndo(); S.grid = shifted(S.grid, dx, dy); changed();
+}
+
+// ---------- 선택 영역 · 복사 붙여넣기 ----------
+const clampCell = (c) => ({ x: Math.max(0, Math.min(W - 1, c.x)), y: Math.max(0, Math.min(H - 1, c.y)) });
+const rectOf = (a, b) => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x) + 1, h: Math.abs(a.y - b.y) + 1, float: null, base: null });
+const selContains = (c) => { const r = S.sel; return r && c.x >= r.x && c.x < r.x + r.w && c.y >= r.y && c.y < r.y + r.h; };
+const extract = (g, r) => Array.from({ length: r.h }, (_, j) => Array.from({ length: r.w }, (_, i) => g[r.y + j]?.[r.x + i] ?? null));
+function stamp(base, float, x, y) {
+  const out = clone(base);
+  float.forEach((row, j) => row.forEach((c, i) => { if (c && x + i >= 0 && x + i < W && y + j >= 0 && y + j < H) out[y + j][x + i] = c; }));
+  return out;
+}
+// 선택한 칸을 떼어 내서 띄운다. 띄운 동안은 캔버스 밖으로 나갔다 돌아와도 잘리지 않음
+function lift() {
+  const r = S.sel; if (r.float) return;
+  r.float = extract(S.grid, r); r.base = clone(S.grid);
+  for (let j = 0; j < r.h; j++) for (let i = 0; i < r.w; i++) r.base[r.y + j][r.x + i] = null;
+}
+function moveSel(x, y) { S.sel.x = x; S.sel.y = y; S.grid = stamp(S.sel.base, S.sel.float, x, y); changed(); }
+function deselect() { if (!S.sel) return; S.sel = null; drawPaint(); }
+function copySel(cut = false) {
+  if (!S.name) return;
+  const r = S.sel || { x: 0, y: 0, w: W, h: H };
+  const g = r.float ? clone(r.float) : extract(S.grid, r);
+  if (!g.flat().some(Boolean)) { toast('선택한 곳이 비어 있어요'); return; }
+  S.clip = { x: r.x, y: r.y, g };
+  if (cut && S.sel) { deleteSel(); toast('잘라냈어요. Ctrl+V로 붙여넣으세요'); return; }
+  toast(S.sel ? `복사했어요 (${r.w}×${r.h})` : '선택 영역이 없어서 그림 전체를 복사했어요');
+}
+function deleteSel() {
+  if (!S.name || !S.sel) return;
+  pushUndo(); lift();
+  S.grid = S.sel.base; S.sel = null; changed();
+}
+function paste() {
+  if (!S.name) return;
+  if (!S.clip) { toast('먼저 Ctrl+C로 복사하세요'); return; }
+  pushUndo();
+  const { x, y, g } = S.clip;
+  S.sel = { x, y, w: g[0].length, h: g.length, float: clone(g), base: clone(S.grid) };
+  setTool('move');
+  moveSel(x, y);
+  toast('붙여넣었어요. 드래그나 방향키로 옮기고 Esc로 내려놓으세요');
+}
+function selectAll() { if (!S.name) return; S.sel = rectOf({ x: 0, y: 0 }, { x: W - 1, y: H - 1 }); setTool('select'); drawPaint(); }
+
 function changed() {
   S.others_cache[`${S.layer}/${S.name}`] = S.grid;
   drawPaint(); renderUsed(); renderStatus(); renderListThumb(); drawPreview();
 }
 
-let stroke = null, panDrag = null, spaceDown = false, lastPt = null;
+let stroke = null, panDrag = null, moveDrag = null, selDrag = null, selMove = null, spaceDown = false, lastPt = null;
 area.addEventListener('contextmenu', (e) => e.preventDefault());
 area.addEventListener('pointerdown', (e) => {
   if (!S.name) { toast('왼쪽에서 스프라이트를 고르거나 추가하세요'); return; }
@@ -219,7 +291,24 @@ area.addEventListener('pointerdown', (e) => {
     panDrag = { x: e.clientX, y: e.clientY, px: S.pan.x, py: S.pan.y };
     area.classList.add('panning'); wrap.classList.add('no-anim'); area.setPointerCapture(e.pointerId); return;
   }
+  if (e.button === 0 && !e.altKey && (S.tool === 'move' || S.tool === 'select')) {
+    const p = cellAt(e, false);
+    if (S.sel && (S.tool === 'move' || selContains(p))) {
+      // 선택 영역 옮기기 (이동 도구는 어디를 잡아도, 선택 도구는 영역 안을 잡으면)
+      pushUndo(); lift();
+      selMove = { start: p, ox: S.sel.x, oy: S.sel.y, moved: false };
+    } else if (S.tool === 'select') {
+      const a = clampCell(p);
+      selDrag = { a, moved: false }; S.sel = rectOf(a, a); drawPaint();
+    } else {
+      // 선택이 없으면 그림 전체를 옮긴다. 드래그하는 동안은 원본(base)에서 옮긴 결과를 보여 줘서, 밖으로 나갔다 돌아와도 잘리지 않는다
+      pushUndo();
+      moveDrag = { base: clone(S.grid), start: p, dx: 0, dy: 0 };
+    }
+    area.setPointerCapture(e.pointerId); return;
+  }
   const c = cellAt(e); if (!c) return;
+  if (S.sel && !e.altKey && S.tool !== 'picker') S.sel = null;   // 그리기 시작하면 떠 있던 선택은 그 자리에 내려놓음
   const g = S.grid;
   const tool = e.button === 2 ? 'eraser' : e.altKey ? 'picker' : S.tool;
   if (tool === 'picker') { if (g[c.y][c.x]) pickColor(g[c.y][c.x]); return; }
@@ -234,12 +323,37 @@ area.addEventListener('pointerdown', (e) => {
 });
 area.addEventListener('pointermove', (e) => {
   if (panDrag) { S.pan.x = panDrag.px + e.clientX - panDrag.x; S.pan.y = panDrag.py + e.clientY - panDrag.y; applyZoom(false); return; }
+  if (selDrag) {
+    const b = clampCell(cellAt(e, false));
+    if (b.x !== selDrag.a.x || b.y !== selDrag.a.y) selDrag.moved = true;
+    S.sel = rectOf(selDrag.a, b); drawPaint(); moveCursor(null); return;
+  }
+  if (selMove) {
+    const p = cellAt(e, false), x = selMove.ox + p.x - selMove.start.x, y = selMove.oy + p.y - selMove.start.y;
+    if (x !== S.sel.x || y !== S.sel.y) { selMove.moved = true; moveSel(x, y); }
+    moveCursor(null); return;
+  }
+  if (moveDrag) {
+    const p = cellAt(e, false), dx = p.x - moveDrag.start.x, dy = p.y - moveDrag.start.y;
+    if (dx !== moveDrag.dx || dy !== moveDrag.dy) { moveDrag.dx = dx; moveDrag.dy = dy; S.grid = shifted(moveDrag.base, dx, dy); changed(); }
+    moveCursor(null); return;
+  }
   const c = cellAt(e); moveCursor(c);
   if (stroke && c && (c.x !== stroke.last.x || c.y !== stroke.last.y)) {
     line(S.grid, stroke.last, c, stroke.col); stroke.last = c; lastPt = c; changed();
   }
 });
-const endStroke = () => { stroke = null; if (panDrag) { panDrag = null; area.classList.remove('panning'); } };
+const endStroke = () => {
+  stroke = null;
+  if (panDrag) { panDrag = null; area.classList.remove('panning'); }
+  if (moveDrag) {
+    if (!moveDrag.dx && !moveDrag.dy) { S.undo.pop(); updateUndoButtons(); }   // 안 움직였으면 되돌리기 기록도 남기지 않음
+    else if (cutsOff(moveDrag.base, moveDrag.dx, moveDrag.dy)) toast('캔버스 밖으로 나간 칸은 잘렸어요 (Ctrl+Z로 되돌리기)');
+    moveDrag = null;
+  }
+  if (selDrag) { if (!selDrag.moved) deselect(); selDrag = null; }   // 드래그 없이 클릭만 하면 선택 해제
+  if (selMove) { if (!selMove.moved) { S.undo.pop(); updateUndoButtons(); } selMove = null; }
+};
 area.addEventListener('pointerup', endStroke);
 area.addEventListener('pointercancel', endStroke);
 area.addEventListener('pointerleave', () => moveCursor(null));
@@ -249,6 +363,7 @@ function undo(redo = false) {
   const from = redo ? S.redo : S.undo, to = redo ? S.undo : S.redo;
   if (!from.length) return;
   to.push(clone(S.grid));
+  S.sel = null;
   S.grid = from.pop();
   changed(); updateUndoButtons();
 }
@@ -257,6 +372,7 @@ function updateUndoButtons() { $('#tUndo').disabled = !S.undo.length; $('#tRedo'
 // ---------- 도구 · 색 ----------
 function setTool(t) {
   S.tool = t;
+  area.classList.toggle('moving', t === 'move');
   $$('.tool[data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === t));
 }
 function toggle(key, btn) {
@@ -345,7 +461,7 @@ function renderStatus() {
 
 async function selectLayer(layer) {
   if (!(await confirmDiscard())) return;
-  S.layer = layer; S.name = null; S.grid = blank(); S.saved = null; S.undo = []; S.redo = [];
+  S.layer = layer; S.name = null; S.sel = null; S.grid = blank(); S.saved = null; S.undo = []; S.redo = [];
   renderLayerTabs(); renderList(); renderKeys(); renderUsed(); renderStatus(); updateUndoButtons();
   const first = (S.sprites[layer] || [])[0];
   if (first) selectSprite(first); else drawPaint();
@@ -356,7 +472,7 @@ async function selectLayer(layer) {
 async function selectSprite(name) {
   if (name === S.name) return;
   if (!(await confirmDiscard())) return;
-  S.name = name;
+  S.name = name; S.sel = null;
   delete S.others_cache[`${S.layer}/${name}`];
   S.grid = clone(await loadGrid(S.layer, name));
   S.saved = clone(S.grid); S.undo = []; S.redo = [];
@@ -480,7 +596,20 @@ window.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); undo(e.shiftKey); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); undo(true); return; }
   if (k === ' ') { spaceDown = true; e.preventDefault(); return; }
-  if (k === 'b') setTool('pen'); else if (k === 'e') setTool('eraser'); else if (k === 'f') setTool('fill'); else if (k === 'i') setTool('picker');
+  const arrow = { arrowup: [0, -1], arrowdown: [0, 1], arrowleft: [-1, 0], arrowright: [1, 0] }[k];
+  if (arrow) {
+    e.preventDefault();
+    if (S.sel) { pushUndo(); lift(); moveSel(S.sel.x + arrow[0], S.sel.y + arrow[1]); } else nudge(...arrow);
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && k === 'c') { e.preventDefault(); copySel(); return; }
+  if ((e.ctrlKey || e.metaKey) && k === 'x') { e.preventDefault(); copySel(true); return; }
+  if ((e.ctrlKey || e.metaKey) && k === 'v') { e.preventDefault(); paste(); return; }
+  if ((e.ctrlKey || e.metaKey) && k === 'a') { e.preventDefault(); selectAll(); return; }
+  if ((e.ctrlKey || e.metaKey) && k === 'd') { e.preventDefault(); deselect(); return; }
+  if (k === 'escape') { deselect(); return; }
+  if (k === 'delete' || k === 'backspace') { e.preventDefault(); deleteSel(); return; }
+  if (k === 'b') setTool('pen'); else if (k === 'e') setTool('eraser'); else if (k === 'f') setTool('fill'); else if (k === 'i') setTool('picker'); else if (k === 'v') setTool('move'); else if (k === 'r') setTool('select');
   else if (k === 'm') toggle('mirror', '#tMirror'); else if (k === 'g') toggle('showGrid', '#tGrid');
   else if (k === 'tab') { e.preventDefault(); toggle('others', '#tOthers'); }
   else if (k === '0') fitZoom(); else if (k === 'w') pickColor(lighter(S.color)); else if (k === 's') pickColor(darker(S.color));

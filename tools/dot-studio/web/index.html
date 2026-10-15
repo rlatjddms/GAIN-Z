@@ -33,6 +33,8 @@
       <button class="tool" data-tool="eraser" title="지우개 (E) · 오른쪽 클릭도 지우개"><svg viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M5 15l8-8 6 6-6 6H9z"/><path d="M9 11l6 6"/></svg><kbd>E</kbd></button>
       <button class="tool" data-tool="fill" title="채우기 (F)"><svg viewBox="0 0 24 24"><path d="M5 12l7-7 7 7-7 7z"/><path d="M5 12h14"/><path d="M20 16c0 1.5-1 3-2 3s-2-1.5-2-3 2-3 2-3 2 1.5 2 3z"/></svg><kbd>F</kbd></button>
       <button class="tool" data-tool="picker" title="색 뽑기 (I) · Alt+클릭"><svg viewBox="0 0 24 24"><path d="M14 4l6 6-2 2-6-6z"/><path d="M13 9l-8 8v3h3l8-8"/></svg><kbd>I</kbd></button>
+      <button class="tool" data-tool="select" title="선택 (R) · 드래그로 영역 선택, 안을 잡고 끌면 그 부분만 옮김 · Ctrl+C/X/V 복사·잘라내기·붙여넣기 · Del 지우기 · Esc 해제"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1" stroke-dasharray="3 3"/></svg><kbd>R</kbd></button>
+      <button class="tool" data-tool="move" title="이동 (V) · 선택 영역이 있으면 그 부분만, 없으면 그림 전체를 칸 단위로 옮김 · 방향키: 한 칸씩"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg><kbd>V</kbd></button>
       <span class="sep"></span>
       <button class="tool toggle" id="tMirror" title="좌우 대칭 (M)"><svg viewBox="0 0 24 24"><path d="M12 3v18" stroke-dasharray="2 2"/><path d="M9 7L4 12l5 5z"/><path d="M15 7l5 5-5 5z"/></svg><kbd>M</kbd></button>
       <button class="tool toggle on" id="tOthers" title="다른 레이어 겹쳐 보기 (Tab)"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="12" height="12" rx="2"/><rect x="8" y="8" width="12" height="12" rx="2" opacity=".5"/></svg><kbd>Tab</kbd></button>
@@ -52,7 +54,7 @@
       <div class="zoom">
         <button class="mini" id="zOut">−</button><span id="zLabel">100%</span><button class="mini" id="zIn">+</button><button class="mini" id="zFit" title="화면에 맞추기 (0)">맞춤</button>
       </div>
-      <div class="hint" id="hint">Space+드래그 또는 휠 클릭: 이동 · 휠: 확대 · Shift+클릭: 직선</div>
+      <div class="hint" id="hint">Space+드래그 또는 휠 클릭: 이동 · 휠: 확대 · Shift+클릭: 직선 · R: 선택 · Ctrl+C/V: 복사·붙여넣기 · 방향키: 한 칸 이동</div>
     </div>
   </main>
 
