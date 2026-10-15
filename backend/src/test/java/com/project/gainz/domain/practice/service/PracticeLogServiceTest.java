@@ -2,9 +2,12 @@ package com.project.gainz.domain.practice.service;
 
 import com.project.gainz.domain.character.dto.response.ExperienceResult;
 import com.project.gainz.domain.character.service.CharacterService;
+import com.project.gainz.domain.practice.dto.request.DailyPracticeUpdateRequest;
 import com.project.gainz.domain.practice.dto.request.PracticeLogCreateRequest;
-import com.project.gainz.domain.practice.dto.response.PracticeLogResponse;
+import com.project.gainz.domain.practice.dto.response.DailyPracticeResponse;
+import com.project.gainz.domain.practice.dto.response.PracticeRecordResponse;
 import com.project.gainz.domain.practice.entity.PracticeLog;
+import com.project.gainz.domain.practice.enums.PracticeSource;
 import com.project.gainz.domain.practice.repository.PracticeLogRepository;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.repository.UserRepository;
@@ -35,6 +38,7 @@ import static org.mockito.Mockito.when;
 class PracticeLogServiceTest {
 
     private static final Long USER_ID = 1L;
+    private static final LocalDate TODAY = LocalDate.now();
 
     @Mock private PracticeLogRepository practiceLogRepository;
     @Mock private UserRepository userRepository;
@@ -42,56 +46,163 @@ class PracticeLogServiceTest {
 
     @InjectMocks private PracticeLogService practiceLogService;
 
+    private void givenUser() {
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(mock(User.class)));
+    }
+
+    private void givenDaily(LocalDate date, long totalSeconds, long expGained) {
+        List<DailyPracticeResponse> rows = totalSeconds == 0 && expGained == 0
+                ? List.of()
+                : List.of(new DailyPracticeResponse(date, totalSeconds, expGained));
+        when(practiceLogRepository.findDailyTotals(USER_ID, date, date)).thenReturn(rows);
+    }
+
+    private PracticeLog savedLog() {
+        ArgumentCaptor<PracticeLog> captor = ArgumentCaptor.forClass(PracticeLog.class);
+        verify(practiceLogRepository).save(captor.capture());
+        return captor.getValue();
+    }
+
     @Test
     void 유저가_없으면_예외가_발생한다() {
         when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
 
-        PracticeLogCreateRequest request = new PracticeLogCreateRequest(600L, 1.0, null);
-
-        assertThatThrownBy(() -> practiceLogService.createPracticeLog(USER_ID, request))
+        assertThatThrownBy(() -> practiceLogService.recordSession(USER_ID, new PracticeLogCreateRequest(600L, null)))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
         verify(practiceLogRepository, never()).save(any());
-        verify(characterService, never()).processExperienceAndUnlocks(any(), anyInt(), anyLong());
     }
 
     @Test
-    void 연습_로그를_저장하고_환산된_경험치를_캐릭터에_반영한다() {
-        User user = mock(User.class);
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+    void 타이머_구간을_그날_기록에_더하고_늘어난_만큼_경험치를_지급한다() {
+        givenUser();
+        // 이미 20분 연습해서 20exp를 받은 날에 10분을 더하면 10exp
+        givenDaily(TODAY, 20 * 60, 20);
+        ExperienceResult experience = new ExperienceResult(1, 1, 30, false, List.of());
+        when(characterService.processExperienceAndUnlocks(USER_ID, 10, 10)).thenReturn(experience);
 
-        ExperienceResult experience = new ExperienceResult(1, 1, 80, false, List.of());
-        when(characterService.processExperienceAndUnlocks(USER_ID, 80, 30)).thenReturn(experience);
+        PracticeRecordResponse response = practiceLogService.recordSession(USER_ID, new PracticeLogCreateRequest(10 * 60L, null));
 
-        LocalDate practiceDate = LocalDate.of(2026, 10, 12);
-        PracticeLogCreateRequest request = new PracticeLogCreateRequest(30 * 60L, 1.0, practiceDate);
+        PracticeLog saved = savedLog();
+        assertThat(saved.getDurationSeconds()).isEqualTo(600L);
+        assertThat(saved.getExpGained()).isEqualTo(10);
+        assertThat(saved.getCreatedDate()).isEqualTo(TODAY);
+        assertThat(saved.getSource()).isEqualTo(PracticeSource.TIMER);
 
-        PracticeLogResponse response = practiceLogService.createPracticeLog(USER_ID, request);
-
-        ArgumentCaptor<PracticeLog> captor = ArgumentCaptor.forClass(PracticeLog.class);
-        verify(practiceLogRepository).save(captor.capture());
-        PracticeLog saved = captor.getValue();
-
-        assertThat(saved.getUser()).isSameAs(user);
-        assertThat(saved.getDurationSeconds()).isEqualTo(1800L);
-        assertThat(saved.getAchievementRate()).isEqualTo(1.0);
-        assertThat(saved.getExpGained()).isEqualTo(80);
-        assertThat(saved.getCreatedDate()).isEqualTo(practiceDate);
-
-        assertThat(response.expGained()).isEqualTo(80);
-        assertThat(response.practiceDate()).isEqualTo(practiceDate);
+        assertThat(response.dayTotalSeconds()).isEqualTo(30 * 60L);
+        assertThat(response.expGained()).isEqualTo(10);
         assertThat(response.experience()).isSameAs(experience);
     }
 
     @Test
-    void 연습_날짜를_생략하면_오늘_날짜로_기록한다() {
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(mock(User.class)));
+    void 지정한_날짜에_기록한다() {
+        givenUser();
+        LocalDate yesterday = TODAY.minusDays(1);
+        givenDaily(yesterday, 0, 0);
         when(characterService.processExperienceAndUnlocks(USER_ID, 1, 1))
                 .thenReturn(new ExperienceResult(1, 1, 1, false, List.of()));
 
-        PracticeLogResponse response = practiceLogService.createPracticeLog(
-                USER_ID, new PracticeLogCreateRequest(60L, 0.0, null));
+        PracticeRecordResponse response = practiceLogService.recordSession(USER_ID, new PracticeLogCreateRequest(60L, yesterday));
 
-        assertThat(response.practiceDate()).isEqualTo(LocalDate.now());
+        assertThat(response.practiceDate()).isEqualTo(yesterday);
+        assertThat(savedLog().getCreatedDate()).isEqualTo(yesterday);
+    }
+
+    @Test
+    void 하루_합계가_24시간을_넘으면_예외가_발생한다() {
+        givenUser();
+        givenDaily(TODAY, 86_000, 300);
+
+        assertThatThrownBy(() -> practiceLogService.recordSession(USER_ID, new PracticeLogCreateRequest(600L, null)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRACTICE_DAY_LIMIT_EXCEEDED);
+        verify(practiceLogRepository, never()).save(any());
+    }
+
+    @Test
+    void 하루_총_시간을_늘리면_차이만큼_수동_기록하고_경험치를_지급한다() {
+        givenUser();
+        givenDaily(TODAY, 10 * 60, 10);
+        when(characterService.processExperienceAndUnlocks(USER_ID, 50, 50))
+                .thenReturn(new ExperienceResult(1, 1, 60, false, List.of()));
+
+        PracticeRecordResponse response = practiceLogService.updateDailyTotal(USER_ID, TODAY, new DailyPracticeUpdateRequest(60 * 60L));
+
+        PracticeLog saved = savedLog();
+        assertThat(saved.getDurationSeconds()).isEqualTo(50 * 60L);
+        assertThat(saved.getExpGained()).isEqualTo(50);
+        assertThat(saved.getSource()).isEqualTo(PracticeSource.MANUAL);
+        assertThat(response.dayTotalSeconds()).isEqualTo(60 * 60L);
+    }
+
+    @Test
+    void 하루_총_시간을_줄이면_경험치는_회수하지_않는다() {
+        givenUser();
+        givenDaily(TODAY, 60 * 60, 60);
+        when(characterService.processExperienceAndUnlocks(USER_ID, 0, -30))
+                .thenReturn(new ExperienceResult(1, 1, 60, false, List.of()));
+
+        PracticeRecordResponse response = practiceLogService.updateDailyTotal(USER_ID, TODAY, new DailyPracticeUpdateRequest(30 * 60L));
+
+        PracticeLog saved = savedLog();
+        assertThat(saved.getDurationSeconds()).isEqualTo(-30 * 60L);
+        assertThat(saved.getExpGained()).isZero();
+        assertThat(response.dayTotalSeconds()).isEqualTo(30 * 60L);
+    }
+
+    @Test
+    void 줄였다가_다시_늘려도_경험치를_중복_지급하지_않는다() {
+        givenUser();
+        // 하루에 60exp를 이미 받았고 시간은 30분으로 줄여 둔 상태 → 60분으로 되돌려도 추가 지급 없음
+        givenDaily(TODAY, 30 * 60, 60);
+        when(characterService.processExperienceAndUnlocks(USER_ID, 0, 30))
+                .thenReturn(new ExperienceResult(1, 1, 60, false, List.of()));
+
+        practiceLogService.updateDailyTotal(USER_ID, TODAY, new DailyPracticeUpdateRequest(60 * 60L));
+
+        assertThat(savedLog().getExpGained()).isZero();
+    }
+
+    @Test
+    void 시간이_같으면_아무것도_저장하지_않는다() {
+        givenUser();
+        givenDaily(TODAY, 30 * 60, 30);
+
+        PracticeRecordResponse response = practiceLogService.updateDailyTotal(USER_ID, TODAY, new DailyPracticeUpdateRequest(30 * 60L));
+
+        verify(practiceLogRepository, never()).save(any());
+        verify(characterService, never()).processExperienceAndUnlocks(any(), anyInt(), anyLong());
+        assertThat(response.experience()).isNull();
+    }
+
+    @Test
+    void 일주일보다_오래된_날짜는_수정할_수_없다() {
+        assertThatThrownBy(() -> practiceLogService.updateDailyTotal(USER_ID, TODAY.minusDays(7), new DailyPracticeUpdateRequest(60L)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRACTICE_EDIT_PERIOD_EXPIRED);
+    }
+
+    @Test
+    void 미래_날짜는_수정할_수_없다() {
+        assertThatThrownBy(() -> practiceLogService.updateDailyTotal(USER_ID, TODAY.plusDays(1), new DailyPracticeUpdateRequest(60L)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRACTICE_EDIT_PERIOD_EXPIRED);
+    }
+
+    @Test
+    void 기간별_일별_합계를_조회한다() {
+        LocalDate from = TODAY.minusDays(6);
+        List<DailyPracticeResponse> rows = List.of(new DailyPracticeResponse(from, 600L, 10L));
+        when(practiceLogRepository.findDailyTotals(USER_ID, from, TODAY)).thenReturn(rows);
+
+        assertThat(practiceLogService.getDailyTotals(USER_ID, from, TODAY)).isEqualTo(rows);
+    }
+
+    @Test
+    void 조회_기간이_뒤집히거나_1년을_넘으면_예외가_발생한다() {
+        assertThatThrownBy(() -> practiceLogService.getDailyTotals(USER_ID, TODAY, TODAY.minusDays(1)))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PRACTICE_PERIOD);
+        assertThatThrownBy(() -> practiceLogService.getDailyTotals(USER_ID, TODAY.minusDays(400), TODAY))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PRACTICE_PERIOD);
     }
 }

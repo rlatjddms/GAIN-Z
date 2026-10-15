@@ -17,7 +17,12 @@ public enum ErrorCode {
     CHARACTER_ALREADY_EXISTS(409, "C001", "이미 캐릭터를 보유하고 있는 유저입니다."),
     DUPLICATE_NICKNAME(409, "C002", "이미 사용 중인 캐릭터 닉네임입니다."),
     DEFAULT_OUTFIT_NOT_FOUND(500, "C003", "시스템 오류: 초기 기본 의상 아이템이 설정되지 않았습니다."),
-    CHARACTER_NOT_FOUND(404, "C004", "존재하지 않는 캐릭터입니다.");
+    CHARACTER_NOT_FOUND(404, "C004", "존재하지 않는 캐릭터입니다."),
+
+    /* Practice (연습) */
+    PRACTICE_DAY_LIMIT_EXCEEDED(400, "P001", "하루 연습 시간은 24시간을 넘을 수 없습니다."),
+    PRACTICE_EDIT_PERIOD_EXPIRED(400, "P002", "연습 기록은 최근 7일까지만 수정할 수 있습니다."),
+    INVALID_PRACTICE_PERIOD(400, "P003", "조회 기간이 올바르지 않습니다. (최대 1년)");
 
     private final int status;
     private final String code;
