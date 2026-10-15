@@ -20,7 +20,27 @@ const routes = [
     {
       path: '/home',
       name: 'home',
-      component: HomeView
+      component: HomeView,
+      meta: { requiresCharacter: true }
+    },
+    // 홈 카드에서 들어가는 SOLO 상세 화면
+    {
+      path: '/practice',
+      name: 'practice',
+      component: () => import('../views/workspace/PracticeView.vue'),
+      meta: { requiresCharacter: true }
+    },
+    {
+      path: '/sheets',
+      name: 'sheets',
+      component: () => import('../views/workspace/SheetsView.vue'),
+      meta: { requiresCharacter: true }
+    },
+    {
+      path: '/transcribe',
+      name: 'transcribe',
+      component: () => import('../views/workspace/TranscribeView.vue'),
+      meta: { requiresCharacter: true }
     },
     {
       path: '/character-create',
@@ -51,7 +71,8 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
-  if (to.path === '/home') {
+  // 로그인 + 캐릭터가 있어야 들어갈 수 있는 화면 (홈과 SOLO 상세 화면)
+  if (to.meta.requiresCharacter) {
     if (!authStore.isAuthenticated) {
       // Direct unauthorized access to login
       next('/')

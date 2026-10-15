@@ -1,35 +1,11 @@
 <template>
   <div class="gain-z-app" :class="{ 'band-mode': isBandMode }">
-    <header class="main-header">
-      <div class="header-inner">
-        <div class="header-left">
-          <div class="logo">GAIN-Z</div>
-        </div>
-
-        <div class="header-center">
-          <div class="tab-switcher">
-            <button @click="isBandMode = false" :class="{ active: !isBandMode }">SOLO</button>
-            <button @click="isBandMode = true" :class="{ active: isBandMode }">BAND</button>
-          </div>
-        </div>
-
-        <div class="header-right">
-          <button class="noti-btn" title="알림">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-          </button>
-          <div class="user-info">
-            <span class="avatar"></span>
-            <span class="name">{{ authStore.displayName }}</span>
-          </div>
-          <button class="logout-icon-btn" title="로그아웃" @click="handleLogout">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-          </button>
-        </div>
+    <AppHeader>
+      <div class="tab-switcher">
+        <button @click="isBandMode = false" :class="{ active: !isBandMode }">SOLO</button>
+        <button @click="isBandMode = true" :class="{ active: isBandMode }">BAND</button>
       </div>
-    </header>
+    </AppHeader>
 
     <main class="main-body">
       <div class="content-wrapper">
@@ -46,37 +22,63 @@
           </CharacterStage>
 
           <section class="quick-grid grid-3">
-            <button class="card-btn">
-              <div class="c-icon">📄</div>
-              <div class="c-text"><strong>AI TRANSCRIBER</strong><span>코드 / 오선보 / 타브 악보</span></div>
+            <button class="card-btn" @click="router.push('/practice')">
+              <div class="c-icon">🕒</div>
+              <div class="c-text"><strong>ROUTINE TRACKER</strong><span>연습 루틴 및 기록장</span></div>
             </button>
-            <button class="card-btn">
+            <button class="card-btn" @click="router.push('/sheets')">
               <div class="c-icon">📂</div>
               <div class="c-text"><strong>WORK BENCH</strong><span>악보 편집 및 보관함</span></div>
             </button>
-            <button class="card-btn">
-              <div class="c-icon">🕒</div>
-              <div class="c-text"><strong>ROUTINE TRACKER</strong><span>연습 루틴 및 기록장</span></div>
+            <button class="card-btn" @click="router.push('/transcribe')">
+              <div class="c-icon">📄</div>
+              <div class="c-text"><strong>AI TRANSCRIBER</strong><span>코드 / 오선보 / 타브 악보</span></div>
             </button>
           </section>
 
           <section class="footer-grid grid-2">
             <div class="data-card">
-              <div class="card-title">MY PICK CASE <span>›</span></div>
-              <div class="pick-box">
-                <div v-for="i in 6" :key="i" :class="['pick', { locked: i > 3 }]">
-                  {{ i <= 3 ? '🔺' : '🔒' }}
+              <button class="card-title link" @click="isRecordsOpen = true">
+                MY RECORDS <span class="record-count">0 / {{ PLACEHOLDER_RECORDS.length }} ›</span>
+              </button>
+              <!-- 레코드 선반: 실제 보유 레코드는 #47·#48에서 연결 -->
+              <div class="shelf" @click="isRecordsOpen = true">
+                <div v-for="(row, ri) in SHELF_ROWS" :key="ri" class="shelf-row">
+                  <div class="shelf-items">
+                    <RecordIcon v-for="(type, i) in row" :key="i" :type="type" locked :size="56" />
+                  </div>
+                  <div class="shelf-board"></div>
                 </div>
               </div>
             </div>
             <div class="data-card">
-              <div class="card-title">PRACTICE LOG <span>›</span></div>
-              <div class="streak">{{ currentStreak }}일 연속 연습 중! 🔥</div>
-              <div class="fret-board">
-                <div v-for="i in 35" :key="i" :class="['fret', { on: i % 5 === 0 }]"></div>
+              <div class="card-title">
+                PRACTICE LOG
+                <span class="grass-legend">
+                  적음
+                  <span v-for="lv in 5" :key="lv" class="g" :class="`lv${lv - 1}`"></span>
+                  많음
+                </span>
+              </div>
+              <!-- 요약 수치: 이번 달 값은 #43(기간별 연습 로그 조회 API)에서 연결 -->
+              <div class="log-stats">
+                <div class="log-stat streak-stat">
+                  <span>연속 연습</span>
+                  <strong>{{ currentStreak }}일 🔥</strong>
+                </div>
+                <div v-for="s in monthStats" :key="s.label" class="log-stat">
+                  <span>{{ s.label }}</span>
+                  <strong :class="{ empty: s.value == null }">{{ s.value ?? '—' }}</strong>
+                </div>
+              </div>
+              <!-- 연습 잔디: 세로 7칸(요일) × 가로 주, 왼쪽이 오래된 주. #43·#44에서 실제 기록 연결 -->
+              <div class="grass">
+                <span v-for="i in GRASS_WEEKS * 7" :key="i" class="g"></span>
               </div>
             </div>
           </section>
+
+          <RecordsModal :open="isRecordsOpen" @close="isRecordsOpen = false" />
         </template>
 
         <template v-else>
@@ -141,7 +143,11 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import AppHeader from '../components/AppHeader.vue'
 import CharacterStage from '../components/CharacterStage.vue'
+import RecordsModal from '../components/workspace/RecordsModal.vue'
+import RecordIcon from '../components/workspace/RecordIcon.vue'
+import { PLACEHOLDER_RECORDS } from '../constants/records'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -154,16 +160,24 @@ const goToEditCharacter = () => {
   router.push('/character-create?edit=true')
 }
 
+const isRecordsOpen = ref(false)
+// 홈 선반에 보여 줄 음반 (위: 카세트·CD, 아래: CD·LP)
+const SHELF_ROWS = [
+  ['CASSETTE', 'CASSETTE', 'CASSETTE', 'CD'],
+  ['CASSETTE', 'CD', 'LP', 'LP'],
+]
+const GRASS_WEEKS = 30
+// 이번 달 요약 (null = 아직 데이터 없음)
+const monthStats = computed(() => [
+  { label: `${new Date().getMonth() + 1}월 연습 시간`, value: null },
+  { label: `${new Date().getMonth() + 1}월 연습한 날`, value: null },
+])
+
 const myBands = ref([
   { id: 1, name: '락앤롤 베이비', members: [{id:1, emoji:'🥁', role:'DR'}, {id:2, emoji:'🎤', role:'VO'}, {id:3, emoji:'🎸', role:'GT1'}, {id:4, emoji:'🎸', role:'GT2'}]},
   { id: 2, name: '락스타들', members: [{id:1, emoji:'🎸', role:'GT'}, {id:2, emoji:'🎹', role:'KB'}]}
 ])
 const activeBand = computed(() => myBands.value.find(b => b.id === selectedBandId.value))
-
-const handleLogout = async () => {
-  await authStore.logout()
-  router.push('/')
-}
 </script>
 
 <style scoped>
@@ -183,45 +197,13 @@ button::-moz-focus-inner { border: 0 !important; }
   font-family: 'Pretendard', sans-serif;
 }
 
-/* [메인 헤더] */
-.main-header {
-  background: #fff; border-bottom: 1px solid #e9ecef;
-  position: sticky; top: 0; z-index: 1000;
-}
-.header-inner {
-  max-width: 1040px; margin: 0 auto; padding: 0 24px;
-  height: 64px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-}
-.header-left { display: flex; justify-content: flex-start; }
-.header-center { display: flex; justify-content: center; }
-.header-right { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
-.logo { font-size: 1.4rem; font-weight: 900; color: #2d5bff; letter-spacing: -1px; }
-
+/* 헤더 가운데 SOLO / BAND 전환 */
 .tab-switcher { background: #f1f3f5; padding: 4px; border-radius: 12px; display: flex; }
 .tab-switcher button {
   border: none; background: none; padding: 7px 24px; font-weight: 700;
   border-radius: 9px; cursor: pointer; color: #adb5bd; transition: 0.2s; font-size: 0.85rem;
 }
 .tab-switcher button.active { background: #fff; color: #2d5bff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-
-.user-info { display: flex; align-items: center; gap: 8px; padding-right: 12px; border-right: 1px solid #eee; }
-.avatar { width: 30px; height: 30px; background: #e9ecef; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 0 1px #eee; }
-.name { font-weight: 700; font-size: 0.9rem; color: #495057; }
-.noti-btn {
-  background: none; border: none; color: #adb5bd; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  padding: 6px; border-radius: 8px; transition: 0.2s;
-}
-.noti-btn:hover { color: #2d5bff; background: #f0f4ff; }
-.logout-icon-btn {
-  background: none; border: none; color: #adb5bd; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  padding: 6px; border-radius: 8px; transition: 0.2s;
-}
-.logout-icon-btn:hover { color: #fa5252; background: #fff5f5; }
 
 /* 레이아웃 메인 */
 .main-body { padding: 40px 20px; }
@@ -296,14 +278,40 @@ button::-moz-focus-inner { border: 0 !important; }
 /* 데이터 카드 */
 .data-card { background: #fff; border: 1px solid #e9ecef; border-radius: 24px; padding: 24px; }
 .card-title { font-weight: 800; font-size: 0.85rem; margin-bottom: 18px; display: flex; justify-content: space-between; color: #495057; }
-.pick-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.pick { background: #f8f9fa; height: 64px; display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1px solid #f1f3f5; font-size: 1.2rem; }
-.pick.locked { opacity: 0.3; }
+.card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
+.card-title.link:hover { color: #2d5bff; }
+.record-count { font-size: 0.75rem; color: #adb5bd; }
+.shelf { cursor: pointer; display: flex; flex-direction: column; gap: 14px; }
+.shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
+.shelf-board {
+  height: 8px; border-radius: 3px; margin-top: 2px;
+  background: #c08a52; box-shadow: inset 0 -3px 0 #8e6035;
+}
+.shelf:hover .shelf-items { transform: translateY(-2px); }
+.shelf-items { transition: transform 0.2s; }
 
-.streak { color: #ff922b; font-weight: 800; margin-bottom: 12px; font-size: 0.9rem; }
-.fret-board { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.fret { background: #e9ecef; height: 14px; border-radius: 3px; }
-.fret.on { background: #2d5bff; }
+.log-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.log-stat {
+  background: #f8f9fa; border: 1px solid #f1f3f5; border-radius: 12px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
+}
+.log-stat span { font-size: 0.7rem; font-weight: 700; color: #868e96; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-stat strong { font-size: 1rem; font-weight: 900; color: #1a1a1a; white-space: nowrap; }
+.log-stat strong.empty { color: #ced4da; }
+.streak-stat { background: #fff4e6; border-color: #ffe8cc; }
+.streak-stat strong { color: #ff922b; }
+
+.grass {
+  display: grid; grid-auto-flow: column;
+  grid-template-rows: repeat(7, auto); grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px;
+}
+.g { display: block; aspect-ratio: 1; border-radius: 3px; background: #f1f3f5; }
+.grass-legend { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
+.grass-legend .g { width: 10px; }
+.g.lv1 { background: #c9d6ff; }
+.g.lv2 { background: #8ea8ff; }
+.g.lv3 { background: #5a7dff; }
+.g.lv4 { background: #2d5bff; }
 
 /* 밴드 전용 */
 .band-info h2 { font-size: 1.5rem; font-weight: 800; }
