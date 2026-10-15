@@ -30,7 +30,7 @@
         v-for="cell in cells"
         :key="cell.key"
         class="g"
-        :class="[`lv${cell.level}`, { future: cell.future, today: cell.isToday }]"
+        :class="[`lv${cell.level}`, { future: cell.future }]"
         :title="cell.future ? '' : `${dateLabel(cell.key)} · ${cell.seconds ? durationText(cell.seconds) : '연습 안 함'}`"
       ></span>
     </div>
@@ -69,7 +69,7 @@ onMounted(async () => {
 const cells = computed(() => Array.from({ length: WEEKS * 7 }, (_, i) => {
   const key = dateKey(addDays(firstDay, i))
   const seconds = practice.totalOf(key)
-  return { key, seconds, level: practiceLevel(seconds), future: key > todayKey, isToday: key === todayKey }
+  return { key, seconds, level: practiceLevel(seconds), future: key > todayKey }
 }))
 
 // 연속 연습: 오늘부터 거꾸로 연습한 날을 센다. 오늘 아직 안 했으면 어제부터 (오늘 하면 이어짐)
@@ -111,7 +111,6 @@ const monthDays = computed(() => monthKeys.value.filter((c) => c.seconds > 0).le
 .grass.loading { opacity: 0.4; }
 .g { display: block; aspect-ratio: 1; border-radius: 3px; background: #f1f3f5; }
 .g.future { visibility: hidden; }
-.g.today { box-shadow: inset 0 0 0 1.5px #1a1a1a; }
 .grass-legend { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 .grass-legend .g { width: 10px; }
 .g.lv1 { background: #c9d6ff; }
