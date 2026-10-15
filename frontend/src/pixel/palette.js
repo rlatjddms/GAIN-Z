@@ -22,6 +22,7 @@ export const KEY_COLORS = {
   HAIR_LINE: { color: '#600060', from: 'hairColor', shade: -90 },
 
   INSTRUMENT: { color: '#00FFFF', from: 'instrumentColor', shade: 0 },
+  INSTRUMENT_LIGHT: { color: '#80FFFF', from: 'instrumentColor', shade: 40 },
   INSTRUMENT_DARK: { color: '#00B0B0', from: 'instrumentColor', shade: -48 },
   INSTRUMENT_LINE: { color: '#006060', from: 'instrumentColor', shade: -95 },
 

@@ -11,7 +11,7 @@ const LAYER_LABEL = { body: '몸', outfit: '의상', hair: '머리', instrument:
 const KEY_LABEL = {
   SKIN: '피부', SKIN_LIGHT: '피부 밝음', SKIN_SHADOW: '피부 그림자', SKIN_LINE: '피부 선',
   HAIR: '머리', HAIR_LIGHT: '머리 밝음', HAIR_DARK: '머리 그림자', HAIR_LINE: '머리 선',
-  INSTRUMENT: '악기', INSTRUMENT_DARK: '악기 그림자', INSTRUMENT_LINE: '악기 선',
+  INSTRUMENT: '악기', INSTRUMENT_LIGHT: '악기 밝음', INSTRUMENT_DARK: '악기 그림자', INSTRUMENT_LINE: '악기 선',
   OUTFIT: '의상', OUTFIT_DARK: '의상 그림자', OUTFIT_LINE: '의상 선',
 };
 const FIXED_COLORS = [
