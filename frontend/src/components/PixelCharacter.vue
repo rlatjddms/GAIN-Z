@@ -42,6 +42,7 @@ const spec = computed(() => {
     hair: c.hairStyle === null ? null : (c.hairStyle || 'SHORT_CUT'),
     instrument: c.instrumentType === null ? null : (c.instrumentType || 'GUITAR'),
     colors: {
+      skinColor: c.skinColor || DEFAULT_COLORS.skinColor,
       hairColor: c.hairColor || DEFAULT_COLORS.hairColor,
       instrumentColor: c.instrumentColor || DEFAULT_COLORS.instrumentColor,
       outfitColor: c.outfitColor || DEFAULT_COLORS.outfitColor,

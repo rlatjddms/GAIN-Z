@@ -9,12 +9,12 @@ const CELL = 32;
 
 const LAYER_LABEL = { body: '몸', outfit: '의상', hair: '머리', instrument: '악기' };
 const KEY_LABEL = {
+  SKIN: '피부', SKIN_LIGHT: '피부 밝음', SKIN_SHADOW: '피부 그림자', SKIN_LINE: '피부 선',
   HAIR: '머리', HAIR_LIGHT: '머리 밝음', HAIR_DARK: '머리 그림자', HAIR_LINE: '머리 선',
   INSTRUMENT: '악기', INSTRUMENT_DARK: '악기 그림자', INSTRUMENT_LINE: '악기 선',
   OUTFIT: '의상', OUTFIT_DARK: '의상 그림자', OUTFIT_LINE: '의상 선',
 };
 const FIXED_COLORS = [
-  '#f8d7b5', '#e3b48d', '#9c5b36', '#fde7cf',   // 피부 밝음·그림자·선·하이라이트
   '#3a2622', '#ffffff', '#f4a5a0', '#c76a6a',   // 눈, 흰자, 볼, 입
   '#3f6db5', '#2f5490', '#203f6e', '#2b2d31', '#141518',   // 청바지, 청바지 그림자, 청바지 선, 신발, 신발 선
   '#c08a52', '#8e6035', '#e9e9ec', '#9b9ba3', '#f6f1e4', // 나무, 나무 그림자, 금속, 금속 그림자, 드럼헤드
@@ -30,7 +30,7 @@ const S = {
   undo: [], redo: [],
   others_cache: {},   // `${layer}/${name}` -> grid
   pv: { body: 'FEMALE', outfit: 'DEFAULT_FEMALE', hair: 'LONG_STRAIGHT', instrument: 'GUITAR',
-        hairColor: '#EC4899', instrumentColor: '#B91C1C', outfitColor: '#FFFFFF' },
+        skinColor: '#F8D7B5', hairColor: '#EC4899', instrumentColor: '#B91C1C', outfitColor: '#FFFFFF' },
 };
 function blank() { return Array.from({ length: H }, () => Array(W).fill(null)); }
 const clone = (g) => g.map((r) => [...r]);
@@ -293,7 +293,7 @@ function renderSwatches(el, colors) {
 function renderKeys() {
   const box = $('#keyColors'); box.innerHTML = '';
   // 현재 레이어에 맞는 기준색을 먼저
-  const prefer = { hair: 'HAIR', instrument: 'INSTRUMENT', outfit: 'OUTFIT' }[S.layer];
+  const prefer = { body: 'SKIN', hair: 'HAIR', instrument: 'INSTRUMENT', outfit: 'OUTFIT' }[S.layer];
   const entries = Object.entries(KEY_COLORS).sort(([a], [b]) => (b.startsWith(prefer || '~') - a.startsWith(prefer || '~')));
   for (const [key, def] of entries) {
     const el = document.createElement('button'); el.className = 'key' + (norm(def.color) === S.color ? ' on' : '');
@@ -350,8 +350,8 @@ async function selectLayer(layer) {
   const first = (S.sprites[layer] || [])[0];
   if (first) selectSprite(first); else drawPaint();
   // 기준색이 있는 레이어면 그 기본색을 바로 집어 준다
-  const prefer = { hair: 'HAIR', instrument: 'INSTRUMENT', outfit: 'OUTFIT' }[layer];
-  if (prefer) pickColor(KEY_COLORS[prefer].color, false); else pickColor('#f8d7b5', false);
+  const prefer = { body: 'SKIN', hair: 'HAIR', instrument: 'INSTRUMENT', outfit: 'OUTFIT' }[layer];
+  pickColor(KEY_COLORS[prefer].color, false);
 }
 async function selectSprite(name) {
   if (name === S.name) return;
@@ -450,7 +450,7 @@ function syncPvSelects() {
 for (const layer of LAYER_ORDER) {
   $('#pv' + layer[0].toUpperCase() + layer.slice(1)).addEventListener('change', (e) => { S.pv[layer] = e.target.value || null; drawPaint(); drawPreview(); });
 }
-for (const k of ['hairColor', 'instrumentColor', 'outfitColor']) {
+for (const k of ['skinColor', 'hairColor', 'instrumentColor', 'outfitColor']) {
   $('#pv' + k[0].toUpperCase() + k.slice(1)).addEventListener('input', (e) => { S.pv[k] = e.target.value; drawPaint(); drawPreview(); });
 }
 

@@ -10,6 +10,12 @@ export const LAYER_ORDER = ['body', 'outfit', 'hair', 'instrument']
 
 // 기준색: { 키: { color: PNG에 칠하는 색, from: 사용자 색 종류, shade: 밝기 보정 } }
 export const KEY_COLORS = {
+  // 피부는 몸 스프라이트의 실제 색을 그대로 기준색으로 쓴다 (기본 피부색일 때 원본과 거의 같게 보임)
+  SKIN: { color: '#F8D7B5', from: 'skinColor', shade: 0 },
+  SKIN_LIGHT: { color: '#FDE7CF', from: 'skinColor', shade: 12 },
+  SKIN_SHADOW: { color: '#E3B48D', from: 'skinColor', shade: -32 },
+  SKIN_LINE: { color: '#9C5B36', from: 'skinColor', shade: -105 },
+
   HAIR: { color: '#FF00FF', from: 'hairColor', shade: 0 },
   HAIR_LIGHT: { color: '#FF80FF', from: 'hairColor', shade: 48 },
   HAIR_DARK: { color: '#B000B0', from: 'hairColor', shade: -42 },
@@ -25,10 +31,14 @@ export const KEY_COLORS = {
 }
 
 export const DEFAULT_COLORS = {
+  skinColor: '#F8D7B5',
   hairColor: '#111827',
   instrumentColor: '#B91C1C',
   outfitColor: '#FFFFFF',
 }
+
+// 온보딩에서 보여줄 피부색 프리셋 (밝은 톤 → 어두운 톤)
+export const SKIN_PRESETS = ['#FDE4D0', '#F8D7B5', '#E8B894', '#C68642', '#8D5524', '#5C3A21']
 
 export function hexToRgb(hex) {
   const clean = String(hex || '').replace('#', '')
