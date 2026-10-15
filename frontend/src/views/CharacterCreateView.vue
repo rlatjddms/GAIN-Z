@@ -94,6 +94,28 @@
                   </button>
                 </div>
               </div>
+
+              <div class="input-group">
+                <div class="flex-between">
+                  <label>피부 색상</label>
+                  <span class="color-hex">{{ skinColor }}</span>
+                </div>
+                <div class="color-row">
+                  <button
+                    v-for="color in skinColorPresets"
+                    :key="color"
+                    type="button"
+                    class="color-preset"
+                    :style="{ backgroundColor: color }"
+                    :class="{ active: skinColor.toLowerCase() === color.toLowerCase() }"
+                    @click="skinColor = color"
+                  ></button>
+                  <div class="custom-color-picker">
+                    <input type="color" v-model="skinColor" class="picker-input" />
+                    <span class="picker-icon">🎨</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- STEP 2: Hair Style & Hair Color -->
@@ -234,6 +256,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import axiosInstance from '../api/axios'
 import PixelCharacter from '../components/PixelCharacter.vue'
+import { DEFAULT_COLORS, SKIN_PRESETS } from '../pixel/palette'
 
 const router = useRouter()
 const route = useRoute()
@@ -250,6 +273,7 @@ const nickname = ref('')
 const gender = ref('MALE')
 const hairStyle = ref('SHORT_CUT')
 const hairColor = ref('#111827')
+const skinColor = ref(DEFAULT_COLORS.skinColor)
 const instrumentType = ref('GUITAR')
 const instrumentColor = ref('#B91C1C')
 
@@ -267,6 +291,7 @@ onMounted(async () => {
     gender.value = char.gender || 'MALE'
     hairStyle.value = char.hairStyle || 'SHORT_CUT'
     hairColor.value = char.hairColor || '#111827'
+    skinColor.value = char.skinColor || DEFAULT_COLORS.skinColor
     instrumentType.value = char.instrumentType || 'GUITAR'
     instrumentColor.value = char.instrumentColor || '#B91C1C'
     
@@ -289,6 +314,8 @@ const hairStyleOptions = [
   { value: 'DREADLOCKS', label: '드레드락', emoji: '🦱' },
   { value: 'MOHAWK_SHARP', label: '모히칸', emoji: '🐔' }
 ]
+
+const skinColorPresets = SKIN_PRESETS
 
 const hairColorPresets = [
   '#111827', // Jet Black
@@ -354,6 +381,7 @@ const previewCharacter = computed(() => {
   const showInstrument = isEditMode.value || currentStep.value >= 3
   return {
     gender: gender.value,
+    skinColor: skinColor.value,
     hairStyle: showHair ? hairStyle.value : null,
     hairColor: hairColor.value,
     instrumentType: showInstrument ? instrumentType.value : null,
@@ -413,7 +441,8 @@ const handleSubmit = async () => {
     instrumentColor: instrumentColor.value,
     gender: gender.value,
     hairStyle: hairStyle.value,
-    hairColor: hairColor.value
+    hairColor: hairColor.value,
+    skinColor: skinColor.value
   }
 
   if (isEditMode.value) {

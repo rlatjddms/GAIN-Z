@@ -28,6 +28,7 @@
               <option v-for="i in instruments" :key="i" :value="i">{{ i }}</option>
             </select>
           </label>
+          <label>피부색 <input type="color" v-model="character.skinColor"></label>
           <label>머리색 <input type="color" v-model="character.hairColor"></label>
           <label>악기색 <input type="color" v-model="character.instrumentColor"></label>
           <label>의상색 <input type="color" v-model="character.outfitColor"></label>
@@ -75,6 +76,7 @@ const character = reactive({
   gender: 'FEMALE',
   hairStyle: 'LONG_STRAIGHT',
   instrumentType: 'GUITAR',
+  skinColor: '#F8D7B5',
   hairColor: '#EC4899',
   instrumentColor: '#B91C1C',
   outfitColor: '#FFFFFF',
