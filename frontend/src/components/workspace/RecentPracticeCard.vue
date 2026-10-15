@@ -83,8 +83,6 @@ const onSaved = (result) => {
 .lv0 .time { color: #ced4da; }
 .date { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 .day.today .dow, .day.today .date { color: #2d5bff; }
-.day.today .cell { box-shadow: inset 0 0 0 2px #2d5bff; }
-.lv3.today .cell, .lv4.today .cell { box-shadow: inset 0 0 0 2px #1a1a1a; }
 .rec {
   position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%;
   background: #e03131; animation: blink 1s infinite;
