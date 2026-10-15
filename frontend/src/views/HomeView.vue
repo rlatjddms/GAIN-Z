@@ -22,15 +22,15 @@
           </CharacterStage>
 
           <section class="quick-grid grid-3">
-            <button class="card-btn">
+            <button class="card-btn" @click="goToWorkspace('sheets')">
               <div class="c-icon">📄</div>
               <div class="c-text"><strong>AI TRANSCRIBER</strong><span>코드 / 오선보 / 타브 악보</span></div>
             </button>
-            <button class="card-btn">
+            <button class="card-btn" @click="goToWorkspace('sheets')">
               <div class="c-icon">📂</div>
               <div class="c-text"><strong>WORK BENCH</strong><span>악보 편집 및 보관함</span></div>
             </button>
-            <button class="card-btn">
+            <button class="card-btn" @click="goToWorkspace('routine')">
               <div class="c-icon">🕒</div>
               <div class="c-text"><strong>ROUTINE TRACKER</strong><span>연습 루틴 및 기록장</span></div>
             </button>
@@ -38,7 +38,7 @@
 
           <section class="footer-grid grid-2">
             <div class="data-card">
-              <div class="card-title">MY PICK CASE <span>›</span></div>
+              <button class="card-title link" @click="goToWorkspace('picks')">MY PICK CASE <span>›</span></button>
               <div class="pick-box">
                 <div v-for="i in 6" :key="i" :class="['pick', { locked: i > 3 }]">
                   {{ i <= 3 ? '🔺' : '🔒' }}
@@ -46,7 +46,7 @@
               </div>
             </div>
             <div class="data-card">
-              <div class="card-title">PRACTICE LOG <span>›</span></div>
+              <button class="card-title link" @click="goToWorkspace('log')">PRACTICE LOG <span>›</span></button>
               <div class="streak">{{ currentStreak }}일 연속 연습 중! 🔥</div>
               <div class="fret-board">
                 <div v-for="i in 35" :key="i" :class="['fret', { on: i % 5 === 0 }]"></div>
@@ -129,6 +129,11 @@ const currentStreak = computed(() => authStore.character?.currentStreak ?? 0)
 
 const goToEditCharacter = () => {
   router.push('/character-create?edit=true')
+}
+
+// 홈 카드 → 워크스페이스의 해당 탭
+const goToWorkspace = (tab) => {
+  router.push({ path: '/workspace', query: { tab } })
 }
 
 const myBands = ref([
@@ -236,6 +241,8 @@ button::-moz-focus-inner { border: 0 !important; }
 /* 데이터 카드 */
 .data-card { background: #fff; border: 1px solid #e9ecef; border-radius: 24px; padding: 24px; }
 .card-title { font-weight: 800; font-size: 0.85rem; margin-bottom: 18px; display: flex; justify-content: space-between; color: #495057; }
+.card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
+.card-title.link:hover { color: #2d5bff; }
 .pick-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .pick { background: #f8f9fa; height: 64px; display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1px solid #f1f3f5; font-size: 1.2rem; }
 .pick.locked { opacity: 0.3; }

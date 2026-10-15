@@ -3,6 +3,7 @@ import LoginView from '../views/LoginView.vue'
 import SignupView from '../views/SignupView.vue'
 import HomeView from '../views/HomeView.vue'
 import CharacterCreateView from '../views/CharacterCreateView.vue'
+import WorkspaceView from '../views/WorkspaceView.vue'
 import OAuth2RedirectView from '../views/OAuth2RedirectView.vue'
 import { useAuthStore } from '../stores/auth'
 
@@ -20,7 +21,14 @@ const routes = [
     {
       path: '/home',
       name: 'home',
-      component: HomeView
+      component: HomeView,
+      meta: { requiresCharacter: true }
+    },
+    {
+      path: '/workspace',
+      name: 'workspace',
+      component: WorkspaceView,
+      meta: { requiresCharacter: true }
     },
     {
       path: '/character-create',
@@ -51,7 +59,8 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
-  if (to.path === '/home') {
+  // 로그인 + 캐릭터가 있어야 들어갈 수 있는 화면 (홈, 워크스페이스)
+  if (to.meta.requiresCharacter) {
     if (!authStore.isAuthenticated) {
       // Direct unauthorized access to login
       next('/')
