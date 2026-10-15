@@ -55,7 +55,6 @@ Claude Code와 팀원이 함께 따르는 규칙입니다. Claude는 세션을 �
 - 백엔드: 도메인별 `controller / service / repository / entity / dto / enums` 구조. 응답은 `ApiResponse`, 예외는 `BusinessException + ErrorCode`. 새 에러 코드는 `ErrorCode`에 도메인 접두어(U, C, …)로 추가합니다.
 - 프론트: `views`(페이지), `components`(재사용), `stores`(Pinia), `api`(axios), `constants`, `pixel`(픽셀 렌더링). 컴포넌트 스타일은 `scoped`.
 - 프론트의 레벨·경험치 테이블(`constants/levelTier.js`)은 백엔드 `LevelPolicy`를 복사한 값입니다. 한쪽을 바꾸면 반드시 같이 바꿉니다.
-- 프론트의 경험치 환산 규칙(`constants/expPolicy.js`, 예상 경험치 미리보기용)은 백엔드 `ExpPolicy`를 복사한 값입니다. 마찬가지로 같이 바꿉니다.
 - 주석과 UI 문구는 한국어, 식별자는 영어.
 
 ## 에셋 (픽셀 캐릭터)

@@ -1,13 +1,20 @@
 import axiosInstance from './axios'
 
-// 연습 로그 기록 → 획득 경험치와 레벨 변화(ExperienceResult)를 돌려준다
-// practiceDate를 생략하면 서버에서 오늘 날짜로 기록한다
-export async function createPracticeLog({ durationSeconds, achievementRate, practiceDate }) {
-  const response = await axiosInstance.post('/api/v1/practice-logs', {
-    durationSeconds,
-    achievementRate,
-    ...(practiceDate ? { practiceDate } : {}),
-  })
+// 타이머 구간 저장 → { practiceDate, dayTotalSeconds, expGained, experience }
+export async function recordPracticeSession({ durationSeconds, practiceDate }) {
+  const response = await axiosInstance.post('/api/v1/practice-logs', { durationSeconds, practiceDate })
+  return response.data.data
+}
+
+// 기간별 일별 합계 → [{ date, totalSeconds, expGained }] (기록이 있는 날만)
+export async function getDailyPractice(from, to) {
+  const response = await axiosInstance.get('/api/v1/practice-logs/daily', { params: { from, to } })
+  return response.data.data
+}
+
+// 하루 총 연습 시간 직접 수정 (최근 7일만) → 저장 결과와 같은 모양
+export async function updateDailyPractice(date, totalSeconds) {
+  const response = await axiosInstance.put(`/api/v1/practice-logs/daily/${date}`, { totalSeconds })
   return response.data.data
 }
 

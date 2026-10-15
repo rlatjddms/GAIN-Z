@@ -1,59 +1,63 @@
 import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
+import { splitByDay } from '../constants/practice'
 
-// 연습 타이머. 시작 시각과 누적 시간만 저장해서, 새로고침하거나 다른 화면에 다녀와도 이어서 잰다
-// 사용자별로 localStorage에 보관한다 (practiceTimer_<이메일>)
+// 연습 타이머 (열품타 방식: 시작/정지 한 버튼, 정지할 때마다 구간을 저장)
+// 켜 둔 시각과 아직 저장하지 못한 구간을 사용자별 localStorage에 보관해서, 새로고침해도 이어진다
 const storageKey = () => `practiceTimer_${useAuthStore().userEmail || 'guest'}`
 
 export const usePracticeTimerStore = defineStore('practiceTimer', {
   state: () => ({
-    status: 'idle',      // idle | running | paused
-    startedAt: null,     // running일 때 이번 구간을 시작한 시각(ms)
-    accumulatedMs: 0,    // 일시정지 전까지 쌓인 시간
+    startedAt: null,   // 켜져 있으면 이번 구간 시작 시각(ms)
+    pending: [],       // 저장 실패한 구간 [{ date, seconds }]
     loadedKey: null,
   }),
+
+  getters: {
+    running: (state) => state.startedAt != null,
+  },
 
   actions: {
     load() {
       const key = storageKey()
       if (this.loadedKey === key) return
       this.loadedKey = key
+      this.startedAt = null
+      this.pending = []
       try {
         const saved = JSON.parse(localStorage.getItem(key) || 'null')
-        if (saved && ['running', 'paused'].includes(saved.status)) {
-          this.status = saved.status
-          this.startedAt = saved.startedAt
-          this.accumulatedMs = saved.accumulatedMs || 0
-          return
+        if (saved) {
+          this.startedAt = Number.isFinite(saved.startedAt) ? saved.startedAt : null
+          this.pending = Array.isArray(saved.pending) ? saved.pending : []
         }
       } catch {
         // 저장값이 깨졌으면 새로 시작
       }
-      this.status = 'idle'; this.startedAt = null; this.accumulatedMs = 0
     },
     save() {
       const key = storageKey()
-      if (this.status === 'idle') localStorage.removeItem(key)
-      else localStorage.setItem(key, JSON.stringify({ status: this.status, startedAt: this.startedAt, accumulatedMs: this.accumulatedMs }))
-    },
-    elapsedMs(now = Date.now()) {
-      return this.accumulatedMs + (this.status === 'running' && this.startedAt ? Math.max(0, now - this.startedAt) : 0)
+      if (!this.running && !this.pending.length) localStorage.removeItem(key)
+      else localStorage.setItem(key, JSON.stringify({ startedAt: this.startedAt, pending: this.pending }))
     },
     start() {
-      if (this.status === 'running') return
+      if (this.running) return
       this.startedAt = Date.now()
-      this.status = 'running'
       this.save()
     },
-    pause() {
-      if (this.status !== 'running') return
-      this.accumulatedMs = this.elapsedMs()
+    // 정지: 이번 구간을 날짜별로 나눠 돌려준다 (저장은 호출한 쪽에서)
+    stop(now = Date.now()) {
+      if (!this.running) return []
+      const parts = splitByDay(this.startedAt, now)
       this.startedAt = null
-      this.status = 'paused'
+      this.save()
+      return parts
+    },
+    discard() {
+      this.startedAt = null
       this.save()
     },
-    reset() {
-      this.status = 'idle'; this.startedAt = null; this.accumulatedMs = 0
+    setPending(parts) {
+      this.pending = parts
       this.save()
     },
   },

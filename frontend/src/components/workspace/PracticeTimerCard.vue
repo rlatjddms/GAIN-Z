@@ -1,107 +1,172 @@
 <template>
-  <WsCard title="연습 타이머">
+  <WsCard title="오늘 연습">
     <template #actions>
-      <span v-if="timer.status === 'running'" class="badge live"><i></i>연습 중</span>
-      <span v-else-if="timer.status === 'paused'" class="badge">일시정지</span>
+      <span v-if="timer.running" class="badge live"><i></i>연습 중</span>
     </template>
 
-    <div class="timer-display" :class="timer.status">{{ display }}</div>
+    <div class="timer-display" :class="{ running: timer.running }">{{ clock(todaySeconds) }}</div>
 
-    <div class="timer-btns">
-      <button v-if="timer.status === 'idle'" class="btn primary" @click="timer.start()">시작</button>
-      <template v-else>
-        <button v-if="timer.status === 'running'" class="btn" @click="timer.pause()">일시정지</button>
-        <button v-else class="btn" @click="timer.start()">계속</button>
-        <button class="btn primary" :disabled="elapsedSeconds < MIN_DURATION_SECONDS" @click="finish">종료하고 기록</button>
-      </template>
-    </div>
+    <button
+      class="toggle"
+      :class="{ running: timer.running }"
+      :disabled="saving"
+      :aria-label="timer.running ? '연습 정지' : '연습 시작'"
+      @click="toggle"
+    >
+      <span class="icon">{{ timer.running ? '■' : '▶' }}</span>
+      {{ saving ? '저장 중…' : timer.running ? '정지' : '시작' }}
+    </button>
 
-    <p class="hint">끝나면 달성률을 입력해 기록하고, 연습한 만큼 경험치를 받아요. 화면을 나가도 타이머는 계속 돌아가요.</p>
+    <p v-if="timer.running" class="status">이번 구간 {{ clock(sessionSeconds) }}</p>
+    <p v-else-if="error" class="status error">
+      {{ error }}
+      <button class="retry" :disabled="saving" @click="saveParts(timer.pending)">다시 저장</button>
+    </p>
+    <p v-else-if="savedMessage" class="status saved">{{ savedMessage }}</p>
+    <p v-else class="status">정지할 때마다 오늘 기록에 쌓이고, 연습한 만큼 경험치를 받아요.</p>
 
-    <FinishPracticeModal
-      :open="isFinishing"
-      :duration-seconds="finishedSeconds"
-      @cancel="cancelFinish"
-      @discard="discard"
-      @recorded="onRecorded"
-    />
+    <LevelUpModal :result="levelUp" @close="levelUp = null" />
   </WsCard>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import WsCard from './WsCard.vue'
-import FinishPracticeModal from './FinishPracticeModal.vue'
+import LevelUpModal from './LevelUpModal.vue'
 import { usePracticeTimerStore } from '../../stores/practiceTimer'
-import { MIN_DURATION_SECONDS, MAX_DURATION_SECONDS } from '../../constants/expPolicy'
+import { usePracticeStore } from '../../stores/practice'
+import { apiErrorMessage } from '../../api/practice'
+import { clock, dateKey, durationText, startOfDay } from '../../constants/practice'
 
-const emit = defineEmits(['recorded'])
 const timer = usePracticeTimerStore()
+const practice = usePracticeStore()
 
-// 화면 갱신용 현재 시각 (타이머 값 자체는 store가 시작 시각으로 계산)
+// 화면 갱신용 현재 시각
 const now = ref(Date.now())
 let tick = null
 onMounted(() => {
   timer.load()
   tick = setInterval(() => { now.value = Date.now() }, 250)
+  // 지난번에 저장하지 못한 구간이 있으면 다시 시도
+  if (timer.pending.length) saveParts(timer.pending)
 })
 onBeforeUnmount(() => clearInterval(tick))
 
-const elapsedSeconds = computed(() => Math.min(Math.floor(timer.elapsedMs(now.value) / 1000), MAX_DURATION_SECONDS))
-const pad = (n) => String(n).padStart(2, '0')
-const display = computed(() => {
-  const s = elapsedSeconds.value
-  return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`
+// 오늘 시간 = 저장된 오늘 합계 + 켜져 있는 구간 중 오늘 자정 이후 부분
+const todayKey = computed(() => dateKey(now.value))
+const sessionSeconds = computed(() => (timer.running ? Math.floor((now.value - timer.startedAt) / 1000) : 0))
+const todaySeconds = computed(() => {
+  let live = 0
+  if (timer.running) live = Math.floor((now.value - Math.max(timer.startedAt, startOfDay(now.value).getTime())) / 1000)
+  return practice.totalOf(todayKey.value) + Math.max(0, live)
 })
 
-// 종료: 타이머를 멈추고 기록 창을 연다. "계속 연습하기"면 멈추기 전 상태로 되돌린다
-const isFinishing = ref(false)
-const finishedSeconds = ref(0)
-let wasRunning = false
-const finish = () => {
-  wasRunning = timer.status === 'running'
-  timer.pause()
-  now.value = Date.now()
-  finishedSeconds.value = elapsedSeconds.value
-  isFinishing.value = true
+const saving = ref(false)
+const error = ref('')
+const savedMessage = ref('')
+const levelUp = ref(null)
+let savedTimer = null
+
+const LONG_SESSION_SECONDS = 8 * 3600
+
+const toggle = () => {
+  if (!timer.running) {
+    error.value = ''
+    savedMessage.value = ''
+    timer.start()
+    now.value = Date.now()
+    return
+  }
+  const total = sessionSeconds.value
+  // 깜빡 켜 두었을 수 있으니 아주 긴 구간은 한 번 확인
+  if (total >= LONG_SESSION_SECONDS
+    && !window.confirm(`타이머가 ${durationText(total)} 동안 켜져 있었어요. 그대로 기록할까요?\n(나중에 날짜를 눌러 시간을 고칠 수도 있어요)`)) {
+    if (window.confirm('이번 구간을 기록하지 않고 버릴까요?')) timer.discard()
+    return
+  }
+  saveParts(timer.stop())
 }
-const cancelFinish = () => {
-  isFinishing.value = false
-  if (wasRunning) timer.start()
+
+// 날짜별 구간을 차례로 저장. 실패하면 남은 구간을 보관해 두고 다시 저장할 수 있게 한다
+const saveParts = async (parts) => {
+  if (!parts.length) return
+  saving.value = true
+  error.value = ''
+  let expGained = 0
+  let seconds = 0
+  const levels = []
+  const unlocked = []
+  let remaining = [...parts]
+  try {
+    for (const part of parts) {
+      const result = await practice.recordSession(part.date, part.seconds)
+      remaining = remaining.slice(1)
+      timer.setPending(remaining)
+      expGained += result.expGained || 0
+      seconds += part.seconds
+      const exp = result.experience
+      if (exp) {
+        levels.push(exp)
+        unlocked.push(...(exp.unlockedOutfits || []))
+      }
+    }
+    showSaved(seconds, expGained)
+    // 서버 직렬화에 따라 isLeveledUp 또는 leveledUp으로 올 수 있다
+    const leveled = levels.filter((e) => e.isLeveledUp ?? e.leveledUp)
+    if (leveled.length || unlocked.length) {
+      levelUp.value = {
+        previousLevel: (leveled[0] || levels[0]).previousLevel,
+        currentLevel: levels[levels.length - 1].currentLevel,
+        expGained,
+        unlockedOutfits: unlocked,
+      }
+    }
+  } catch (e) {
+    timer.setPending(remaining)
+    error.value = `${durationText(remaining.reduce((s, p) => s + p.seconds, 0))}을 저장하지 못했어요. ${apiErrorMessage(e)}`
+  } finally {
+    saving.value = false
+  }
 }
-const discard = () => { isFinishing.value = false; timer.reset() }
-const onRecorded = (result) => {
-  isFinishing.value = false
-  timer.reset()
-  emit('recorded', result)
+
+const showSaved = (seconds, exp) => {
+  savedMessage.value = `${durationText(seconds)} 기록했어요 · +${exp} EXP`
+  clearTimeout(savedTimer)
+  savedTimer = setTimeout(() => { savedMessage.value = '' }, 6000)
 }
 </script>
 
 <style scoped>
 .timer-display {
   font-size: 3rem; font-weight: 900; letter-spacing: 2px; text-align: center;
-  font-variant-numeric: tabular-nums; color: #ced4da; padding: 12px 0 16px; transition: color 0.2s;
+  font-variant-numeric: tabular-nums; color: #868e96; padding: 8px 0 16px; transition: color 0.2s;
 }
 .timer-display.running { color: #1a1a1a; }
-.timer-display.paused { color: #868e96; }
 
-.timer-btns { display: flex; gap: 8px; }
-.btn {
-  flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
-  font-weight: 800; font-size: 0.9rem; padding: 12px; border-radius: 12px; font-family: inherit;
-  transition: background 0.15s, border-color 0.15s;
+.toggle {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; background: #2d5bff; color: #fff; cursor: pointer; font-family: inherit;
+  font-weight: 900; font-size: 1rem; padding: 14px; border-radius: 14px;
+  transition: background 0.15s, transform 0.1s;
 }
-.btn:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
-.btn.primary:hover:not(:disabled) { background: #1f47e0; color: #fff; }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.toggle:hover:not(:disabled) { background: #1f47e0; }
+.toggle:active:not(:disabled) { transform: scale(0.98); }
+.toggle.running { background: #1a1a1a; }
+.toggle.running:hover:not(:disabled) { background: #343a40; }
+.toggle:disabled { opacity: 0.6; cursor: wait; }
+.icon { font-size: 0.85rem; }
 
-.badge { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 800; color: #868e96; }
-.badge.live { color: #e03131; }
-.badge.live i { width: 7px; height: 7px; border-radius: 50%; background: #e03131; animation: blink 1s infinite; }
+.badge { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 800; color: #e03131; }
+.badge i { width: 7px; height: 7px; border-radius: 50%; background: #e03131; animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: 0.2; } }
 
-.hint { margin: 14px 0 0; font-size: 0.75rem; color: #adb5bd; line-height: 1.5; }
+.status { margin: 12px 0 0; font-size: 0.75rem; color: #adb5bd; line-height: 1.5; text-align: center; font-variant-numeric: tabular-nums; }
+.status.saved { color: #2d5bff; font-weight: 800; }
+.status.error { color: #e03131; font-weight: 700; }
+.retry {
+  margin-left: 6px; border: 1px solid #ffc9c9; background: #fff5f5; color: #e03131; cursor: pointer;
+  font: inherit; font-weight: 800; padding: 2px 8px; border-radius: 6px;
+}
 
 @media (max-width: 760px) {
   .timer-display { font-size: 2.4rem; }

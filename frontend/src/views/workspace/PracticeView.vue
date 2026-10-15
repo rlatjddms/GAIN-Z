@@ -6,6 +6,8 @@
       <p>{{ todayLabel }}</p>
     </div>
 
+    <p v-if="loadError" class="load-error">{{ loadError }}</p>
+
     <div class="today-grid">
       <PracticeTimerCard />
 
@@ -25,16 +27,7 @@
       </WsCard>
     </div>
 
-    <!-- 이번 주 연습량: #43·#44에서 연결 -->
-    <WsCard title="이번 주" soon>
-      <div class="week">
-        <div v-for="d in week" :key="d.key" class="day" :class="{ today: d.isToday }">
-          <span class="dow">{{ d.dow }}</span>
-          <span class="cell"></span>
-          <span class="date">{{ d.date }}</span>
-        </div>
-      </div>
-    </WsCard>
+    <RecentPracticeCard />
   </div>
   </SubPageLayout>
 </template>
@@ -43,16 +36,25 @@
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 import PracticeTimerCard from '../../components/workspace/PracticeTimerCard.vue'
+import RecentPracticeCard from '../../components/workspace/RecentPracticeCard.vue'
+import { ref, onMounted } from 'vue'
+import { usePracticeStore } from '../../stores/practice'
+import { apiErrorMessage } from '../../api/practice'
+import { addDays, EDITABLE_DAYS } from '../../constants/practice'
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 const now = new Date()
 const todayLabel = `${now.getMonth() + 1}월 ${now.getDate()}일 ${DOW[now.getDay()]}요일`
 
-// 월요일부터 일요일까지
-const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7))
-const week = Array.from({ length: 7 }, (_, i) => {
-  const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i)
-  return { key: i, dow: DOW[d.getDay()], date: d.getDate(), isToday: d.toDateString() === now.toDateString() }
+// 오늘 합계와 최근 7일 기록 불러오기
+const practice = usePracticeStore()
+const loadError = ref('')
+onMounted(async () => {
+  try {
+    await practice.loadRange(addDays(now, -(EDITABLE_DAYS - 1)), now)
+  } catch (e) {
+    loadError.value = `연습 기록을 불러오지 못했어요. ${apiErrorMessage(e)}`
+  }
 })
 </script>
 
@@ -81,13 +83,7 @@ const week = Array.from({ length: 7 }, (_, i) => {
 .bar { height: 8px; background: #e9ecef; border-radius: 4px; }
 .count { margin-left: auto; font-size: 0.75rem; font-weight: 800; color: #ced4da; font-variant-numeric: tabular-nums; }
 
-.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-.day { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.dow { font-size: 0.7rem; font-weight: 800; color: #adb5bd; }
-.cell { width: 100%; max-width: 56px; aspect-ratio: 1; background: #f1f3f5; border-radius: 10px; }
-.date { font-size: 0.75rem; font-weight: 700; color: #868e96; }
-.day.today .dow, .day.today .date { color: #2d5bff; }
-.day.today .cell { box-shadow: inset 0 0 0 2px #2d5bff; }
+.load-error { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fff5f5; color: #e03131; font-size: 0.8rem; font-weight: 700; }
 
 @media (max-width: 760px) {
   .today-grid { grid-template-columns: minmax(0, 1fr); }
