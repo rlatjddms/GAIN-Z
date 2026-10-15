@@ -5,7 +5,7 @@
 | 폴더 | 파일명 | 비고 |
 |---|---|---|
 | `body/` | `FEMALE.png`, `MALE.png` | 백엔드 `Gender` 값 |
-| `outfit/` | `DEFAULT.png` | 의상. 추후 `OutfitItem`과 연결 |
+| `outfit/` | `DEFAULT_FEMALE.png`, `DEFAULT_MALE.png` | 의상. 체형이 달라 `<이름>_<성별>.png`로 두고, 없으면 `<이름>.png`를 씀. 추후 `OutfitItem`과 연결 |
 | `hair/` | `BALD.png` … `MOHAWK_SHARP.png` | 백엔드 `HairStyle` 값 |
 | `instrument/` | `GUITAR.png` … `KEYBOARD.png` | 백엔드 `InstrumentType` 값 |
 

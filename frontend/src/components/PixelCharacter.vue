@@ -33,9 +33,12 @@ let loadToken = 0
 // hairStyle / instrumentType 이 null 이면 그 레이어를 그리지 않는다 (온보딩에서 아직 고르기 전)
 const spec = computed(() => {
   const c = props.character || {}
+  const body = c.gender === 'MALE' ? 'MALE' : 'FEMALE'
+  // 의상은 체형이 달라서 성별별 파일(<이름>_<성별>.png)을 먼저 찾고, 없으면 공용 파일을 쓴다
+  const outfit = spriteUrl('outfit', `${props.outfit}_${body}`) ? `${props.outfit}_${body}` : props.outfit
   return {
-    body: c.gender === 'MALE' ? 'MALE' : 'FEMALE',
-    outfit: props.outfit,
+    body,
+    outfit,
     hair: c.hairStyle === null ? null : (c.hairStyle || 'SHORT_CUT'),
     instrument: c.instrumentType === null ? null : (c.instrumentType || 'GUITAR'),
     colors: {

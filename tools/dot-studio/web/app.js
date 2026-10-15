@@ -29,7 +29,7 @@ const S = {
   zoom: 18, pan: { x: 0, y: 0 },
   undo: [], redo: [],
   others_cache: {},   // `${layer}/${name}` -> grid
-  pv: { body: 'FEMALE', outfit: 'DEFAULT', hair: 'LONG_STRAIGHT', instrument: 'GUITAR',
+  pv: { body: 'FEMALE', outfit: 'DEFAULT_FEMALE', hair: 'LONG_STRAIGHT', instrument: 'GUITAR',
         hairColor: '#EC4899', instrumentColor: '#B91C1C', outfitColor: '#FFFFFF' },
 };
 function blank() { return Array.from({ length: H }, () => Array(W).fill(null)); }
