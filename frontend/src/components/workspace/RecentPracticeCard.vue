@@ -35,13 +35,10 @@ import EditDayModal from './EditDayModal.vue'
 import LevelUpModal from './LevelUpModal.vue'
 import { usePracticeStore } from '../../stores/practice'
 import { usePracticeTimerStore } from '../../stores/practiceTimer'
-import { addDays, dateKey, dateLabel, dowLabel, durationText, shortDuration, EDITABLE_DAYS } from '../../constants/practice'
+import { addDays, dateKey, dateLabel, dowLabel, durationText, shortDuration, practiceLevel, EDITABLE_DAYS } from '../../constants/practice'
 
 const practice = usePracticeStore()
 const timer = usePracticeTimerStore()
-
-// 연습량 단계 (잔디 색과 같은 5단계)
-const levelOf = (s) => (s <= 0 ? 0 : s < 30 * 60 ? 1 : s < 60 * 60 ? 2 : s < 2 * 3600 ? 3 : 4)
 
 const days = computed(() => {
   const today = new Date()
@@ -49,7 +46,7 @@ const days = computed(() => {
     const date = addDays(today, i - (EDITABLE_DAYS - 1))
     const key = dateKey(date)
     const seconds = practice.totalOf(key)
-    return { key, dow: dowLabel(date), date: date.getDate(), seconds, level: levelOf(seconds), isToday: i === EDITABLE_DAYS - 1 }
+    return { key, dow: dowLabel(date), date: date.getDate(), seconds, level: practiceLevel(seconds), isToday: i === EDITABLE_DAYS - 1 }
   })
 })
 const weekTotal = computed(() => days.value.reduce((s, d) => s + d.seconds, 0))

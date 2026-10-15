@@ -69,6 +69,15 @@ export function shortDuration(seconds) {
   return h ? `${h}:${pad(m)}` : `${m || 1}분`
 }
 
+// 연습량 단계 0~4 (잔디·최근 7일 칸 색). 0분 / 30분 미만 / 1시간 미만 / 2시간 미만 / 그 이상
+export function practiceLevel(seconds) {
+  if (seconds <= 0) return 0
+  if (seconds < 30 * 60) return 1
+  if (seconds < 60 * 60) return 2
+  if (seconds < 2 * 3600) return 3
+  return 4
+}
+
 // 수정 가능한 날짜인지 (오늘 포함 최근 7일)
 export function isEditable(key, today = new Date()) {
   const oldest = dateKey(addDays(today, -(EDITABLE_DAYS - 1)))
