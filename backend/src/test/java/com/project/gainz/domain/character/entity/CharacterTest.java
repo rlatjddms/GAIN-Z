@@ -100,6 +100,20 @@ class CharacterTest {
     }
 
     @Test
+    void 피부색을_지정하지_않으면_기본값이_들어간다() {
+        assertThat(character.getSkinColor()).isEqualTo(Character.DEFAULT_SKIN_COLOR);
+    }
+
+    @Test
+    void 수정_시_피부색이_null이면_기존_값을_유지한다() {
+        character.update("tester", InstrumentType.values()[0], "#000000", Gender.values()[0], HairStyle.values()[0], "#000000", "#C68642");
+        assertThat(character.getSkinColor()).isEqualTo("#C68642");
+
+        character.update("tester", InstrumentType.values()[0], "#000000", Gender.values()[0], HairStyle.values()[0], "#000000", null);
+        assertThat(character.getSkinColor()).isEqualTo("#C68642");
+    }
+
+    @Test
     void 연습_시간은_누적된다() {
         character.addPracticeTime(30);
         character.addPracticeTime(15);
