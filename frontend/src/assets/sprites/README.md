@@ -5,7 +5,7 @@
 | 폴더 | 파일명 | 비고 |
 |---|---|---|
 | `body/` | `FEMALE.png`, `MALE.png` | 백엔드 `Gender` 값 |
-| `outfit/` | `DEFAULT.png` | 의상. 추후 `OutfitItem`과 연결 |
+| `outfit/` | `DEFAULT_FEMALE.png`, `DEFAULT_MALE.png` | 의상. 체형이 달라 `<이름>_<성별>.png`로 두고, 없으면 `<이름>.png`를 씀. 추후 `OutfitItem`과 연결 |
 | `hair/` | `BALD.png` … `MOHAWK_SHARP.png` | 백엔드 `HairStyle` 값 |
 | `instrument/` | `GUITAR.png` … `KEYBOARD.png` | 백엔드 `InstrumentType` 값 |
 
@@ -29,7 +29,7 @@
 | 의상 그림자 | `#B0B000` | 의상색 −40 |
 | 의상 외곽선 | `#606000` | 의상색 −85 |
 
-그 외의 색(피부 `#f8d7b5`, 피부 외곽선 `#9c5b36`, 눈 `#3a2622`, 바지 `#4d5583` 등)은 PNG에 있는 그대로 그려집니다.
+그 외의 색(피부 `#f8d7b5`, 피부 외곽선 `#9c5b36`, 눈 `#3a2622`, 청바지 `#3f6db5`, 신발 `#2b2d31` 등)은 PNG에 있는 그대로 그려집니다. 기본 의상색은 흰색(`#FFFFFF`)입니다.
 
 ## 확인하기
 

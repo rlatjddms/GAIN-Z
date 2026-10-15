@@ -77,7 +77,7 @@ const character = reactive({
   instrumentType: 'GUITAR',
   hairColor: '#EC4899',
   instrumentColor: '#B91C1C',
-  outfitColor: '#3B82F6',
+  outfitColor: '#FFFFFF',
 })
 </script>
 

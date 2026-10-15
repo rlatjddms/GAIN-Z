@@ -27,7 +27,7 @@ export const KEY_COLORS = {
 export const DEFAULT_COLORS = {
   hairColor: '#111827',
   instrumentColor: '#B91C1C',
-  outfitColor: '#3B82F6',
+  outfitColor: '#FFFFFF',
 }
 
 export function hexToRgb(hex) {
