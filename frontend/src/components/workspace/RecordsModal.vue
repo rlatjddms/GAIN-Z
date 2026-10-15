@@ -2,23 +2,27 @@
   <Teleport to="body">
     <transition name="modal">
       <div v-if="open" class="backdrop" @click.self="close">
-        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="pick-case-title">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="records-title">
           <header class="modal-head">
             <div>
-              <h2 id="pick-case-title">MY PICK CASE <span class="soon">준비 중</span></h2>
-              <p>업적을 달성하면 피크를 얻어요</p>
+              <h2 id="records-title">MY RECORDS <span class="soon">준비 중</span></h2>
+              <p>업적을 달성하면 음반이 하나씩 쌓여요</p>
             </div>
             <button class="close" aria-label="닫기" @click="close">✕</button>
           </header>
 
-          <div class="rarity-legend">
-            <span v-for="r in RARITIES" :key="r.key" class="r" :style="{ '--c': r.color }">{{ r.label }}</span>
+          <div class="legend">
+            <span v-for="r in RECORD_RARITIES" :key="r.key" class="legend-item">
+              <RecordIcon :type="r.type" :color="LEGEND_COLORS[r.key]" :size="20" />
+              {{ r.label }} <small>{{ r.rarity }}</small>
+            </span>
           </div>
 
-          <!-- 피크 도감: #47(지급 API)·#48에서 연결 -->
-          <div class="pick-grid">
-            <div v-for="(r, i) in SLOTS" :key="i" class="slot" :style="{ '--c': r.color }">
-              <span class="lock">🔒</span>
+          <!-- 레코드 도감: #47(지급 API)·#48에서 연결 -->
+          <div class="record-grid">
+            <div v-for="(r, i) in PLACEHOLDER_RECORDS" :key="i" class="slot" :style="{ '--c': r.border }">
+              <RecordIcon :type="r.type" locked :size="44" />
+              <span class="slot-name">???</span>
             </div>
           </div>
         </section>
@@ -29,19 +33,14 @@
 
 <script setup>
 import { watch, onBeforeUnmount } from 'vue'
+import RecordIcon from './RecordIcon.vue'
+import { RECORD_RARITIES, PLACEHOLDER_RECORDS } from '../../constants/records'
 
 const props = defineProps({ open: { type: Boolean, default: false } })
 const emit = defineEmits(['close'])
 const close = () => emit('close')
 
-// 백엔드 PickRarity와 같은 순서
-const RARITIES = [
-  { key: 'COMMON', label: '일반', color: '#ced4da' },
-  { key: 'RARE', label: '레어', color: '#5a7dff' },
-  { key: 'LEGENDARY', label: '전설', color: '#f59e0b' },
-]
-// 실제 피크 목록이 연결되기 전까지 보여 줄 빈 칸 (일반 6 · 레어 4 · 전설 2)
-const SLOTS = [...Array(6).fill(RARITIES[0]), ...Array(4).fill(RARITIES[1]), ...Array(2).fill(RARITIES[2])]
+const LEGEND_COLORS = { COMMON: '#5a7dff', RARE: '#e8590c', LEGENDARY: '#7c3aed' }
 
 // 열려 있는 동안 Esc로 닫기
 const onKey = (e) => { if (e.key === 'Escape') close() }
@@ -72,20 +71,24 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 }
 .close:hover { background: #e9ecef; color: #1a1a1a; }
 
-.rarity-legend { display: flex; gap: 12px; margin-bottom: 12px; }
-.r { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 800; color: #868e96; }
-.r::before { content: ''; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+.legend { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: #495057; }
+.legend-item small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 
-.pick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.record-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .slot {
-  aspect-ratio: 1; border-radius: 14px; background: #f8f9fa;
-  border: 2px solid color-mix(in srgb, var(--c) 45%, #fff);
-  display: flex; align-items: center; justify-content: center;
+  border-radius: 14px; background: #f8f9fa; padding: 14px 6px 10px;
+  border: 2px solid color-mix(in srgb, var(--c) 55%, #fff);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
-.lock { font-size: 1.1rem; opacity: 0.35; }
+.slot-name { font-size: 0.7rem; font-weight: 800; color: #ced4da; letter-spacing: 1px; }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-active .modal, .modal-leave-active .modal { transition: transform 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 .modal-enter-from .modal, .modal-leave-to .modal { transform: translateY(12px) scale(0.98); }
+
+@media (max-width: 480px) {
+  .record-grid { grid-template-columns: repeat(3, 1fr); }
+}
 </style>

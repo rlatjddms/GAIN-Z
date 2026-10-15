@@ -38,10 +38,16 @@
 
           <section class="footer-grid grid-2">
             <div class="data-card">
-              <button class="card-title link" @click="isPickCaseOpen = true">MY PICK CASE <span>›</span></button>
-              <div class="pick-box clickable" @click="isPickCaseOpen = true">
-                <div v-for="i in 6" :key="i" :class="['pick', { locked: i > 3 }]">
-                  {{ i <= 3 ? '🔺' : '🔒' }}
+              <button class="card-title link" @click="isRecordsOpen = true">
+                MY RECORDS <span class="record-count">0 / {{ PLACEHOLDER_RECORDS.length }} ›</span>
+              </button>
+              <!-- 레코드 선반: 실제 보유 레코드는 #47·#48에서 연결 -->
+              <div class="shelf" @click="isRecordsOpen = true">
+                <div v-for="(row, ri) in SHELF_ROWS" :key="ri" class="shelf-row">
+                  <div class="shelf-items">
+                    <RecordIcon v-for="(type, i) in row" :key="i" :type="type" locked :size="56" />
+                  </div>
+                  <div class="shelf-board"></div>
                 </div>
               </div>
             </div>
@@ -72,7 +78,7 @@
             </div>
           </section>
 
-          <PickCaseModal :open="isPickCaseOpen" @close="isPickCaseOpen = false" />
+          <RecordsModal :open="isRecordsOpen" @close="isRecordsOpen = false" />
         </template>
 
         <template v-else>
@@ -139,7 +145,9 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppHeader from '../components/AppHeader.vue'
 import CharacterStage from '../components/CharacterStage.vue'
-import PickCaseModal from '../components/workspace/PickCaseModal.vue'
+import RecordsModal from '../components/workspace/RecordsModal.vue'
+import RecordIcon from '../components/workspace/RecordIcon.vue'
+import { PLACEHOLDER_RECORDS } from '../constants/records'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -152,7 +160,12 @@ const goToEditCharacter = () => {
   router.push('/character-create?edit=true')
 }
 
-const isPickCaseOpen = ref(false)
+const isRecordsOpen = ref(false)
+// 홈 선반에 보여 줄 음반 (위: 카세트·CD, 아래: CD·LP)
+const SHELF_ROWS = [
+  ['CASSETTE', 'CASSETTE', 'CASSETTE', 'CD'],
+  ['CASSETTE', 'CD', 'LP', 'LP'],
+]
 const GRASS_WEEKS = 30
 // 이번 달 요약 (null = 아직 데이터 없음)
 const monthStats = computed(() => [
@@ -267,9 +280,15 @@ button::-moz-focus-inner { border: 0 !important; }
 .card-title { font-weight: 800; font-size: 0.85rem; margin-bottom: 18px; display: flex; justify-content: space-between; color: #495057; }
 .card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
 .card-title.link:hover { color: #2d5bff; }
-.pick-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.pick { background: #f8f9fa; height: 64px; display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1px solid #f1f3f5; font-size: 1.2rem; }
-.pick.locked { opacity: 0.3; }
+.record-count { font-size: 0.75rem; color: #adb5bd; }
+.shelf { cursor: pointer; display: flex; flex-direction: column; gap: 14px; }
+.shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
+.shelf-board {
+  height: 8px; border-radius: 3px; margin-top: 2px;
+  background: #c08a52; box-shadow: inset 0 -3px 0 #8e6035;
+}
+.shelf:hover .shelf-items { transform: translateY(-2px); }
+.shelf-items { transition: transform 0.2s; }
 
 .log-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
 .log-stat {
@@ -281,7 +300,6 @@ button::-moz-focus-inner { border: 0 !important; }
 .log-stat strong.empty { color: #ced4da; }
 .streak-stat { background: #fff4e6; border-color: #ffe8cc; }
 .streak-stat strong { color: #ff922b; }
-.pick-box.clickable { cursor: pointer; }
 
 .grass {
   display: grid; grid-auto-flow: column;
