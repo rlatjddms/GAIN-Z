@@ -63,6 +63,9 @@ public class Character extends BaseEntity {
     @Column(nullable = false, length = 7)
     private String hairColor;
 
+    @Column(nullable = false, length = 7, columnDefinition = "varchar(7) default '#F8D7B5'")
+    private String skinColor;
+
     @Column(nullable = false)
     private Integer level;
 
@@ -85,9 +88,11 @@ public class Character extends BaseEntity {
     @Version
     private Long version;
 
+    public static final String DEFAULT_SKIN_COLOR = "#F8D7B5";
+
     @Builder
     public Character(User user, String nickname, InstrumentType instrumentType, String instrumentColor,
-                     Gender gender, HairStyle hairStyle, String hairColor, OutfitItem currentOutfit) {
+                     Gender gender, HairStyle hairStyle, String hairColor, String skinColor, OutfitItem currentOutfit) {
         this.user = user;
         this.nickname = nickname;
         this.instrumentType = instrumentType;
@@ -95,6 +100,7 @@ public class Character extends BaseEntity {
         this.gender = gender;
         this.hairStyle = hairStyle;
         this.hairColor = hairColor;
+        this.skinColor = skinColor != null ? skinColor : DEFAULT_SKIN_COLOR;
         this.currentOutfit = currentOutfit;
         this.level = 1;
         this.exp = 0;
@@ -104,13 +110,14 @@ public class Character extends BaseEntity {
     }
 
     public void update(String nickname, InstrumentType instrumentType, String instrumentColor,
-                       Gender gender, HairStyle hairStyle, String hairColor) {
+                       Gender gender, HairStyle hairStyle, String hairColor, String skinColor) {
         this.nickname = nickname;
         this.instrumentType = instrumentType;
         this.instrumentColor = instrumentColor;
         this.gender = gender;
         this.hairStyle = hairStyle;
         this.hairColor = hairColor;
+        if (skinColor != null) this.skinColor = skinColor;
     }
 
     public boolean gainExperience(int amount) {

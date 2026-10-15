@@ -57,6 +57,7 @@ public class CharacterService {
                 .gender(request.gender())
                 .hairStyle(request.hairStyle())
                 .hairColor(request.hairColor())
+                .skinColor(request.skinColor())
                 .currentOutfit(defaultOutfit)
                 .build();
 
@@ -96,7 +97,8 @@ public class CharacterService {
                 request.instrumentColor(),
                 request.gender(),
                 request.hairStyle(),
-                request.hairColor()
+                request.hairColor(),
+                request.skinColor()
         );
     }
 
