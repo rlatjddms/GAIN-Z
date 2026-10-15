@@ -5,6 +5,7 @@ import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.global.common.enums.InstrumentType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record CharacterUpdateRequest(
@@ -28,5 +29,8 @@ public record CharacterUpdateRequest(
 
         @NotBlank(message = "머리 색상을 선택해주세요.")
         @Size(max = 7, message = "HEX 코드 형식(#FFFFFF)이어야 합니다.")
-        String hairColor
+        String hairColor,
+
+        @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "피부 색상은 HEX 코드 형식(#FFFFFF)이어야 합니다.")
+        String skinColor
 ) {}
