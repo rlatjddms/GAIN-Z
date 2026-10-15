@@ -120,4 +120,12 @@ class CharacterTest {
 
         assertThat(character.getTotalPracticeTime()).isEqualTo(45L);
     }
+
+    @Test
+    void 연습_시간을_줄여도_0_아래로_내려가지_않는다() {
+        character.addPracticeTime(10);
+        character.addPracticeTime(-30);
+
+        assertThat(character.getTotalPracticeTime()).isZero();
+    }
 }

@@ -7,40 +7,43 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ExpPolicyTest {
 
     @Test
-    void 연습_1분당_1exp를_지급한다() {
-        assertThat(ExpPolicy.calculate(600, 0.0)).isEqualTo(10);
+    void 하루_연습_1분당_1exp() {
+        assertThat(ExpPolicy.dailyExp(600)).isEqualTo(10);
     }
 
     @Test
     void 일분_미만은_버린다() {
-        assertThat(ExpPolicy.calculate(59, 0.0)).isZero();
-        assertThat(ExpPolicy.calculate(119, 0.0)).isEqualTo(1);
+        assertThat(ExpPolicy.dailyExp(59)).isZero();
+        assertThat(ExpPolicy.dailyExp(119)).isEqualTo(1);
     }
 
     @Test
-    void 달성률_100퍼센트는_최대_보너스를_지급한다() {
-        assertThat(ExpPolicy.calculate(0, 1.0)).isEqualTo(ExpPolicy.MAX_ACHIEVEMENT_BONUS);
-    }
-
-    @Test
-    void 달성률_보너스는_비례해서_지급한다() {
-        assertThat(ExpPolicy.calculate(0, 0.5)).isEqualTo(25);
-    }
-
-    @Test
-    void 한_번에_인정되는_연습_시간은_상한이_있다() {
+    void 하루에_인정되는_연습_시간은_상한이_있다() {
         long tenHours = 10 * 60 * 60;
-        assertThat(ExpPolicy.calculate(tenHours, 0.0)).isEqualTo(ExpPolicy.MAX_MINUTES_PER_LOG);
+        assertThat(ExpPolicy.dailyExp(tenHours)).isEqualTo(ExpPolicy.MAX_MINUTES_PER_DAY);
     }
 
     @Test
-    void 범위를_벗어난_달성률은_보정한다() {
-        assertThat(ExpPolicy.calculate(0, 1.5)).isEqualTo(ExpPolicy.MAX_ACHIEVEMENT_BONUS);
-        assertThat(ExpPolicy.calculate(0, -1.0)).isZero();
+    void 이미_받은_경험치를_빼고_지급한다() {
+        // 하루 30분 → 30exp 중 이미 20exp를 받았으면 10exp
+        assertThat(ExpPolicy.expToGrant(30 * 60, 20)).isEqualTo(10);
     }
 
     @Test
-    void 연습_시간과_보너스를_합산한다() {
-        assertThat(ExpPolicy.calculate(30 * 60, 1.0)).isEqualTo(80);
+    void 짧게_나눠_기록해도_하루_합계로_계산한다() {
+        // 40초 + 40초: 첫 구간 0exp, 합계 80초가 되면 1exp
+        int first = ExpPolicy.expToGrant(40, 0);
+        int second = ExpPolicy.expToGrant(80, first);
+        assertThat(first + second).isEqualTo(1);
+    }
+
+    @Test
+    void 시간이_줄면_지급하지_않는다() {
+        assertThat(ExpPolicy.expToGrant(10 * 60, 30)).isZero();
+    }
+
+    @Test
+    void 음수_시간은_0분으로_본다() {
+        assertThat(ExpPolicy.toMinutes(-120)).isZero();
     }
 }
