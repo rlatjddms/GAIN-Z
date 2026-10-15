@@ -7,15 +7,7 @@
     </div>
 
     <div class="today-grid">
-      <!-- 연습 타이머: #42에서 연결 -->
-      <WsCard title="연습 타이머" soon>
-        <div class="timer-display">00:00:00</div>
-        <div class="timer-btns">
-          <button class="btn primary" disabled>시작</button>
-          <button class="btn" disabled>종료</button>
-        </div>
-        <p class="hint">끝나면 달성률을 입력해 기록하고, 연습한 만큼 경험치를 받아요.</p>
-      </WsCard>
+      <PracticeTimerCard />
 
       <!-- 오늘의 루틴: #46에서 연결 -->
       <WsCard title="오늘의 루틴" soon>
@@ -50,6 +42,7 @@
 <script setup>
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
+import PracticeTimerCard from '../../components/workspace/PracticeTimerCard.vue'
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 const now = new Date()
@@ -70,18 +63,6 @@ const week = Array.from({ length: 7 }, (_, i) => {
 .page-head p { margin: 0; font-size: 0.85rem; font-weight: 700; color: #adb5bd; }
 
 .today-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
-
-.timer-display {
-  font-size: 3rem; font-weight: 900; letter-spacing: 2px; text-align: center;
-  font-variant-numeric: tabular-nums; color: #ced4da; padding: 12px 0 16px;
-}
-.timer-btns { display: flex; gap: 8px; }
-.btn {
-  flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057;
-  font-weight: 800; font-size: 0.9rem; padding: 12px; border-radius: 12px; font-family: inherit;
-}
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .hint { margin: 14px 0 0; font-size: 0.75rem; color: #adb5bd; line-height: 1.5; }
 
@@ -110,6 +91,5 @@ const week = Array.from({ length: 7 }, (_, i) => {
 
 @media (max-width: 760px) {
   .today-grid { grid-template-columns: minmax(0, 1fr); }
-  .timer-display { font-size: 2.4rem; }
 }
 </style>
