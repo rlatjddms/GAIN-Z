@@ -140,7 +140,8 @@ public class Character extends BaseEntity {
         return leveledUp;
     }
 
+    // 연습 기록을 직접 줄이면 음수가 들어올 수 있다 (0 아래로는 내려가지 않음)
     public void addPracticeTime(long minutes) {
-        this.totalPracticeTime += minutes;
+        this.totalPracticeTime = Math.max(0, this.totalPracticeTime + minutes);
     }
 }
