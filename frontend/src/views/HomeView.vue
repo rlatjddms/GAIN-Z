@@ -22,37 +22,45 @@
           </CharacterStage>
 
           <section class="quick-grid grid-3">
-            <button class="card-btn" @click="goToWorkspace('sheets')">
-              <div class="c-icon">📄</div>
-              <div class="c-text"><strong>AI TRANSCRIBER</strong><span>코드 / 오선보 / 타브 악보</span></div>
+            <button class="card-btn" @click="router.push('/practice')">
+              <div class="c-icon">🕒</div>
+              <div class="c-text"><strong>ROUTINE TRACKER</strong><span>연습 루틴 및 기록장</span></div>
             </button>
-            <button class="card-btn" @click="goToWorkspace('sheets')">
+            <button class="card-btn" @click="router.push('/sheets')">
               <div class="c-icon">📂</div>
               <div class="c-text"><strong>WORK BENCH</strong><span>악보 편집 및 보관함</span></div>
             </button>
-            <button class="card-btn" @click="goToWorkspace('')">
-              <div class="c-icon">🕒</div>
-              <div class="c-text"><strong>ROUTINE TRACKER</strong><span>연습 루틴 및 기록장</span></div>
+            <button class="card-btn" @click="router.push('/transcribe')">
+              <div class="c-icon">📄</div>
+              <div class="c-text"><strong>AI TRANSCRIBER</strong><span>코드 / 오선보 / 타브 악보</span></div>
             </button>
           </section>
 
           <section class="footer-grid grid-2">
             <div class="data-card">
-              <button class="card-title link" @click="goToWorkspace('picks')">MY PICK CASE <span>›</span></button>
-              <div class="pick-box">
+              <button class="card-title link" @click="isPickCaseOpen = true">MY PICK CASE <span>›</span></button>
+              <div class="pick-box clickable" @click="isPickCaseOpen = true">
                 <div v-for="i in 6" :key="i" :class="['pick', { locked: i > 3 }]">
                   {{ i <= 3 ? '🔺' : '🔒' }}
                 </div>
               </div>
             </div>
             <div class="data-card">
-              <button class="card-title link" @click="goToWorkspace('log')">PRACTICE LOG <span>›</span></button>
+              <div class="card-title">PRACTICE LOG <small>최근 {{ GRASS_WEEKS }}주</small></div>
               <div class="streak">{{ currentStreak }}일 연속 연습 중! 🔥</div>
-              <div class="fret-board">
-                <div v-for="i in 35" :key="i" :class="['fret', { on: i % 5 === 0 }]"></div>
+              <!-- 연습 잔디: 세로 7칸(요일) × 가로 주, 왼쪽이 오래된 주. #43·#44에서 실제 기록 연결 -->
+              <div class="grass">
+                <span v-for="i in GRASS_WEEKS * 7" :key="i" class="g"></span>
+              </div>
+              <div class="grass-legend">
+                적음
+                <span v-for="lv in 5" :key="lv" class="g" :class="`lv${lv - 1}`"></span>
+                많음
               </div>
             </div>
           </section>
+
+          <PickCaseModal :open="isPickCaseOpen" @close="isPickCaseOpen = false" />
         </template>
 
         <template v-else>
@@ -119,6 +127,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppHeader from '../components/AppHeader.vue'
 import CharacterStage from '../components/CharacterStage.vue'
+import PickCaseModal from '../components/workspace/PickCaseModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -131,10 +140,8 @@ const goToEditCharacter = () => {
   router.push('/character-create?edit=true')
 }
 
-// 홈 카드 → 워크스페이스의 해당 화면 ('' = 오늘)
-const goToWorkspace = (page) => {
-  router.push(page ? `/workspace/${page}` : '/workspace')
-}
+const isPickCaseOpen = ref(false)
+const GRASS_WEEKS = 26
 
 const myBands = ref([
   { id: 1, name: '락앤롤 베이비', members: [{id:1, emoji:'🥁', role:'DR'}, {id:2, emoji:'🎤', role:'VO'}, {id:3, emoji:'🎸', role:'GT1'}, {id:4, emoji:'🎸', role:'GT2'}]},
@@ -248,9 +255,23 @@ button::-moz-focus-inner { border: 0 !important; }
 .pick.locked { opacity: 0.3; }
 
 .streak { color: #ff922b; font-weight: 800; margin-bottom: 12px; font-size: 0.9rem; }
-.fret-board { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.fret { background: #e9ecef; height: 14px; border-radius: 3px; }
-.fret.on { background: #2d5bff; }
+.pick-box.clickable { cursor: pointer; }
+.card-title small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
+
+.grass {
+  display: grid; grid-auto-flow: column;
+  grid-template-rows: repeat(7, auto); grid-template-columns: repeat(26, minmax(0, 1fr)); gap: 3px;
+}
+.g { display: block; aspect-ratio: 1; border-radius: 3px; background: #f1f3f5; }
+.grass-legend {
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+  margin-top: 10px; font-size: 0.7rem; font-weight: 700; color: #adb5bd;
+}
+.grass-legend .g { width: 10px; }
+.g.lv1 { background: #c9d6ff; }
+.g.lv2 { background: #8ea8ff; }
+.g.lv3 { background: #5a7dff; }
+.g.lv4 { background: #2d5bff; }
 
 /* 밴드 전용 */
 .band-info h2 { font-size: 1.5rem; font-weight: 800; }

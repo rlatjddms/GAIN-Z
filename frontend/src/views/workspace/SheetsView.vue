@@ -1,14 +1,15 @@
 <template>
+  <SubPageLayout>
   <div class="page">
     <div class="page-head">
       <h2>악보 보관함</h2>
       <div class="head-actions">
-        <button class="btn" disabled>✨ AI로 악보 만들기</button>
+        <router-link to="/transcribe" class="btn">✨ AI로 악보 만들기</router-link>
         <button class="btn primary" disabled>+ 악보 담기</button>
       </div>
     </div>
 
-    <!-- 보관함 목록: #49(API)·#50에서 연결, AI 악보 생성은 #53 -->
+    <!-- 보관함 목록: #49(API)·#50에서 연결 -->
     <WsCard title="내 악보" soon>
       <template #actions>
         <div class="filters">
@@ -19,13 +20,15 @@
       <div class="empty">
         <div class="empty-icon">📂</div>
         <strong>아직 담아 둔 악보가 없어요</strong>
-        <p>악보를 담으면 여기서 메모를 남기고, 내 키로 바꿔서 볼 수 있어요.<br>음원을 올려 AI로 악보를 만들 수도 있어요.</p>
+        <p>악보를 담으면 여기서 메모를 남기고, 내 키로 바꿔서 볼 수 있어요.<br>AI로 만든 악보도 여기에 모여요.</p>
       </div>
     </WsCard>
   </div>
+  </SubPageLayout>
 </template>
 
 <script setup>
+import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 </script>
 
@@ -37,8 +40,9 @@ import WsCard from '../../components/workspace/WsCard.vue'
 
 .btn {
   border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit;
-  font-weight: 800; font-size: 0.8rem; padding: 10px 14px; border-radius: 12px;
+  font-weight: 800; font-size: 0.8rem; padding: 10px 14px; border-radius: 12px; text-decoration: none;
 }
+a.btn:hover { border-color: #2d5bff; color: #2d5bff; }
 .btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 

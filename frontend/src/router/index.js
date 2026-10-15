@@ -3,7 +3,6 @@ import LoginView from '../views/LoginView.vue'
 import SignupView from '../views/SignupView.vue'
 import HomeView from '../views/HomeView.vue'
 import CharacterCreateView from '../views/CharacterCreateView.vue'
-import WorkspaceView from '../views/WorkspaceView.vue'
 import OAuth2RedirectView from '../views/OAuth2RedirectView.vue'
 import { useAuthStore } from '../stores/auth'
 
@@ -24,16 +23,24 @@ const routes = [
       component: HomeView,
       meta: { requiresCharacter: true }
     },
+    // 홈 카드에서 들어가는 SOLO 상세 화면
     {
-      path: '/workspace',
-      component: WorkspaceView,
-      meta: { requiresCharacter: true },
-      children: [
-        { path: '', name: 'workspace', component: () => import('../views/workspace/TodayView.vue') },
-        { path: 'log', name: 'workspace-log', component: () => import('../views/workspace/LogView.vue') },
-        { path: 'sheets', name: 'workspace-sheets', component: () => import('../views/workspace/SheetsView.vue') },
-        { path: 'picks', name: 'workspace-picks', component: () => import('../views/workspace/PicksView.vue') },
-      ]
+      path: '/practice',
+      name: 'practice',
+      component: () => import('../views/workspace/PracticeView.vue'),
+      meta: { requiresCharacter: true }
+    },
+    {
+      path: '/sheets',
+      name: 'sheets',
+      component: () => import('../views/workspace/SheetsView.vue'),
+      meta: { requiresCharacter: true }
+    },
+    {
+      path: '/transcribe',
+      name: 'transcribe',
+      component: () => import('../views/workspace/TranscribeView.vue'),
+      meta: { requiresCharacter: true }
     },
     {
       path: '/character-create',
@@ -64,7 +71,7 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
-  // 로그인 + 캐릭터가 있어야 들어갈 수 있는 화면 (홈, 워크스페이스)
+  // 로그인 + 캐릭터가 있어야 들어갈 수 있는 화면 (홈과 SOLO 상세 화면)
   if (to.meta.requiresCharacter) {
     if (!authStore.isAuthenticated) {
       // Direct unauthorized access to login

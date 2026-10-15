@@ -1,4 +1,5 @@
 <template>
+  <SubPageLayout>
   <div class="page">
     <div class="page-head">
       <h2>오늘의 연습</h2>
@@ -34,9 +35,6 @@
 
     <!-- 이번 주 연습량: #43·#44에서 연결 -->
     <WsCard title="이번 주" soon>
-      <template #actions>
-        <router-link to="/workspace/log" class="text-btn">기록 전체 보기 ›</router-link>
-      </template>
       <div class="week">
         <div v-for="d in week" :key="d.key" class="day" :class="{ today: d.isToday }">
           <span class="dow">{{ d.dow }}</span>
@@ -46,9 +44,11 @@
       </div>
     </WsCard>
   </div>
+  </SubPageLayout>
 </template>
 
 <script setup>
+import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
