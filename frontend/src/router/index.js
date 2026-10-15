@@ -26,9 +26,14 @@ const routes = [
     },
     {
       path: '/workspace',
-      name: 'workspace',
       component: WorkspaceView,
-      meta: { requiresCharacter: true }
+      meta: { requiresCharacter: true },
+      children: [
+        { path: '', name: 'workspace', component: () => import('../views/workspace/TodayView.vue') },
+        { path: 'log', name: 'workspace-log', component: () => import('../views/workspace/LogView.vue') },
+        { path: 'sheets', name: 'workspace-sheets', component: () => import('../views/workspace/SheetsView.vue') },
+        { path: 'picks', name: 'workspace-picks', component: () => import('../views/workspace/PicksView.vue') },
+      ]
     },
     {
       path: '/character-create',

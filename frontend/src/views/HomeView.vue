@@ -30,7 +30,7 @@
               <div class="c-icon">📂</div>
               <div class="c-text"><strong>WORK BENCH</strong><span>악보 편집 및 보관함</span></div>
             </button>
-            <button class="card-btn" @click="goToWorkspace('routine')">
+            <button class="card-btn" @click="goToWorkspace('')">
               <div class="c-icon">🕒</div>
               <div class="c-text"><strong>ROUTINE TRACKER</strong><span>연습 루틴 및 기록장</span></div>
             </button>
@@ -131,9 +131,9 @@ const goToEditCharacter = () => {
   router.push('/character-create?edit=true')
 }
 
-// 홈 카드 → 워크스페이스의 해당 탭
-const goToWorkspace = (tab) => {
-  router.push({ path: '/workspace', query: { tab } })
+// 홈 카드 → 워크스페이스의 해당 화면 ('' = 오늘)
+const goToWorkspace = (page) => {
+  router.push(page ? `/workspace/${page}` : '/workspace')
 }
 
 const myBands = ref([
