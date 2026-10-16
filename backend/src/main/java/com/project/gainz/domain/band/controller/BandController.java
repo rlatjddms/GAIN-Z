@@ -3,7 +3,9 @@ package com.project.gainz.domain.band.controller;
 import com.project.gainz.domain.band.dto.request.BandCreateRequest;
 import com.project.gainz.domain.band.dto.request.BandJoinRequest;
 import com.project.gainz.domain.band.dto.request.BandLeaderRequest;
+import com.project.gainz.domain.band.dto.request.BandMemberOrderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberPartRequest;
+import com.project.gainz.domain.band.dto.request.BandStageRequest;
 import com.project.gainz.domain.band.dto.request.BandUpdateRequest;
 import com.project.gainz.domain.band.dto.response.BandResponse;
 import com.project.gainz.domain.band.service.BandService;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -62,6 +65,26 @@ public class BandController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(ApiResponse.success(bandService.updateBand(principal.getUserId(), bandId, request)));
+    }
+
+    // 합주실 배경 바꾸기 (리더만)
+    @PatchMapping("/{bandId}/stage")
+    public ResponseEntity<ApiResponse<BandResponse>> changeStage(
+            @PathVariable Long bandId,
+            @Valid @RequestBody BandStageRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(bandService.changeStage(principal.getUserId(), bandId, request)));
+    }
+
+    // 무대 자리 순서 바꾸기 (리더만)
+    @PutMapping("/{bandId}/members/order")
+    public ResponseEntity<ApiResponse<BandResponse>> reorderMembers(
+            @PathVariable Long bandId,
+            @Valid @RequestBody BandMemberOrderRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(bandService.reorderMembers(principal.getUserId(), bandId, request)));
     }
 
     @DeleteMapping("/{bandId}")

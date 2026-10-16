@@ -3,7 +3,9 @@ package com.project.gainz.domain.band.service;
 import com.project.gainz.domain.band.dto.request.BandCreateRequest;
 import com.project.gainz.domain.band.dto.request.BandJoinRequest;
 import com.project.gainz.domain.band.dto.request.BandLeaderRequest;
+import com.project.gainz.domain.band.dto.request.BandMemberOrderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberPartRequest;
+import com.project.gainz.domain.band.dto.request.BandStageRequest;
 import com.project.gainz.domain.band.dto.request.BandUpdateRequest;
 import com.project.gainz.domain.band.dto.response.BandMemberResponse;
 import com.project.gainz.domain.band.dto.response.BandResponse;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -43,6 +46,10 @@ public class BandService {
     static final String INVITE_CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     private static final int INVITE_CODE_ATTEMPTS = 10;
     private static final SecureRandom RANDOM = new SecureRandom();
+    // 무대에 선 순서 (순서가 없는 예전 멤버는 오른쪽에 들어온 순서로)
+    private static final Comparator<BandMember> STAGE_ORDER = Comparator
+            .comparing((BandMember m) -> m.getStageOrder() != null ? m.getStageOrder() : Integer.MAX_VALUE)
+            .thenComparing(BandMember::getId);
 
     private final BandRepository bandRepository;
     private final BandMemberRepository bandMemberRepository;
@@ -90,6 +97,7 @@ public class BandService {
                 .user(user)
                 .position(Position.LEADER)
                 .part(request.part())
+                .stageOrder(0)
                 .build());
         return toResponse(band, leader, List.of(leader), charactersOf(List.of(leader)), userId);
     }
@@ -97,6 +105,28 @@ public class BandService {
     public BandResponse updateBand(Long userId, Long bandId, BandUpdateRequest request) {
         BandMember me = requireLeader(userId, bandId);
         me.getBand().update(request.name().trim(), blankToNull(request.description()));
+        return respond(me.getBand(), me, userId);
+    }
+
+    public BandResponse changeStage(Long userId, Long bandId, BandStageRequest request) {
+        BandMember me = requireLeader(userId, bandId);
+        me.getBand().changeStage(request.stage());
+        return respond(me.getBand(), me, userId);
+    }
+
+    // 무대 자리 순서: 지금 멤버 전부를 왼쪽부터 한 번씩 보내야 한다
+    public BandResponse reorderMembers(Long userId, Long bandId, BandMemberOrderRequest request) {
+        BandMember me = requireLeader(userId, bandId);
+        Map<Long, BandMember> members = activeMembers(bandMemberRepository.findAllByBandIdOrderByIdAsc(bandId)).stream()
+                .collect(Collectors.toMap(BandMember::getId, Function.identity()));
+        List<Long> order = request.memberIds();
+        if (order.size() != members.size() || new HashSet<>(order).size() != order.size()
+                || !members.keySet().containsAll(order)) {
+            throw new BusinessException(ErrorCode.INVALID_MEMBER_ORDER);
+        }
+        for (int i = 0; i < order.size(); i++) {
+            members.get(order.get(i)).changeStageOrder(i);
+        }
         return respond(me.getBand(), me, userId);
     }
 
@@ -123,16 +153,25 @@ public class BandService {
             throw new BusinessException(ErrorCode.ALREADY_BAND_MEMBER);
         }
         checkJoinLimit(userId);
-        if (bandMemberRepository.countByBandId(band.getId()) >= MAX_MEMBERS) {
+        List<BandMember> members = activeMembers(bandMemberRepository.findAllByBandIdOrderByIdAsc(band.getId()));
+        if (members.size() >= MAX_MEMBERS) {
             throw new BusinessException(ErrorCode.BAND_FULL);
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        // 새 멤버는 무대 맨 오른쪽
+        int nextOrder = members.stream()
+                .map(BandMember::getStageOrder)
+                .filter(o -> o != null)
+                .max(Integer::compare)
+                .map(o -> o + 1)
+                .orElse(members.size());
         BandMember me = bandMemberRepository.save(BandMember.builder()
                 .band(band)
                 .user(user)
                 .position(Position.MEMBER)
                 .part(request.part())
+                .stageOrder(nextOrder)
                 .build());
         return respond(band, me, userId);
     }
@@ -259,7 +298,7 @@ public class BandService {
     private BandResponse toResponse(Band band, BandMember me, List<BandMember> members,
                                     Map<Long, Character> characters, Long userId) {
         List<BandMemberResponse> memberResponses = activeMembers(members).stream()
-                .sorted(Comparator.comparing((BandMember m) -> !m.isLeader()).thenComparing(BandMember::getId))
+                .sorted(STAGE_ORDER)
                 .map(m -> BandMemberResponse.of(m, characters.get(m.getUser().getId()), userId))
                 .toList();
         return BandResponse.of(band, me.getPosition(), memberResponses);

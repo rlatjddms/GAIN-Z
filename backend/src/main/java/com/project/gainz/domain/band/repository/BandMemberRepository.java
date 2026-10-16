@@ -22,7 +22,5 @@ public interface BandMemberRepository extends JpaRepository<BandMember, Long> {
 
     List<BandMember> findAllByBandIdInOrderByIdAsc(Collection<Long> bandIds);
 
-    long countByBandId(Long bandId);
-
     long countByUserId(Long userId);
 }

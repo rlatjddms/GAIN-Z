@@ -49,12 +49,16 @@ public class BandMember extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private InstrumentType part;
 
+    // 합주실 무대에 선 순서 (작을수록 왼쪽). 예전 멤버는 비어 있어서 들어온 순서로 본다
+    private Integer stageOrder;
+
     @Builder
-    public BandMember(Band band, User user, Position position, InstrumentType part) {
+    public BandMember(Band band, User user, Position position, InstrumentType part, Integer stageOrder) {
         this.band = band;
         this.user = user;
         this.position = position;
         this.part = part;
+        this.stageOrder = stageOrder;
     }
 
     public boolean isLeader() {
@@ -67,5 +71,9 @@ public class BandMember extends BaseEntity {
 
     public void changePosition(Position position) {
         this.position = position;
+    }
+
+    public void changeStageOrder(Integer stageOrder) {
+        this.stageOrder = stageOrder;
     }
 }

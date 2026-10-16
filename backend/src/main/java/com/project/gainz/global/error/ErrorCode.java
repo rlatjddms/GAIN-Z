@@ -67,7 +67,8 @@ public enum ErrorCode {
     CANNOT_REMOVE_SELF(400, "B010", "나 자신은 내보낼 수 없습니다. 밴드 나가기를 이용해 주세요."),
     ALREADY_BAND_LEADER(400, "B011", "이미 리더인 멤버입니다."),
     BAND_PART_CHANGE_DENIED(403, "B012", "본인이나 리더만 파트를 바꿀 수 있습니다."),
-    INVITE_CODE_GENERATION_FAILED(500, "B013", "초대 코드를 만들지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    INVITE_CODE_GENERATION_FAILED(500, "B013", "초대 코드를 만들지 못했습니다. 잠시 후 다시 시도해 주세요."),
+    INVALID_MEMBER_ORDER(400, "B014", "멤버 순서가 지금 멤버와 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요.");
 
     private final int status;
     private final String code;

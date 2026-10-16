@@ -1,10 +1,13 @@
 package com.project.gainz.domain.band.entity;
 
+import com.project.gainz.domain.band.enums.BandStage;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -47,6 +50,11 @@ public class Band extends BaseEntity {
 
     private String profileImageUrl;
 
+    // 합주실 배경. 예전에 만든 밴드는 비어 있어서 연습실로 본다
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private BandStage stage;
+
     @OneToMany(mappedBy = "band", cascade = CascadeType.ALL)
     private List<BandMember> members = new ArrayList<>();
 
@@ -64,6 +72,15 @@ public class Band extends BaseEntity {
         this.description = description;
         this.leader = leader;
         this.inviteCode = inviteCode;
+        this.stage = BandStage.STUDIO;
+    }
+
+    public BandStage getStage() {
+        return stage != null ? stage : BandStage.STUDIO;
+    }
+
+    public void changeStage(BandStage stage) {
+        this.stage = stage;
     }
 
     public void update(String name, String description) {
