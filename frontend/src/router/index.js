@@ -68,6 +68,12 @@ const routes = [
       meta: { requiresCharacter: true }
     },
     {
+      path: '/mypage',
+      name: 'mypage',
+      component: () => import('../views/MyPageView.vue'),
+      meta: { requiresCharacter: true }
+    },
+    {
       path: '/character-create',
       name: 'character-create',
       component: CharacterCreateView

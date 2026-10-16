@@ -11,7 +11,14 @@ public enum ErrorCode {
     DUPLICATE_EMAIL(409, "U001", "이미 존재하는 이메일입니다."),
     USER_NOT_FOUND(404, "U002", "존재하지 않는 사용자입니다."),
     INVALID_PASSWORD(400, "U003", "비밀번호가 일치하지 않습니다."),
+    SOCIAL_ACCOUNT_PASSWORD(400, "U004", "소셜 로그인 계정은 비밀번호를 바꿀 수 없습니다."),
     INVALID_TOKEN(401, "U005", "유효하지 않은 토큰입니다."),
+    SAME_PASSWORD(400, "U006", "지금 비밀번호와 다른 비밀번호를 입력해 주세요."),
+    PROFILE_IMAGE_REQUIRED(400, "U007", "프로필 사진 파일을 올려 주세요."),
+    INVALID_PROFILE_IMAGE(400, "U008", "프로필 사진은 PNG·JPG·WEBP 이미지만 올릴 수 있습니다."),
+    PROFILE_IMAGE_TOO_LARGE(400, "U009", "프로필 사진은 5MB까지 올릴 수 있습니다."),
+    PROFILE_IMAGE_NOT_FOUND(404, "U010", "프로필 사진이 없습니다."),
+    PROFILE_IMAGE_STORAGE_FAILED(500, "U011", "프로필 사진을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."),
 
     /* Character (캐릭터) */
     CHARACTER_ALREADY_EXISTS(409, "C001", "이미 캐릭터를 보유하고 있는 유저입니다."),

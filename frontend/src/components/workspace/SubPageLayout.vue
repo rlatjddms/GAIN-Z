@@ -1,7 +1,7 @@
 <template>
   <div class="sub-app">
     <AppHeader>
-      <div class="page-pill">SOLO</div>
+      <div class="page-pill">{{ pill }}</div>
     </AppHeader>
 
     <main class="sub-body">
@@ -12,8 +12,13 @@
 </template>
 
 <script setup>
-// 홈 카드에서 들어가는 SOLO 상세 페이지 공통 틀 (헤더 + 홈으로 돌아가기)
+// 홈에서 들어가는 상세 페이지 공통 틀 (헤더 + 홈으로 돌아가기)
 import AppHeader from '../AppHeader.vue'
+
+defineProps({
+  // 헤더 가운데 표시 (SOLO 기능, 마이페이지 MY …)
+  pill: { type: String, default: 'SOLO' },
+})
 </script>
 
 <style scoped>
