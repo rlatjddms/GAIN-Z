@@ -18,7 +18,10 @@ onBeforeUnmount(() => document.removeEventListener('click', outside, true))
 </script>
 <style scoped>
 .card-menu { position: relative; margin-left: auto; flex: none; }
-summary { display: grid; place-items: center; list-style: none; width: 32px; height: 32px; border: 0; border-radius: 9px; color: #52627a; background: transparent; cursor: pointer; }
+summary { display: grid; place-items: center; list-style: none; width: 32px; height: 32px; border: 0; border-radius: 0; outline: 0; box-shadow: none; color: #52627a; background: transparent; -webkit-tap-highlight-color: transparent; cursor: pointer; }
+summary:hover, summary:active, summary:focus, .card-menu[open] > summary { border: 0; outline: 0; box-shadow: none; background: transparent; }
+summary:hover { color: #343a40; }
+summary:focus-visible svg { border-radius: 50%; outline: 2px solid #a7b9ff; outline-offset: 3px; }
 summary::-webkit-details-marker { display: none; }
 .card-menu > div { position: absolute; top: 38px; right: 0; z-index: 15; min-width: 125px; padding: 5px; background: white; border: 1px solid #e2e7ef; border-radius: 11px; box-shadow: 0 8px 25px #17243b20; }
 button { display: flex; align-items: center; gap: 7px; border: 0; background: white; color: #405372; width: 100%; padding: 10px; border-radius: 6px; font: inherit; font-size: 12px; cursor: pointer; }

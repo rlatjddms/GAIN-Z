@@ -46,14 +46,19 @@
       <span class="switch" aria-hidden="true" />
     </label>
     <section v-if="canNotice && draft.notice" class="notice-schedule" aria-label="공지 기간">
-      <label for="notice-end-mode">공지 기간</label>
-      <select id="notice-end-mode" v-model="draft.endMode" :disabled="saving"><option value="none">종료일 없이 유지</option><option value="scheduled">종료 날짜·시간 지정</option></select>
-      <template v-if="draft.endMode === 'scheduled'">
-        <label for="notice-end">공지 종료 일시</label>
+      <div class="period-row">
+        <span>고정 기간</span>
+        <div class="period-options" role="radiogroup" aria-label="공지 기간 선택">
+          <label><input v-model="draft.endMode" type="radio" value="none" :disabled="saving"><span>무기한</span></label>
+          <label><input v-model="draft.endMode" type="radio" value="scheduled" :disabled="saving"><span>종료일 지정</span></label>
+        </div>
+      </div>
+      <div v-if="draft.endMode === 'scheduled'" class="period-end">
+        <label class="sr-only" for="notice-end">공지 종료 일시</label>
         <input id="notice-end" v-model="draft.noticeEnd" type="datetime-local" :min="localDateTime(Date.now() + 60000)" :disabled="saving" required>
-        <p>설정한 시간이 지나면 일반 글로 표시돼요. <span>{{ timeZone }} 기준</span></p>
+        <p>종료 후 일반 글로 전환 · {{ timeZone === 'Asia/Seoul' ? '한국 시간' : timeZone }}</p>
         <p v-if="expiryError" class="schedule-error" role="alert">{{ expiryError }}</p>
-      </template>
+      </div>
     </section>
     <div v-if="saving" class="save-progress" role="status"><span :style="{ width: `${progress}%` }" /><p>{{ progress < 100 ? `첨부 올리는 중 ${progress}%` : '게시글을 저장하고 있어요…' }}</p></div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -191,10 +196,21 @@ input:checked + .switch { background: #2d5bff; }
 input:checked + .switch::after { transform: translateX(15px); }
 input:focus-visible + .switch { outline: 3px solid #b6c5ff; outline-offset: 3px; }
 .error { color: #d94841; background: #fff5f5; border-radius: 10px; padding: 12px; font-size: 12px; line-height: 1.6; }
-.notice-schedule { display: grid; gap: 9px; margin-top: 16px; padding: 16px; border: 1px solid #e5eaf3; border-radius: 12px; background: #fafbfe; }
-.notice-schedule label { color: #526071; font-size: 12px; font-weight: 700; }
-.notice-schedule select, .notice-schedule input { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #dbe2ee; border-radius: 8px; background: white; color: #343a40; font: inherit; font-size: 13px; }
-.notice-schedule p { margin: 2px 0 0; color: #858e9b; font-size: 11px; line-height: 1.6; }.notice-schedule p span { display: block; }.notice-schedule .schedule-error { color: #d94841; }
+.notice-schedule { margin: 14px 0 0 48px; }
+.period-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.period-row > span { color: #7b8491; font-size: 12px; }
+.period-options { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: #f1f3f6; }
+.period-options label { position: relative; cursor: pointer; }
+.period-options input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.period-options span { display: block; padding: 7px 11px; border-radius: 6px; color: #858e9b; font-size: 11px; font-weight: 600; }
+.period-options input:checked + span { color: #343f52; background: white; box-shadow: 0 1px 3px #17243b10; }
+.period-options input:focus-visible + span { outline: 2px solid #a7b9ff; outline-offset: 1px; }
+.period-options input:disabled + span { opacity: .5; cursor: default; }
+.period-end { margin-top: 11px; }
+.period-end > input { box-sizing: border-box; width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid #e1e6ee; border-radius: 9px; background: #fff; color: #495057; font: inherit; font-size: 13px; outline: none; }
+.period-end > input:focus { border-color: #9aaff4; box-shadow: 0 0 0 3px #2d5bff08; }
+.period-end p { margin: 7px 0 0; color: #939ba7; font-size: 10px; line-height: 1.6; }
+.period-end .schedule-error { color: #d94841; }
 .notice-hint { color: #62708c; background: #f5f7fb; border-radius: 10px; padding: 12px; font-size: 12px; }
 .save-progress { margin-top: 20px; height: 3px; background: #edf0f5; border-radius: 3px; }
 .save-progress > span { display: block; height: 3px; background: #2d5bff; border-radius: 3px; }
