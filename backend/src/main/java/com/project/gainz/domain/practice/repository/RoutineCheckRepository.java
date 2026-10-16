@@ -15,4 +15,6 @@ public interface RoutineCheckRepository extends JpaRepository<RoutineCheck, Long
     List<RoutineCheck> findAllByRoutineIdInAndPracticeDate(Collection<Long> routineIds, LocalDate practiceDate);
 
     Optional<RoutineCheck> findByRoutineIdAndPracticeDate(Long routineId, LocalDate practiceDate);
+
+    List<RoutineCheck> findAllByRoutineIdInAndPracticeDateBetween(Collection<Long> routineIds, LocalDate from, LocalDate to);
 }

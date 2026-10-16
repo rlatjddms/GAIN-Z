@@ -2,6 +2,7 @@ package com.project.gainz.domain.practice.controller;
 
 import com.project.gainz.domain.practice.dto.request.RoutineCheckRequest;
 import com.project.gainz.domain.practice.dto.request.RoutineRequest;
+import com.project.gainz.domain.practice.dto.response.RoutineDailySummaryResponse;
 import com.project.gainz.domain.practice.dto.response.RoutineResponse;
 import com.project.gainz.domain.practice.service.RoutineService;
 import com.project.gainz.global.common.dto.ApiResponse;
@@ -32,7 +33,7 @@ public class RoutineController {
 
     private final RoutineService routineService;
 
-    // 사용 중인 루틴 + 그날 체크 현황 (date 생략 시 오늘)
+    // 그날 일정 루틴 + 그날 체크 현황 (date 생략 시 오늘)
     @GetMapping
     public ResponseEntity<ApiResponse<List<RoutineResponse>>> getRoutines(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
@@ -40,6 +41,16 @@ public class RoutineController {
     ) {
         LocalDate target = date != null ? date : LocalDate.now();
         return ResponseEntity.ok(ApiResponse.success(routineService.getRoutines(principal.getUserId(), target)));
+    }
+
+    // 기간별 날짜마다 일정 루틴 수 / 완료 수 (일정이 있는 날만)
+    @GetMapping("/daily")
+    public ResponseEntity<ApiResponse<List<RoutineDailySummaryResponse>>> getDailySummary(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(routineService.getDailySummary(principal.getUserId(), from, to)));
     }
 
     @PostMapping
@@ -59,6 +70,7 @@ public class RoutineController {
         return ResponseEntity.ok(ApiResponse.success(routineService.updateRoutine(principal.getUserId(), routineId, request)));
     }
 
+    // 오늘부터 그만하기 (지난 기록은 남김)
     @DeleteMapping("/{routineId}")
     public ResponseEntity<ApiResponse<Void>> deleteRoutine(
             @PathVariable Long routineId,
