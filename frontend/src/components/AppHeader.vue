@@ -18,15 +18,7 @@
         </button>
         <!-- 내 프로필: 누르면 마이페이지 -->
         <router-link to="/mypage" class="user-info" active-class="on" title="마이페이지">
-          <span class="avatar">
-            <PixelCharacter
-              v-if="authStore.character"
-              :character="authStore.character"
-              :outfit="authStore.character.currentOutfitSpriteKey || 'DEFAULT'"
-              :scale="2"
-              :animate="false"
-            />
-          </span>
+          <ProfileAvatar :src="authStore.profile?.profileImageUrl" :size="32" />
           <span class="name">{{ authStore.displayName }}</span>
         </router-link>
         <button class="logout-icon-btn" title="로그아웃" @click="handleLogout">
@@ -41,7 +33,7 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import PixelCharacter from './PixelCharacter.vue'
+import ProfileAvatar from './ProfileAvatar.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -82,12 +74,6 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 }
 .user-info:hover, .user-info.on { background: #f0f4ff; }
 .user-info.on .name { color: #2d5bff; }
-/* 아바타: 캐릭터 얼굴만 보이게 동그랗게 자른다 */
-.avatar {
-  position: relative; flex: none; width: 32px; height: 32px; overflow: hidden;
-  background: #e9ecef; border-radius: 50%; box-shadow: 0 0 0 1px #e9ecef;
-}
-.avatar canvas { position: absolute; left: -8px; top: -4px; }
 .name { font-weight: 700; font-size: 0.9rem; color: #495057; }
 .noti-btn, .logout-icon-btn {
   background: none; border: none; color: #adb5bd; cursor: pointer;

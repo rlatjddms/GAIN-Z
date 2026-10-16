@@ -3,101 +3,83 @@
     <div class="page">
       <div class="page-head">
         <h2>마이페이지</h2>
-        <p>내 캐릭터와 계정 정보를 확인하고 바꿀 수 있어요</p>
+        <p>회원 정보와 계정 설정을 바꿀 수 있어요</p>
       </div>
 
-      <div class="layout">
-        <!-- 캐릭터 + 연습 요약 -->
-        <div class="col">
-          <CharacterStage :character="character">
-            <router-link to="/wardrobe" class="wardrobe-btn" title="옷장: 외형·의상·배경 바꾸기">
-              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 3l3 2 3-2 5 3-2 4-2-1v12H8V9L6 10 4 6z"></path>
-              </svg>
-              옷장
-            </router-link>
-          </CharacterStage>
+      <WsCard title="회원 정보">
+        <p v-if="loadError" class="error">{{ loadError }}</p>
+        <div v-else-if="!profile" class="loading">불러오는 중…</div>
 
-          <WsCard title="연습 요약">
-            <div class="stats">
-              <div class="stat">
-                <span>총 연습 시간</span>
-                <strong>{{ durationText((character?.totalPracticeTime || 0) * 60) }}</strong>
-              </div>
-              <div class="stat">
-                <span>연속 연습</span>
-                <strong>{{ character?.currentStreak || 0 }}일</strong>
-              </div>
-              <div class="stat">
-                <span>최장 연속</span>
-                <strong>{{ character?.maxStreak || 0 }}일</strong>
-              </div>
-            </div>
-          </WsCard>
-        </div>
-
-        <!-- 계정 -->
-        <div class="col">
-          <WsCard title="내 정보">
-            <p v-if="loadError" class="error">{{ loadError }}</p>
-            <div v-else-if="!profile" class="loading">불러오는 중…</div>
-
-            <dl v-else class="info">
-              <div class="row">
-                <dt>이름</dt>
-                <dd v-if="!editingName" class="name-view">
-                  <strong>{{ profile.name }}</strong>
-                  <button class="text-btn" @click="startEditName">수정</button>
-                </dd>
-                <dd v-else class="name-edit">
-                  <form @submit.prevent="saveName">
-                    <input
-                      ref="nameInput"
-                      v-model="nameDraft"
-                      type="text"
-                      maxlength="20"
-                      :disabled="savingName"
-                      aria-label="새 이름"
-                      @keydown.esc="editingName = false"
-                    >
-                    <button type="button" class="btn small" :disabled="savingName" @click="editingName = false">취소</button>
-                    <button type="submit" class="btn small primary" :disabled="savingName || !nameValid">{{ savingName ? '저장 중…' : '저장' }}</button>
-                  </form>
-                  <p v-if="nameError" class="field-error">{{ nameError }}</p>
-                </dd>
-              </div>
-              <div class="row">
-                <dt>이메일</dt>
-                <dd>{{ profile.email }}</dd>
-              </div>
-              <div class="row">
-                <dt>가입 방식</dt>
-                <dd><span class="provider" :class="profile.provider.toLowerCase()">{{ providerLabel }}</span></dd>
-              </div>
-              <div v-if="joinedText" class="row">
-                <dt>가입일</dt>
-                <dd>{{ joinedText }}</dd>
-              </div>
-            </dl>
-            <p v-if="nameStatus" class="saved">{{ nameStatus }}</p>
-          </WsCard>
-
-          <WsCard title="계정 설정">
-            <div class="settings">
-              <button v-if="isLocal" class="setting" @click="passwordOpen = true">
-                <span>비밀번호 바꾸기</span><span class="chev">›</span>
+        <template v-else>
+          <!-- 프로필 사진 -->
+          <div class="photo">
+            <ProfileAvatar :src="profile.profileImageUrl" :size="88" :alt="`${profile.name} 프로필 사진`" />
+            <div class="photo-actions">
+              <button class="btn small" :disabled="photoBusy" @click="fileInput.click()">
+                {{ photoBusy ? '올리는 중…' : profile.profileImageUrl ? '사진 바꾸기' : '사진 올리기' }}
               </button>
-              <p v-else-if="profile" class="muted">{{ providerLabel }} 계정으로 가입해서 비밀번호는 {{ providerLabel }}에서 관리해요.</p>
-              <p v-if="passwordStatus" class="saved">{{ passwordStatus }}</p>
-
-              <button class="setting" @click="logout">
-                <span>로그아웃</span><span class="chev">›</span>
-              </button>
+              <button v-if="profile.profileImageUrl" class="btn small ghost" :disabled="photoBusy" @click="removePhoto">기본 이미지로</button>
+              <p class="photo-hint">PNG · JPG · WEBP, {{ MAX_PROFILE_IMAGE_MB }}MB까지</p>
             </div>
-            <button class="withdraw-link" :disabled="!profile" @click="withdrawOpen = true">회원 탈퇴</button>
-          </WsCard>
+            <input ref="fileInput" type="file" :accept="PROFILE_IMAGE_ACCEPT" hidden @change="onPhotoPicked">
+          </div>
+          <p v-if="photoError" class="field-error">{{ photoError }}</p>
+
+          <dl class="info">
+            <div class="row">
+              <dt>이름</dt>
+              <dd v-if="!editingName" class="name-view">
+                <strong>{{ profile.name }}</strong>
+                <button class="text-btn" @click="startEditName">수정</button>
+              </dd>
+              <dd v-else class="name-edit">
+                <form @submit.prevent="saveName">
+                  <input
+                    ref="nameInput"
+                    v-model="nameDraft"
+                    type="text"
+                    maxlength="20"
+                    :disabled="savingName"
+                    aria-label="새 이름"
+                    @keydown.esc="editingName = false"
+                  >
+                  <button type="button" class="btn small" :disabled="savingName" @click="editingName = false">취소</button>
+                  <button type="submit" class="btn small primary" :disabled="savingName || !nameValid">{{ savingName ? '저장 중…' : '저장' }}</button>
+                </form>
+                <p v-if="nameError" class="field-error">{{ nameError }}</p>
+              </dd>
+            </div>
+            <div class="row">
+              <dt>이메일</dt>
+              <dd>{{ profile.email }}</dd>
+            </div>
+            <div class="row">
+              <dt>가입 방식</dt>
+              <dd><span class="provider" :class="profile.provider.toLowerCase()">{{ providerLabel }}</span></dd>
+            </div>
+            <div v-if="joinedText" class="row">
+              <dt>가입일</dt>
+              <dd>{{ joinedText }}</dd>
+            </div>
+          </dl>
+          <p v-if="status" class="saved">{{ status }}</p>
+        </template>
+      </WsCard>
+
+      <WsCard title="계정 설정">
+        <div class="settings">
+          <button v-if="isLocal" class="setting" @click="passwordOpen = true">
+            <span>비밀번호 바꾸기</span><span class="chev">›</span>
+          </button>
+          <p v-else-if="profile" class="muted">{{ providerLabel }} 계정으로 가입해서 비밀번호는 {{ providerLabel }}에서 관리해요.</p>
+          <p v-if="passwordStatus" class="saved">{{ passwordStatus }}</p>
+
+          <button class="setting" @click="logout">
+            <span>로그아웃</span><span class="chev">›</span>
+          </button>
         </div>
-      </div>
+        <button class="withdraw-link" :disabled="!profile" @click="withdrawOpen = true">회원 탈퇴</button>
+      </WsCard>
     </div>
 
     <PasswordModal :open="passwordOpen" @close="passwordOpen = false" @done="onPasswordChanged" />
@@ -110,20 +92,22 @@ import { ref, computed, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import WsCard from '../components/workspace/WsCard.vue'
-import CharacterStage from '../components/CharacterStage.vue'
+import ProfileAvatar from '../components/ProfileAvatar.vue'
 import PasswordModal from '../components/mypage/PasswordModal.vue'
 import WithdrawModal from '../components/mypage/WithdrawModal.vue'
 import { useAuthStore } from '../stores/auth'
-import { updateMyName } from '../api/user'
+import {
+  updateMyName, uploadProfileImage, deleteProfileImage,
+  PROFILE_IMAGE_ACCEPT, PROFILE_IMAGE_TYPES, MAX_PROFILE_IMAGE_MB,
+} from '../api/user'
 import { apiErrorMessage } from '../api/practice'
-import { durationText } from '../constants/practice'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const character = computed(() => authStore.character)
 const profile = computed(() => authStore.profile)
 const loadError = ref('')
+const status = ref('')
 
 const PROVIDER_LABELS = { LOCAL: '이메일', GOOGLE: '구글', KAKAO: '카카오', NAVER: '네이버' }
 const providerLabel = computed(() => PROVIDER_LABELS[profile.value?.provider] || profile.value?.provider || '')
@@ -136,10 +120,55 @@ const joinedText = computed(() => {
 })
 
 onMounted(async () => {
-  // 들어올 때마다 최신 정보로 (다른 기기에서 이름을 바꿨을 수도 있다)
+  // 들어올 때마다 최신 정보로 (다른 기기에서 바꿨을 수도 있다)
   const result = await authStore.fetchProfile()
   if (!result && !authStore.profile) loadError.value = '내 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
 })
+
+/* ---------- 프로필 사진 ---------- */
+const fileInput = ref(null)
+const photoBusy = ref(false)
+const photoError = ref('')
+
+const onPhotoPicked = async (e) => {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  photoError.value = ''
+  status.value = ''
+  if (!PROFILE_IMAGE_TYPES.includes(file.type)) {
+    photoError.value = 'PNG · JPG · WEBP 이미지만 올릴 수 있어요.'
+    return
+  }
+  if (file.size > MAX_PROFILE_IMAGE_MB * 1024 * 1024) {
+    photoError.value = `${MAX_PROFILE_IMAGE_MB}MB보다 작은 사진을 골라 주세요.`
+    return
+  }
+  photoBusy.value = true
+  try {
+    authStore.profile = await uploadProfileImage(file)
+    status.value = '프로필 사진을 바꿨어요'
+  } catch (err) {
+    photoError.value = apiErrorMessage(err, '사진을 올리지 못했어요.')
+  } finally {
+    photoBusy.value = false
+  }
+}
+
+const removePhoto = async () => {
+  if (!window.confirm('프로필 사진을 지우고 기본 이미지로 바꿀까요?')) return
+  photoBusy.value = true
+  photoError.value = ''
+  status.value = ''
+  try {
+    authStore.profile = await deleteProfileImage()
+    status.value = '기본 이미지로 바꿨어요'
+  } catch (err) {
+    photoError.value = apiErrorMessage(err, '사진을 지우지 못했어요.')
+  } finally {
+    photoBusy.value = false
+  }
+}
 
 /* ---------- 이름 수정 ---------- */
 const editingName = ref(false)
@@ -147,7 +176,6 @@ const nameDraft = ref('')
 const nameInput = ref(null)
 const savingName = ref(false)
 const nameError = ref('')
-const nameStatus = ref('')
 const nameValid = computed(() => {
   const v = nameDraft.value.trim()
   return v.length >= 1 && v.length <= 20 && v !== profile.value?.name
@@ -156,7 +184,7 @@ const nameValid = computed(() => {
 const startEditName = async () => {
   nameDraft.value = profile.value.name
   nameError.value = ''
-  nameStatus.value = ''
+  status.value = ''
   editingName.value = true
   await nextTick()
   nameInput.value?.select()
@@ -170,7 +198,7 @@ const saveName = async () => {
     const result = await updateMyName(nameDraft.value.trim())
     authStore.setUserName(result.name)
     editingName.value = false
-    nameStatus.value = '이름을 바꿨어요'
+    status.value = '이름을 바꿨어요'
   } catch (e) {
     nameError.value = apiErrorMessage(e, '이름을 바꾸지 못했어요.')
   } finally {
@@ -202,30 +230,18 @@ const onWithdrawn = async () => {
 </script>
 
 <style scoped>
-.page { display: flex; flex-direction: column; gap: 16px; }
+.page { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 .page-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
 .page-head h2 { margin: 0; font-size: 1.3rem; font-weight: 900; }
 .page-head p { margin: 0; font-size: 0.85rem; font-weight: 700; color: #adb5bd; }
 
-.layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-
-.wardrobe-btn {
-  position: absolute; bottom: 16px; right: 20px;
-  display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 8px;
-  background: #fff; border: 1px solid #e9ecef; color: #495057; font-size: 0.75rem; font-weight: 700; text-decoration: none;
-  transition: all 0.2s;
-}
-.wardrobe-btn:hover { background: #f1f3f5; color: #2d5bff; border-color: #2d5bff; }
-
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.stat { background: #f8f9fa; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
-.stat span { font-size: 0.7rem; font-weight: 800; color: #868e96; }
-.stat strong { font-size: 1.05rem; font-weight: 900; color: #212529; }
+.photo { display: flex; align-items: center; gap: 18px; padding-bottom: 16px; border-bottom: 1px solid #f1f3f5; }
+.photo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.photo-hint { flex-basis: 100%; margin: 2px 0 0; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 
 .info { margin: 0; display: flex; flex-direction: column; }
-.row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid #f1f3f5; }
-.row:first-child { border-top: none; padding-top: 0; }
+.row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid #f1f3f5; }
+.row:first-child { border-top: none; }
 dt { font-size: 0.75rem; font-weight: 800; color: #868e96; }
 dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break: break-all; }
 .name-view { display: flex; align-items: center; gap: 10px; }
@@ -235,7 +251,7 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
   flex: 1; min-width: 0; border: 1px solid #2d5bff; border-radius: 10px; padding: 7px 10px;
   font-family: inherit; font-size: 0.85rem; font-weight: 700; outline: none;
 }
-.field-error { margin: 6px 0 0; font-size: 0.72rem; font-weight: 700; color: #e03131; }
+.field-error { margin: 8px 0 0; font-size: 0.72rem; font-weight: 700; color: #e03131; }
 
 .provider {
   display: inline-block; font-size: 0.72rem; font-weight: 800; padding: 3px 9px; border-radius: 999px;
@@ -266,23 +282,15 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
   border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit; cursor: pointer;
   font-weight: 800; font-size: 0.8rem; padding: 8px 12px; border-radius: 10px; white-space: nowrap;
 }
+.btn:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
 .btn.small { padding: 7px 10px; font-size: 0.75rem; }
 .btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.btn.primary:hover:not(:disabled) { color: #fff; background: #1f4ae0; }
+.btn.ghost { border-color: transparent; color: #868e96; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .text-btn { border: none; background: none; padding: 0; color: #2d5bff; font-weight: 800; cursor: pointer; font-family: inherit; font-size: 0.75rem; }
 
 .saved { margin: 10px 0 0; font-size: 0.75rem; font-weight: 800; color: #2f9e44; }
 .error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
 .loading { padding: 16px 0; font-size: 0.85rem; color: #adb5bd; }
-
-@media (max-width: 860px) {
-  .layout { grid-template-columns: 1fr; }
-}
-/* 좁은 화면: 무대 아래 경험치와 겹치지 않게 옷장 버튼을 무대 밑으로 (홈과 같게) */
-@media (max-width: 640px) {
-  .wardrobe-btn { position: static; margin: 0 auto 12px; width: fit-content; }
-  .stats { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
-  .stat { padding: 10px; }
-  .stat strong { font-size: 0.9rem; }
-}
 </style>
