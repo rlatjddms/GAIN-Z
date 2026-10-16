@@ -22,6 +22,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.io.Resource;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -46,6 +48,7 @@ class UserServiceTest {
     @Mock private CharacterRepository characterRepository;
     @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private ProfileImageStorage profileImageStorage;
 
     @InjectMocks private UserService userService;
 
@@ -82,24 +85,14 @@ class UserServiceTest {
     /* ---------- 조회·이름 ---------- */
 
     @Test
-    void 내_정보에_캐릭터_요약이_담긴다() {
-        User user = localUser();
-        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character(user)));
+    void 내_정보를_조회한다() {
+        localUser();
 
         MyInfoResponse response = userService.getMyInfo(USER_ID);
 
         assertThat(response.email()).isEqualTo(EMAIL);
         assertThat(response.provider()).isEqualTo(SocialProvider.LOCAL);
-        assertThat(response.character().nickname()).isEqualTo("방구석 락스타");
-        assertThat(response.character().level()).isEqualTo(1);
-    }
-
-    @Test
-    void 캐릭터가_없으면_캐릭터_요약은_null이다() {
-        localUser();
-        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
-
-        assertThat(userService.getMyInfo(USER_ID).character()).isNull();
+        assertThat(response.profileImageUrl()).isNull();
     }
 
     @Test
@@ -114,12 +107,86 @@ class UserServiceTest {
     @Test
     void 이름을_앞뒤_공백_없이_바꾼다() {
         User user = localUser();
-        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
 
         MyInfoResponse response = userService.updateName(USER_ID, new UpdateNameRequest("  새이름 "));
 
         assertThat(user.getName()).isEqualTo("새이름");
         assertThat(response.name()).isEqualTo("새이름");
+    }
+
+    /* ---------- 프로필 사진 ---------- */
+
+    private final MockMultipartFile photo = new MockMultipartFile("file", "me.png", "image/png", new byte[]{1, 2, 3});
+
+    @Test
+    void 프로필_사진을_바꾸면_주소에_새_버전이_붙고_예전_파일을_지운다() {
+        User user = localUser();
+        user.changeProfileImage("old-uuid.png", "image/png");
+        when(profileImageStorage.store(photo)).thenReturn(new ProfileImageStorage.StoredImage("new-uuid.jpg", "image/jpeg"));
+
+        MyInfoResponse response = userService.changeProfileImage(USER_ID, photo);
+
+        assertThat(user.getProfileImage()).isEqualTo("new-uuid.jpg");
+        assertThat(user.getProfileImageType()).isEqualTo("image/jpeg");
+        assertThat(response.profileImageUrl()).isEqualTo("/api/v1/users/1/profile-image?v=new-uuid");
+        verify(profileImageStorage).delete("old-uuid.png");
+    }
+
+    @Test
+    void 처음_올리는_사진이면_지울_파일이_없다() {
+        localUser();
+        when(profileImageStorage.store(photo)).thenReturn(new ProfileImageStorage.StoredImage("new-uuid.png", "image/png"));
+
+        userService.changeProfileImage(USER_ID, photo);
+
+        verify(profileImageStorage, never()).delete(anyString());
+    }
+
+    @Test
+    void 사진을_저장하지_못하면_예전_사진을_그대로_둔다() {
+        User user = localUser();
+        user.changeProfileImage("old-uuid.png", "image/png");
+        when(profileImageStorage.store(photo)).thenThrow(new BusinessException(ErrorCode.INVALID_PROFILE_IMAGE));
+
+        assertThatThrownBy(() -> userService.changeProfileImage(USER_ID, photo))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PROFILE_IMAGE);
+        assertThat(user.getProfileImage()).isEqualTo("old-uuid.png");
+        verify(profileImageStorage, never()).delete(anyString());
+    }
+
+    @Test
+    void 프로필_사진을_지우면_기본_프로필이_된다() {
+        User user = localUser();
+        user.changeProfileImage("old-uuid.png", "image/png");
+
+        MyInfoResponse response = userService.deleteProfileImage(USER_ID);
+
+        assertThat(user.hasProfileImage()).isFalse();
+        assertThat(response.profileImageUrl()).isNull();
+        verify(profileImageStorage).delete("old-uuid.png");
+    }
+
+    @Test
+    void 사진이_없는_유저의_사진을_찾으면_예외가_발생한다() {
+        localUser();
+
+        assertThatThrownBy(() -> userService.getProfileImage(USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PROFILE_IMAGE_NOT_FOUND);
+    }
+
+    @Test
+    void 사진_파일과_형식을_돌려준다() {
+        User user = localUser();
+        user.changeProfileImage("uuid.webp", "image/webp");
+        Resource resource = mock(Resource.class);
+        when(profileImageStorage.load("uuid.webp")).thenReturn(resource);
+
+        UserService.ProfileImageFile file = userService.getProfileImage(USER_ID);
+
+        assertThat(file.resource()).isSameAs(resource);
+        assertThat(file.contentType()).isEqualTo("image/webp");
     }
 
     /* ---------- 비밀번호 ---------- */
@@ -191,8 +258,9 @@ class UserServiceTest {
     }
 
     @Test
-    void 탈퇴하면_토큰을_지우고_유저와_캐릭터를_삭제하고_이메일을_비운다() {
+    void 탈퇴하면_토큰과_사진을_지우고_유저와_캐릭터를_삭제하고_이메일을_비운다() {
         User user = localUser();
+        user.changeProfileImage("uuid.png", "image/png");
         Character character = character(user);
         when(passwordEncoder.matches("Pass1234!", ENCODED)).thenReturn(true);
         when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
@@ -200,6 +268,8 @@ class UserServiceTest {
         userService.withdraw(USER_ID, new WithdrawRequest("Pass1234!"));
 
         verify(refreshTokenRepository).deleteById(EMAIL);
+        verify(profileImageStorage).delete("uuid.png");
+        assertThat(user.hasProfileImage()).isFalse();
         assertThat(user.getIsDeleted()).isTrue();
         assertThat(user.getEmail()).isNotEqualTo(EMAIL).endsWith("@gainz.invalid");
         assertThat(user.getPassword()).isNull();
