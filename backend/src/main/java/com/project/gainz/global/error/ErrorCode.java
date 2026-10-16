@@ -22,7 +22,12 @@ public enum ErrorCode {
     /* Practice (연습) */
     PRACTICE_DAY_LIMIT_EXCEEDED(400, "P001", "하루 연습 시간은 24시간을 넘을 수 없습니다."),
     PRACTICE_EDIT_PERIOD_EXPIRED(400, "P002", "연습 기록은 최근 7일까지만 수정할 수 있습니다."),
-    INVALID_PRACTICE_PERIOD(400, "P003", "조회 기간이 올바르지 않습니다. (최대 1년)");
+    INVALID_PRACTICE_PERIOD(400, "P003", "조회 기간이 올바르지 않습니다. (최대 1년)"),
+
+    /* Routine (연습 루틴) */
+    ROUTINE_NOT_FOUND(404, "R001", "존재하지 않는 루틴입니다."),
+    ROUTINE_LIMIT_EXCEEDED(400, "R002", "루틴은 최대 20개까지 만들 수 있습니다."),
+    ROUTINE_CHECK_PERIOD_EXPIRED(400, "R003", "루틴 체크는 최근 7일까지만 할 수 있습니다.");
 
     private final int status;
     private final String code;
