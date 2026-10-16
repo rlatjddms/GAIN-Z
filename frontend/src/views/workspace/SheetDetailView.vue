@@ -30,8 +30,8 @@
         <!-- 악보 -->
         <WsCard class="sheet-card">
           <div class="toolbar">
-            <span class="count">{{ pages.length ? `${pages.length}장` : '' }}</span>
-            <div v-if="hasImages" class="zoom" role="group" aria-label="확대·축소">
+            <span class="count">{{ !tabs.length && pages.length ? `${pages.length}장` : '' }}</span>
+            <div v-if="!tabs.length && hasImages" class="zoom" role="group" aria-label="확대·축소">
               <button class="step" :disabled="zoom <= ZOOMS[0]" aria-label="축소" @click="setZoom(-1)">−</button>
               <span class="zoom-value">{{ zoom }}%</span>
               <button class="step" :disabled="zoom >= ZOOMS[ZOOMS.length - 1]" aria-label="확대" @click="setZoom(1)">+</button>
@@ -39,7 +39,17 @@
             <button class="btn small" @click="wide = !wide">{{ wide ? '메모 보이기' : '악보만 크게' }}</button>
           </div>
 
-          <div v-if="pages.length" class="pages">
+          <!-- 마디 악보(AI가 만든 타브·코드): 보는 키로 옮겨서 그린다 -->
+          <MeasureSheet
+            v-if="tabs.length"
+            :tabs="tabs"
+            :instrument-type="sheet.instrumentType"
+            :original-key="sheet.originalKey"
+            :view-key="viewKey"
+            :bpm="sheet.bpm"
+          />
+
+          <div v-else-if="pages.length" class="pages">
             <figure v-for="p in pages" :key="p.id" class="page-frame" :style="isPdf(p.contentType) ? null : { width: `${zoom}%` }">
               <SheetPageView :sheet-id="sheet.id" :page-id="p.id" :content-type="p.contentType" :alt="`${sheet.title} ${p.pageNumber}장`" />
               <figcaption v-if="pages.length > 1">{{ p.pageNumber }} / {{ pages.length }}</figcaption>
@@ -103,6 +113,7 @@ import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 import ChordSheet from '../../components/workspace/ChordSheet.vue'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
+import MeasureSheet from '../../components/workspace/MeasureSheet.vue'
 import KeyHelper from '../../components/workspace/KeyHelper.vue'
 import { getWorkspaceItem, updateWorkspaceItem, removeWorkspaceItem } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
@@ -118,6 +129,7 @@ const loadError = ref('')
 const actionError = ref('')
 const sheet = computed(() => item.value?.sheet || {})
 const pages = computed(() => sheet.value.pages || [])
+const tabs = computed(() => sheet.value.tabs || [])
 const hasImages = computed(() => pages.value.some((p) => !isPdf(p.contentType)))
 const metaText = computed(() => {
   const s = sheet.value

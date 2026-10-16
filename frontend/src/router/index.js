@@ -86,6 +86,12 @@ if (import.meta.env.DEV) {
     name: 'dev-sprites',
     component: () => import('../views/SpritePreviewView.vue')
   })
+  // 마디 악보(타브·코드) 렌더러 미리보기
+  routes.push({
+    path: '/dev/tabs',
+    name: 'dev-tabs',
+    component: () => import('../views/TabPreviewView.vue')
+  })
 }
 
 const router = createRouter({
