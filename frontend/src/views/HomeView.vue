@@ -60,32 +60,76 @@
           <nav class="band-nav">
             <div class="band-tabs-row">
               <div class="band-tabs-left">
-                <button v-for="band in myBands" :key="band.id"
-                        :class="{ active: selectedBandId === band.id }"
-                        @click="selectedBandId = band.id">
-                  {{ band.name }}
+                <button v-for="band in bandStore.bands" :key="band.id"
+                        :class="{ active: activeBand?.id === band.id }"
+                        @click="bandStore.selectedBandId = band.id">
+                  <span v-if="band.myPosition === 'LEADER'" class="crown" title="내가 리더">👑</span>{{ band.name }}
                 </button>
+                <button v-if="bandStore.loaded" class="add-band-tab"
+                        :disabled="bandStore.bands.length >= MAX_JOINED_BANDS"
+                        :title="bandStore.bands.length >= MAX_JOINED_BANDS ? `밴드는 ${MAX_JOINED_BANDS}개까지 들어갈 수 있어요` : '밴드 만들기 · 초대 코드로 가입'"
+                        @click="openStart('create')">+</button>
               </div>
 
-              <button class="match-make-btn">
+              <button class="match-make-btn" title="밴드 매칭은 준비 중이에요">
                 <span class="plus-icon">+</span>
                 <span class="btn-lbl">BAND MATCHING</span>
               </button>
             </div>
           </nav>
 
-          <section class="stage band-stage">
-            <div class="band-info">
-              <h2>{{ activeBand.name }}의 합주실</h2>
-              <p>{{ activeBand.members.length }}명의 멤버가 참여 중</p>
+          <section v-if="!bandStore.loaded" class="stage band-stage band-empty">
+            <p v-if="bandStore.error" class="empty-text">
+              {{ bandStore.error }}
+              <button class="text-btn" @click="bandStore.fetchMyBands()">다시 불러오기</button>
+            </p>
+            <p v-else class="empty-text">밴드를 불러오는 중…</p>
+          </section>
+
+          <section v-else-if="!activeBand" class="stage band-stage band-empty">
+            <div class="empty-icon">🎸🥁🎤</div>
+            <h2>아직 들어간 밴드가 없어요</h2>
+            <p class="empty-text">밴드를 새로 만들거나, 리더에게 받은 초대 코드로 가입해 보세요.</p>
+            <div class="empty-actions">
+              <button class="pill-btn primary" @click="openStart('create')">밴드 만들기</button>
+              <button class="pill-btn" @click="openStart('join')">초대 코드로 가입</button>
             </div>
-            <div class="member-list">
-              <div v-for="m in activeBand.members" :key="m.id" class="m-item">
-                <div class="m-avatar">{{ m.emoji }}</div>
-                <div class="m-role">{{ m.role }}</div>
+          </section>
+
+          <section v-else class="stage band-stage band-room">
+            <div class="band-info">
+              <div>
+                <h2>{{ activeBand.name }}의 합주실</h2>
+                <p>{{ activeBand.members.length }}명의 멤버가 참여 중<template v-if="activeBand.description"> · {{ activeBand.description }}</template></p>
+              </div>
+              <div class="band-tools">
+                <button class="tool-btn" @click="router.push(`/bands/${activeBand.id}/settings`)">⚙ 밴드 설정</button>
+              </div>
+            </div>
+
+            <div class="band-scene">
+              <BandStageScene :members="shownMembers" :stage-key="activeBand.stage"
+                              :reorderable="canReorder" @reorder="onReorder" />
+            </div>
+            <p v-if="canReorder" class="scene-hint">캐릭터나 아래 이름표를 끌어서 자리를 바꿀 수 있어요.</p>
+            <p v-if="reorderError" class="scene-hint bad">{{ reorderError }}</p>
+
+            <div ref="memberListRef" class="member-list"
+                 :class="{ reorderable: canReorder, dragging: !!tagDrag, settling: tagSettling }">
+              <div v-for="m in activeBand.members" :key="m.memberId" class="m-item" :data-member-id="m.memberId"
+                   :class="{ me: m.me, held: tagDrag?.id === m.memberId }" :style="tagStyle(m.memberId)"
+                   @pointerdown="startTagDrag($event, m.memberId)">
+                <div class="m-name">
+                  <span v-if="m.position === 'LEADER'" title="리더">👑</span>{{ m.character?.nickname || '알 수 없는 멤버' }}
+                </div>
+                <div class="m-role">{{ partEmoji(m.part) }} {{ partLabel(m.part) }}<template v-if="m.me"> · 나</template></div>
               </div>
             </div>
           </section>
+
+          <BandStartModal :open="isStartOpen" :initial-tab="startTab"
+                          :default-part="authStore.character?.instrumentType || 'GUITAR'"
+                          @close="isStartOpen = false" @done="onBandStarted" />
 
           <div class="band-layout-split">
             <div class="band-menus">
@@ -115,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppHeader from '../components/AppHeader.vue'
@@ -124,13 +168,21 @@ import RecordsModal from '../components/workspace/RecordsModal.vue'
 import PracticeLogCard from '../components/workspace/PracticeLogCard.vue'
 import RecordIcon from '../components/workspace/RecordIcon.vue'
 import { PLACEHOLDER_RECORDS } from '../constants/records'
+import BandStageScene from '../components/band/BandStageScene.vue'
+import BandStartModal from '../components/band/BandStartModal.vue'
+import { useBandStore } from '../stores/band'
+import { MAX_JOINED_BANDS, reorderMembers } from '../api/band'
+import { apiErrorMessage } from '../api/practice'
+import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const isBandMode = ref(false)
-const selectedBandId = ref(1)
-
-
+const bandStore = useBandStore()
+// SOLO / BAND 탭은 스토어에 둬서 밴드 설정에 다녀와도 BAND 탭으로 돌아온다
+const isBandMode = computed({
+  get: () => bandStore.isBandMode,
+  set: (v) => { bandStore.isBandMode = v },
+})
 
 const isRecordsOpen = ref(false)
 // 홈 선반에 보여 줄 음반 (위: 카세트·CD, 아래: CD·LP)
@@ -138,11 +190,128 @@ const SHELF_ROWS = [
   ['CASSETTE', 'CASSETTE', 'CASSETTE', 'CD'],
   ['CASSETTE', 'CD', 'LP', 'LP'],
 ]
-const myBands = ref([
-  { id: 1, name: '락앤롤 베이비', members: [{id:1, emoji:'🥁', role:'DR'}, {id:2, emoji:'🎤', role:'VO'}, {id:3, emoji:'🎸', role:'GT1'}, {id:4, emoji:'🎸', role:'GT2'}]},
-  { id: 2, name: '락스타들', members: [{id:1, emoji:'🎸', role:'GT'}, {id:2, emoji:'🎹', role:'KB'}]}
-])
-const activeBand = computed(() => myBands.value.find(b => b.id === selectedBandId.value))
+/* ---------- BAND ---------- */
+
+const activeBand = computed(() => bandStore.selectedBand)
+
+// BAND 탭을 열 때마다 내 밴드를 새로 불러온다 (설정 화면에서 바꾼 내용 반영)
+watch(isBandMode, (on) => { if (on) bandStore.fetchMyBands() }, { immediate: true })
+
+const isStartOpen = ref(false)
+const startTab = ref('create')
+const openStart = (tab) => {
+  startTab.value = tab
+  isStartOpen.value = true
+}
+const onBandStarted = (band) => {
+  isStartOpen.value = false
+  bandStore.upsertBand(band, true)
+}
+
+// 무대 자리 바꾸기 (리더만). 화면은 먼저 바꾸고, 실패하면 원래 순서로 되돌린다
+const canReorder = computed(() => activeBand.value?.myPosition === 'LEADER' && activeBand.value.members.length > 1)
+const reorderError = ref('')
+const onReorder = async (memberIds) => {
+  const band = activeBand.value
+  const before = band
+  const byId = new Map(band.members.map((m) => [m.memberId, m]))
+  bandStore.upsertBand({ ...band, members: memberIds.map((id) => byId.get(id)) })
+  reorderError.value = ''
+  try {
+    bandStore.upsertBand(await reorderMembers(band.id, memberIds))
+  } catch (e) {
+    bandStore.upsertBand(before)
+    reorderError.value = apiErrorMessage(e, '자리를 바꾸지 못했어요.')
+  }
+}
+
+// 이름표 끌기: 캐릭터처럼 잡은 이름표는 손을 따라오고, 나머지는 비켜 준 자리로 미끄러진다.
+// 끄는 동안 DOM 순서는 그대로 두고 transform으로만 움직이며, 무대 캐릭터도 같은 순서로 미리 보여 준다
+const memberListRef = ref(null)
+// { id, ids: 원래 순서, slots: 원래 자리 가운데 {x, y}, startX, startY, dx, dy, order: 미리 보기 순서 }
+const tagDrag = ref(null)
+// 놓은 직후 한 번은 애니메이션 없이 새 순서로 (transform을 풀 때 튀지 않게)
+const tagSettling = ref(false)
+
+const shownMembers = computed(() => {
+  const band = activeBand.value
+  if (!band) return []
+  if (!tagDrag.value) return band.members
+  const byId = new Map(band.members.map((m) => [m.memberId, m]))
+  return tagDrag.value.order.map((id) => byId.get(id)).filter(Boolean)
+})
+
+const startTagDrag = (e, id) => {
+  if (!canReorder.value || e.button > 0) return
+  e.preventDefault()
+  const slots = new Map()
+  memberListRef.value.querySelectorAll('[data-member-id]').forEach((el) => {
+    const r = el.getBoundingClientRect()
+    slots.set(Number(el.dataset.memberId), { x: r.left + r.width / 2, y: r.top + r.height / 2 })
+  })
+  const ids = activeBand.value.members.map((m) => m.memberId)
+  tagDrag.value = { id, ids, slots, startX: e.clientX, startY: e.clientY, dx: 0, dy: 0, order: ids }
+  window.addEventListener('pointermove', onTagMove)
+  window.addEventListener('pointerup', endTagDrag)
+  window.addEventListener('pointercancel', cancelTagDrag)
+}
+
+// 잡은 이름표 가운데에서 가장 가까운 원래 자리로 끼워 넣는다
+const onTagMove = (e) => {
+  const drag = tagDrag.value
+  if (!drag) return
+  drag.dx = e.clientX - drag.startX
+  drag.dy = e.clientY - drag.startY
+  const home = drag.slots.get(drag.id)
+  const x = home.x + drag.dx
+  const y = home.y + drag.dy
+  let target = 0
+  let best = Infinity
+  drag.ids.forEach((slotId, i) => {
+    const c = drag.slots.get(slotId)
+    const d = Math.hypot(x - c.x, (y - c.y) * 2)
+    if (d < best) { best = d; target = i }
+  })
+  const order = drag.ids.filter((x2) => x2 !== drag.id)
+  order.splice(target, 0, drag.id)
+  if (order.some((id2, i) => id2 !== drag.order[i])) drag.order = order
+}
+
+const tagStyle = (id) => {
+  const drag = tagDrag.value
+  if (!drag) return null
+  if (id === drag.id) return { transform: `translate(${drag.dx}px, ${drag.dy}px)` }
+  const own = drag.slots.get(id)
+  const slot = drag.slots.get(drag.ids[drag.order.indexOf(id)])
+  return { transform: `translate(${slot.x - own.x}px, ${slot.y - own.y}px)` }
+}
+
+const stopTagListening = () => {
+  window.removeEventListener('pointermove', onTagMove)
+  window.removeEventListener('pointerup', endTagDrag)
+  window.removeEventListener('pointercancel', cancelTagDrag)
+}
+
+const endTagDrag = () => {
+  const drag = tagDrag.value
+  stopTagListening()
+  if (!drag) return
+  const changed = drag.order.some((id, i) => id !== drag.ids[i])
+  tagSettling.value = true
+  tagDrag.value = null
+  if (changed) onReorder(drag.order)
+  requestAnimationFrame(() => requestAnimationFrame(() => { tagSettling.value = false }))
+}
+
+const cancelTagDrag = () => {
+  stopTagListening()
+  tagDrag.value = null
+}
+onBeforeUnmount(stopTagListening)
+
+const partOption = (part) => INSTRUMENT_OPTIONS.find((o) => o.value === part)
+const partLabel = (part) => partOption(part)?.label || part
+const partEmoji = (part) => partOption(part)?.emoji || '🎵'
 </script>
 
 <style scoped>
@@ -257,11 +426,49 @@ button::-moz-focus-inner { border: 0 !important; }
 
 
 /* 밴드 전용 */
-.band-info h2 { font-size: 1.5rem; font-weight: 800; }
-.member-list { display: flex; justify-content: center; gap: 24px; margin-top: 30px; }
-.m-avatar { font-size: 2.4rem; margin-bottom: 8px; transition: transform 0.2s; }
-.m-item:hover .m-avatar { transform: scale(1.1); }
-.m-role { font-size: 0.7rem; font-weight: 800; background: #f1f3f5; padding: 3px 10px; border-radius: 6px; color: #495057; }
+.crown { margin-right: 4px; font-size: 0.8rem; }
+.band-tabs-left .add-band-tab { font-weight: 900; font-size: 1rem; padding: 10px 16px; color: #2d5bff; }
+.band-tabs-left .add-band-tab:disabled { color: #ced4da; cursor: not-allowed; }
+
+.band-empty { padding: 56px 24px; }
+.band-empty h2 { margin: 12px 0 6px; font-size: 1.25rem; font-weight: 800; }
+.empty-icon { font-size: 2rem; letter-spacing: 6px; }
+.empty-text { margin: 0; font-size: 0.85rem; color: #868e96; }
+.empty-actions { display: flex; justify-content: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+.pill-btn {
+  border: 1px solid #dee2e6; background: #fff; color: #495057; border-radius: 12px; padding: 10px 18px;
+  font-family: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; transition: 0.2s;
+}
+.pill-btn:hover { border-color: #2d5bff; color: #2d5bff; }
+.pill-btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.pill-btn.primary:hover { background: #1f47e0; color: #fff; }
+.text-btn { margin-left: 8px; border: none; background: none; color: #2d5bff; font-weight: 800; cursor: pointer; font-family: inherit; }
+
+.band-room { padding: 24px; text-align: left; }
+.band-info { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.band-info h2 { margin: 0 0 4px; font-size: 1.4rem; font-weight: 800; }
+.band-info p { margin: 0; font-size: 0.82rem; color: #868e96; }
+.band-tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.tool-btn {
+  border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 7px 12px; cursor: pointer;
+  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #495057; display: flex; align-items: center; gap: 6px;
+  transition: 0.2s;
+}
+.tool-btn:hover { border-color: #2d5bff; color: #2d5bff; }
+.band-scene { margin-top: 16px; border-radius: 18px; overflow: hidden; border: 1px solid #f1f3f5; }
+.scene-hint { margin: 8px 0 0; text-align: center; font-size: 0.72rem; color: #adb5bd; font-weight: 600; }
+.scene-hint.bad { color: #e03131; font-weight: 700; }
+
+.member-list { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.m-item { text-align: center; padding: 8px 12px; border-radius: 12px; background: #f8f9fa; min-width: 88px; }
+.m-item.me { background: #f0f4ff; }
+.member-list.reorderable .m-item { cursor: grab; touch-action: none; user-select: none; }
+.member-list.dragging .m-item { cursor: grabbing; transition: transform 0.18s ease; }
+.member-list.settling .m-item { transition: none; }
+.m-item.held { position: relative; z-index: 2; box-shadow: 0 6px 16px rgba(45, 91, 255, 0.18), 0 0 0 2px #2d5bff; background: #fff; }
+.member-list.dragging .m-item.held { transition: none; }
+.m-name { font-size: 0.8rem; font-weight: 800; margin-bottom: 4px; white-space: nowrap; }
+.m-role { font-size: 0.7rem; font-weight: 700; color: #868e96; }
 
 .band-layout-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
 .band-menus { display: flex; flex-direction: column; gap: 16px; }
