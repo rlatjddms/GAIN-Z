@@ -7,7 +7,7 @@
 
           <label class="field">
             <span class="label">이름</span>
-            <input ref="nameInput" v-model="form.content" class="input" maxlength="50" placeholder="예: 스케일 연습">
+            <input ref="nameInput" v-model="form.content" class="input" maxlength="50" placeholder="루틴 이름을 입력해 주세요">
           </label>
 
           <label class="field">
