@@ -12,11 +12,15 @@ import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
 
-// 내 계정 (마이페이지): 조회, 이름·비밀번호 바꾸기, 회원 탈퇴
+// 내 계정 (마이페이지): 조회, 이름·프로필 사진·비밀번호 바꾸기, 회원 탈퇴
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,17 +30,48 @@ public class UserService {
     private final CharacterRepository characterRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ProfileImageStorage profileImageStorage;
+
+    public record ProfileImageFile(Resource resource, String contentType) {
+    }
 
     @Transactional(readOnly = true)
     public MyInfoResponse getMyInfo(Long userId) {
-        User user = findUser(userId);
-        return MyInfoResponse.of(user, characterRepository.findByUserId(userId).orElse(null));
+        return MyInfoResponse.from(findUser(userId));
     }
 
     public MyInfoResponse updateName(Long userId, UpdateNameRequest request) {
         User user = findUser(userId);
         user.update(request.name().trim());
-        return MyInfoResponse.of(user, characterRepository.findByUserId(userId).orElse(null));
+        return MyInfoResponse.from(user);
+    }
+
+    // 사진 바꾸기: 새 파일을 저장하고, 저장이 끝나면(커밋 뒤) 예전 파일을 지운다
+    public MyInfoResponse changeProfileImage(Long userId, MultipartFile file) {
+        User user = findUser(userId);
+        ProfileImageStorage.StoredImage stored = profileImageStorage.store(file);
+        String old = user.getProfileImage();
+        user.changeProfileImage(stored.storedName(), stored.contentType());
+        deleteFileAfterCommit(old);
+        return MyInfoResponse.from(user);
+    }
+
+    public MyInfoResponse deleteProfileImage(Long userId) {
+        User user = findUser(userId);
+        String old = user.getProfileImage();
+        user.changeProfileImage(null, null);
+        deleteFileAfterCommit(old);
+        return MyInfoResponse.from(user);
+    }
+
+    // 프로필 사진 파일 (로그인한 사람이면 누구 사진이든 볼 수 있다: 밴드 멤버 목록 등)
+    @Transactional(readOnly = true)
+    public ProfileImageFile getProfileImage(Long userId) {
+        User user = findUser(userId);
+        if (!user.hasProfileImage()) {
+            throw new BusinessException(ErrorCode.PROFILE_IMAGE_NOT_FOUND);
+        }
+        return new ProfileImageFile(profileImageStorage.load(user.getProfileImage()), user.getProfileImageType());
     }
 
     // 이메일 가입자만. 지금 비밀번호를 확인하고, 같은 비밀번호로는 바꾸지 않는다
@@ -54,7 +89,7 @@ public class UserService {
         user.changePassword(passwordEncoder.encode(request.newPassword()));
     }
 
-    // 회원 탈퇴: 리프레시 토큰을 지우고 유저·캐릭터를 소프트 삭제한다.
+    // 회원 탈퇴: 리프레시 토큰과 프로필 사진을 지우고 유저·캐릭터를 소프트 삭제한다.
     // 연습 기록·루틴·보관함 등은 지우지 않고 남기지만, 유저가 삭제돼 다시 볼 수 없다
     public void withdraw(Long userId, WithdrawRequest request) {
         User user = findUser(userId);
@@ -68,11 +103,27 @@ public class UserService {
         // 리프레시 토큰은 이메일로 저장돼 있어서, 이메일을 비우기 전에 지운다
         refreshTokenRepository.deleteById(user.getEmail());
         characterRepository.findByUserId(userId).ifPresent(Character::delete);
+        deleteFileAfterCommit(user.getProfileImage());
         user.withdraw();
     }
 
     private User findUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    // DB 저장이 실패하면 파일은 그대로 둔다 (트랜잭션 밖에서 부르면 바로 지움)
+    private void deleteFileAfterCommit(String storedName) {
+        if (storedName == null) return;
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            profileImageStorage.delete(storedName);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                profileImageStorage.delete(storedName);
+            }
+        });
     }
 }

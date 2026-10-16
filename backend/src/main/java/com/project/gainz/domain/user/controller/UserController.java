@@ -5,18 +5,28 @@ import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
 import com.project.gainz.domain.user.dto.request.WithdrawRequest;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
 import com.project.gainz.domain.user.service.UserService;
+import com.project.gainz.domain.user.service.UserService.ProfileImageFile;
 import com.project.gainz.global.common.dto.ApiResponse;
 import com.project.gainz.global.security.principal.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.time.Duration;
 
 // 내 계정 (마이페이지)
 @RestController
@@ -39,6 +49,34 @@ public class UserController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(ApiResponse.success(userService.updateName(principal.getUserId(), request)));
+    }
+
+    // 프로필 사진 바꾸기 (multipart "file")
+    @PutMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<MyInfoResponse>> changeProfileImage(
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(userService.changeProfileImage(principal.getUserId(), file)));
+    }
+
+    // 프로필 사진 지우기 (기본 프로필로)
+    @DeleteMapping("/me/profile-image")
+    public ResponseEntity<ApiResponse<MyInfoResponse>> deleteProfileImage(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(userService.deleteProfileImage(principal.getUserId())));
+    }
+
+    // 프로필 사진 파일. 주소에 버전(?v=)이 붙어 있어 사진이 바뀌면 주소도 바뀐다
+    @GetMapping("/{userId}/profile-image")
+    public ResponseEntity<Resource> getProfileImage(@PathVariable Long userId) {
+        ProfileImageFile file = userService.getProfileImage(userId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.contentType()))
+                .header("X-Content-Type-Options", "nosniff")
+                .cacheControl(CacheControl.maxAge(Duration.ofDays(7)).cachePrivate())
+                .body(file.resource());
     }
 
     @PatchMapping("/me/password")

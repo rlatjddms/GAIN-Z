@@ -50,6 +50,12 @@ public class User extends BaseEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Character character;
 
+    // 프로필 사진 (업로드 폴더/profiles 안의 파일 이름). 없으면 기본 프로필
+    private String profileImage;
+
+    @Column(length = 20)
+    private String profileImageType;
+
     @Builder
     public User(String email, String password, String name, SocialProvider provider, UserRole role) {
         this.email = email;
@@ -72,11 +78,22 @@ public class User extends BaseEntity {
         this.password = encodedPassword;
     }
 
+    public void changeProfileImage(String storedName, String contentType) {
+        this.profileImage = storedName;
+        this.profileImageType = contentType;
+    }
+
+    public boolean hasProfileImage() {
+        return profileImage != null;
+    }
+
     // 회원 탈퇴: 같은 이메일로 다시 가입할 수 있게 이메일을 비우고(유니크 제약) 개인정보를 지운 뒤 소프트 삭제
     public void withdraw() {
         this.email = "withdrawn_" + id + "_" + System.currentTimeMillis() + "@gainz.invalid";
         this.password = null;
         this.name = "탈퇴한 사용자";
+        this.profileImage = null;
+        this.profileImageType = null;
         delete();
     }
 }

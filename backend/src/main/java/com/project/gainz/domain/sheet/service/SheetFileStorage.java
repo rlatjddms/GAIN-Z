@@ -89,8 +89,8 @@ public class SheetFileStorage {
         return path;
     }
 
-    // 파일 앞부분(매직 넘버)으로 형식 판단. 모르는 형식이면 null
-    static String detectType(byte[] head) {
+    // 파일 앞부분(매직 넘버)으로 형식 판단. 모르는 형식이면 null (프로필 사진 저장에서도 쓴다)
+    public static String detectType(byte[] head) {
         if (startsWith(head, 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A)) return "image/png";
         if (startsWith(head, 0xFF, 0xD8, 0xFF)) return "image/jpeg";
         if (head.length >= 12 && startsWith(head, 'R', 'I', 'F', 'F')
