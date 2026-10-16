@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import axiosInstance from '../api/axios'
 import { getMyInfo } from '../api/user'
+import { useBandStore } from './band'
 
 // Helper to decode JWT payloads
 function decodeJwt(token) {
@@ -148,6 +149,7 @@ export const useAuthStore = defineStore('auth', {
         this.character = null
         this.isCharacterChecked = false
         this.profile = null
+        useBandStore().reset()
 
         const cleanups = [localStorage, sessionStorage]
         cleanups.forEach((storage) => {

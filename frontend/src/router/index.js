@@ -73,6 +73,13 @@ const routes = [
       component: () => import('../views/MyPageView.vue'),
       meta: { requiresCharacter: true }
     },
+    // 홈 BAND 탭에서 들어가는 밴드 화면
+    {
+      path: '/bands/:id(\\d+)/settings',
+      name: 'band-settings',
+      component: () => import('../views/band/BandSettingsView.vue'),
+      meta: { requiresCharacter: true }
+    },
     {
       path: '/character-create',
       name: 'character-create',
