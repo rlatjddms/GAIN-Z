@@ -29,8 +29,11 @@ public class TabData extends BaseEntity {
     @Column(nullable = false)
     private Integer measureNumber;
 
+    // 마디 하나의 박자·코드·음 (JSON). 포맷은 docs/note-data-format.md
     @Column(columnDefinition = "TEXT", nullable = false)
     private String noteData;
+
+    // 이 마디의 운지 안내 문구 (원래 키 기준)
 
     private String recommendedFingering;
 }
