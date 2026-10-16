@@ -49,4 +49,21 @@ public class BandComment extends BaseEntity {
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
     private List<BandComment> children = new ArrayList<>();
+
+    // 답글이 달린 댓글은 행을 남겨 대화 흐름을 보존한다
+    private boolean contentDeleted = false;
+
+    public BandComment(BandPost post, User author, String content, BandComment parent) {
+        this.post = post;
+        this.author = author;
+        this.content = content.trim();
+        this.parent = parent;
+    }
+
+    public void update(String content) { this.content = content.trim(); }
+
+    public void eraseContent() {
+        this.content = "삭제된 댓글";
+        this.contentDeleted = true;
+    }
 }

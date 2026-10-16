@@ -68,7 +68,14 @@ public enum ErrorCode {
     ALREADY_BAND_LEADER(400, "B011", "이미 리더인 멤버입니다."),
     BAND_PART_CHANGE_DENIED(403, "B012", "본인이나 리더만 파트를 바꿀 수 있습니다."),
     INVITE_CODE_GENERATION_FAILED(500, "B013", "초대 코드를 만들지 못했습니다. 잠시 후 다시 시도해 주세요."),
-    INVALID_MEMBER_ORDER(400, "B014", "멤버 순서가 지금 멤버와 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요.");
+    INVALID_MEMBER_ORDER(400, "B014", "멤버 순서가 지금 멤버와 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요."),
+    BAND_POST_NOT_FOUND(404, "B015", "게시글이 없습니다."),
+    BAND_AUTHOR_ONLY(403, "B016", "작성자만 수정하거나 삭제할 수 있습니다."),
+    BAND_COMMENT_NOT_FOUND(404, "B017", "댓글이 없습니다."),
+    BAND_REPLY_DEPTH(400, "B018", "대댓글에는 답글을 달 수 없습니다."),
+    BAND_FILE_INVALID(400, "B019", "사진·영상·오디오·PDF 파일을 10MB까지 첨부할 수 있습니다."),
+    BAND_FILE_NOT_FOUND(404, "B020", "첨부 파일이 없습니다."),
+    BAND_FILE_STORAGE_FAILED(500, "B021", "첨부 파일을 저장하지 못했습니다.");
 
     private final int status;
     private final String code;

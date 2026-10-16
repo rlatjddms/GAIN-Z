@@ -43,6 +43,29 @@ public class BandPost extends BaseEntity {
 
     private String fileUrl;
 
+    private String fileName;
+
+    private String fileType;
+
     @Column(nullable = false)
     private Boolean isNotice = false;
+
+    public BandPost(Band band, User author, String title, String content) {
+        this.band = band;
+        this.author = author;
+        update(title, content);
+    }
+
+    public void update(String title, String content) {
+        this.title = title.trim();
+        this.content = content.trim();
+    }
+
+    public void changeNotice(boolean notice) { this.isNotice = notice; }
+
+    public void changeFile(String storedName, String name, String type) {
+        this.fileUrl = storedName;
+        this.fileName = name;
+        this.fileType = type;
+    }
 }
