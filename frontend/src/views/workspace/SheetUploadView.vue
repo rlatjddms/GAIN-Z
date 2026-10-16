@@ -55,7 +55,7 @@
             <div class="page-actions">
               <button class="icon" :disabled="i === 0 || saving" aria-label="앞으로" @click="move(i, -1)">↑</button>
               <button class="icon" :disabled="i === picked.length - 1 || saving" aria-label="뒤로" @click="move(i, 1)">↓</button>
-              <button class="icon danger" :disabled="saving" aria-label="빼기" @click="unpick(i)">✕</button>
+              <button class="icon danger" :disabled="saving" aria-label="삭제" @click="unpick(i)">✕</button>
             </div>
           </li>
         </ol>
@@ -88,11 +88,11 @@
         <div class="fields">
           <label class="field wide">
             <span>곡 제목 <em>*</em></span>
-            <input v-model="form.title" maxlength="100" placeholder="예: 밤편지">
+            <input v-model="form.title" maxlength="100" placeholder="제목을 입력해 주세요">
           </label>
           <label class="field wide">
             <span>아티스트</span>
-            <input v-model="form.artist" maxlength="100" placeholder="예: 아이유">
+            <input v-model="form.artist" maxlength="100" placeholder="아티스트를 입력해 주세요">
           </label>
           <label class="field">
             <span>악기 <em>*</em></span>
@@ -120,7 +120,7 @@
           </label>
           <label class="field">
             <span>BPM</span>
-            <input v-model.number="form.bpm" type="number" min="20" max="300" inputmode="numeric" placeholder="모르면 비워 두기">
+            <input v-model.number="form.bpm" type="number" min="20" max="300" inputmode="numeric" placeholder="BPM을 입력해 주세요">
           </label>
         </div>
         <p class="tip">원래 키를 적어 두면 악보를 볼 때 다른 키로 바꿔 칠 코드를 알려 드려요.</p>

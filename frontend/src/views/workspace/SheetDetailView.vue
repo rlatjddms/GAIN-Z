@@ -20,7 +20,7 @@
             @click="toggleFavorite"
           >{{ item.favorite ? '★ 즐겨찾기' : '☆ 즐겨찾기' }}</button>
           <router-link v-if="sheet.mine" :to="`/sheets/${item.id}/edit`" class="btn">수정</router-link>
-          <button class="btn danger" :disabled="removing" @click="remove">빼기</button>
+          <button class="btn danger" :disabled="removing" @click="remove">삭제</button>
         </div>
       </div>
 
@@ -79,7 +79,7 @@
               v-model="memo"
               class="memo"
               maxlength="2000"
-              placeholder="연습하면서 기억할 것 (예: 2장 브릿지는 BPM 80으로 천천히, 3장 끝 쉼표 주의)"
+              placeholder="메모를 입력해 주세요"
             ></textarea>
             <div class="memo-foot">
               <span class="count">{{ memo.length }} / 2000</span>
@@ -211,12 +211,12 @@ const saveMemo = async () => {
   }
 }
 
-/* ---------- 빼기 ---------- */
+/* ---------- 삭제 ---------- */
 const removing = ref(false)
 const remove = async () => {
   const message = sheet.value.mine
-    ? `「${sheet.value.title}」을(를) 보관함에서 뺄까요?\n직접 올린 악보라서 파일과 메모도 함께 지워져요.`
-    : `「${sheet.value.title}」을(를) 보관함에서 뺄까요?\n메모와 연습 키도 함께 지워져요.`
+    ? `「${sheet.value.title}」을(를) 삭제할까요?\n올린 파일과 메모도 함께 삭제돼요.`
+    : `「${sheet.value.title}」을(를) 보관함에서 삭제할까요?\n메모와 연습 키도 함께 삭제돼요.`
   if (!window.confirm(message)) return
   removing.value = true
   try {
@@ -224,7 +224,7 @@ const remove = async () => {
     memo.value = item.value.personalMemo || ''
     router.replace('/sheets')
   } catch (e) {
-    actionError.value = `빼지 못했어요. ${apiErrorMessage(e)}`
+    actionError.value = `삭제하지 못했어요. ${apiErrorMessage(e)}`
     removing.value = false
   }
 }
