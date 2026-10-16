@@ -51,8 +51,9 @@ public class Band extends BaseEntity {
     private String profileImageUrl;
 
     // 합주실 배경. 예전에 만든 밴드는 비어 있어서 연습실로 본다
+    // MariaDB enum 타입으로 만들면 배경을 추가할 때마다 컬럼을 고쳐야 해서 varchar로 둔다
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column(length = 20, columnDefinition = "varchar(20)")
     private BandStage stage;
 
     @OneToMany(mappedBy = "band", cascade = CascadeType.ALL)
