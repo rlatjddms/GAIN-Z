@@ -1,8 +1,8 @@
 <template>
   <section class="community-panel">
-    <BandCommunityFeed :mine="mine" :notice="notice" :posts="posts" :total="total" :loading="loading && !rows.length" @open="open" @write="write" @mine="toggleMine" @edit="edit" @delete="remove" />
+    <BandCommunityFeed :mine="mine" :notices="notices" :posts="posts" :total="total" :loading="loading && !rows.length" @open="open" @write="write" @mine="toggleMine" @edit="edit" @delete="remove" />
     <p v-if="error" class="error" role="alert">{{ error }} <button @click="load">다시 불러오기</button></p>
-    <button v-if="hasMore" class="load-more" :disabled="loading" @click="loadMore">{{ loading ? '불러오는 중…' : '이야기 더 보기' }} <BoardIcon name="plus" :size="15" /><span>{{ rows.length }} / {{ total }}</span></button>
+    <button v-if="hasMore" class="load-more" :disabled="loading" @click="loadMore">{{ loading ? '불러오는 중…' : '이야기 더 보기' }} <BoardIcon name="plus" :size="15" /><span>{{ rows.length }} / {{ regularTotal }}</span></button>
     <BandPostDialog v-if="dialogMode" :band="band" :mode="dialogMode" :post-id="selectedPost" @close="close" @edit="edit" @saved="saved" @changed="load" />
   </section>
 </template>
@@ -10,6 +10,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { isActiveNotice } from '../../constants/bandBoard'
+import { useNoticeClock } from './useNoticeClock'
 import { listBandPosts, deleteBandPost } from '../../api/bandBoard'
 import BandCommunityFeed from './BandCommunityFeed.vue'
 import BandPostDialog from './BandPostDialog.vue'
@@ -21,24 +23,33 @@ const mine = computed(() => route.query.mine === '1')
 const rows = ref([])
 const loading = ref(false)
 const error = ref('')
-const total = ref(0)
+const regularTotal = ref(0)
+const noticeRows = ref([])
+const now = useNoticeClock(() => noticeRows.value, () => load())
+const total = computed(() => regularTotal.value + notices.value.length)
 const page = ref(0)
 const totalPages = ref(0)
-const notice = computed(() => rows.value.find(p => p.notice) || null)
-const posts = computed(() => rows.value.filter(p => p.id !== notice.value?.id))
+const notices = computed(() => noticeRows.value.filter(p => isActiveNotice(p, now.value)))
+const posts = computed(() => rows.value.filter(p => !notices.value.some(n => n.id === p.id)))
 const hasMore = computed(() => page.value + 1 < totalPages.value)
 const selectedPost = computed(() => Number(route.query.post) || null)
 const dialogMode = computed(() => route.query.compose === '1' ? 'new' : selectedPost.value ? (route.query.edit === '1' ? 'edit' : 'detail') : null)
 let sequence = 0
+async function fetchNotices() {
+  const first = await listBandPosts(props.band.id, 0, 20, true, mine.value)
+  const rest = await Promise.all(Array.from({ length: Math.max(0, first.totalPages - 1) }, (_, i) => listBandPosts(props.band.id, i + 1, 20, true, mine.value)))
+  return [first, ...rest].flatMap(result => result.content)
+}
 async function load() {
   const current = ++sequence
   loading.value = true
   error.value = ''
   try {
-    const results = await Promise.all(Array.from({ length: page.value + 1 }, (_, index) => listBandPosts(props.band.id, index, 7, null, mine.value)))
+    const [pinned, results] = await Promise.all([fetchNotices(), Promise.all(Array.from({ length: page.value + 1 }, (_, index) => listBandPosts(props.band.id, index, 7, false, mine.value)))])
     if (current !== sequence) return
+    noticeRows.value = pinned
     rows.value = results.flatMap(result => result.content)
-    total.value = results[0].totalElements
+    regularTotal.value = results[0].totalElements
     totalPages.value = results[0].totalPages
     page.value = Math.max(0, Math.min(page.value, totalPages.value - 1))
   } catch (e) { if (current === sequence) error.value = e.response?.data?.message || '게시글을 불러오지 못했어요.' }
@@ -50,11 +61,11 @@ async function loadMore() {
   loading.value = true
   error.value = ''
   try {
-    const result = await listBandPosts(props.band.id, page.value + 1, 7, null, mine.value)
+    const result = await listBandPosts(props.band.id, page.value + 1, 7, false, mine.value)
     if (current !== sequence) return
     rows.value = [...rows.value, ...result.content.filter(next => !rows.value.some(row => row.id === next.id))]
     page.value = result.number
-    total.value = result.totalElements
+    regularTotal.value = result.totalElements
     totalPages.value = result.totalPages
   } catch (e) { if (current === sequence) error.value = e.response?.data?.message || '게시글을 불러오지 못했어요.' }
   finally { if (current === sequence) loading.value = false }
@@ -71,7 +82,7 @@ async function remove(post) {
   try { await deleteBandPost(props.band.id, post.id); await load() }
   catch (e) { error.value = e.response?.data?.message || '글을 삭제하지 못했어요. 다시 시도해 주세요.' }
 }
-watch(() => [props.band.id, mine.value], () => { page.value = 0; rows.value = []; load() }, { immediate: true })
+watch(() => [props.band.id, mine.value], () => { page.value = 0; rows.value = []; noticeRows.value = []; regularTotal.value = 0; load() }, { immediate: true })
 </script>
 
 <style scoped>

@@ -1,5 +1,15 @@
 export const attachmentsOf = post => post?.attachments || (post?.attachment ? [{ ...post.attachment, id: post.attachment.id || 'legacy' }] : [])
 
+export const isActiveNotice = (post, now = Date.now()) => post.notice && (!post.noticeExpiresAt || Date.parse(post.noticeExpiresAt) > now)
+
+export function localDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const pad = n => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 export function postDate(value) {
   if (!value) return ''
   const date = new Date(value)

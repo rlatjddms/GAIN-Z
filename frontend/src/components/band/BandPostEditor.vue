@@ -45,6 +45,16 @@
       <input v-model="draft.notice" type="checkbox" :disabled="saving" role="switch" aria-label="공지로 등록">
       <span class="switch" aria-hidden="true" />
     </label>
+    <section v-if="canNotice && draft.notice" class="notice-schedule" aria-label="공지 기간">
+      <label for="notice-end-mode">공지 기간</label>
+      <select id="notice-end-mode" v-model="draft.endMode" :disabled="saving"><option value="none">종료일 없이 유지</option><option value="scheduled">종료 날짜·시간 지정</option></select>
+      <template v-if="draft.endMode === 'scheduled'">
+        <label for="notice-end">공지 종료 일시</label>
+        <input id="notice-end" v-model="draft.noticeEnd" type="datetime-local" :min="localDateTime(Date.now() + 60000)" :disabled="saving" required>
+        <p>설정한 시간이 지나면 일반 글로 표시돼요. <span>{{ timeZone }} 기준</span></p>
+        <p v-if="expiryError" class="schedule-error" role="alert">{{ expiryError }}</p>
+      </template>
+    </section>
     <div v-if="saving" class="save-progress" role="status"><span :style="{ width: `${progress}%` }" /><p>{{ progress < 100 ? `첨부 올리는 중 ${progress}%` : '게시글을 저장하고 있어요…' }}</p></div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
   </form>
@@ -54,7 +64,7 @@
 import { computed, reactive, ref, watchEffect, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import MentionInput from './MentionInput.vue'
-import { mentionMembers } from '../../constants/bandBoard'
+import { mentionMembers, localDateTime } from '../../constants/bandBoard'
 import ProfileAvatar from '../ProfileAvatar.vue'
 import BoardIcon from './BoardIcon.vue'
 import BandPostAttachment from './BandPostAttachment.vue'
@@ -67,7 +77,7 @@ const members = computed(() => mentionMembers(props.band))
 const canNotice = computed(() => props.band.myPosition === 'LEADER')
 const noticeOnly = computed(() => props.post && !props.post.mine)
 const author = computed(() => props.post?.author || { nickname: auth.character?.nickname || '나', profileImageUrl: auth.profile?.profileImageUrl })
-const draft = reactive({ title: props.post?.title || '', content: props.post?.content || '', notice: props.post?.notice || false })
+const draft = reactive({ title: props.post?.title || '', content: props.post?.content || '', notice: props.post?.notice || false, endMode: props.post?.noticeExpiresAt ? 'scheduled' : 'none', noticeEnd: localDateTime(props.post?.noticeExpiresAt) })
 const initial = JSON.stringify(draft)
 const originalFiles = props.post?.attachments || (props.post?.attachment ? [{ ...props.post.attachment, id: props.post.attachment.id || 'legacy' }] : [])
 const retained = ref([...originalFiles])
@@ -80,7 +90,13 @@ const saving = ref(false)
 const progress = ref(0)
 let key = 0
 const dirty = computed(() => JSON.stringify(draft) !== initial || retained.value.length !== originalFiles.length || picked.value.length > 0)
-const valid = computed(() => draft.title.trim() && draft.content.trim() && (!noticeOnly.value || canNotice.value))
+const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+const expiryError = computed(() => {
+  if (!canNotice.value || !draft.notice || draft.endMode !== 'scheduled') return ''
+  if (!draft.noticeEnd) return '공지 종료 날짜와 시간을 선택해 주세요.'
+  return !Number.isFinite(Date.parse(draft.noticeEnd)) || Date.parse(draft.noticeEnd) <= Date.now() ? '현재보다 이후의 날짜와 시간을 선택해 주세요.' : ''
+})
+const valid = computed(() => !expiryError.value && draft.title.trim() && draft.content.trim() && (!noticeOnly.value || canNotice.value))
 watchEffect(() => emit('state', { busy: saving.value, dirty: dirty.value, valid: !!valid.value }))
 const fileSize = size => size >= 1024 * 1024 ? `${(size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`
 
@@ -105,15 +121,17 @@ onBeforeUnmount(() => picked.value.forEach(item => URL.revokeObjectURL(item.url)
 
 async function save() {
   if (!valid.value || saving.value) return
+  const expiresAt = canNotice.value && draft.notice && draft.endMode === 'scheduled' ? new Date(draft.noticeEnd).toISOString() : null
+  if (expiresAt && Date.parse(expiresAt) <= Date.now()) { error.value = '공지 종료 시각이 지났어요. 새 날짜와 시간을 선택해 주세요.'; return }
   saving.value = true
   error.value = ''
   progress.value = 0
   try {
     const result = noticeOnly.value
-      ? await setBandNotice(props.band.id, props.post.id, draft.notice)
+      ? await setBandNotice(props.band.id, props.post.id, draft.notice, expiresAt)
       : await saveBandPost(props.band.id, props.post?.id, {
         title: draft.title.trim(), content: draft.content.trim(), notice: canNotice.value ? draft.notice : null,
-        keepAttachmentIds: retained.value.map(item => item.id),
+        keepAttachmentIds: retained.value.map(item => item.id), noticeExpiresAt: expiresAt,
       }, picked.value.map(item => item.file), percent => { progress.value = percent })
     saving.value = false
     emit('state', { busy: false, dirty: false, valid: true })
@@ -173,6 +191,10 @@ input:checked + .switch { background: #2d5bff; }
 input:checked + .switch::after { transform: translateX(15px); }
 input:focus-visible + .switch { outline: 3px solid #b6c5ff; outline-offset: 3px; }
 .error { color: #d94841; background: #fff5f5; border-radius: 10px; padding: 12px; font-size: 12px; line-height: 1.6; }
+.notice-schedule { display: grid; gap: 9px; margin-top: 16px; padding: 16px; border: 1px solid #e5eaf3; border-radius: 12px; background: #fafbfe; }
+.notice-schedule label { color: #526071; font-size: 12px; font-weight: 700; }
+.notice-schedule select, .notice-schedule input { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #dbe2ee; border-radius: 8px; background: white; color: #343a40; font: inherit; font-size: 13px; }
+.notice-schedule p { margin: 2px 0 0; color: #858e9b; font-size: 11px; line-height: 1.6; }.notice-schedule p span { display: block; }.notice-schedule .schedule-error { color: #d94841; }
 .notice-hint { color: #62708c; background: #f5f7fb; border-radius: 10px; padding: 12px; font-size: 12px; }
 .save-progress { margin-top: 20px; height: 3px; background: #edf0f5; border-radius: 3px; }
 .save-progress > span { display: block; height: 3px; background: #2d5bff; border-radius: 3px; }

@@ -13,7 +13,7 @@
           </div>
         </details>
       </div>
-      <span v-if="post.notice" class="notice-tag"><BoardIcon name="pin" :size="13" />공지</span>
+      <span v-if="activeNotice" class="notice-tag"><BoardIcon name="pin" :size="13" />공지<span v-if="post.noticeExpiresAt"> · {{ postDate(post.noticeExpiresAt) }}까지</span></span>
       <h1 class="post-title">{{ post.title }}</h1>
       <p class="post-content"><MentionText :text="post.content" :members="members" /></p>
       <div v-if="visuals.length" class="media-gallery" :class="{ single: visuals.length === 1 }">
@@ -59,18 +59,21 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import { useNoticeClock } from './useNoticeClock'
 import MentionInput from './MentionInput.vue'
 import MentionText from './MentionText.vue'
 import BandMediaViewer from './BandMediaViewer.vue'
 import ProfileAvatar from '../ProfileAvatar.vue'
 import BoardIcon from './BoardIcon.vue'
 import BandPostAttachment from './BandPostAttachment.vue'
-import { attachmentsOf, postDate, postTimeAgo, mentionMembers } from '../../constants/bandBoard'
+import { attachmentsOf, postDate, postTimeAgo, mentionMembers, isActiveNotice } from '../../constants/bandBoard'
 import { deleteBandPost, listBandComments, addBandComment, updateBandComment, deleteBandComment } from '../../api/bandBoard'
 
 const props = defineProps({ post: { type: Object, required: true }, band: { type: Object, required: true } })
 const emit = defineEmits(['edit', 'deleted', 'changed', 'busy'])
 const auth = useAuthStore()
+const noticeNow = useNoticeClock(() => [props.post])
+const activeNotice = computed(() => isActiveNotice(props.post, noticeNow.value))
 const article = ref(null)
 const members = computed(() => mentionMembers(props.band))
 const viewerIndex = ref(null)

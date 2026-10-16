@@ -12,13 +12,13 @@
       </div>
     </header>
 
-    <article v-if="notice" class="notice" role="link" tabindex="0" @click="$emit('open', notice)" @keydown.enter.self="$emit('open', notice)">
+    <article v-for="notice in notices" :key="notice.id" class="notice" role="link" tabindex="0" @click="$emit('open', notice)" @keydown.enter.self="$emit('open', notice)">
       <span class="notice-tag">공지</span>
       <div class="notice-body">
         <strong>{{ notice.title }}</strong>
         <span>{{ notice.content }}</span>
       </div>
-      <span class="notice-meta">{{ authorName(notice) }} · {{ timeAgo(notice.createdAt) }}</span>
+      <span class="notice-meta">{{ authorName(notice) }} · {{ timeAgo(notice.createdAt) }}<small v-if="notice.noticeExpiresAt">{{ postDate(notice.noticeExpiresAt) }}까지</small></span>
       <BandPostMenu v-if="notice.mine" :title="notice.title" @edit="$emit('edit', notice)" @delete="$emit('delete', notice)" />
     </article>
 
@@ -44,7 +44,7 @@
         </footer>
       </article>
     </div>
-    <p v-else-if="!notice" class="empty">{{ mine ? '아직 내가 쓴 글이 없어요.' : '아직 글이 없어요. 밴드원에게 첫 글을 남겨 보세요.' }}</p>
+    <p v-else-if="!notices.length" class="empty">{{ mine ? '아직 내가 쓴 글이 없어요.' : '아직 글이 없어요. 밴드원에게 첫 글을 남겨 보세요.' }}</p>
   </section>
 </template>
 
@@ -53,10 +53,10 @@ import ProfileAvatar from '../ProfileAvatar.vue'
 import BandPostMenu from './BandPostMenu.vue'
 import BandPostAttachment from './BandPostAttachment.vue'
 import BoardIcon from './BoardIcon.vue'
-import { attachmentsOf, postTimeAgo } from '../../constants/bandBoard'
+import { attachmentsOf, postTimeAgo, postDate } from '../../constants/bandBoard'
 
 defineProps({
-  notice: { type: Object, default: null },
+  notices: { type: Array, default: () => [] },
   posts: { type: Array, default: () => [] },
   total: { type: Number, default: 0 },
   loading: Boolean,
@@ -95,6 +95,7 @@ const timeAgo = postTimeAgo
 .notice-body { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: baseline; }
 .notice-body strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; font-weight: 800; white-space: nowrap; }
 .notice-body span { font-size: 0.8rem; color: #868e96; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notice-meta small { display: block; margin-top: 4px; color: #858e9b; font-size: 10px; font-weight: 400; }
 .notice-meta { flex-shrink: 0; font-size: 0.72rem; color: #adb5bd; font-weight: 600; }
 
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
