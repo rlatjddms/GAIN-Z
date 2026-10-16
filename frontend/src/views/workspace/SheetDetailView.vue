@@ -10,7 +10,7 @@
       <div class="page-head">
         <div class="title">
           <h2>{{ sheet.title }}</h2>
-          <p>{{ sheet.artist || '아티스트 미입력' }} · {{ instrumentLabel }}<template v-if="sheet.bpm"> · {{ sheet.bpm }} BPM</template></p>
+          <p>{{ metaText }}</p>
         </div>
         <div class="head-actions">
           <button
@@ -26,58 +26,70 @@
 
       <p v-if="actionError" class="error">{{ actionError }}</p>
 
-      <div class="layout">
+      <div class="layout" :class="{ wide }">
         <!-- 악보 -->
         <WsCard class="sheet-card">
           <div class="toolbar">
-            <div class="key-control" role="group" aria-label="키 바꾸기">
-              <button class="step" :disabled="!sheet.originalKey" aria-label="반음 내리기" @click="shiftKey(-1)">−</button>
-              <div class="key-now">
-                <span class="label">키</span>
-                <strong>{{ viewKey || '-' }}</strong>
-              </div>
-              <button class="step" :disabled="!sheet.originalKey" aria-label="반음 올리기" @click="shiftKey(1)">+</button>
+            <span class="count">{{ pages.length ? `${pages.length}장` : '' }}</span>
+            <div v-if="hasImages" class="zoom" role="group" aria-label="확대·축소">
+              <button class="step" :disabled="zoom <= ZOOMS[0]" aria-label="축소" @click="setZoom(-1)">−</button>
+              <span class="zoom-value">{{ zoom }}%</span>
+              <button class="step" :disabled="zoom >= ZOOMS[ZOOMS.length - 1]" aria-label="확대" @click="setZoom(1)">+</button>
             </div>
-            <div class="key-info">
-              <template v-if="changed">
-                원래 {{ sheet.originalKey }} · {{ offsetLabel }}
-                <button class="text-btn" @click="setKey(sheet.originalKey)">원래 키로</button>
-              </template>
-              <template v-else-if="sheet.originalKey">원래 키</template>
-              <span v-if="capo" class="capo">카포 {{ capo }}프렛 + {{ sheet.originalKey }} 코드 모양</span>
-              <span v-if="keyStatus" class="saved">{{ keyStatus }}</span>
-            </div>
-            <div class="font-control" role="group" aria-label="글자 크기">
-              <button class="step small" :disabled="fontScale <= 0.8" aria-label="글자 작게" @click="fontScale = +(fontScale - 0.1).toFixed(1)">가</button>
-              <button class="step small big" :disabled="fontScale >= 1.6" aria-label="글자 크게" @click="fontScale = +(fontScale + 0.1).toFixed(1)">가</button>
-            </div>
+            <button class="btn small" @click="wide = !wide">{{ wide ? '메모 보이기' : '악보만 크게' }}</button>
           </div>
 
+          <div v-if="pages.length" class="pages">
+            <figure v-for="p in pages" :key="p.id" class="page-frame" :style="isPdf(p.contentType) ? null : { width: `${zoom}%` }">
+              <SheetPageView :sheet-id="sheet.id" :page-id="p.id" :content-type="p.contentType" :alt="`${sheet.title} ${p.pageNumber}장`" />
+              <figcaption v-if="pages.length > 1">{{ p.pageNumber }} / {{ pages.length }}</figcaption>
+            </figure>
+          </div>
+
+          <!-- 예전에 직접 쓴 코드 악보 -->
           <ChordSheet
+            v-else-if="sheet.content"
             :content="sheet.content"
             :original-key="sheet.originalKey"
             :view-key="viewKey"
-            :font-scale="fontScale"
-            :empty-text="sheet.mine ? '아직 악보 내용이 없어요. 수정에서 코드를 써 보세요.' : '아직 악보 내용이 없어요.'"
           />
+          <p v-else class="empty">아직 악보 파일이 없어요.</p>
         </WsCard>
 
-        <!-- 메모 -->
-        <WsCard title="내 메모" class="memo-card">
-          <textarea
-            v-model="memo"
-            class="memo"
-            maxlength="2000"
-            placeholder="연습하면서 기억할 것 (예: 브릿지는 BPM 80으로 천천히, 2절 끝 쉼표 주의)"
-          ></textarea>
-          <div class="memo-foot">
-            <span class="count">{{ memo.length }} / 2000</span>
-            <span v-if="memoStatus" class="saved">{{ memoStatus }}</span>
-            <button class="btn primary" :disabled="!memoDirty || savingMemo" @click="saveMemo">
-              {{ savingMemo ? '저장 중…' : '메모 저장' }}
-            </button>
-          </div>
-        </WsCard>
+        <div v-show="!wide" class="side">
+          <!-- 키 바꿔 치기 -->
+          <WsCard title="키 바꿔 치기">
+            <KeyHelper
+              v-if="sheet.originalKey"
+              :original-key="sheet.originalKey"
+              :view-key="viewKey"
+              :instrument-type="sheet.instrumentType"
+              :status="keyStatus"
+              @change="setKey"
+            />
+            <p v-else class="muted">
+              원래 키를 적어 두면 다른 키로 칠 때 바꿔 칠 코드를 알려 드려요.
+              <router-link v-if="sheet.mine" :to="`/sheets/${item.id}/edit`" class="text-btn">원래 키 적기 ›</router-link>
+            </p>
+          </WsCard>
+
+          <!-- 메모 -->
+          <WsCard title="내 메모">
+            <textarea
+              v-model="memo"
+              class="memo"
+              maxlength="2000"
+              placeholder="연습하면서 기억할 것 (예: 2장 브릿지는 BPM 80으로 천천히, 3장 끝 쉼표 주의)"
+            ></textarea>
+            <div class="memo-foot">
+              <span class="count">{{ memo.length }} / 2000</span>
+              <span v-if="memoStatus" class="saved">{{ memoStatus }}</span>
+              <button class="btn primary" :disabled="!memoDirty || savingMemo" @click="saveMemo">
+                {{ savingMemo ? '저장 중…' : '메모 저장' }}
+              </button>
+            </div>
+          </WsCard>
+        </div>
       </div>
     </template>
   </div>
@@ -90,10 +102,12 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 import ChordSheet from '../../components/workspace/ChordSheet.vue'
+import SheetPageView from '../../components/workspace/SheetPageView.vue'
+import KeyHelper from '../../components/workspace/KeyHelper.vue'
 import { getWorkspaceItem, updateWorkspaceItem, removeWorkspaceItem } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
-import { transposeKey, semitonesBetween, capoFor } from '../../music/transpose'
+import { sheetTypeLabel, isPdf } from '../../constants/sheet'
 
 const route = useRoute()
 const router = useRouter()
@@ -103,7 +117,18 @@ const item = ref(null)
 const loadError = ref('')
 const actionError = ref('')
 const sheet = computed(() => item.value?.sheet || {})
-const instrumentLabel = computed(() => INSTRUMENT_OPTIONS.find((o) => o.value === sheet.value.instrumentType)?.label || '')
+const pages = computed(() => sheet.value.pages || [])
+const hasImages = computed(() => pages.value.some((p) => !isPdf(p.contentType)))
+const metaText = computed(() => {
+  const s = sheet.value
+  return [
+    s.artist || '아티스트 미입력',
+    INSTRUMENT_OPTIONS.find((o) => o.value === s.instrumentType)?.label,
+    sheetTypeLabel(s.sheetTypes?.[0]),
+    s.originalKey && `원래 키 ${s.originalKey}`,
+    s.bpm && `${s.bpm} BPM`,
+  ].filter(Boolean).join(' · ')
+})
 
 onMounted(async () => {
   try {
@@ -115,16 +140,25 @@ onMounted(async () => {
   }
 })
 
-/* ---------- 키 바꾸기: 바꾸면 잠시 뒤 자동 저장 ---------- */
+/* ---------- 보기: 확대·축소, 악보만 크게 (이 기기에 기억) ---------- */
+const ZOOMS = [50, 60, 70, 80, 90, 100]
+const readPref = (key, fallback) => {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback } catch { return fallback }
+}
+const writePref = (key, value) => {
+  try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* 저장 못 해도 화면은 그대로 */ }
+}
+const zoom = ref(ZOOMS.includes(readPref('sheetZoom', 100)) ? readPref('sheetZoom', 100) : 100)
+const wide = ref(false)
+const setZoom = (d) => {
+  zoom.value = ZOOMS[Math.min(Math.max(ZOOMS.indexOf(zoom.value) + d, 0), ZOOMS.length - 1)]
+  writePref('sheetZoom', zoom.value)
+}
+
+/* ---------- 연습 키: 바꾸면 잠시 뒤 자동 저장 ---------- */
 const viewKey = ref(null)
 const keyStatus = ref('')
-const changed = computed(() => viewKey.value && viewKey.value !== sheet.value.originalKey)
-const offset = computed(() => semitonesBetween(sheet.value.originalKey, viewKey.value))
-const offsetLabel = computed(() => `${offset.value > 0 ? '+' : ''}${offset.value}반음`)
-const capo = computed(() => (sheet.value.instrumentType === 'GUITAR' ? capoFor(sheet.value.originalKey, viewKey.value) : null))
-
 let keyTimer = null
-const shiftKey = (step) => setKey(transposeKey(viewKey.value, step))
 const setKey = (key) => {
   viewKey.value = key
   keyStatus.value = ''
@@ -137,9 +171,9 @@ const saveKey = async () => {
   try {
     const result = await updateWorkspaceItem(itemId, { customKey: key })
     item.value.customKey = result.customKey
-    if (viewKey.value === key) keyStatus.value = '키 저장됨'
+    if (viewKey.value === key) keyStatus.value = '저장됨'
   } catch (e) {
-    actionError.value = `키를 저장하지 못했어요. ${apiErrorMessage(e)}`
+    actionError.value = `연습 키를 저장하지 못했어요. ${apiErrorMessage(e)}`
   }
 }
 // 저장 대기 중에 나가면 바로 저장
@@ -181,8 +215,8 @@ const saveMemo = async () => {
 const removing = ref(false)
 const remove = async () => {
   const message = sheet.value.mine
-    ? `「${sheet.value.title}」을(를) 보관함에서 뺄까요?\n직접 쓴 악보라서 악보 내용과 메모도 함께 지워져요.`
-    : `「${sheet.value.title}」을(를) 보관함에서 뺄까요?\n메모와 바꾼 키도 함께 지워져요.`
+    ? `「${sheet.value.title}」을(를) 보관함에서 뺄까요?\n직접 올린 악보라서 파일과 메모도 함께 지워져요.`
+    : `「${sheet.value.title}」을(를) 보관함에서 뺄까요?\n메모와 연습 키도 함께 지워져요.`
   if (!window.confirm(message)) return
   removing.value = true
   try {
@@ -214,6 +248,7 @@ onBeforeRouteLeave(() => (memoDirty.value ? window.confirm('저장하지 않은 
   font-weight: 800; font-size: 0.8rem; padding: 9px 14px; border-radius: 12px; text-decoration: none;
 }
 .btn:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.btn.small { padding: 7px 12px; font-size: 0.75rem; border-radius: 10px; }
 .btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
 .btn.primary:hover:not(:disabled) { color: #fff; background: #1f4ae0; }
 .btn.star.on { color: #e67700; border-color: #ffe066; background: #fff9db; }
@@ -221,44 +256,44 @@ onBeforeRouteLeave(() => (memoDirty.value ? window.confirm('저장하지 않은 
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
-.memo-card { position: sticky; top: 16px; }
+.layout.wide { grid-template-columns: minmax(0, 1fr); }
+.side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 16px; }
 
-.toolbar {
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  padding-bottom: 16px; margin-bottom: 18px; border-bottom: 1px solid #f1f3f5;
-}
-.key-control, .font-control { display: flex; align-items: center; gap: 4px; }
-.font-control { margin-left: auto; }
+.toolbar { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid #f1f3f5; }
+.toolbar .count { margin-right: auto; font-size: 0.75rem; font-weight: 800; color: #868e96; }
+.zoom { display: flex; align-items: center; gap: 4px; }
+.zoom-value { min-width: 44px; text-align: center; font-size: 0.75rem; font-weight: 800; color: #495057; font-variant-numeric: tabular-nums; }
 .step {
-  width: 36px; height: 36px; border: 1px solid #e9ecef; background: #fff; border-radius: 10px; cursor: pointer;
-  font-family: inherit; font-size: 1.1rem; font-weight: 900; color: #495057;
+  width: 32px; height: 32px; border: 1px solid #e9ecef; background: #fff; border-radius: 9px; cursor: pointer;
+  font-family: inherit; font-size: 1rem; font-weight: 900; color: #495057;
 }
 .step:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
 .step:disabled { opacity: 0.4; cursor: not-allowed; }
-.step.small { font-size: 0.75rem; }
-.step.small.big { font-size: 1rem; }
-.key-now { min-width: 60px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
-.key-now .label { font-size: 0.6rem; font-weight: 800; color: #adb5bd; }
-.key-now strong { font-size: 1.25rem; font-weight: 900; color: #e8590c; }
-.key-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.75rem; font-weight: 700; color: #868e96; }
-.capo { background: #f8f9fa; border-radius: 6px; padding: 3px 8px; color: #495057; }
-.saved { color: #2f9e44; font-weight: 800; font-size: 0.72rem; }
-.text-btn { border: none; background: none; padding: 0; color: #2d5bff; font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; }
+
+.pages { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.page-frame { margin: 0; width: 100%; max-width: 100%; }
+.page-frame :deep(.sheet-page) { border: 1px solid #e9ecef; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04); }
+figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight: 800; color: #adb5bd; }
 
 .memo {
-  width: 100%; box-sizing: border-box; min-height: 220px; resize: vertical; border: 1px solid #e9ecef; border-radius: 12px;
+  width: 100%; box-sizing: border-box; min-height: 180px; resize: vertical; border: 1px solid #e9ecef; border-radius: 12px;
   padding: 12px; font-family: inherit; font-size: 0.85rem; line-height: 1.6; color: #212529; outline: none;
 }
 .memo:focus { border-color: #2d5bff; }
 .memo-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.count { font-size: 0.7rem; color: #adb5bd; font-weight: 700; margin-right: auto; }
+.memo-foot .count { font-size: 0.7rem; color: #adb5bd; font-weight: 700; margin-right: auto; }
+.saved { color: #2f9e44; font-weight: 800; font-size: 0.72rem; }
+.muted { margin: 0; font-size: 0.78rem; color: #868e96; line-height: 1.6; }
+.text-btn { border: none; background: none; padding: 0; color: #2d5bff; font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; text-decoration: none; }
 
+.empty { margin: 0; padding: 32px; text-align: center; font-size: 0.85rem; color: #adb5bd; }
 .loading { padding: 48px; text-align: center; font-size: 0.85rem; color: #adb5bd; }
 .error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
 
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
-  .memo-card { position: static; }
-  .memo { min-height: 120px; }
+  .side { position: static; }
+  .memo { min-height: 110px; }
+  .toolbar .btn.small { display: none; }
 }
 </style>

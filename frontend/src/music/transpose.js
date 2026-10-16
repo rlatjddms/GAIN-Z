@@ -66,6 +66,20 @@ export function transposeContext(originalKey, viewKey) {
   }
 }
 
+// 그 키에서 자주 나오는 코드 (장조: I ii iii IV V vi vii°, 단조: i ii° III iv V VI VII)
+const MAJOR_DEGREES = [['I', 0, ''], ['ii', 2, 'm'], ['iii', 4, 'm'], ['IV', 5, ''], ['V', 7, ''], ['vi', 9, 'm'], ['vii°', 11, 'dim']]
+const MINOR_DEGREES = [['i', 0, 'm'], ['ii°', 2, 'dim'], ['III', 3, ''], ['iv', 5, 'm'], ['V', 7, ''], ['VI', 8, ''], ['VII', 10, '']]
+
+export function diatonicChords(key) {
+  const k = parseKey(key)
+  if (!k) return []
+  const flat = FLAT_KEYS.has(key)
+  return (k.minor ? MINOR_DEGREES : MAJOR_DEGREES).map(([degree, offset, quality]) => ({
+    degree,
+    chord: noteName(k.root + offset, flat) + quality,
+  }))
+}
+
 // 기타 카포 위치 안내: 보는 키를 원래 키 운지로 치려면 몇 번 프렛에 끼우면 되는지 (1~7만)
 export function capoFor(originalKey, viewKey) {
   const d = mod12(semitonesBetween(originalKey, viewKey))

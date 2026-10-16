@@ -5,7 +5,7 @@
       <h2>악보 보관함</h2>
       <div class="head-actions">
         <router-link to="/transcribe" class="btn">✨ AI로 악보 만들기</router-link>
-        <router-link to="/sheets/new" class="btn primary">+ 악보 쓰기</router-link>
+        <router-link to="/sheets/new" class="btn primary">+ 악보 올리기</router-link>
       </div>
     </div>
 
@@ -27,14 +27,26 @@
       <ul v-else-if="items.length" class="list">
         <li v-for="item in items" :key="item.id">
           <router-link :to="`/sheets/${item.id}`" class="row">
-            <span class="key-badge" :class="{ changed: item.customKey }">{{ item.customKey || item.originalKey || '-' }}</span>
+            <span class="cover">
+              <SheetPageView
+                v-if="item.coverPageId"
+                :sheet-id="item.sheetId"
+                :page-id="item.coverPageId"
+                content-type="image/png"
+                thumb
+              />
+              <span v-else class="cover-text">{{ item.pageCount ? 'PDF' : '♪' }}</span>
+            </span>
             <span class="info">
               <strong>{{ item.title }}</strong>
               <span class="meta">
                 {{ item.artist || '아티스트 미입력' }} · {{ instrumentLabel(item.instrumentType) }}
-                <template v-if="item.customKey"> · 원래 {{ item.originalKey }}</template>
-                <template v-if="item.bpm"> · {{ item.bpm }} BPM</template>
+                <template v-if="item.sheetType"> · {{ sheetTypeLabel(item.sheetType) }}</template>
+                <template v-if="item.pageCount > 1"> · {{ item.pageCount }}장</template>
               </span>
+            </span>
+            <span v-if="item.originalKey" class="key-badge" :class="{ changed: item.customKey }" :title="item.customKey ? `원래 ${item.originalKey} → 연습 ${item.customKey}` : '원래 키'">
+              {{ item.customKey ? `${item.originalKey}→${item.customKey}` : item.originalKey }}
             </span>
             <span v-if="item.hasMemo" class="memo-mark" title="메모 있음">📝</span>
           </router-link>
@@ -56,8 +68,8 @@
       <div v-else class="empty">
         <div class="empty-icon">📂</div>
         <strong>아직 담아 둔 악보가 없어요</strong>
-        <p>코드 악보를 직접 써서 담아 보세요. 메모를 남기고, 내 키로 바꿔서 볼 수 있어요.<br>AI로 만든 악보도 여기에 모여요.</p>
-        <router-link to="/sheets/new" class="btn primary">+ 첫 악보 쓰기</router-link>
+        <p>갖고 있는 악보 사진·스캔·PDF를 올려 보세요. 메모를 남기고, 다른 키로 칠 코드도 알려 드려요.<br>AI로 만든 악보도 여기에 모여요.</p>
+        <router-link to="/sheets/new" class="btn primary">+ 첫 악보 올리기</router-link>
       </div>
     </WsCard>
   </div>
@@ -68,9 +80,11 @@
 import { ref, watch, onMounted } from 'vue'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
+import SheetPageView from '../../components/workspace/SheetPageView.vue'
 import { getWorkspace, updateWorkspaceItem } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
+import { sheetTypeLabel } from '../../constants/sheet'
 
 const items = ref([])
 const loading = ref(false)
@@ -140,10 +154,15 @@ a.btn.primary:hover { color: #fff; background: #1f4ae0; }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .list li { display: flex; align-items: center; gap: 4px; border: 1px solid #f1f3f5; border-radius: 14px; transition: border-color 0.15s; }
 .list li:hover { border-color: #c9d6ff; }
-.row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 12px 6px 12px 14px; text-decoration: none; color: inherit; }
+.row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 8px 6px 8px 8px; text-decoration: none; color: inherit; }
+.cover {
+  flex: none; width: 46px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid #f1f3f5;
+  background: #f8f9fa; display: flex; align-items: center; justify-content: center;
+}
+.cover-text { font-size: 0.65rem; font-weight: 900; color: #e03131; }
 .key-badge {
-  flex: none; min-width: 44px; padding: 8px 6px; border-radius: 10px; text-align: center;
-  background: #f8f9fa; color: #495057; font-weight: 900; font-size: 0.85rem;
+  flex: none; padding: 5px 8px; border-radius: 8px; text-align: center; white-space: nowrap;
+  background: #f8f9fa; color: #495057; font-weight: 900; font-size: 0.75rem;
 }
 .key-badge.changed { background: #fff4e6; color: #e8590c; }
 .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
