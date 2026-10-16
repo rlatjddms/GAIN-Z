@@ -11,9 +11,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 사용자가 정한 매일 연습 루틴 (예: 스케일 10회). 삭제하면 비활성화만 해서 지난 체크 기록은 남긴다
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -35,4 +37,21 @@ public class Routine extends BaseEntity {
 
     @Column(nullable = false)
     private Boolean isActive = true;
+
+    @Builder
+    public Routine(User user, String content, Integer targetCount) {
+        this.user = user;
+        this.content = content;
+        this.targetCount = targetCount;
+        this.isActive = true;
+    }
+
+    public void update(String content, Integer targetCount) {
+        this.content = content;
+        this.targetCount = targetCount;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
 }
