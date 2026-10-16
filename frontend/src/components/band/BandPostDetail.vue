@@ -4,10 +4,10 @@
       <div class="author-row">
         <ProfileAvatar :src="post.author?.profileImageUrl" :size="42" :alt="`${post.author?.nickname} 프로필 사진`" />
         <div class="author-info"><strong>{{ post.author?.nickname || '멤버' }}</strong><time :datetime="post.createdAt">{{ postDate(post.createdAt) }}</time></div>
-        <button v-if="post.mine" class="visible-edit" :disabled="busy" @click="$emit('edit')"><BoardIcon name="edit" :size="16" />글 수정</button>
         <details v-if="post.mine || band.myPosition === 'LEADER'" class="more-menu">
           <summary aria-label="게시글 더보기"><BoardIcon name="more" /></summary>
           <div class="menu-items">
+            <button v-if="post.mine" :disabled="busy" @click="$emit('edit')"><BoardIcon name="edit" :size="16" />글 수정</button>
             <button v-if="!post.mine && band.myPosition === 'LEADER'" @click="$emit('edit')"><BoardIcon name="pin" :size="16" />공지 설정</button>
             <button v-if="post.mine" class="danger" :disabled="busy" @click="removePost"><BoardIcon name="trash" :size="16" />글 삭제</button>
           </div>
@@ -32,11 +32,10 @@
       <template v-for="comment in orderedComments" :key="comment.id"><div class="comment" :class="{ reply: comment.parentId, deleted: comment.deleted }">
         <template v-if="comment.deleted"><p class="quiet">삭제된 댓글이에요.</p></template>
         <template v-else>
-          <ProfileAvatar :src="comment.author?.profileImageUrl" :size="30" />
+          <ProfileAvatar :src="comment.author?.profileImageUrl" :size="comment.parentId ? 24 : 30" />
           <div class="comment-main">
             <div class="comment-meta"><strong>{{ comment.author?.nickname }}</strong><time :datetime="comment.createdAt">{{ postTimeAgo(comment.createdAt) }}</time>
-              <button v-if="comment.mine" class="comment-edit" :disabled="busy" @click="editComment(comment)">수정</button>
-              <details v-if="comment.mine" class="more-menu comment-menu"><summary :aria-label="`${comment.author?.nickname} 댓글 더보기`"><BoardIcon name="more" :size="16" /></summary><div class="menu-items"><button class="danger" :disabled="busy" @click="removeComment(comment)">삭제</button></div></details>
+              <details v-if="comment.mine" class="more-menu comment-menu"><summary :aria-label="`${comment.author?.nickname} 댓글 더보기`"><BoardIcon name="more" :size="16" /></summary><div class="menu-items"><button :disabled="busy" @click="editComment(comment)">수정</button><button class="danger" :disabled="busy" @click="removeComment(comment)">삭제</button></div></details>
             </div>
             <form v-if="editId === comment.id" class="edit-comment" @submit.prevent="saveComment(comment)"><MentionInput :members="members" v-model="editText" maxlength="500" required :disabled="busy" aria-label="댓글 수정" rows="2" /><div><button type="button" :disabled="busy" @click="editId = null">취소</button><button class="text-primary" :disabled="busy || !editText.trim()">저장</button></div></form>
             <p v-else class="comment-content"><MentionText :text="comment.content" :members="members" /></p>
@@ -170,7 +169,7 @@ function removeComment(comment) {
 .post-content { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.9; color: #495057; margin: 0 0 24px; }
 .notice-tag { display: inline-flex; align-items: center; gap: 4px; color: #2d5bff; background: #eff3ff; border-radius: 6px; padding: 4px 7px; font-size: 10px; font-weight: 800; margin-bottom: 10px; }
 .more-menu { position: relative; margin-left: auto; flex: none; }
-.more-menu summary { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: #868e96; cursor: pointer; list-style: none; }
+.more-menu summary { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: #526071; cursor: pointer; list-style: none; }
 .more-menu summary::-webkit-details-marker { display: none; }
 .more-menu summary:hover, .more-menu[open] summary { background: #f1f3f5; color: #343a40; }
 .menu-items { position: absolute; top: 36px; right: 0; z-index: 10; min-width: 132px; padding: 5px; border: 1px solid #e9ecef; border-radius: 12px; background: #fff; box-shadow: 0 6px 24px #1c2c4a14; }
@@ -192,7 +191,7 @@ function removeComment(comment) {
 .comment-menu summary { width: 24px; height: 24px; }
 .comment-menu .menu-items { top: 26px; min-width: 90px; }
 .comment-content { margin: 4px 0 7px; font-size: 13px; line-height: 1.65; color: #495057; white-space: pre-wrap; overflow-wrap: anywhere; }
-.reply-button { padding: 0; background: none; border: none; font-family: inherit; font-size: 12px; font-weight: 700; color: #52627a; cursor: pointer; }
+.reply-button { padding: 0; background: none; border: none; font-family: inherit; font-size: 12px; font-weight: 500; color: #858b94; cursor: pointer; }
 .reply-button:hover { color: #2d5bff; }
 .deleted { display: block; padding-left: 40px; }
 .quiet, .empty-comments { font-size: 12px; color: #adb5bd; }
@@ -220,9 +219,7 @@ function removeComment(comment) {
   .comment.reply { margin-left: 24px; }
   .media-gallery { gap: 8px; }
 }
-.visible-edit, .comment-edit, .reply-toggle, .media-open { border: 1px solid #d5ddec; border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 12px; font-weight: 700; background: #fff; color: #405372; cursor: pointer; }
-.visible-edit { white-space: nowrap; display: flex; align-items: center; gap: 5px; }
-.comment-edit { margin-left: auto; padding: 4px 7px; font-size: 11px; }.comment-menu { margin-left: 0; }
+.reply-toggle, .media-open { border: 1px solid #d5ddec; border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 12px; font-weight: 700; background: #fff; color: #405372; cursor: pointer; }
 .reply-toggle { display: block; margin: 0; border: 0; background: transparent; color: #2d5bff; padding: 5px 0; }
 .comment-actions { display: flex; align-items: center; gap: 14px; margin-top: 3px; }
 .reply-target > span { background: #edf2ff; padding: 5px 8px; border-radius: 7px; font-weight: 700; }
