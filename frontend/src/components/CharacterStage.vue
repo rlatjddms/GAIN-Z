@@ -1,21 +1,21 @@
 <template>
   <section
     class="character-stage"
-    :class="`tier-${bgTier.key.toLowerCase()}`"
+    :class="[`tier-${bgTier.key.toLowerCase()}`, { bare }]"
     :style="stageStyle"
   >
     <div class="stage-overlay"></div>
 
-    <div class="stage-head">
+    <div v-if="!bare" class="stage-head">
       <div class="level-tag">Lv.{{ level }} {{ nickname }}</div>
       <div class="tier-badge">{{ tier.name }}</div>
     </div>
 
     <div class="stage-floor">
-      <div class="character-box" @click="toggleSpeech">
+      <div class="character-box" @click="!bare && toggleSpeech()">
         <div v-if="tier.aura !== 'none'" class="aura" :class="`aura-${tier.aura}`"></div>
         <div class="char-icon">
-          <PixelCharacter :character="character" :scale="pixelScale" />
+          <PixelCharacter :character="character" :scale="pixelScale" :outfit="character?.currentOutfitSpriteKey || 'DEFAULT'" />
         </div>
         <transition name="pop">
           <div v-if="showSpeech" class="speech-bubble">{{ tier.speech }}</div>
@@ -23,7 +23,7 @@
       </div>
     </div>
 
-    <div class="exp-area">
+    <div v-if="!bare" class="exp-area">
       <div class="exp-bar">
         <div class="exp-fill" :style="{ width: `${progress}%` }"></div>
       </div>
@@ -49,6 +49,8 @@ import PixelCharacter from './PixelCharacter.vue'
 
 const props = defineProps({
   character: { type: Object, default: null },
+  // 캐릭터와 배경만 (옷장 미리보기용: 레벨·칭호·경험치 숨김)
+  bare: { type: Boolean, default: false },
 })
 
 const showSpeech = ref(false)
@@ -268,4 +270,7 @@ const stageStyle = computed(() => ({
   .stage-floor { gap: 20px; }
   .speech-bubble { white-space: normal; max-width: 220px; }
 }
+
+/* 옷장 미리보기: 캐릭터와 배경만 */
+.character-stage.bare { margin-bottom: 0; padding: 36px 24px; }
 </style>

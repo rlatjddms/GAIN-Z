@@ -17,7 +17,7 @@
       <div class="layout">
         <!-- 미리보기: 바꾼 모습이 바로 보인다 -->
         <div class="preview">
-          <CharacterStage v-if="preview" :character="preview" />
+          <CharacterStage v-if="preview" :character="preview" bare />
         </div>
 
         <section class="panel">
@@ -77,34 +77,48 @@
             </div>
           </div>
 
-          <!-- 의상 -->
+          <!-- 의상 (상의는 성별마다 다른 그림) -->
           <div v-else-if="tab === 'outfit'" class="tab-body">
-            <p class="hint">레벨이 오르거나 업적을 달성하면 새 아이템이 여기에 생겨요.</p>
+            <p class="hint">레벨이 오르거나 업적을 달성하면 새 옷이 여기에 생겨요.</p>
             <p v-if="wardrobeError" class="warn">{{ wardrobeError }}</p>
             <div class="items">
               <button
-                v-for="o in outfits" :key="o.id" class="item"
+                v-for="o in clothes" :key="o.id" class="item"
                 :class="{ on: draft.outfitId === o.id, locked: !o.owned }"
                 :disabled="!o.owned"
                 @click="draft.outfitId = o.id"
               >
-                <span class="item-icon">{{ o.owned ? CATEGORY_ICON[o.category] || '👕' : '🔒' }}</span>
+                <span class="item-thumb">
+                  <PixelCharacter :character="{ ...preview, currentOutfitSpriteKey: o.spriteKey }" :outfit="o.spriteKey || 'DEFAULT'" :scale="2" :animate="false" />
+                  <i v-if="!o.owned">🔒</i>
+                </span>
                 <strong>{{ o.name }}</strong>
                 <small>{{ o.owned ? (draft.outfitId === o.id ? '입는 중' : '입기') : `Lv.${o.requiredLevel}에 해금` }}</small>
               </button>
             </div>
           </div>
 
-          <!-- 배경 -->
+          <!-- 악세서리 (추가 예정) -->
+          <div v-else-if="tab === 'accessory'" class="tab-body">
+            <div v-if="!accessories.length" class="empty">
+              <span class="empty-icon">🧢</span>
+              <strong>아직 악세서리가 없어요</strong>
+              <p>모자·안경 같은 악세서리가 곧 추가될 예정이에요.</p>
+            </div>
+            <div v-else class="items">
+              <div v-for="o in accessories" :key="o.id" class="item" :class="{ locked: !o.owned }">
+                <span class="item-thumb">{{ o.owned ? '🧢' : '🔒' }}</span>
+                <strong>{{ o.name }}</strong>
+                <small>{{ o.owned ? '곧 착용할 수 있어요' : `Lv.${o.requiredLevel}에 해금` }}</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- 배경: 레벨로 얻은 무대는 계속 간직하고 그중 하나를 고른다 -->
           <div v-else class="tab-body">
-            <p class="hint">레벨이 오르면 더 큰 무대가 열려요. 고르지 않으면 레벨에 맞는 무대가 나와요.</p>
+            <p class="hint">레벨이 오르면 새 무대를 얻어요. 얻은 무대는 언제든 다시 고를 수 있어요.</p>
             <p v-if="wardrobeError" class="warn">{{ wardrobeError }}</p>
             <div class="stages">
-              <button class="stage auto" :class="{ on: draft.stageBackground === null }" @click="draft.stageBackground = null">
-                <span class="thumb auto-thumb">AUTO</span>
-                <strong>레벨에 맞춰 자동</strong>
-                <small>지금은 {{ STAGE_NAMES[levelTierKey] }}</small>
-              </button>
               <button
                 v-for="b in backgrounds" :key="b.key" class="stage"
                 :class="{ on: draft.stageBackground === b.key, locked: !b.unlocked }"
@@ -115,8 +129,15 @@
                   <i v-if="!b.unlocked">🔒</i>
                 </span>
                 <strong>{{ STAGE_NAMES[b.key] }}</strong>
-                <small>{{ b.unlocked ? `Lv.${b.requiredLevel}부터` : `Lv.${b.requiredLevel}에 해금` }}</small>
+                <small>{{ b.unlocked ? (draft.stageBackground === b.key ? '사용 중' : '고르기') : `Lv.${b.requiredLevel}에 해금` }}</small>
               </button>
+            </div>
+
+            <div class="sub-section">
+              <span class="label">꾸미기 효과</span>
+              <div class="empty small">
+                <strong>✨ 반짝이 같은 무대 효과가 곧 추가될 예정이에요</strong>
+              </div>
             </div>
           </div>
         </section>
@@ -131,6 +152,7 @@ import { onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import ColorSwatches from '../components/ColorSwatches.vue'
+import PixelCharacter from '../components/PixelCharacter.vue'
 import { useAuthStore } from '../stores/auth'
 import { getWardrobe, updateWardrobe, updateAppearance } from '../api/character'
 import { apiErrorMessage } from '../api/practice'
@@ -144,9 +166,9 @@ import { DEFAULT_COLORS } from '../pixel/palette'
 const TABS = [
   { key: 'look', label: '외형' },
   { key: 'outfit', label: '의상' },
+  { key: 'accessory', label: '악세서리' },
   { key: 'stage', label: '배경' },
 ]
-const CATEGORY_ICON = { CLOTHES: '👕', INSTRUMENT: '🎸', ACCESSORY: '🧢' }
 const STAGE_NAMES = { ROOKIE: '방구석', RISING: '동네 클럽', PRO: '투어 공연장', LEGEND: '전설의 무대' }
 const tierOf = (key) => LEVEL_TIERS.find((t) => t.key === key)
 
@@ -171,7 +193,8 @@ const snapshot = (c, wardrobe) => ({
   hairStyle: c.hairStyle || 'SHORT_CUT', hairColor: c.hairColor || '#111827',
   instrumentType: c.instrumentType || 'GUITAR', instrumentColor: c.instrumentColor || '#B91C1C',
   outfitId: wardrobe?.outfits?.find((o) => o.equipped)?.id ?? c.currentOutfitId ?? null,
-  stageBackground: wardrobe ? wardrobe.stageBackground ?? null : c.stageBackground ?? null,
+  // 고른 적 없으면 레벨로 얻은 가장 큰 무대 (서버도 같은 규칙으로 돌려준다)
+  stageBackground: wardrobe?.stageBackground ?? c.stageBackground ?? getLevelTier(c.level ?? 1).key,
 })
 
 onMounted(async () => {
@@ -195,9 +218,15 @@ const wardrobeDirty = computed(() => !!original.value && wardrobeLoaded.value
 const dirty = computed(() => appearanceDirty.value || wardrobeDirty.value)
 const nicknameError = computed(() => (appearanceDirty.value ? nicknameProblem(draft.nickname) : ''))
 
-// 미리보기 캐릭터 = 저장된 캐릭터 + 고르는 중인 값
-const preview = computed(() => (authStore.character ? { ...authStore.character, ...draft } : null))
-const levelTierKey = computed(() => getLevelTier(authStore.character?.level ?? 1).key)
+const clothes = computed(() => outfits.value.filter((o) => o.category === 'CLOTHES'))
+const accessories = computed(() => outfits.value.filter((o) => o.category === 'ACCESSORY'))
+
+// 미리보기 캐릭터 = 저장된 캐릭터 + 고르는 중인 값 (입을 옷의 그림 포함)
+const preview = computed(() => {
+  if (!authStore.character) return null
+  const outfit = outfits.value.find((o) => o.id === draft.outfitId)
+  return { ...authStore.character, ...draft, currentOutfitSpriteKey: outfit?.spriteKey ?? authStore.character.currentOutfitSpriteKey }
+})
 
 const reset = () => {
   if (original.value) Object.assign(draft, original.value)
@@ -289,7 +318,17 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .item {
   display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 8px; border-radius: 14px;
 }
-.item-icon { font-size: 1.8rem; }
+.item-thumb {
+  position: relative; display: flex; align-items: flex-end; justify-content: center;
+  width: 64px; height: 72px; border-radius: 12px; background: #f1f3f5; overflow: hidden; font-size: 1.6rem;
+}
+.item-thumb i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(248, 249, 250, 0.7); font-style: normal; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 28px 12px; border: 2px dashed #e9ecef; border-radius: 14px; }
+.empty.small { padding: 14px 12px; }
+.empty-icon { font-size: 1.8rem; }
+.empty strong { font-size: 0.85rem; font-weight: 800; color: #868e96; }
+.empty p { margin: 0; font-size: 0.75rem; color: #adb5bd; }
+.sub-section { display: flex; flex-direction: column; gap: 8px; }
 .item strong { font-size: 0.85rem; font-weight: 800; }
 .item small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 .item.on small { color: #2d5bff; }
@@ -303,10 +342,6 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
   background-size: cover; background-position: center; image-rendering: pixelated;
 }
 .thumb i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.55); font-style: normal; }
-.auto-thumb {
-  display: flex; align-items: center; justify-content: center; background: repeating-linear-gradient(45deg, #f1f3f5, #f1f3f5 8px, #e9ecef 8px, #e9ecef 16px);
-  font-size: 0.8rem; font-weight: 900; color: #868e96; letter-spacing: 2px;
-}
 .stage strong { font-size: 0.82rem; font-weight: 800; }
 .stage small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 
