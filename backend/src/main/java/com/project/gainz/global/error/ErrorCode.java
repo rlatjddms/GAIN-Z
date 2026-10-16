@@ -31,7 +31,14 @@ public enum ErrorCode {
     ROUTINE_LIMIT_EXCEEDED(400, "R002", "루틴은 최대 20개까지 만들 수 있습니다."),
     ROUTINE_CHECK_PERIOD_EXPIRED(400, "R003", "루틴 체크는 최근 7일까지만 할 수 있습니다."),
     ROUTINE_NOT_SCHEDULED(400, "R004", "그날은 이 루틴 일정이 없습니다."),
-    INVALID_ROUTINE_SCHEDULE(400, "R005", "반복 설정이 올바르지 않습니다. (요일 반복은 요일을 하나 이상, 종료일은 시작일 이후)");
+    INVALID_ROUTINE_SCHEDULE(400, "R005", "반복 설정이 올바르지 않습니다. (요일 반복은 요일을 하나 이상, 종료일은 시작일 이후)"),
+
+    /* Sheet (악보·보관함) */
+    SHEET_NOT_FOUND(404, "S001", "존재하지 않는 악보입니다."),
+    WORKSPACE_ITEM_NOT_FOUND(404, "S002", "보관함에 없는 악보입니다."),
+    SHEET_ALREADY_IN_WORKSPACE(409, "S003", "이미 보관함에 담긴 악보입니다."),
+    SHEET_EDIT_DENIED(403, "S004", "직접 만든 악보만 고칠 수 있습니다."),
+    WORKSPACE_LIMIT_EXCEEDED(400, "S005", "보관함에는 악보를 최대 200개까지 담을 수 있습니다.");
 
     private final int status;
     private final String code;
