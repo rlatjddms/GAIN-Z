@@ -5,6 +5,10 @@
 export const SPRITE_WIDTH = 24
 export const SPRITE_HEIGHT = 32
 
+// 무대 배경 원본 크기 (assets/stages/<tier>.png). 캐릭터와 같은 도트 격자에 놓는다
+export const STAGE_WIDTH = 208
+export const STAGE_HEIGHT = 72
+
 // 레이어 그리는 순서 (아래 → 위)
 export const LAYER_ORDER = ['body', 'outfit', 'hair', 'instrument']
 

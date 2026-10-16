@@ -34,8 +34,11 @@ let loadToken = 0
 const spec = computed(() => {
   const c = props.character || {}
   const body = c.gender === 'MALE' ? 'MALE' : 'FEMALE'
-  // 의상은 체형이 달라서 성별별 파일(<이름>_<성별>.png)을 먼저 찾고, 없으면 공용 파일을 쓴다
-  const outfit = spriteUrl('outfit', `${props.outfit}_${body}`) ? `${props.outfit}_${body}` : props.outfit
+  // 의상은 체형이 달라서 성별별 파일(<이름>_<성별>.png)을 먼저 찾고, 없으면 공용 파일,
+  // 그림이 아직 없는 의상이면 기본 의상을 입힌다
+  const outfit = spriteUrl('outfit', `${props.outfit}_${body}`) ? `${props.outfit}_${body}`
+    : spriteUrl('outfit', props.outfit) ? props.outfit
+    : `DEFAULT_${body}`
   return {
     body,
     outfit,

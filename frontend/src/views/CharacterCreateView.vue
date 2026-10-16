@@ -256,7 +256,10 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import axiosInstance from '../api/axios'
 import PixelCharacter from '../components/PixelCharacter.vue'
-import { DEFAULT_COLORS, SKIN_PRESETS } from '../pixel/palette'
+import { DEFAULT_COLORS } from '../pixel/palette'
+import {
+  HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS, INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS,
+} from '../constants/characterOptions'
 
 const router = useRouter()
 const route = useRoute()
@@ -301,50 +304,12 @@ onMounted(async () => {
   }
 })
 
-// Hair options details
-const hairStyleOptions = [
-  { value: 'BALD', label: '대머리', emoji: '🧑‍🦲' },
-  { value: 'SHORT_CUT', label: '숏컷', emoji: '👦' },
-  { value: 'MID_LENGTH_BOB', label: '보브컷', emoji: '👩' },
-  { value: 'LONG_STRAIGHT', label: '생머리', emoji: '👱‍♀️' },
-  { value: 'NATURAL_WAVE', label: '웨이브', emoji: '👩‍🦱' },
-  { value: 'WOLF_CUT', label: '울프컷', emoji: '🐺' },
-  { value: 'SIDE_PART_QUIFF', label: '포마드', emoji: '🧔' },
-  { value: 'MESSY_ROUGH', label: '헝클어짐', emoji: '🦁' },
-  { value: 'DREADLOCKS', label: '드레드락', emoji: '🦱' },
-  { value: 'MOHAWK_SHARP', label: '모히칸', emoji: '🐔' }
-]
-
-const skinColorPresets = SKIN_PRESETS
-
-const hairColorPresets = [
-  '#111827', // Jet Black
-  '#4B5563', // Ash Gray
-  '#D4B275', // Honey Blonde
-  '#B85C5C', // Auburn Red
-  '#7C3AED', // Neon Purple
-  '#EC4899', // Cotton Pink
-  '#3B82F6', // Cobalt Blue
-]
-
-// Instrument options details
-const instrumentOptions = [
-  { value: 'GUITAR', label: '일렉기타', emoji: '🎸' },
-  { value: 'BASS', label: '베이스', emoji: '🎸' },
-  { value: 'DRUM', label: '드럼', emoji: '🥁' },
-  { value: 'VOCAL', label: '보컬', emoji: '🎤' },
-  { value: 'KEYBOARD', label: '건반', emoji: '🎹' }
-]
-
-const instColorPresets = [
-  '#B91C1C', // Sunburst Cherry Red
-  '#1D4ED8', // Oceanic Metallic Blue
-  '#D97706', // Sunburst Gold Orange
-  '#111827', // Matte Black
-  '#F3F4F6', // Vintage Alpine White
-  '#059669', // Emerald Green
-  '#EC4899', // Punk Candy Pink
-]
+// 선택지는 옷장과 함께 쓰는 constants/characterOptions.js에서 가져온다
+const hairStyleOptions = HAIR_STYLE_OPTIONS
+const skinColorPresets = SKIN_COLOR_PRESETS
+const hairColorPresets = HAIR_COLOR_PRESETS
+const instrumentOptions = INSTRUMENT_OPTIONS
+const instColorPresets = INSTRUMENT_COLOR_PRESETS
 
 // Feedback messages
 const nicknameFeedback = ref('')

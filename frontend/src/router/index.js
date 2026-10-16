@@ -43,6 +43,12 @@ const routes = [
       meta: { requiresCharacter: true }
     },
     {
+      path: '/wardrobe',
+      name: 'wardrobe',
+      component: () => import('../views/WardrobeView.vue'),
+      meta: { requiresCharacter: true }
+    },
+    {
       path: '/character-create',
       name: 'character-create',
       component: CharacterCreateView
@@ -93,8 +99,9 @@ router.beforeEach(async (to, from, next) => {
       if (!authStore.isCharacterChecked) {
         await authStore.fetchCharacter()
       }
-      if (to.query.edit !== 'true' && authStore.character) {
-        next('/home')
+      // 캐릭터가 있으면 만들기 화면 대신 홈으로. 예전 "캐릭터 수정"(?edit=true)은 옷장으로 옮겼다
+      if (authStore.character) {
+        next(to.query.edit === 'true' ? '/wardrobe' : '/home')
       } else {
         next()
       }

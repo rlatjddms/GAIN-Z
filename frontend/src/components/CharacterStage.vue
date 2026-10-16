@@ -1,29 +1,27 @@
 <template>
   <section
     class="character-stage"
-    :class="`tier-${tier.key.toLowerCase()}`"
+    :class="[`tier-${bgTier.key.toLowerCase()}`, { bare }]"
     :style="stageStyle"
   >
-    <div class="stage-overlay"></div>
-
-    <div class="stage-head">
+    <div v-if="!bare" class="stage-head">
       <div class="level-tag">Lv.{{ level }} {{ nickname }}</div>
       <div class="tier-badge">{{ tier.name }}</div>
     </div>
 
-    <div class="stage-floor">
-      <div class="character-box" @click="toggleSpeech">
-        <div v-if="tier.aura !== 'none'" class="aura" :class="`aura-${tier.aura}`"></div>
-        <div class="char-icon">
-          <PixelCharacter :character="character" :scale="pixelScale" />
-        </div>
+    <!-- 배경과 캐릭터는 같은 도트 격자 (홈과 옷장 미리보기가 똑같이 보인다) -->
+    <StageScene :character="character" :stage-key="bgTier.key" :view-width="viewWidth" @actor-click="!bare && toggleSpeech()">
+      <template #behind>
+        <div v-if="!bare && tier.aura !== 'none'" class="aura" :class="`aura-${tier.aura}`"></div>
+      </template>
+      <template #above>
         <transition name="pop">
           <div v-if="showSpeech" class="speech-bubble">{{ tier.speech }}</div>
         </transition>
-      </div>
-    </div>
+      </template>
+    </StageScene>
 
-    <div class="exp-area">
+    <div v-if="!bare" class="exp-area">
       <div class="exp-bar">
         <div class="exp-fill" :style="{ width: `${progress}%` }"></div>
       </div>
@@ -37,6 +35,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import {
+  LEVEL_TIERS,
   MAX_LEVEL,
   clampLevel,
   getLevelTier,
@@ -44,10 +43,14 @@ import {
   getRequiredExp,
   getExpProgress,
 } from '../constants/levelTier'
-import PixelCharacter from './PixelCharacter.vue'
+import StageScene from './StageScene.vue'
 
 const props = defineProps({
   character: { type: Object, default: null },
+  // 캐릭터와 배경만 (옷장 미리보기용: 레벨·칭호·경험치 숨김)
+  bare: { type: Boolean, default: false },
+  // 무대 중 보여 줄 가로 폭 (무대 도트 기준). 작게 주면 캐릭터 쪽만 카메라처럼 잘라서 보여 준다
+  viewWidth: { type: Number, default: 208 },
 })
 
 const showSpeech = ref(false)
@@ -69,15 +72,15 @@ const expLabel = computed(() => {
   return `${base} · 다음 무대 「${nextTier.value.name}」까지 Lv.${nextTier.value.minLevel}`
 })
 
-// 무대가 커질수록 캐릭터도 커진다 (정수 배율만 사용해야 도트가 깨지지 않음)
-const pixelScale = computed(() => Math.round(5 * tier.value.scale))
 const character = computed(() => props.character)
 
+// 옷장에서 고른 무대 배경 (아직 모르면 레벨에 맞는 무대). 글자색도 배경에 맞춘다
+const bgTier = computed(() => LEVEL_TIERS.find((t) => t.key === props.character?.stageBackground) || tier.value)
+
 const stageStyle = computed(() => ({
-  backgroundImage: `url(${tier.value.background})`,
-  '--accent': tier.value.accent,
-  '--accent-soft': tier.value.accentSoft,
-  '--stage-text': tier.value.textColor,
+  '--accent': bgTier.value.accent,
+  '--accent-soft': bgTier.value.accentSoft,
+  '--stage-text': bgTier.value.textColor,
 }))
 </script>
 
@@ -86,45 +89,30 @@ const stageStyle = computed(() => ({
   position: relative;
   z-index: 1;
   margin-bottom: 24px;
-  padding: 48px 40px 36px;
   border: 1px solid #e9ecef;
   border-radius: 28px;
-  background-color: #fff;
-  background-size: cover;
-  background-position: center bottom;
-  background-repeat: no-repeat;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  background: #fff;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
   color: var(--stage-text, #1a1a1a);
   text-align: center;
   overflow: hidden;
-  transition: background-image 0.4s ease;
 }
 
-.stage-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.18) 100%);
-}
-.tier-rookie .stage-overlay {
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.25) 100%);
-}
-
+/* 레벨·칭호(위)와 경험치(아래)는 장면 위에 얹는다 */
 .stage-head,
-.stage-floor,
 .exp-area {
-  position: relative;
-  z-index: 1;
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  transform: translateX(-50%);
 }
-
 .stage-head {
+  top: 6%;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 8px;
-  margin-bottom: 18px;
+  width: 100%;
   flex-wrap: wrap;
 }
 .level-tag {
@@ -148,37 +136,17 @@ const stageStyle = computed(() => ({
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
-.stage-floor {
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 48px;
-  min-height: 150px;
-}
+.character-stage :deep(.actor) { cursor: pointer; }
+.bare :deep(.actor) { cursor: default; }
+.character-stage :deep(.pixel-character) { filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.25)); }
 
-.character-box {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  min-width: 160px;
-  min-height: 150px;
-  cursor: pointer;
-}
-.char-icon {
-  position: relative;
-  z-index: 2;
-  line-height: 0;
-  filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.25));
-}
-
+/* 오라는 캐릭터 너비 기준 (장면 크기를 따라 같이 커진다) */
 .aura {
   position: absolute;
   left: 50%;
-  bottom: 8px;
-  width: 150px;
-  height: 150px;
+  bottom: 0;
+  width: 300%;
+  aspect-ratio: 1;
   border-radius: 50%;
   transform: translateX(-50%);
   pointer-events: none;
@@ -189,14 +157,12 @@ const stageStyle = computed(() => ({
   animation: aura-pulse 3s ease-in-out infinite;
 }
 .aura-glow {
-  width: 190px;
-  height: 190px;
+  width: 380%;
   background: radial-gradient(circle, rgba(167, 139, 250, 0.6) 0%, rgba(96, 165, 250, 0.25) 45%, rgba(96, 165, 250, 0) 72%);
   animation: aura-pulse 2.4s ease-in-out infinite;
 }
 .aura-legend {
-  width: 230px;
-  height: 230px;
+  width: 460%;
   background: radial-gradient(circle, rgba(253, 230, 138, 0.8) 0%, rgba(251, 191, 36, 0.35) 45%, rgba(251, 191, 36, 0) 72%);
   animation: aura-pulse 1.8s ease-in-out infinite, aura-spin 10s linear infinite;
 }
@@ -204,29 +170,31 @@ const stageStyle = computed(() => ({
 .speech-bubble {
   position: absolute;
   left: 50%;
-  bottom: -14px;
+  bottom: 100%;
   z-index: 4;
+  margin-bottom: 6px;
   transform: translateX(-50%);
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 14px;
   background: #1a1a1a;
   color: #fff;
   font-size: 0.85rem;
   font-weight: 500;
+  line-height: 1.4;
   white-space: nowrap;
 }
 
 .exp-area {
-  max-width: 420px;
-  margin: 28px auto 0;
+  bottom: 5%;
+  width: min(420px, 70%);
 }
 .exp-bar {
   height: 10px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
-.tier-rookie .exp-bar { background: rgba(0, 0, 0, 0.08); }
+.tier-rookie .exp-bar { background: rgba(0, 0, 0, 0.12); }
 .exp-fill {
   height: 100%;
   border-radius: 999px;
@@ -235,11 +203,12 @@ const stageStyle = computed(() => ({
   transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .exp-text {
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 0.78rem;
-  font-weight: 600;
-  opacity: 0.85;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
+.tier-rookie .exp-text { text-shadow: none; }
 
 .pop-enter-active { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 @keyframes pop-in {
@@ -259,9 +228,16 @@ const stageStyle = computed(() => ({
   .aura { animation: none; }
 }
 
+/* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래로 뺀다 */
 @media (max-width: 640px) {
-  .character-stage { padding: 48px 20px 28px; }
-  .stage-floor { gap: 20px; }
-  .speech-bubble { white-space: normal; max-width: 220px; }
+  .character-stage { color: #1a1a1a; }
+  .stage-head, .exp-area { position: static; transform: none; margin: 0 auto; }
+  .stage-head { padding: 12px 12px 10px; }
+  .exp-area { width: auto; padding: 10px 16px 14px; }
+  .exp-text { text-shadow: none; }
+  .speech-bubble { white-space: normal; width: max-content; max-width: 180px; }
 }
+
+/* 옷장 미리보기: 캐릭터와 배경만 */
+.character-stage.bare { margin-bottom: 0; }
 </style>
