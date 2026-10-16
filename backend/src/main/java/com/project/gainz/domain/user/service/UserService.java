@@ -1,6 +1,7 @@
 package com.project.gainz.domain.user.service;
 
 import com.project.gainz.domain.character.entity.Character;
+import com.project.gainz.domain.band.service.BandService;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
 import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
@@ -31,6 +32,7 @@ public class UserService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProfileImageStorage profileImageStorage;
+    private final BandService bandService;
 
     public record ProfileImageFile(Resource resource, String contentType) {
     }
@@ -103,6 +105,7 @@ public class UserService {
         // 리프레시 토큰은 이메일로 저장돼 있어서, 이메일을 비우기 전에 지운다
         refreshTokenRepository.deleteById(user.getEmail());
         characterRepository.findByUserId(userId).ifPresent(Character::delete);
+        bandService.leaveAllBands(userId);
         deleteFileAfterCommit(user.getProfileImage());
         user.withdraw();
     }

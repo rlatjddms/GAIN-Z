@@ -1,5 +1,6 @@
 package com.project.gainz.domain.user.service;
 
+import com.project.gainz.domain.band.service.BandService;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.enums.Gender;
@@ -49,6 +50,7 @@ class UserServiceTest {
     @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private ProfileImageStorage profileImageStorage;
+    @Mock private BandService bandService;
 
     @InjectMocks private UserService userService;
 
@@ -258,7 +260,7 @@ class UserServiceTest {
     }
 
     @Test
-    void 탈퇴하면_토큰과_사진을_지우고_유저와_캐릭터를_삭제하고_이메일을_비운다() {
+    void 탈퇴하면_토큰과_사진을_지우고_밴드에서_빠지고_유저와_캐릭터를_삭제하고_이메일을_비운다() {
         User user = localUser();
         user.changeProfileImage("uuid.png", "image/png");
         Character character = character(user);
@@ -269,6 +271,7 @@ class UserServiceTest {
 
         verify(refreshTokenRepository).deleteById(EMAIL);
         verify(profileImageStorage).delete("uuid.png");
+        verify(bandService).leaveAllBands(USER_ID);
         assertThat(user.hasProfileImage()).isFalse();
         assertThat(user.getIsDeleted()).isTrue();
         assertThat(user.getEmail()).isNotEqualTo(EMAIL).endsWith("@gainz.invalid");

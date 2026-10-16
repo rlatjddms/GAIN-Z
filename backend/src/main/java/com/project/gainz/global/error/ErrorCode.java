@@ -52,7 +52,23 @@ public enum ErrorCode {
     SHEET_PAGE_LIMIT_EXCEEDED(400, "S009", "악보는 최대 20장까지 올릴 수 있습니다."),
     SHEET_PAGE_NOT_FOUND(404, "S010", "존재하지 않는 악보 장입니다."),
     SHEET_LAST_PAGE(400, "S011", "마지막 한 장은 지울 수 없습니다."),
-    SHEET_FILE_STORAGE_FAILED(500, "S012", "악보 파일을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    SHEET_FILE_STORAGE_FAILED(500, "S012", "악보 파일을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+
+    /* Band (밴드) */
+    BAND_NOT_FOUND(404, "B001", "존재하지 않는 밴드입니다."),
+    NOT_BAND_MEMBER(403, "B002", "이 밴드의 멤버만 할 수 있습니다."),
+    BAND_LEADER_ONLY(403, "B003", "밴드 리더만 할 수 있습니다."),
+    INVALID_INVITE_CODE(404, "B004", "초대 코드가 올바르지 않습니다. 리더에게 코드를 다시 확인해 주세요."),
+    ALREADY_BAND_MEMBER(409, "B005", "이미 이 밴드의 멤버입니다."),
+    BAND_FULL(400, "B006", "밴드 멤버는 최대 8명까지입니다."),
+    BAND_JOIN_LIMIT_EXCEEDED(400, "B007", "밴드는 최대 5개까지 들어갈 수 있습니다."),
+    BAND_MEMBER_NOT_FOUND(404, "B008", "이 밴드에 없는 멤버입니다."),
+    BAND_LEADER_CANNOT_LEAVE(400, "B009", "리더는 다른 멤버에게 리더를 넘긴 뒤에 나갈 수 있습니다. 혼자 남았다면 밴드를 없애 주세요."),
+    CANNOT_REMOVE_SELF(400, "B010", "나 자신은 내보낼 수 없습니다. 밴드 나가기를 이용해 주세요."),
+    ALREADY_BAND_LEADER(400, "B011", "이미 리더인 멤버입니다."),
+    BAND_PART_CHANGE_DENIED(403, "B012", "본인이나 리더만 파트를 바꿀 수 있습니다."),
+    INVITE_CODE_GENERATION_FAILED(500, "B013", "초대 코드를 만들지 못했습니다. 잠시 후 다시 시도해 주세요."),
+    INVALID_MEMBER_ORDER(400, "B014", "멤버 순서가 지금 멤버와 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요.");
 
     private final int status;
     private final String code;
