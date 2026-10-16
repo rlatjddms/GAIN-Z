@@ -33,7 +33,7 @@ before(async () => {
 after(async () => { await browser?.close(); vite?.kill() })
 
 async function fixture(t, options = {}) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 960 } })
+  const context = await browser.newContext({ viewport: { width: 1280, height: 960 }, timezoneId: options.timezoneId || 'Asia/Seoul' })
   t.after(() => context.close())
   await context.addInitScript(() => localStorage.setItem('accessToken', 'ui-test-token'))
   const page = await context.newPage()
@@ -66,7 +66,7 @@ async function fixture(t, options = {}) {
         state.media.set(id, { bytes: Buffer.from(await file.arrayBuffer()), type: file.type })
         kept.push({ id, name: file.name, type: file.type, url: `/api/v1/bands/10/posts/${next.id}/attachments/${id}` })
       }
-      Object.assign(next, { title: info.title, content: info.content, notice: info.notice ?? next.notice, attachments: kept, attachment: kept[0] || null })
+      Object.assign(next, { title: info.title, content: info.content, notice: info.notice ?? next.notice, noticeExpiresAt: info.notice ? info.noticeExpiresAt : null, attachments: kept, attachment: kept[0] || null })
       if (!existing) state.posts.push(next)
       return respond(next)
     }
@@ -80,7 +80,7 @@ async function fixture(t, options = {}) {
       if (method === 'GET') {
         if (state.failList) return respond('게시글 조회 실패', 503)
         const filter = url.searchParams.get('notice')
-        const rows = state.posts.filter(p => (url.searchParams.get('mine') !== 'true' || p.mine) && (filter === null || p.notice === (filter === 'true'))).sort((a, b) => Number(b.notice) - Number(a.notice) || b.id - a.id)
+        const rows = state.posts.map(p => ({ ...p, notice: p.notice && (!p.noticeExpiresAt || Date.parse(p.noticeExpiresAt) > Date.now()) })).filter(p => (url.searchParams.get('mine') !== 'true' || p.mine) && (filter === null || p.notice === (filter === 'true'))).sort((a, b) => Number(b.notice) - Number(a.notice) || b.id - a.id)
         const number = Number(url.searchParams.get('page') || 0)
         const size = Number(url.searchParams.get('size') || 12)
         return respond({ content: rows.slice(number * size, (number + 1) * size), number, totalPages: Math.ceil(rows.length / size), totalElements: rows.length })
@@ -99,7 +99,7 @@ async function fixture(t, options = {}) {
       if (method === 'DELETE') state.posts = state.posts.filter(p => p.id !== id)
       return respond(post)
     }
-    if (suffix === '/notice') { post.notice = request.postDataJSON().notice; return respond(post) }
+    if (suffix === '/notice') { Object.assign(post, request.postDataJSON()); return respond(post) }
     if (suffix === '/attachments.zip') return route.fulfill({ headers, contentType: 'application/zip', body: Buffer.from('PK-test-archive') })
     if (suffix.startsWith('/attachments/')) {
       const media = state.media.get(suffix.split('/').at(-1))
@@ -161,15 +161,15 @@ async function sampleVideo(page) {
 }
 
 test('홈에서 더 보기와 상세 열기, 상단바 유지, 작성자 우선, 닫기 복귀', async t => {
-  const { page, errors } = await fixture(t)
+  const { page, errors } = await fixture(t, { posts: Array.from({ length: 22 }, (_, i) => makePost(i + 1)) })
   await page.goto(`${origin}/home?band=10`)
   await page.locator('.community .post').first().waitFor()
   const header = await page.locator('.main-header').innerHTML()
   assert.equal(await page.getByText('전체 보기', { exact: true }).count(), 0)
   await page.getByRole('button', { name: /이야기 더 보기/ }).click()
-  await page.waitForFunction(() => document.querySelectorAll('.community .post').length === 13)
-  await page.getByRole('button', { name: /이야기 더 보기/ }).click()
   await page.waitForFunction(() => document.querySelectorAll('.community .post').length === 14)
+  await page.getByRole('button', { name: /이야기 더 보기/ }).click()
+  await page.waitForFunction(() => document.querySelectorAll('.community .post').length === 21)
   await page.locator('.community .post').filter({ has: page.getByRole('heading', { name: '합주 이야기 2', exact: true }) }).click()
   await page.locator('.post-detail .post-title').waitFor()
   assert.equal(await page.locator('.main-header').innerHTML(), header)
@@ -182,7 +182,7 @@ test('홈에서 더 보기와 상세 열기, 상단바 유지, 작성자 우선,
   await screenshot(page, 'community-detail-desktop')
   await page.getByRole('button', { name: '게시글 창 닫기' }).click()
   await page.waitForFunction(() => !document.querySelector('dialog'))
-  assert.equal(await page.locator('.community .post').count(), 14)
+  assert.equal(await page.locator('.community .post').count(), 21)
   assert.equal(await page.evaluate(() => document.body.style.overflow), '')
   assert.deepEqual(errors, [])
 })
@@ -420,5 +420,75 @@ test('한글 조합 첫 글자 등록, 답글 접기·태그 및 멤버 자동�
   await page.setViewportSize({ width: 390, height: 844 })
   await page.locator('.comments-section').scrollIntoViewIfNeeded()
   await screenshot(page, 'community-comments-mobile')
+  assert.deepEqual(errors, [])
+})
+
+test('여러 공지를 모두 상단에 표시하고 일반 카드와 분리', async t => {
+  const posts = Array.from({ length: 24 }, (_, i) => makePost(i + 1, { notice: i < 22 }))
+  const { page, errors } = await fixture(t, { posts })
+  await page.goto(`${origin}/home?band=10`)
+  await page.waitForFunction(() => document.querySelectorAll('.community .notice').length === 22)
+  assert.equal(await page.locator('.community .post').count(), 2)
+  assert.equal(await page.locator('.small-notice').count(), 0)
+  assert.equal(await page.getByRole('button', { name: /이야기 더 보기/ }).count(), 0)
+  assert.equal(await page.locator('.post-total').textContent(), '24')
+  assert.deepEqual(errors, [])
+})
+
+test('공지 종료일 저장·편집·해제, 시간대 변환과 모바일 기간 입력', async t => {
+  const { page, state, errors } = await fixture(t)
+  await page.goto(`${origin}/home?band=10&compose=1`)
+  await page.getByLabel('제목', { exact: true }).fill('이번 주 합주 일정 안내')
+  await page.getByLabel('내용', { exact: true }).fill('합주 시작 전까지 확인해 주세요.')
+  await page.getByRole('switch', { name: '공지로 등록' }).check()
+  await page.getByRole('combobox', { name: '공지 기간', exact: true }).selectOption('scheduled')
+  assert.equal(await page.getByRole('button', { name: '등록하기', exact: true }).isDisabled(), true)
+  await page.getByLabel('공지 종료 일시').fill('2000-01-01T09:30')
+  assert.equal(await page.getByRole('button', { name: '등록하기', exact: true }).isDisabled(), true)
+  await page.getByLabel('공지 종료 일시').fill('2030-01-02T19:30')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.locator('.notice-schedule').scrollIntoViewIfNeeded()
+  assert.equal(await page.locator('.post-dialog').evaluate(e => e.scrollWidth <= e.clientWidth), true)
+  await screenshot(page, 'community-notice-period-mobile')
+  await page.getByRole('button', { name: '등록하기', exact: true }).click()
+  await page.waitForURL(/post=50/)
+  await page.locator('.post-title').waitFor()
+  const post = state.posts.find(p => p.id === 50)
+  assert.equal(post.noticeExpiresAt, '2030-01-02T10:30:00.000Z')
+  await page.locator('.notice-tag').filter({ hasText: '2030.01.02 · 19:30까지' }).waitFor()
+  await page.locator('.author-row summary').click()
+  await page.getByRole('button', { name: '글 수정', exact: true }).click()
+  assert.equal(await page.getByLabel('공지 종료 일시').inputValue(), '2030-01-02T19:30')
+  await page.getByRole('combobox', { name: '공지 기간', exact: true }).selectOption('none')
+  await page.getByRole('button', { name: '저장하기', exact: true }).click()
+  await page.locator('.post-title').waitFor()
+  assert.equal(post.notice, true)
+  assert.equal(post.noticeExpiresAt, null)
+  await page.locator('.author-row summary').click()
+  await page.getByRole('button', { name: '글 수정', exact: true }).click()
+  await page.getByRole('switch', { name: '공지로 등록' }).uncheck()
+  await page.getByRole('button', { name: '저장하기', exact: true }).click()
+  await page.locator('.post-title').waitFor()
+  assert.equal(post.notice, false)
+  assert.equal(post.noticeExpiresAt, null)
+  assert.deepEqual(errors, [])
+})
+
+test('공지 두 개를 세로로 고정하고 종료 시각에 자동으로 일반 글로 이동', async t => {
+  const { page, state, errors } = await fixture(t, { posts: [
+    makePost(1, { notice: true, title: '합주실 이용 안내' }),
+    makePost(2, { notice: true, title: '이번 주 일정', noticeExpiresAt: new Date(Date.now() + 4000).toISOString() }),
+    makePost(3, { notice: false }),
+  ] })
+  await page.goto(`${origin}/home?band=10`)
+  await page.waitForFunction(() => document.querySelectorAll('.community .notice').length === 2)
+  const boxes = await page.locator('.notice').evaluateAll(elements => elements.map(e => ({ top: e.getBoundingClientRect().top, bottom: e.getBoundingClientRect().bottom })))
+  assert.ok(boxes[1].top >= boxes[0].bottom)
+  await page.locator('.community').scrollIntoViewIfNeeded()
+  await screenshot(page, 'community-pinned-notices')
+  await page.waitForFunction(() => document.querySelectorAll('.community .notice').length === 1 && document.querySelectorAll('.community .post').length === 2)
+  assert.equal(await page.locator('.community .post').filter({ hasText: '이번 주 일정' }).count(), 1)
+  assert.equal(await page.locator('.post-total').textContent(), '3')
+  assert.equal(state.posts.find(p => p.id === 2).notice, true)
   assert.deepEqual(errors, [])
 })
