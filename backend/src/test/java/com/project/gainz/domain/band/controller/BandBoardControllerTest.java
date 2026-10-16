@@ -85,6 +85,14 @@ class BandBoardControllerTest {
         verify(service).attach(eq(1L), eq(10L), eq(20L), any());
     }
 
+    @Test void multipartSaveBindsNoticeAndMultipleFiles() throws Exception {
+        var post = new MockMultipartFile("post", "", "application/json", "{\"title\":\"합주\",\"content\":\"본문\",\"notice\":true,\"keepAttachmentIds\":[]}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        var one = new MockMultipartFile("files", "사진.png", "image/png", new byte[] {1});
+        var two = new MockMultipartFile("files", "영상.webm", "video/webm", new byte[] {2});
+        mvc.perform(multipart("/api/v1/bands/10/posts").file(post).file(one).file(two)).andExpect(status().isOk());
+        verify(service).save(eq(1L), eq(10L), isNull(), argThat(p -> p.notice() && p.title().equals("합주")), argThat(files -> files.size() == 2));
+    }
+
     @Test void attachmentResponseIsPrivateAndUsesStoredContentType() throws Exception {
         when(service.file(1L, 10L, 20L)).thenReturn(new BandBoardService.AttachmentFile(
                 new ByteArrayResource(new byte[] {1, 2, 3}), "연습.mp4", "video/mp4"));

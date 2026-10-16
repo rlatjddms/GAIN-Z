@@ -5,6 +5,7 @@ import com.project.gainz.domain.band.entity.Band;
 import com.project.gainz.domain.band.entity.BandComment;
 import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.entity.BandPost;
+import com.project.gainz.domain.band.entity.BandPostFile;
 import com.project.gainz.domain.band.enums.Position;
 import com.project.gainz.domain.band.repository.BandCommentRepository;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
@@ -57,7 +58,8 @@ class BandBoardServiceTest {
     private BandPost post(BandMember member) {
         BandPost post = new BandPost(member.getBand(), member.getUser(), "제목", "본문");
         ReflectionTestUtils.setField(post, "id", 20L);
-        when(posts.findByIdAndBandId(20L, 10L)).thenReturn(Optional.of(post));
+        lenient().when(posts.findByIdAndBandId(20L, 10L)).thenReturn(Optional.of(post));
+        lenient().when(posts.findForUpdate(20L, 10L)).thenReturn(Optional.of(post));
         return post;
     }
 
@@ -71,6 +73,92 @@ class BandBoardServiceTest {
     private void fails(Runnable work, ErrorCode code) {
         assertThatThrownBy(work::run).isInstanceOfSatisfying(BusinessException.class,
                 e -> assertThat(e.getErrorCode()).isEqualTo(code));
+    }
+
+    private BandPost atomicPost(Position position) {
+        BandMember member = member(1, position);
+        BandPost post = new BandPost(member.getBand(), member.getUser(), "원래 제목", "원래 내용");
+        ReflectionTestUtils.setField(post, "id", 20L);
+        when(posts.findForUpdate(20L, 10L)).thenReturn(Optional.of(post));
+        return post;
+    }
+
+    @Test void atomicSaveKeepsSelectedFilesAndAddsMultipleFiles() {
+        BandPost post = atomicPost(Position.LEADER);
+        post.replaceFiles(List.of(new BandPostFile("keep", "사진.png", "image/png"), new BandPostFile("remove", "지울사진.png", "image/png")));
+        var one = new MockMultipartFile("files", "영상.webm", "video/webm", new byte[] {1});
+        var two = new MockMultipartFile("files", "악보.pdf", "application/pdf", new byte[] {2});
+        when(storage.store(one)).thenReturn(new BandAttachmentStorage.StoredFile("new1", "영상.webm", "video/webm"));
+        when(storage.store(two)).thenReturn(new BandAttachmentStorage.StoredFile("new2", "악보.pdf", "application/pdf"));
+        TransactionSynchronizationManager.initSynchronization();
+        var result = service.save(1L, 10L, 20L, new BandBoardRequest.Save("변경", "내용", true, List.of("keep")), List.of(one, two));
+        assertThat(result.attachments()).extracting(a -> a.id()).containsExactly("keep", "new1", "new2");
+        assertThat(result.notice()).isTrue();
+        verify(storage, never()).delete(anyString());
+        TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_COMMITTED));
+        verify(storage).delete("remove");
+        verify(storage, never()).delete("keep");
+        verify(storage, never()).delete("new1");
+    }
+
+    @Test void secondUploadFailureCleansFirstUploadAndKeepsOldFiles() {
+        BandPost post = atomicPost(Position.MEMBER);
+        post.replaceFiles(List.of(new BandPostFile("old", "이전.png", "image/png")));
+        var one = new MockMultipartFile("files", new byte[] {1});
+        var two = new MockMultipartFile("files", new byte[] {2});
+        when(storage.store(one)).thenReturn(new BandAttachmentStorage.StoredFile("new", "사진.png", "image/png"));
+        when(storage.store(two)).thenThrow(new BusinessException(ErrorCode.BAND_FILE_INVALID));
+        TransactionSynchronizationManager.initSynchronization();
+        fails(() -> service.save(1L, 10L, 20L, new BandBoardRequest.Save("변경", "내용", null, List.of()), List.of(one, two)), ErrorCode.BAND_FILE_INVALID);
+        TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+        verify(storage).delete("new");
+        verify(storage, never()).delete("old");
+        assertThat(post.getTitle()).isEqualTo("원래 제목");
+    }
+
+    @Test void atomicCreateRejectsNonLeaderNoticeBeforeSaving() {
+        member(1, Position.MEMBER);
+        fails(() -> service.save(1L, 10L, null, new BandBoardRequest.Save("제목", "본문", true, List.of()), List.of()), ErrorCode.BAND_LEADER_ONLY);
+        verifyNoInteractions(storage, posts);
+    }
+
+    @Test void atomicCreateCanPublishNoticeWithFiles() {
+        member(1, Position.LEADER);
+        when(posts.save(any())).thenAnswer(invocation -> {
+            BandPost created = invocation.getArgument(0);
+            ReflectionTestUtils.setField(created, "id", 20L);
+            return created;
+        });
+        var file = new MockMultipartFile("files", new byte[] {1});
+        when(storage.store(file)).thenReturn(new BandAttachmentStorage.StoredFile("new", "사진.png", "image/png"));
+        TransactionSynchronizationManager.initSynchronization();
+        var result = service.save(1L, 10L, null, new BandBoardRequest.Save("제목", "본문", true, List.of()), List.of(file));
+        assertThat(result.notice()).isTrue();
+        assertThat(result.attachments()).hasSize(1);
+    }
+
+    @Test void atomicSaveRejectsTooManyAndUnknownAttachments() {
+        atomicPost(Position.MEMBER);
+        var file = new MockMultipartFile("files", new byte[] {1});
+        fails(() -> service.save(1L, 10L, 20L, new BandBoardRequest.Save("제목", "본문", null, List.of()), java.util.Collections.nCopies(9, file)), ErrorCode.BAND_FILE_LIMIT);
+        fails(() -> service.save(1L, 10L, 20L, new BandBoardRequest.Save("제목", "본문", null, List.of("someone-elses-file")), List.of()), ErrorCode.BAND_FILE_SELECTION_INVALID);
+        verifyNoInteractions(storage);
+    }
+
+    @Test void atomicSaveRetainsLegacyAttachment() {
+        BandPost post = atomicPost(Position.MEMBER);
+        post.changeFile("legacy-key", "기존.png", "image/png");
+        var result = service.save(1L, 10L, 20L, new BandBoardRequest.Save("수정", "내용", null, List.of("legacy")), List.of());
+        assertThat(result.attachments()).extracting(a -> a.id()).containsExactly("legacy");
+        assertThat(post.getFileUrl()).isEqualTo("legacy-key");
+        verifyNoInteractions(storage);
+    }
+
+    @Test void attachmentIdMustBelongToRequestedPost() {
+        BandPost post = post(member(1, Position.MEMBER));
+        post.replaceFiles(List.of(new BandPostFile("owned", "사진.png", "image/png")));
+        fails(() -> service.file(1L, 10L, 20L, "other"), ErrorCode.BAND_FILE_NOT_FOUND);
+        verifyNoInteractions(storage);
     }
 
     @AfterEach void clearSynchronization() {
