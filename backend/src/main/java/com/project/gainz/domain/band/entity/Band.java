@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
@@ -56,4 +57,31 @@ public class Band extends BaseEntity {
     private String recruitmentTitle;
     private String recruitmentContent;
     private String recruitmentImageUrl;
+
+    @Builder
+    public Band(String name, String description, User leader, String inviteCode) {
+        this.name = name;
+        this.description = description;
+        this.leader = leader;
+        this.inviteCode = inviteCode;
+    }
+
+    public void update(String name, String description) {
+        this.name = name;
+        this.description = description;
+    }
+
+    public void changeInviteCode(String inviteCode) {
+        this.inviteCode = inviteCode;
+    }
+
+    public void changeLeader(User leader) {
+        this.leader = leader;
+    }
+
+    // 밴드 없애기: 초대 코드는 유니크라서 지운 밴드의 코드가 새 코드와 겹치지 않게 비운 뒤 소프트 삭제
+    public void disband() {
+        this.inviteCode = "disbanded_" + id;
+        delete();
+    }
 }
