@@ -24,15 +24,24 @@
       </div>
     </div>
 
-    <!-- 연습 잔디: 세로 7칸(월~일) × 가로 주, 맨 오른쪽이 이번 주 -->
-    <div class="grass" :class="{ loading: !loaded }">
-      <span
-        v-for="cell in cells"
-        :key="cell.key"
-        class="g"
-        :class="[`lv${cell.level}`, { future: cell.future }]"
-        :title="cell.future ? '' : `${dateLabel(cell.key)} · ${cell.seconds ? durationText(cell.seconds) : '연습 안 함'}`"
-      ></span>
+    <!-- 연습 잔디: 세로 7칸(월~일) × 가로 주, 맨 오른쪽이 이번 주. 칸에 마우스를 올리면 말풍선 -->
+    <div ref="wrapRef" class="grass-wrap" @mouseleave="hovered = null">
+      <div class="grass" :class="{ loading: !loaded }">
+        <span
+          v-for="cell in cells"
+          :key="cell.key"
+          class="g"
+          :class="[`lv${cell.level}`, { future: cell.future, hover: hovered?.key === cell.key }]"
+          @mouseenter="showTip(cell, $event)"
+        ></span>
+      </div>
+      <div v-if="hovered" class="tip" :style="tipStyle" role="tooltip">
+        <strong>{{ dateLabel(hovered.key) }}</strong>
+        <span>연습 {{ hovered.seconds ? durationText(hovered.seconds) : '안 함' }}</span>
+        <span v-if="hovered.routine" :class="{ done: hovered.routine.completed === hovered.routine.total }">
+          루틴 {{ hovered.routine.completed }}/{{ hovered.routine.total }} 완료
+        </span>
+      </div>
     </div>
     <p v-if="error" class="error">{{ error }}</p>
   </div>
@@ -42,6 +51,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { usePracticeStore } from '../../stores/practice'
 import { apiErrorMessage } from '../../api/practice'
+import { getRoutineSummary } from '../../api/routine'
 import { addDays, dateKey, dateLabel, durationText, practiceLevel, startOfDay } from '../../constants/practice'
 
 const WEEKS = 30
@@ -56,7 +66,12 @@ const firstDay = addDays(thisMonday, -(WEEKS - 1) * 7)
 
 const loaded = ref(false)
 const error = ref('')
+// 날짜별 루틴 달성 { 'YYYY-MM-DD': { total, completed } } (말풍선용, 못 불러와도 잔디는 보인다)
+const routineSummary = ref({})
 onMounted(async () => {
+  getRoutineSummary(dateKey(firstDay), todayKey)
+    .then((rows) => { routineSummary.value = Object.fromEntries((rows || []).map((r) => [r.date, r])) })
+    .catch(() => {})
   try {
     await practice.loadRange(firstDay, today)
   } catch (e) {
@@ -64,6 +79,24 @@ onMounted(async () => {
   } finally {
     loaded.value = true
   }
+})
+
+// 말풍선: 칸 바로 위 가운데, 카드 밖으로 나가지 않게
+const wrapRef = ref(null)
+const hovered = ref(null)
+const tipPos = ref({ x: 0, y: 0, align: 'center' })
+const showTip = (cell, e) => {
+  if (cell.future) { hovered.value = null; return }
+  const wrap = wrapRef.value.getBoundingClientRect()
+  const rect = e.currentTarget.getBoundingClientRect()
+  const x = rect.left - wrap.left + rect.width / 2
+  tipPos.value = { x, y: rect.top - wrap.top, align: x < 70 ? 'left' : x > wrap.width - 70 ? 'right' : 'center' }
+  hovered.value = { ...cell, routine: routineSummary.value[cell.key] }
+}
+const tipStyle = computed(() => {
+  const { x, y, align } = tipPos.value
+  const shift = align === 'left' ? '-12px' : align === 'right' ? 'calc(-100% + 12px)' : '-50%'
+  return { left: `${x}px`, top: `${y}px`, transform: `translate(${shift}, calc(-100% - 8px))` }
 })
 
 const cells = computed(() => Array.from({ length: WEEKS * 7 }, (_, i) => {
@@ -103,6 +136,7 @@ const monthDays = computed(() => monthKeys.value.filter((c) => c.seconds > 0).le
 .streak-stat { background: #fff4e6; border-color: #ffe8cc; }
 .streak-stat strong { color: #ff922b; }
 
+.grass-wrap { position: relative; }
 .grass {
   display: grid; grid-auto-flow: column;
   grid-template-rows: repeat(7, auto); grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px;
@@ -111,6 +145,17 @@ const monthDays = computed(() => monthKeys.value.filter((c) => c.seconds > 0).le
 .grass.loading { opacity: 0.4; }
 .g { display: block; aspect-ratio: 1; border-radius: 3px; background: #f1f3f5; }
 .g.future { visibility: hidden; }
+.g.hover { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #868e96; }
+
+.tip {
+  position: absolute; z-index: 5; pointer-events: none; white-space: nowrap;
+  display: flex; flex-direction: column; gap: 2px;
+  background: #1f2430; color: #fff; border-radius: 10px; padding: 8px 10px;
+  font-size: 0.72rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.tip strong { font-size: 0.75rem; font-weight: 900; }
+.tip span { color: #ced4da; }
+.tip span.done { color: #8ce99a; }
 .grass-legend { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 .grass-legend .g { width: 10px; }
 .g.lv1 { background: #c9d6ff; }
