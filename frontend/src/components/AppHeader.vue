@@ -16,10 +16,19 @@
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
         </button>
-        <div class="user-info">
-          <span class="avatar"></span>
+        <!-- 내 프로필: 누르면 마이페이지 -->
+        <router-link to="/mypage" class="user-info" active-class="on" title="마이페이지">
+          <span class="avatar">
+            <PixelCharacter
+              v-if="authStore.character"
+              :character="authStore.character"
+              :outfit="authStore.character.currentOutfitSpriteKey || 'DEFAULT'"
+              :scale="2"
+              :animate="false"
+            />
+          </span>
           <span class="name">{{ authStore.displayName }}</span>
-        </div>
+        </router-link>
         <button class="logout-icon-btn" title="로그아웃" @click="handleLogout">
           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
@@ -29,11 +38,18 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import PixelCharacter from './PixelCharacter.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+// 서버에 저장된 이름으로 맞춘다 (소셜 가입자는 그전까지 이메일 앞부분이 보인다)
+onMounted(() => {
+  if (authStore.isAuthenticated && !authStore.profile) authStore.fetchProfile()
+})
 
 const handleLogout = async () => {
   await authStore.logout()
@@ -60,8 +76,18 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 .header-right { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
 .logo { font-size: 1.4rem; font-weight: 900; color: #2d5bff; letter-spacing: -1px; text-decoration: none; }
 
-.user-info { display: flex; align-items: center; gap: 8px; padding-right: 12px; border-right: 1px solid #eee; }
-.avatar { width: 30px; height: 30px; background: #e9ecef; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 0 1px #eee; }
+.user-info {
+  display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; margin-right: 2px;
+  border-radius: 999px; text-decoration: none; transition: background 0.15s;
+}
+.user-info:hover, .user-info.on { background: #f0f4ff; }
+.user-info.on .name { color: #2d5bff; }
+/* 아바타: 캐릭터 얼굴만 보이게 동그랗게 자른다 */
+.avatar {
+  position: relative; flex: none; width: 32px; height: 32px; overflow: hidden;
+  background: #e9ecef; border-radius: 50%; box-shadow: 0 0 0 1px #e9ecef;
+}
+.avatar canvas { position: absolute; left: -8px; top: -4px; }
 .name { font-weight: 700; font-size: 0.9rem; color: #495057; }
 .noti-btn, .logout-icon-btn {
   background: none; border: none; color: #adb5bd; cursor: pointer;
@@ -73,6 +99,7 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 
 @media (max-width: 640px) {
   .header-inner { padding: 0 16px; }
-  .user-info { display: none; }
+  .user-info { padding-right: 4px; }
+  .name { display: none; }
 }
 </style>

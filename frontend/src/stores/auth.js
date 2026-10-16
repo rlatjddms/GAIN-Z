@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import axiosInstance from '../api/axios'
+import { getMyInfo } from '../api/user'
 
 // Helper to decode JWT payloads
 function decodeJwt(token) {
@@ -27,6 +28,8 @@ export const useAuthStore = defineStore('auth', {
     userName: localStorage.getItem('userName') || sessionStorage.getItem('userName') || null,
     character: null,
     isCharacterChecked: false,
+    // 내 계정 정보 (GET /api/v1/users/me). 이름은 여기서 받아 userName에도 넣는다
+    profile: null,
   }),
 
   getters: {
@@ -144,6 +147,7 @@ export const useAuthStore = defineStore('auth', {
         this.userName = null
         this.character = null
         this.isCharacterChecked = false
+        this.profile = null
 
         const cleanups = [localStorage, sessionStorage]
         cleanups.forEach((storage) => {
@@ -157,6 +161,36 @@ export const useAuthStore = defineStore('auth', {
           }
         })
       }
+    },
+
+    // 내 계정 정보 불러오기. 실패해도 화면은 저장된 이름으로 그대로 보여 준다
+    async fetchProfile() {
+      if (!this.accessToken) return null
+      try {
+        this.profile = await getMyInfo()
+        this.setUserName(this.profile.name)
+        return this.profile
+      } catch (error) {
+        console.error('Failed to fetch profile:', error)
+        return null
+      }
+    },
+
+    // 이름 바꾸기 반영 (헤더 표시용으로 토큰과 같은 저장소에 둔다)
+    setUserName(name) {
+      this.userName = name
+      if (this.profile) this.profile.name = name
+      const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage
+      storage.setItem('userName', name)
+      if (this.userEmail) localStorage.setItem(`name_${this.userEmail}`, name)
+    },
+
+    // 회원 탈퇴 뒤: 서버 로그아웃 없이 이 기기의 로그인 정보만 지운다
+    async clearAfterWithdraw() {
+      const email = this.userEmail
+      this.accessToken = null
+      await this.logout()
+      if (email) localStorage.removeItem(`name_${email}`)
     },
 
     // Fetch character details from backend
