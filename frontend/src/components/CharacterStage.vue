@@ -1,7 +1,7 @@
 <template>
   <section
     class="character-stage"
-    :class="`tier-${tier.key.toLowerCase()}`"
+    :class="`tier-${bgTier.key.toLowerCase()}`"
     :style="stageStyle"
   >
     <div class="stage-overlay"></div>
@@ -37,6 +37,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import {
+  LEVEL_TIERS,
   MAX_LEVEL,
   clampLevel,
   getLevelTier,
@@ -73,11 +74,14 @@ const expLabel = computed(() => {
 const pixelScale = computed(() => Math.round(5 * tier.value.scale))
 const character = computed(() => props.character)
 
+// 옷장에서 고른 무대 배경 (없으면 레벨에 맞춰 자동). 글자색도 배경에 맞춘다
+const bgTier = computed(() => LEVEL_TIERS.find((t) => t.key === props.character?.stageBackground) || tier.value)
+
 const stageStyle = computed(() => ({
-  backgroundImage: `url(${tier.value.background})`,
-  '--accent': tier.value.accent,
-  '--accent-soft': tier.value.accentSoft,
-  '--stage-text': tier.value.textColor,
+  backgroundImage: `url(${bgTier.value.background})`,
+  '--accent': bgTier.value.accent,
+  '--accent-soft': bgTier.value.accentSoft,
+  '--stage-text': bgTier.value.textColor,
 }))
 </script>
 

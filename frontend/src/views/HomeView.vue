@@ -12,12 +12,11 @@
 
         <template v-if="!isBandMode">
           <CharacterStage :character="authStore.character">
-            <button class="edit-char-btn" @click="goToEditCharacter" title="캐릭터 수정">
+            <button class="edit-char-btn" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
               <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                <path d="M9 3l3 2 3-2 5 3-2 4-2-1v12H8V9L6 10 4 6z"></path>
               </svg>
-              캐릭터 수정
+              옷장
             </button>
           </CharacterStage>
 
@@ -132,9 +131,6 @@ const isBandMode = ref(false)
 const selectedBandId = ref(1)
 
 
-const goToEditCharacter = () => {
-  router.push('/character-create?edit=true')
-}
 
 const isRecordsOpen = ref(false)
 // 홈 선반에 보여 줄 음반 (위: 카세트·CD, 아래: CD·LP)
