@@ -21,17 +21,17 @@
             <template v-if="tab === 'create'">
               <label class="field">
                 <span>밴드 이름</span>
-                <input v-model="name" type="text" :maxlength="BAND_NAME_MAX" placeholder="예) 락앤롤 베이비" :disabled="saving">
+                <input v-model="name" type="text" :maxlength="BAND_NAME_MAX" placeholder="밴드명을 입력해주세요" :disabled="saving">
               </label>
               <label class="field">
                 <span>소개 <em>(선택)</em></span>
                 <textarea v-model="description" rows="2" :maxlength="BAND_DESCRIPTION_MAX"
-                          placeholder="어떤 음악을 하는 밴드인가요?" :disabled="saving"></textarea>
+                          placeholder="밴드 소개를 입력해주세요" :disabled="saving"></textarea>
               </label>
             </template>
             <label v-else class="field">
               <span>초대 코드</span>
-              <input :value="code" type="text" class="code-input" :maxlength="INVITE_CODE_LENGTH" placeholder="ABCD2345"
+              <input :value="code" type="text" class="code-input" :maxlength="INVITE_CODE_LENGTH" placeholder="초대 코드를 입력해주세요"
                      autocomplete="off" spellcheck="false" :disabled="saving" @input="onCodeInput">
             </label>
 
@@ -142,8 +142,8 @@ const submit = async () => {
 h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 .sub { margin: 0 0 18px; font-size: 0.8rem; color: #868e96; line-height: 1.5; }
 
-.field { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
-.field:first-of-type { margin-top: 0; }
+.field { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+form > .field:first-child { margin-top: 0; }
 .field > span { font-size: 0.75rem; font-weight: 800; color: #495057; }
 .field em { font-style: normal; font-weight: 600; color: #adb5bd; }
 .field input, .field textarea {
@@ -152,6 +152,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 }
 .field input:focus, .field textarea:focus { border-color: #2d5bff; background: #fff; }
 .code-input { font-family: ui-monospace, Menlo, Consolas, monospace !important; letter-spacing: 4px; font-weight: 800; text-align: center; font-size: 1.1rem !important; }
+.code-input::placeholder { font-family: 'Pretendard', sans-serif; letter-spacing: 0; font-weight: 600; font-size: 0.9rem; }
 
 .parts { display: flex; flex-wrap: wrap; gap: 6px; }
 .part {

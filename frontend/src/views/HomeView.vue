@@ -103,16 +103,16 @@
                 <p>{{ activeBand.members.length }}명의 멤버가 참여 중<template v-if="activeBand.description"> · {{ activeBand.description }}</template></p>
               </div>
               <div class="band-tools">
-                <button class="tool-btn" :title="`초대 코드 ${activeBand.inviteCode} 복사`" @click="copyInviteCode">
-                  <span class="code">{{ activeBand.inviteCode }}</span>{{ copied ? '복사됨' : '초대 코드 복사' }}
-                </button>
                 <button class="tool-btn" @click="router.push(`/bands/${activeBand.id}/settings`)">⚙ 밴드 설정</button>
               </div>
             </div>
 
             <div class="band-scene">
-              <BandStageScene :members="activeBand.members" />
+              <BandStageScene :members="activeBand.members" :stage-key="activeBand.stage"
+                              :reorderable="canReorder" @reorder="onReorder" />
             </div>
+            <p v-if="canReorder" class="scene-hint">캐릭터를 좌우로 끌어서 자리를 바꿀 수 있어요.</p>
+            <p v-if="reorderError" class="scene-hint bad">{{ reorderError }}</p>
 
             <div class="member-list">
               <div v-for="m in activeBand.members" :key="m.memberId" class="m-item" :class="{ me: m.me }">
@@ -156,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppHeader from '../components/AppHeader.vue'
@@ -168,7 +168,8 @@ import { PLACEHOLDER_RECORDS } from '../constants/records'
 import BandStageScene from '../components/band/BandStageScene.vue'
 import BandStartModal from '../components/band/BandStartModal.vue'
 import { useBandStore } from '../stores/band'
-import { MAX_JOINED_BANDS } from '../api/band'
+import { MAX_JOINED_BANDS, reorderMembers } from '../api/band'
+import { apiErrorMessage } from '../api/practice'
 import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
 
 const router = useRouter()
@@ -204,19 +205,22 @@ const onBandStarted = (band) => {
   bandStore.upsertBand(band, true)
 }
 
-const copied = ref(false)
-let copiedTimer = null
-const copyInviteCode = async () => {
+// 무대 자리 바꾸기 (리더만). 화면은 먼저 바꾸고, 실패하면 원래 순서로 되돌린다
+const canReorder = computed(() => activeBand.value?.myPosition === 'LEADER' && activeBand.value.members.length > 1)
+const reorderError = ref('')
+const onReorder = async (memberIds) => {
+  const band = activeBand.value
+  const before = band
+  const byId = new Map(band.members.map((m) => [m.memberId, m]))
+  bandStore.upsertBand({ ...band, members: memberIds.map((id) => byId.get(id)) })
+  reorderError.value = ''
   try {
-    await navigator.clipboard.writeText(activeBand.value.inviteCode)
-    copied.value = true
-    clearTimeout(copiedTimer)
-    copiedTimer = setTimeout(() => { copied.value = false }, 1500)
-  } catch {
-    window.prompt('초대 코드를 복사해 주세요', activeBand.value.inviteCode)
+    bandStore.upsertBand(await reorderMembers(band.id, memberIds))
+  } catch (e) {
+    bandStore.upsertBand(before)
+    reorderError.value = apiErrorMessage(e, '자리를 바꾸지 못했어요.')
   }
 }
-onBeforeUnmount(() => clearTimeout(copiedTimer))
 
 const partOption = (part) => INSTRUMENT_OPTIONS.find((o) => o.value === part)
 const partLabel = (part) => partOption(part)?.label || part
@@ -364,11 +368,9 @@ button::-moz-focus-inner { border: 0 !important; }
   transition: 0.2s;
 }
 .tool-btn:hover { border-color: #2d5bff; color: #2d5bff; }
-.tool-btn .code {
-  font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: 1px;
-  background: #f1f3f5; padding: 2px 6px; border-radius: 6px; color: #1a1a1a;
-}
 .band-scene { margin-top: 16px; border-radius: 18px; overflow: hidden; border: 1px solid #f1f3f5; }
+.scene-hint { margin: 8px 0 0; text-align: center; font-size: 0.72rem; color: #adb5bd; font-weight: 600; }
+.scene-hint.bad { color: #e03131; font-weight: 700; }
 
 .member-list { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .m-item { text-align: center; padding: 8px 12px; border-radius: 12px; background: #f8f9fa; min-width: 88px; }

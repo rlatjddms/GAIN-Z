@@ -22,7 +22,7 @@
           <label class="field">
             <span>소개</span>
             <textarea v-model="description" rows="2" :maxlength="BAND_DESCRIPTION_MAX" :disabled="busy"
-                      placeholder="어떤 음악을 하는 밴드인가요?"></textarea>
+                      placeholder="밴드 소개를 입력해주세요"></textarea>
           </label>
           <div class="row-end">
             <button type="submit" class="btn primary" :disabled="busy || !infoChanged || !name.trim()">저장</button>
@@ -32,6 +32,20 @@
           <dt>이름</dt><dd>{{ band.name }}</dd>
           <dt>소개</dt><dd>{{ band.description || '소개가 없어요.' }}</dd>
         </dl>
+      </section>
+
+      <!-- 합주실 배경 -->
+      <section class="card">
+        <h2>합주실 배경</h2>
+        <p class="desc">{{ isLeader ? '홈 BAND 탭 합주실 무대의 배경이에요. 누르면 바로 바뀌어요.' : '리더가 고른 합주실 배경이에요.' }}</p>
+        <div class="stages">
+          <button v-for="st in BAND_STAGES" :key="st.key" type="button" class="stage-option"
+                  :class="{ active: currentStage === st.key }" :disabled="busy || !isLeader"
+                  :aria-pressed="currentStage === st.key" @click="changeStage(st.key)">
+            <img :src="st.background" :alt="`${st.name} 배경`">
+            <span>{{ st.name }}<template v-if="currentStage === st.key"> ✓</template></span>
+          </button>
+        </div>
       </section>
 
       <!-- 초대 코드 -->
@@ -104,12 +118,13 @@ import { useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import PixelCharacter from '../../components/PixelCharacter.vue'
 import {
-  getBand, updateBand, deleteBand, regenerateInviteCode, changeMemberPart, removeMember, leaveBand, transferLeader,
+  getBand, updateBand, updateBandStage, deleteBand, regenerateInviteCode, changeMemberPart, removeMember, leaveBand, transferLeader,
   BAND_NAME_MAX, BAND_DESCRIPTION_MAX, MAX_BAND_MEMBERS,
 } from '../../api/band'
 import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { useBandStore } from '../../stores/band'
+import { BAND_STAGES, DEFAULT_BAND_STAGE } from '../../constants/bandStage'
 
 const route = useRoute()
 const router = useRouter()
@@ -170,6 +185,12 @@ const run = async (action, okMessage, failMessage) => {
 const saveInfo = () => run(async () => {
   apply(await updateBand(bandId, { name: name.value.trim(), description: description.value.trim() || null }))
 }, '밴드 정보를 저장했어요.', '저장하지 못했어요.')
+
+const currentStage = computed(() => band.value?.stage || DEFAULT_BAND_STAGE)
+const changeStage = (key) => {
+  if (key === currentStage.value) return
+  run(async () => apply(await updateBandStage(bandId, key)), '합주실 배경을 바꿨어요.', '배경을 바꾸지 못했어요.')
+}
 
 const regenerate = () => {
   if (!window.confirm('새 초대 코드를 받을까요? 지금 코드는 더 이상 쓸 수 없어요.')) return
@@ -314,4 +335,24 @@ const joinedLabel = (iso) => {
 .mini:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .danger-zone h2 { color: #e03131; }
+
+.stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stage-option {
+  border: 2px solid #e9ecef; background: #fff; border-radius: 14px; padding: 6px; cursor: pointer;
+  font-family: inherit; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.15s;
+}
+.stage-option img {
+  width: 100%; aspect-ratio: 208 / 72; border-radius: 8px; display: block;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+.stage-option span { font-size: 0.78rem; font-weight: 800; color: #495057; }
+.stage-option:hover:not(:disabled) { border-color: #a5b8ff; }
+.stage-option.active { border-color: #2d5bff; }
+.stage-option.active span { color: #2d5bff; }
+.stage-option:disabled { cursor: default; }
+.stage-option:disabled:not(.active) { opacity: 0.6; }
+
+@media (max-width: 560px) {
+  .stages { grid-template-columns: 1fr; }
+}
 </style>

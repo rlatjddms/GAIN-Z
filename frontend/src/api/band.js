@@ -10,9 +10,9 @@ export const MAX_JOINED_BANDS = 5
 export const INVITE_CODE_LENGTH = 8
 
 // 밴드 상세
-// → { id, name, description, inviteCode, myPosition: LEADER|MEMBER, createdAt,
+// → { id, name, description, inviteCode, stage: STUDIO|GARAGE|ROOFTOP, myPosition: LEADER|MEMBER, createdAt,
 //     members: [{ memberId, userId, part, position, me, joinedAt, character: CharacterResponse | null }] }
-// 멤버는 리더 먼저, 그다음 들어온 순서
+// 멤버는 합주실 무대에 선 순서 (왼쪽부터)
 
 // 내 밴드 목록 (들어간 순서) → [밴드 상세]
 export async function getMyBands() {
@@ -34,6 +34,18 @@ export async function createBand({ name, description, part }) {
 // 이름·소개 고치기 (리더만) → 밴드 상세
 export async function updateBand(bandId, { name, description }) {
   const response = await axiosInstance.patch(`/api/v1/bands/${bandId}`, { name, description })
+  return response.data.data
+}
+
+// 합주실 배경 바꾸기 (리더만) → 밴드 상세
+export async function updateBandStage(bandId, stage) {
+  const response = await axiosInstance.patch(`/api/v1/bands/${bandId}/stage`, { stage })
+  return response.data.data
+}
+
+// 무대 자리 순서 바꾸기 (리더만) memberIds: 지금 멤버 전부를 왼쪽부터 → 밴드 상세
+export async function reorderMembers(bandId, memberIds) {
+  const response = await axiosInstance.put(`/api/v1/bands/${bandId}/members/order`, { memberIds })
   return response.data.data
 }
 
