@@ -17,6 +17,7 @@ const EXP_TABLE = [
 export const LEVEL_TIERS = [
   {
     key: 'ROOKIE',
+    floorY: 58,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     name: '방구석 락스타',
     minLevel: 1,
     maxLevel: 9,
@@ -30,6 +31,7 @@ export const LEVEL_TIERS = [
   },
   {
     key: 'RISING',
+    floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     name: '동네 클럽 신예',
     minLevel: 10,
     maxLevel: 29,
@@ -43,6 +45,7 @@ export const LEVEL_TIERS = [
   },
   {
     key: 'PRO',
+    floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     name: '투어 뮤지션',
     minLevel: 30,
     maxLevel: 49,
@@ -56,6 +59,7 @@ export const LEVEL_TIERS = [
   },
   {
     key: 'LEGEND',
+    floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     name: '전설의 락스타',
     minLevel: 50,
     maxLevel: 50,

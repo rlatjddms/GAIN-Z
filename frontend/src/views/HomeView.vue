@@ -296,4 +296,9 @@ button::-moz-focus-inner { border: 0 !important; }
   color: #2d5bff;
   border-color: #2d5bff;
 }
+
+/* 좁은 화면: 무대 아래 경험치와 겹치지 않게 옷장 버튼을 무대 밑으로 */
+@media (max-width: 640px) {
+  .edit-char-btn { position: static; margin: 0 auto 12px; }
+}
 </style>

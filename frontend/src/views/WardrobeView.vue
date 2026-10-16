@@ -125,7 +125,8 @@
                 :disabled="!b.unlocked"
                 @click="draft.stageBackground = b.key"
               >
-                <span class="thumb" :style="{ backgroundImage: `url(${tierOf(b.key).background})` }">
+                <span class="thumb">
+                  <StageScene :character="preview" :stage-key="b.key" :animate="false" />
                   <i v-if="!b.unlocked">🔒</i>
                 </span>
                 <strong>{{ STAGE_NAMES[b.key] }}</strong>
@@ -153,10 +154,11 @@ import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import ColorSwatches from '../components/ColorSwatches.vue'
 import PixelCharacter from '../components/PixelCharacter.vue'
+import StageScene from '../components/StageScene.vue'
 import { useAuthStore } from '../stores/auth'
 import { getWardrobe, updateWardrobe, updateAppearance } from '../api/character'
 import { apiErrorMessage } from '../api/practice'
-import { LEVEL_TIERS, getLevelTier } from '../constants/levelTier'
+import { getLevelTier } from '../constants/levelTier'
 import {
   GENDER_OPTIONS, HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS,
   INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS, nicknameProblem,
@@ -170,7 +172,6 @@ const TABS = [
   { key: 'stage', label: '배경' },
 ]
 const STAGE_NAMES = { ROOKIE: '방구석', RISING: '동네 클럽', PRO: '투어 공연장', LEGEND: '전설의 무대' }
-const tierOf = (key) => LEVEL_TIERS.find((t) => t.key === key)
 
 const authStore = useAuthStore()
 const tab = ref('look')
@@ -278,8 +279,9 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .error { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fff5f5; color: #e03131; font-size: 0.8rem; font-weight: 700; }
 
-.layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-.preview { position: sticky; top: 88px; }
+.layout { display: flex; flex-direction: column; gap: 16px; }
+/* 무대는 가로로 긴 비율(208:72)이라 위에 넓게 두고, 탭은 아래에 */
+.preview { width: 100%; }
 
 .panel { background: #fff; border: 1px solid #e9ecef; border-radius: 20px; overflow: hidden; }
 .tabs { display: flex; border-bottom: 1px solid #f1f3f5; }
@@ -335,18 +337,11 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .item.locked, .stage.locked { cursor: not-allowed; background: #f8f9fa; }
 .item.locked strong, .stage.locked strong { color: #adb5bd; }
 
-.stages { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 .stage { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 10px; border-radius: 14px; text-align: left; }
-.thumb {
-  position: relative; display: block; aspect-ratio: 208 / 72; border-radius: 9px; overflow: hidden;
-  background-size: cover; background-position: center; image-rendering: pixelated;
-}
-.thumb i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.55); font-style: normal; }
+.thumb { position: relative; display: block; border-radius: 9px; overflow: hidden; line-height: 0; }
+.thumb i { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.55); font-style: normal; line-height: 1; }
 .stage strong { font-size: 0.82rem; font-weight: 800; }
 .stage small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 
-@media (max-width: 860px) {
-  .layout { grid-template-columns: minmax(0, 1fr); }
-  .preview { position: static; }
-}
 </style>
