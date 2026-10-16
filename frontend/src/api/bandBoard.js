@@ -3,7 +3,7 @@ import api from './axios'
 const base = (bandId) => `/api/v1/bands/${bandId}/posts`
 const data = async (request) => (await request).data.data
 
-export const listBandPosts = (bandId, page = 0, size = 12, notice = null) => data(api.get(base(bandId), { params: { page, size, notice } }))
+export const listBandPosts = (bandId, page = 0, size = 12, notice = null, mine = false) => data(api.get(base(bandId), { params: { page, size, notice, mine } }))
 export const getBandPost = (bandId, id) => data(api.get(`${base(bandId)}/${id}`))
 export const createBandPost = (bandId, post) => data(api.post(base(bandId), post))
 export const updateBandPost = (bandId, id, post) => data(api.patch(`${base(bandId)}/${id}`, post))
@@ -40,3 +40,5 @@ export async function saveBandPost(bandId, id, post, files, onProgress) {
     onUploadProgress: event => onProgress?.(event.total ? Math.round(event.loaded / event.total * 100) : 0),
   }))
 }
+
+export const downloadBandArchive = (bandId, id) => loadBandAttachment(`${base(bandId)}/${id}/attachments.zip`)

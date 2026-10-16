@@ -7,17 +7,19 @@
         <span class="post-total">{{ total }}</span>
       </div>
       <div class="head-actions">
+        <button class="mine-btn" :aria-pressed="mine" @click="$emit('mine')">내가 쓴 글</button>
         <button class="write-btn" @click="$emit('write')"><BoardIcon name="edit" :size="14" />글쓰기</button>
       </div>
     </header>
 
-    <article v-if="notice" class="notice" role="link" tabindex="0" @click="$emit('open', notice)" @keydown.enter="$emit('open', notice)">
+    <article v-if="notice" class="notice" role="link" tabindex="0" @click="$emit('open', notice)" @keydown.enter.self="$emit('open', notice)">
       <span class="notice-tag">공지</span>
       <div class="notice-body">
         <strong>{{ notice.title }}</strong>
         <span>{{ notice.content }}</span>
       </div>
       <span class="notice-meta">{{ authorName(notice) }} · {{ timeAgo(notice.createdAt) }}</span>
+      <BandPostMenu v-if="notice.mine" :title="notice.title" @edit="$emit('edit', notice)" @delete="$emit('delete', notice)" />
     </article>
 
     <div v-if="loading" class="grid" role="status" aria-label="게시글 불러오는 중"><div v-for="i in 3" :key="i" class="post skeleton" /></div>
@@ -29,6 +31,7 @@
             <strong>{{ authorName(p) }}</strong>
             <span>{{ timeAgo(p.createdAt) }}</span>
           </div>
+          <BandPostMenu v-if="p.mine" :title="p.title" @edit="$emit('edit', p)" @delete="$emit('delete', p)" />
         </div>
         <h3><span v-if="p.notice" class="small-notice">공지</span>{{ p.title }}</h3>
         <div class="post-body">
@@ -37,16 +40,17 @@
         </div>
         <footer>
           <span v-if="attachmentsOf(p).length" class="file"><BoardIcon name="attach" :size="12" />첨부 {{ attachmentsOf(p).length }}</span>
-          <span class="comments"><BoardIcon name="comment" :size="13" />{{ p.commentCount }}</span>
+          <span class="comments"><BoardIcon name="comment" :size="15" />댓글 {{ p.commentCount }}</span>
         </footer>
       </article>
     </div>
-    <p v-else class="empty">아직 글이 없어요. 밴드원에게 첫 글을 남겨 보세요.</p>
+    <p v-else-if="!notice" class="empty">{{ mine ? '아직 내가 쓴 글이 없어요.' : '아직 글이 없어요. 밴드원에게 첫 글을 남겨 보세요.' }}</p>
   </section>
 </template>
 
 <script setup>
 import ProfileAvatar from '../ProfileAvatar.vue'
+import BandPostMenu from './BandPostMenu.vue'
 import BandPostAttachment from './BandPostAttachment.vue'
 import BoardIcon from './BoardIcon.vue'
 import { attachmentsOf, postTimeAgo } from '../../constants/bandBoard'
@@ -56,8 +60,9 @@ defineProps({
   posts: { type: Array, default: () => [] },
   total: { type: Number, default: 0 },
   loading: Boolean,
+  mine: Boolean,
 })
-defineEmits(['open', 'write'])
+defineEmits(['open', 'write', 'mine', 'edit', 'delete'])
 const firstVisual = post => attachmentsOf(post).find(file => /^(image|video)\//.test(file.type))
 
 const authorName = (post) => post.author?.nickname || '멤버'
@@ -69,6 +74,8 @@ const timeAgo = postTimeAgo
 .community { margin-top: 24px; }
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .head-actions { display: flex; gap: 8px; }
+.mine-btn { border: 1px solid #dce2ed; background: white; color: #53627a; border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.mine-btn[aria-pressed=true] { background: #edf2ff; border-color: #8ea7ff; color: #2d5bff; }
 .title { font-weight: 800; font-size: 0.85rem; color: #495057; display: flex; align-items: center; gap: 8px; }
 .write-btn {
   display: flex; align-items: center; gap: 7px;
@@ -117,7 +124,7 @@ const timeAgo = postTimeAgo
   font-size: 0.72rem; color: #adb5bd; font-weight: 700;
 }
 .file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #495057; background: #f8f9fa; padding: 3px 8px; border-radius: 6px; }
-.comments { margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 5px; }
+.comments { margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 5px; color: #52627a; }
 .file { display: flex; align-items: center; gap: 4px; }
 .post-total { color: #adb5bd; font-size: 11px; font-weight: 600; }
 .thumbnail-wrap { position: relative; flex: none; }

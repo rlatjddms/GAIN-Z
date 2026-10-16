@@ -4,13 +4,13 @@
       <span v-if="loading" class="media-placeholder"><BoardIcon :name="isVisual ? 'image' : 'file'" :size="26" /></span>
       <div v-else-if="error" class="media-placeholder"><BoardIcon name="file" :size="24" /><button @click.stop="load">다시 불러오기</button></div>
       <template v-else>
-        <img v-if="url && attachment.type.startsWith('image/')" :src="url" :alt="attachment.name" @error="error = true">
+        <img :class="{ expandable }" :tabindex="expandable ? 0 : undefined" :role="expandable ? 'button' : undefined" :aria-label="expandable ? `${attachment.name} 크게 보기` : undefined" @click="expandable && $emit('expand')" @keydown.enter.prevent="expandable && $emit('expand')" @keydown.space.prevent="expandable && $emit('expand')" v-if="url && attachment.type.startsWith('image/')" :src="url" :alt="attachment.name" @error="error = true">
         <video v-else-if="url && attachment.type.startsWith('video/')" :src="url" :controls="!compact" preload="auto" playsinline :aria-label="attachment.name" @click.stop @error="error = true" />
         <div v-else class="media-placeholder"><BoardIcon name="file" :size="28" /><span>{{ attachment.type.startsWith('audio/') ? '오디오' : 'PDF' }}</span></div>
         <span v-if="compact && attachment.type.startsWith('video/')" class="play-badge"><BoardIcon name="play" :size="14" /></span>
       </template>
     </div>
-    <template v-if="!compact && !tile">
+    <template v-if="!compact && !tile && !hideDownload">
       <audio v-if="url && attachment.type.startsWith('audio/')" :src="url" controls :aria-label="attachment.name" />
       <div class="file-row" :class="{ document: !isVisual }">
         <span v-if="!isVisual" class="document-icon"><BoardIcon name="file" :size="20" /></span>
@@ -27,7 +27,8 @@
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { loadBandAttachment } from '../../api/bandBoard'
 import BoardIcon from './BoardIcon.vue'
-const props = defineProps({ attachment: { type: Object, required: true }, compact: Boolean, tile: Boolean })
+const props = defineProps({ attachment: { type: Object, required: true }, compact: Boolean, tile: Boolean, expandable: Boolean, hideDownload: Boolean })
+defineEmits(['expand'])
 const url = ref(null)
 const loading = ref(false)
 const error = ref(false)
@@ -62,6 +63,7 @@ onBeforeUnmount(() => { sequence++; release() })
 </script>
 
 <style scoped>
+.expandable { cursor: zoom-in; }
 .attachment { min-width: 0; }
 .media-frame { position: relative; height: 220px; border-radius: 12px; overflow: hidden; background: #f3f5f8; }
 img, video { width: 100%; height: 100%; object-fit: contain; display: block; }

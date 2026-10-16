@@ -1,6 +1,6 @@
 <template>
   <section class="community-panel">
-    <BandCommunityFeed :notice="notice" :posts="posts" :total="total" :loading="loading && !rows.length" @open="open" @write="write" />
+    <BandCommunityFeed :mine="mine" :notice="notice" :posts="posts" :total="total" :loading="loading && !rows.length" @open="open" @write="write" @mine="toggleMine" @edit="edit" @delete="remove" />
     <p v-if="error" class="error" role="alert">{{ error }} <button @click="load">다시 불러오기</button></p>
     <button v-if="hasMore" class="load-more" :disabled="loading" @click="loadMore">{{ loading ? '불러오는 중…' : '이야기 더 보기' }} <BoardIcon name="plus" :size="15" /><span>{{ rows.length }} / {{ total }}</span></button>
     <BandPostDialog v-if="dialogMode" :band="band" :mode="dialogMode" :post-id="selectedPost" @close="close" @edit="edit" @saved="saved" @changed="load" />
@@ -10,13 +10,14 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { listBandPosts } from '../../api/bandBoard'
+import { listBandPosts, deleteBandPost } from '../../api/bandBoard'
 import BandCommunityFeed from './BandCommunityFeed.vue'
 import BandPostDialog from './BandPostDialog.vue'
 import BoardIcon from './BoardIcon.vue'
 const props = defineProps({ band: { type: Object, required: true } })
 const route = useRoute()
 const router = useRouter()
+const mine = computed(() => route.query.mine === '1')
 const rows = ref([])
 const loading = ref(false)
 const error = ref('')
@@ -34,7 +35,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const results = await Promise.all(Array.from({ length: page.value + 1 }, (_, index) => listBandPosts(props.band.id, index, 7)))
+    const results = await Promise.all(Array.from({ length: page.value + 1 }, (_, index) => listBandPosts(props.band.id, index, 7, null, mine.value)))
     if (current !== sequence) return
     rows.value = results.flatMap(result => result.content)
     total.value = results[0].totalElements
@@ -49,7 +50,7 @@ async function loadMore() {
   loading.value = true
   error.value = ''
   try {
-    const result = await listBandPosts(props.band.id, page.value + 1, 7)
+    const result = await listBandPosts(props.band.id, page.value + 1, 7, null, mine.value)
     if (current !== sequence) return
     rows.value = [...rows.value, ...result.content.filter(next => !rows.value.some(row => row.id === next.id))]
     page.value = result.number
@@ -58,13 +59,19 @@ async function loadMore() {
   } catch (e) { if (current === sequence) error.value = e.response?.data?.message || '게시글을 불러오지 못했어요.' }
   finally { if (current === sequence) loading.value = false }
 }
-const query = extra => ({ path: '/home', query: { band: props.band.id, ...extra } })
+const query = extra => ({ path: '/home', query: { band: props.band.id, ...(mine.value ? { mine: '1' } : {}), ...extra } })
 const write = () => router.push(query({ compose: '1' }))
 const open = post => router.push(query({ post: post.id }))
 const edit = post => router.push(query({ post: post.id, edit: '1' }))
 const close = () => router.push(query({}))
 async function saved(post) { await router.replace(query({ post: post.id })); await load() }
-watch(() => props.band.id, () => { page.value = 0; rows.value = []; load() }, { immediate: true })
+async function toggleMine() { await router.push(query({ mine: mine.value ? undefined : '1' })) }
+async function remove(post) {
+  if (!window.confirm('게시글을 삭제할까요?')) return
+  try { await deleteBandPost(props.band.id, post.id); await load() }
+  catch (e) { error.value = e.response?.data?.message || '글을 삭제하지 못했어요. 다시 시도해 주세요.' }
+}
+watch(() => [props.band.id, mine.value], () => { page.value = 0; rows.value = []; load() }, { immediate: true })
 </script>
 
 <style scoped>

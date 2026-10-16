@@ -9,7 +9,7 @@
     <label class="sr-only" for="post-title">제목</label>
     <input id="post-title" v-model="draft.title" class="title-input" placeholder="제목을 입력해 주세요" maxlength="100" required :readonly="noticeOnly" :disabled="saving">
     <label class="sr-only" for="post-content">내용</label>
-    <textarea id="post-content" v-model="draft.content" class="content-input" placeholder="합주 이야기, 연습 영상, 함께 나누고 싶은 소식을 적어 주세요." maxlength="10000" rows="7" required :readonly="noticeOnly" :disabled="saving" />
+    <MentionInput :members="members" id="post-content" v-model="draft.content" class="content-input" placeholder="합주 이야기, 연습 영상, 함께 나누고 싶은 소식을 적어 주세요." maxlength="10000" rows="7" required :readonly="noticeOnly" :disabled="saving" />
 
     <section class="attachments-section" aria-label="첨부 파일">
       <div class="section-head"><span><BoardIcon name="attach" :size="17" /> 첨부 파일 <b>{{ retained.length + picked.length }}</b></span><small>최대 8개 · 파일당 10MB</small></div>
@@ -53,6 +53,8 @@
 <script setup>
 import { computed, reactive, ref, watchEffect, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import MentionInput from './MentionInput.vue'
+import { mentionMembers } from '../../constants/bandBoard'
 import ProfileAvatar from '../ProfileAvatar.vue'
 import BoardIcon from './BoardIcon.vue'
 import BandPostAttachment from './BandPostAttachment.vue'
@@ -61,6 +63,7 @@ import { saveBandPost, setBandNotice, BAND_ATTACHMENT_ACCEPT, BAND_ATTACHMENT_MA
 const props = defineProps({ band: { type: Object, required: true }, post: { type: Object, default: null } })
 const emit = defineEmits(['saved', 'state'])
 const auth = useAuthStore()
+const members = computed(() => mentionMembers(props.band))
 const canNotice = computed(() => props.band.myPosition === 'LEADER')
 const noticeOnly = computed(() => props.post && !props.post.mine)
 const author = computed(() => props.post?.author || { nickname: auth.character?.nickname || '나', profileImageUrl: auth.profile?.profileImageUrl })
@@ -127,10 +130,10 @@ async function save() {
 .author { display: flex; align-items: center; gap: 11px; margin-bottom: 24px; }
 .author strong { display: block; font-size: 14px; font-weight: 800; }
 .author span { display: block; color: #868e96; font-size: 12px; margin-top: 5px; }
-.title-input, .content-input { width: 100%; border: 0; border-radius: 0; background: transparent; color: #212529; font-family: inherit; outline: none; }
+.title-input, :deep(.content-input) { width: 100%; border: 0; border-radius: 0; background: transparent; color: #212529; font-family: inherit; outline: none; }
 .title-input { font-size: 23px; font-weight: 800; padding: 0 0 18px; border-bottom: 1px solid #f1f3f5; }
 .title-input::placeholder { color: #adb5bd; }
-.content-input { padding: 20px 0; font-size: 14px; line-height: 1.85; resize: vertical; min-height: 190px; }
+:deep(.content-input) { padding: 20px 0; font-size: 14px; line-height: 1.85; resize: vertical; min-height: 190px; }
 .content-input::placeholder { color: #adb5bd; }
 .title-input:focus { border-bottom-color: #c9d4ff; }
 .attachments-section { margin-top: 8px; }
@@ -178,7 +181,7 @@ input:focus-visible + .switch { outline: 3px solid #b6c5ff; outline-offset: 3px;
 @media(max-width: 600px) {
   .editor { padding: 22px 20px 28px; }
   .title-input { font-size: 21px; }
-  .content-input { min-height: 160px; }
+  :deep(.content-input) { min-height: 160px; }
   .file-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dropzone { padding: 16px 12px; gap: 10px; }
   .dropzone > svg { display: none; }

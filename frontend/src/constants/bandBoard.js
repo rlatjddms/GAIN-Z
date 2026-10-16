@@ -15,3 +15,5 @@ export function postTimeAgo(value) {
   if (minutes < 1440) return `${Math.floor(minutes / 60)}시간 전`
   return `${Math.floor(minutes / 1440)}일 전`
 }
+
+export const mentionMembers = band => (band.members || []).filter(m => m.character?.nickname).map(m => ({ userId: m.userId, nickname: m.character.nickname }))
