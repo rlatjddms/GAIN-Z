@@ -25,6 +25,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Objects;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -51,8 +53,7 @@ public class BandBoardService {
     public PostPage list(Long userId, Long bandId, int page, int size, Boolean notice, boolean mine) {
         requireMember(userId, bandId);
         var pageable = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(20, size)));
-        var result = mine ? posts.findMine(bandId, userId, notice, pageable) : notice == null ? posts.findByBandIdOrderByIsNoticeDescCreatedAtDescIdDesc(bandId, pageable)
-                : posts.findByBandIdAndIsNoticeOrderByCreatedAtDescIdDesc(bandId, notice, pageable);
+        var result = posts.findVisible(bandId, userId, mine, notice, Instant.now(), pageable);
         return new PostPage(result.getContent().stream().map(p -> response(p, userId)).toList(),
                 result.getNumber(), result.getTotalPages(), result.getTotalElements());
     }
@@ -75,9 +76,12 @@ public class BandBoardService {
         BandPost post = postId == null ? new BandPost(me.getBand(), me.getUser(), request.title(), request.content())
                 : lockedPost(bandId, postId);
         if (!post.getAuthor().getId().equals(userId)) throw new BusinessException(ErrorCode.BAND_AUTHOR_ONLY);
-        if (request.notice() != null && request.notice() != Boolean.TRUE.equals(post.getIsNotice()) && !me.isLeader()) {
+        boolean changesNotice = request.notice() != null && (request.notice() != post.isNoticeActive(Instant.now())
+                || (request.notice() && !Objects.equals(request.noticeExpiresAt(), post.getNoticeExpiresAt())));
+        if (!me.isLeader() && (changesNotice || (request.notice() == null && request.noticeExpiresAt() != null))) {
             throw new BusinessException(ErrorCode.BAND_LEADER_ONLY);
         }
+        if (request.notice() != null) validateNoticeExpiry(request.notice(), request.noticeExpiresAt());
         List<String> keep = request.keepAttachmentIds() == null ? List.of() : request.keepAttachmentIds();
         List<MultipartFile> added = uploads == null ? List.of() : uploads;
         var existing = new HashSet<String>();
@@ -103,7 +107,7 @@ public class BandBoardService {
         }
         post.replaceFiles(next);
         post.update(request.title(), request.content());
-        if (request.notice() != null) post.changeNotice(request.notice());
+        if (request.notice() != null) post.changeNotice(request.notice(), request.noticeExpiresAt());
         if (postId == null) post = posts.save(post);
         return response(post, userId);
     }
@@ -122,10 +126,21 @@ public class BandBoardService {
     }
 
     public Post notice(Long userId, Long bandId, Long postId, boolean notice) {
+        return notice(userId, bandId, postId, notice, null);
+    }
+
+    public Post notice(Long userId, Long bandId, Long postId, boolean notice, Instant expiresAt) {
         if (!requireMember(userId, bandId).isLeader()) throw new BusinessException(ErrorCode.BAND_LEADER_ONLY);
         BandPost post = lockedPost(bandId, postId);
-        post.changeNotice(notice);
+        validateNoticeExpiry(notice, expiresAt);
+        post.changeNotice(notice, expiresAt);
         return response(post, userId);
+    }
+
+    private void validateNoticeExpiry(boolean notice, Instant expiresAt) {
+        if (notice && expiresAt != null && !expiresAt.isAfter(Instant.now())) {
+            throw new BusinessException(ErrorCode.BAND_NOTICE_EXPIRY_INVALID);
+        }
     }
 
     public Post attach(Long userId, Long bandId, Long postId, MultipartFile file) {
@@ -252,9 +267,9 @@ public class BandBoardService {
         var attachments = new ArrayList<Attachment>();
         if (post.getFileUrl() != null) attachments.add(new Attachment("legacy", post.getFileName(), post.getFileType(), path + "/attachment"));
         post.getFiles().forEach(f -> attachments.add(new Attachment(f.getKey(), f.getName(), f.getType(), path + "/attachments/" + f.getKey())));
-        return new Post(post.getId(), post.getTitle(), post.getContent(), Boolean.TRUE.equals(post.getIsNotice()),
+        return new Post(post.getId(), post.getTitle(), post.getContent(), post.isNoticeActive(Instant.now()),
                 author(post.getAuthor()), post.getCreatedAt(), post.getAuthor().getId().equals(userId),
-                comments.countByPostIdAndContentDeletedFalse(post.getId()), attachments.isEmpty() ? null : attachments.get(0), attachments);
+                comments.countByPostIdAndContentDeletedFalse(post.getId()), attachments.isEmpty() ? null : attachments.get(0), attachments, post.getNoticeExpiresAt());
     }
 
     private Comment response(BandComment comment, Long userId) {

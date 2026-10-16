@@ -11,7 +11,7 @@
 | GET | `/{postId}/attachments.zip` | 멤버만 전체 첨부 ZIP 다운로드. 중복 이름은 순번으로 구분 |
 | GET | `/{postId}/attachments/{attachmentId}` | 여러 첨부 중 파일 조회, `download=true` 지원 |
 | GET / PATCH / DELETE | `/{postId}` | 조회 / 작성자만 수정 / 작성자만 삭제 |
-| PATCH | `/{postId}/notice` | 리더만 `{notice: true/false}`로 공지 지정·해제 |
+| PATCH | `/{postId}/notice` | 리더만 `{notice: true/false, noticeExpiresAt: ISO-8601/null}`로 공지 지정·해제 |
 | PUT | `/{postId}/attachment` | 작성자만 multipart `file` 한 개 등록·교체 |
 | GET | `/{postId}/attachment` | 멤버만 파일 조회, `download=true`면 다운로드 |
 | DELETE | `/{postId}/attachment` | 작성자만 첨부 제거 |
@@ -23,16 +23,22 @@
 댓글 목록은 평면 배열이며 `parentId`로 원댓글에 연결한다. 삭제 표시는 댓글 수에 포함하지 않는다.
 
 목록은 `{content, number, totalPages, totalElements}` 형태다. 각 글은
-`{id, title, content, notice, author, createdAt, mine, commentCount, attachment, attachments}`를 반환한다.
+`{id, title, content, notice, author, createdAt, mine, commentCount, attachment, attachments, noticeExpiresAt}`를 반환한다.
 `author`는 `{userId, nickname, profileImageUrl}`, `attachments`는 `{id, name, type, url}` 배열이며, `attachment`는 호환용 첫 파일 또는 null이다.
 브라우저의 사진·영상 요청에도 인증이 필요하므로 프론트에서 토큰을 포함해 blob으로 받은 뒤 표시한다.
 
-multipart의 `post` 파트는 application/json인 `{title, content, notice, keepAttachmentIds}`이고, `files` 파트는 새 파일들을 반복해서 보낸다. 수정 시 유지할 첨부 ID만 전달하며 제외한 파일은 삭제된다. 기존 단일 첨부 ID는 `legacy`다. 공지 변경은 리더만 가능하다. 글당 최대 8개이며 본문·공지·파일을 원자적으로 저장한다. 실패하면 글 변경과 새 파일을 함께 롤백한다.
+multipart의 `post` 파트는 application/json인 `{title, content, notice, noticeExpiresAt, keepAttachmentIds}`이고, `files` 파트는 새 파일들을 반복해서 보낸다. 수정 시 유지할 첨부 ID만 전달하며 제외한 파일은 삭제된다. 기존 단일 첨부 ID는 `legacy`다. 공지 변경은 리더만 가능하다. 글당 최대 8개이며 본문·공지·파일을 원자적으로 저장한다. 실패하면 글 변경과 새 파일을 함께 롤백한다.
 
 첨부는 파일당 10MB까지 PNG/JPEG/WEBP, MP4/WebM, MP3/WAV, PDF를 받는다. 실제 헤더를 검사하고 UUID 이름으로
 `gainz.upload-dir/band`에 저장한다. HTML/SVG 등은 거부한다. DB 롤백 때 새 파일을 지우며, 커밋 후 교체 전 파일을 정리한다.
 파일 응답은 `private, no-store`와 `nosniff`를 사용한다.
 
-검증: `backend`에서 `./gradlew test` (Windows: `gradlew.bat test`). 서비스·저장소 파일 처리·독립 MockMvc 테스트이며 실제 MariaDB/Redis 통합 검증은 포함하지 않는다.
+검증: `backend`에서 `./gradlew test` (Windows: `gradlew.bat test`). 서비스·파일 처리·독립 MockMvc·H2 JPA 조회 테스트이며 실제 MariaDB/Redis 통합 검증은 포함하지 않는다.
 
 내 글 필터는 서버에서 페이지를 나누기 전에 적용한다. ZIP도 동일한 멤버 권한과 삭제된 게시글 검증을 거치며, 기존 단일 파일과 새 첨부를 모두 포함한다. ZIP은 인증 요청에서 스트리밍하고 파일 이름의 경로 구분자를 제거한다.
+
+공지 종료 시각은 `noticeExpiresAt`에 UTC/오프셋을 포함한 ISO-8601 값으로 전달하며 null은 무기한이다. `notice=true`로 저장할 때 종료 시각이 현재 이하이면 B024로 거부한다. 기간 변경도 리더만 가능하며, 본문만 수정할 때 `notice=null`이면 기존 공지·기간을 유지한다. 공지를 해제하면 기간도 비운다.
+
+서버는 `isNotice && (noticeExpiresAt == null || noticeExpiresAt > now)`를 유효 공지로 판단한다. 종료 시각부터 응답의 notice는 false이고 일반 글 필터·정렬·페이지 수에 포함된다. 배치 실행이나 삭제 없이 만료되며 원문은 보존한다. 기존 공지는 종료일 없이 유지한다. DB에는 nullable `band_post.notice_expires_at` 필드를 추가한다.
+
+프론트는 `notice=true` 전체 페이지를 상단에 표시하고 `notice=false`를 일반 카드로 페이지 나눈다. 브라우저가 입력한 현지 시각을 UTC로 변환하며, 열려 있는 화면도 가장 가까운 종료 시각에 목록을 갱신한다.

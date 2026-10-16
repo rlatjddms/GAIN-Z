@@ -20,6 +20,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Instant;
 
 @Entity
 @Getter
@@ -65,6 +66,8 @@ public class BandPost extends BaseEntity {
     @Column(nullable = false)
     private Boolean isNotice = false;
 
+    private Instant noticeExpiresAt;
+
     public BandPost(Band band, User author, String title, String content) {
         this.band = band;
         this.author = author;
@@ -76,7 +79,16 @@ public class BandPost extends BaseEntity {
         this.content = content.trim();
     }
 
-    public void changeNotice(boolean notice) { this.isNotice = notice; }
+    public void changeNotice(boolean notice) { changeNotice(notice, null); }
+
+    public void changeNotice(boolean notice, Instant expiresAt) {
+        this.isNotice = notice;
+        this.noticeExpiresAt = notice ? expiresAt : null;
+    }
+
+    public boolean isNoticeActive(Instant now) {
+        return Boolean.TRUE.equals(isNotice) && (noticeExpiresAt == null || noticeExpiresAt.isAfter(now));
+    }
 
     public void changeFile(String storedName, String name, String type) {
         this.fileUrl = storedName;

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
+import java.time.Instant;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -13,11 +14,19 @@ import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface BandPostRepository extends JpaRepository<BandPost, Long> {
-    @Query("select p from BandPost p where p.band.id = :bandId and p.author.id = :userId and (:notice is null or p.isNotice = :notice) order by p.isNotice desc, p.createdAt desc, p.id desc")
-    Page<BandPost> findMine(@Param("bandId") Long bandId, @Param("userId") Long userId, @Param("notice") Boolean notice, Pageable pageable);
-    Page<BandPost> findByBandIdOrderByIsNoticeDescCreatedAtDescIdDesc(Long bandId, Pageable pageable);
+    @Query("""
+            select p from BandPost p where p.band.id = :bandId
+            and (:mine = false or p.author.id = :userId)
+            and (:notice is null
+                or (:notice = true and p.isNotice = true and (p.noticeExpiresAt is null or p.noticeExpiresAt > :now))
+                or (:notice = false and (p.isNotice = false or p.noticeExpiresAt <= :now)))
+            order by case when p.isNotice = true and (p.noticeExpiresAt is null or p.noticeExpiresAt > :now) then 0 else 1 end,
+                p.createdAt desc, p.id desc
+            """)
+    Page<BandPost> findVisible(@Param("bandId") Long bandId, @Param("userId") Long userId,
+                              @Param("mine") boolean mine, @Param("notice") Boolean notice,
+                              @Param("now") Instant now, Pageable pageable);
     Optional<BandPost> findByIdAndBandId(Long id, Long bandId);
-    Page<BandPost> findByBandIdAndIsNoticeOrderByCreatedAtDescIdDesc(Long bandId, boolean notice, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from BandPost p where p.id = :id and p.band.id = :bandId")

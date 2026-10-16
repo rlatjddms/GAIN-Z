@@ -76,7 +76,7 @@ public class BandBoardController {
     @PatchMapping("/{postId}/notice")
     public ApiResponse<Post> notice(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
                                     @PathVariable Long postId, @RequestBody BandBoardRequest.Notice request) {
-        return ApiResponse.success(service.notice(me.getUserId(), bandId, postId, request.notice()));
+        return ApiResponse.success(service.notice(me.getUserId(), bandId, postId, request.notice(), request.noticeExpiresAt()));
     }
 
     @PutMapping(value = "/{postId}/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

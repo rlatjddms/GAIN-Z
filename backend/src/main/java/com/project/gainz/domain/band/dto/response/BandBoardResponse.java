@@ -2,6 +2,7 @@ package com.project.gainz.domain.band.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.time.Instant;
 
 public final class BandBoardResponse {
     private BandBoardResponse() {}
@@ -10,7 +11,7 @@ public final class BandBoardResponse {
     public record Attachment(String id, String name, String type, String url) {}
     public record Post(Long id, String title, String content, boolean notice, Author author,
                        LocalDateTime createdAt, boolean mine, long commentCount, Attachment attachment,
-                       List<Attachment> attachments) {}
+                       List<Attachment> attachments, Instant noticeExpiresAt) {}
     public record PostPage(List<Post> content, int number, int totalPages, long totalElements) {}
     public record Comment(Long id, Long parentId, String content, Author author,
                           LocalDateTime createdAt, boolean mine, boolean deleted) {}

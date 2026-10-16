@@ -77,7 +77,8 @@ public enum ErrorCode {
     BAND_FILE_NOT_FOUND(404, "B020", "첨부 파일이 없습니다."),
     BAND_FILE_STORAGE_FAILED(500, "B021", "첨부 파일을 저장하지 못했습니다."),
     BAND_FILE_LIMIT(400, "B022", "첨부 파일은 최대 8개까지 올릴 수 있습니다."),
-    BAND_FILE_SELECTION_INVALID(400, "B023", "첨부 목록이 변경되었습니다. 글을 다시 열어 주세요.");
+    BAND_FILE_SELECTION_INVALID(400, "B023", "첨부 목록이 변경되었습니다. 글을 다시 열어 주세요."),
+    BAND_NOTICE_EXPIRY_INVALID(400, "B024", "공지 종료 시각은 현재보다 이후로 설정해 주세요.");
 
     private final int status;
     private final String code;
