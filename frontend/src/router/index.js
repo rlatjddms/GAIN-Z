@@ -75,6 +75,12 @@ const routes = [
     },
     // 홈 BAND 탭에서 들어가는 밴드 화면
     {
+      path: '/bands/:id(\\d+)/community',
+      name: 'band-community',
+      redirect: to => ({ path: '/home', query: { band: to.params.id, ...(to.query.post ? { post: to.query.post } : {}), ...(to.query.new ? { compose: '1' } : {}), ...(to.query.edit ? { edit: '1' } : {}) } }),
+      meta: { requiresCharacter: true }
+    },
+    {
       path: '/bands/:id(\\d+)/settings',
       name: 'band-settings',
       component: () => import('../views/band/BandSettingsView.vue'),

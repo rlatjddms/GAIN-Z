@@ -131,27 +131,20 @@
                           :default-part="authStore.character?.instrumentType || 'GUITAR'"
                           @close="isStartOpen = false" @done="onBandStarted" />
 
-          <div class="band-layout-split">
-            <div class="band-menus">
-              <button class="card-btn large">
+          <template v-if="activeBand">
+            <section class="quick-grid grid-2 band-menus">
+              <button class="card-btn">
                 <div class="c-icon">🎶</div>
                 <div class="c-text"><strong>BAND SETLIST</strong><span>파트 분배 및 합주 현황 공유</span></div>
               </button>
-              <button class="card-btn large">
+              <button class="card-btn">
                 <div class="c-icon">🎙️</div>
                 <div class="c-text"><strong>LAYER JAM</strong><span>레이어링 방식 비대면 합주</span></div>
               </button>
-            </div>
-
-            <section class="band-lounge">
-              <div class="card-title">COMMUNITY</div>
-              <div class="lounge-box">
-                <div class="lounge-msg"><strong>공지</strong> 이번주 일요일 정기 합주!</div>
-                <div class="lounge-msg"><strong>활동</strong> 베이스 레이어 업데이트</div>
-                <input type="text" class="lounge-input" placeholder="밴드원에게 메시지 남기기">
-              </div>
             </section>
-          </div>
+
+            <BandCommunityPanel :key="activeBand.id" :band="activeBand" />
+          </template>
         </template>
       </div>
     </main>
@@ -160,7 +153,7 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppHeader from '../components/AppHeader.vue'
 import CharacterStage from '../components/CharacterStage.vue'
@@ -170,14 +163,23 @@ import RecordIcon from '../components/workspace/RecordIcon.vue'
 import { PLACEHOLDER_RECORDS } from '../constants/records'
 import BandStageScene from '../components/band/BandStageScene.vue'
 import BandStartModal from '../components/band/BandStartModal.vue'
+import BandCommunityPanel from '../components/band/BandCommunityPanel.vue'
 import { useBandStore } from '../stores/band'
 import { MAX_JOINED_BANDS, reorderMembers } from '../api/band'
 import { apiErrorMessage } from '../api/practice'
 import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const bandStore = useBandStore()
+// 게시글 링크를 직접 열어도 기존 BAND 화면과 상단 탭을 유지한다
+watch(() => route.query.band, (id) => {
+  if (id && Number.isFinite(Number(id))) {
+    bandStore.selectedBandId = Number(id)
+    bandStore.isBandMode = true
+  }
+}, { immediate: true })
 // SOLO / BAND 탭은 스토어에 둬서 밴드 설정에 다녀와도 BAND 탭으로 돌아온다
 const isBandMode = computed({
   get: () => bandStore.isBandMode,
@@ -470,14 +472,7 @@ button::-moz-focus-inner { border: 0 !important; }
 .m-name { font-size: 0.8rem; font-weight: 800; margin-bottom: 4px; white-space: nowrap; }
 .m-role { font-size: 0.7rem; font-weight: 700; color: #868e96; }
 
-.band-layout-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
-.band-menus { display: flex; flex-direction: column; gap: 16px; }
-.band-lounge { background: #fff; border: 1px solid #e9ecef; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; }
-.lounge-box { margin-top: 8px; flex: 1; }
-.lounge-msg { background: #f8f9fa; padding: 12px; border-radius: 12px; font-size: 0.85rem; margin-bottom: 10px; border: 1px solid #f1f3f5; }
-.lounge-msg strong { color: #2d5bff; margin-right: 6px; font-weight: 800; }
-.lounge-input { width: 100%; border: 1px solid #e9ecef; padding: 12px; border-radius: 12px; background: #fdfdfd; font-size: 0.85rem; outline: none; transition: 0.2s; }
-.lounge-input:focus { border-color: #2d5bff; background: #fff; }
+.band-menus { margin-bottom: 0; }
 
 .edit-char-btn {
   position: absolute;
