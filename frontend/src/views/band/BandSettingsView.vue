@@ -34,20 +34,6 @@
         </dl>
       </section>
 
-      <!-- 합주실 배경 -->
-      <section class="card">
-        <h2>합주실 배경</h2>
-        <p class="desc">{{ isLeader ? '홈 BAND 탭 합주실 무대의 배경이에요. 누르면 바로 바뀌어요.' : '리더가 고른 합주실 배경이에요.' }}</p>
-        <div class="stages">
-          <button v-for="st in BAND_STAGES" :key="st.key" type="button" class="stage-option"
-                  :class="{ active: currentStage === st.key }" :disabled="busy || !isLeader"
-                  :aria-pressed="currentStage === st.key" @click="changeStage(st.key)">
-            <img :src="st.background" :alt="`${st.name} 배경`">
-            <span>{{ st.name }}<template v-if="currentStage === st.key"> ✓</template></span>
-          </button>
-        </div>
-      </section>
-
       <!-- 초대 코드 -->
       <section class="card">
         <h2>초대 코드</h2>
@@ -86,6 +72,20 @@
             </div>
           </li>
         </ul>
+      </section>
+
+      <!-- 합주실 배경 -->
+      <section class="card">
+        <h2>합주실 배경</h2>
+        <p class="desc">{{ isLeader ? '홈 BAND 탭 합주실 무대의 배경이에요. 누르면 바로 바뀌어요.' : '리더가 고른 합주실 배경이에요.' }}</p>
+        <div class="stages">
+          <button v-for="st in BAND_STAGES" :key="st.key" type="button" class="stage-option"
+                  :class="{ active: currentStage === st.key }" :disabled="busy || !isLeader"
+                  :aria-pressed="currentStage === st.key" @click="changeStage(st.key)">
+            <img :src="st.background" :alt="`${st.name} 배경`">
+            <span>{{ st.name }}<template v-if="currentStage === st.key"> ✓</template></span>
+          </button>
+        </div>
       </section>
 
       <!-- 나가기 / 없애기 -->

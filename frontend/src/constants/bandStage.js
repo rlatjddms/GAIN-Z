@@ -6,7 +6,7 @@ import rooftopStage from '../assets/stages/band/ROOFTOP.png'
 // 합주실 배경 (208×72). key는 백엔드 BandStage enum과 같다
 export const BAND_STAGES = [
   { key: 'STUDIO', name: '연습실', background: studioStage, floorY: 57 },
-  { key: 'LIVE', name: '작은 무대', background: liveStage, floorY: 57 },
+  { key: 'LIVE', name: '무대', background: liveStage, floorY: 57 },
   { key: 'GARAGE', name: '차고', background: garageStage, floorY: 57 },
   { key: 'ROOFTOP', name: '옥상', background: rooftopStage, floorY: 57 },
 ]

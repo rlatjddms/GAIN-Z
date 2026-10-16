@@ -114,16 +114,17 @@
             <p v-if="canReorder" class="scene-hint">캐릭터나 아래 이름표를 끌어서 자리를 바꿀 수 있어요.</p>
             <p v-if="reorderError" class="scene-hint bad">{{ reorderError }}</p>
 
-            <TransitionGroup tag="div" name="tag" class="member-list" :class="{ reorderable: canReorder, dragging: !!tagDrag }">
-              <div v-for="m in shownMembers" :key="m.memberId" class="m-item" :data-member-id="m.memberId"
-                   :class="{ me: m.me, held: tagDrag?.id === m.memberId }"
+            <div ref="memberListRef" class="member-list"
+                 :class="{ reorderable: canReorder, dragging: !!tagDrag, settling: tagSettling }">
+              <div v-for="m in activeBand.members" :key="m.memberId" class="m-item" :data-member-id="m.memberId"
+                   :class="{ me: m.me, held: tagDrag?.id === m.memberId }" :style="tagStyle(m.memberId)"
                    @pointerdown="startTagDrag($event, m.memberId)">
                 <div class="m-name">
                   <span v-if="m.position === 'LEADER'" title="리더">👑</span>{{ m.character?.nickname || '알 수 없는 멤버' }}
                 </div>
                 <div class="m-role">{{ partEmoji(m.part) }} {{ partLabel(m.part) }}<template v-if="m.me"> · 나</template></div>
               </div>
-            </TransitionGroup>
+            </div>
           </section>
 
           <BandStartModal :open="isStartOpen" :initial-tab="startTab"
@@ -224,8 +225,14 @@ const onReorder = async (memberIds) => {
   }
 }
 
-// 이름표 끌기: 끄는 동안 이름표와 무대 캐릭터를 같은 순서로 미리 보여 준다
-const tagDrag = ref(null) // { id, order: [memberId] }
+// 이름표 끌기: 캐릭터처럼 잡은 이름표는 손을 따라오고, 나머지는 비켜 준 자리로 미끄러진다.
+// 끄는 동안 DOM 순서는 그대로 두고 transform으로만 움직이며, 무대 캐릭터도 같은 순서로 미리 보여 준다
+const memberListRef = ref(null)
+// { id, ids: 원래 순서, slots: 원래 자리 가운데 {x, y}, startX, startY, dx, dy, order: 미리 보기 순서 }
+const tagDrag = ref(null)
+// 놓은 직후 한 번은 애니메이션 없이 새 순서로 (transform을 풀 때 튀지 않게)
+const tagSettling = ref(false)
+
 const shownMembers = computed(() => {
   const band = activeBand.value
   if (!band) return []
@@ -237,27 +244,46 @@ const shownMembers = computed(() => {
 const startTagDrag = (e, id) => {
   if (!canReorder.value || e.button > 0) return
   e.preventDefault()
-  tagDrag.value = { id, order: activeBand.value.members.map((m) => m.memberId) }
+  const slots = new Map()
+  memberListRef.value.querySelectorAll('[data-member-id]').forEach((el) => {
+    const r = el.getBoundingClientRect()
+    slots.set(Number(el.dataset.memberId), { x: r.left + r.width / 2, y: r.top + r.height / 2 })
+  })
+  const ids = activeBand.value.members.map((m) => m.memberId)
+  tagDrag.value = { id, ids, slots, startX: e.clientX, startY: e.clientY, dx: 0, dy: 0, order: ids }
   window.addEventListener('pointermove', onTagMove)
   window.addEventListener('pointerup', endTagDrag)
   window.addEventListener('pointercancel', cancelTagDrag)
 }
 
-// 손에 가장 가까운 이름표 자리로 잡은 이름표를 옮긴다
+// 잡은 이름표 가운데에서 가장 가까운 원래 자리로 끼워 넣는다
 const onTagMove = (e) => {
   const drag = tagDrag.value
   if (!drag) return
-  let nearest = null
+  drag.dx = e.clientX - drag.startX
+  drag.dy = e.clientY - drag.startY
+  const home = drag.slots.get(drag.id)
+  const x = home.x + drag.dx
+  const y = home.y + drag.dy
+  let target = 0
   let best = Infinity
-  document.querySelectorAll('.member-list [data-member-id]').forEach((el) => {
-    const r = el.getBoundingClientRect()
-    const d = Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2))
-    if (d < best) { best = d; nearest = Number(el.dataset.memberId) }
+  drag.ids.forEach((slotId, i) => {
+    const c = drag.slots.get(slotId)
+    const d = Math.hypot(x - c.x, (y - c.y) * 2)
+    if (d < best) { best = d; target = i }
   })
-  if (nearest === null || nearest === drag.id) return
-  const order = drag.order.filter((x) => x !== drag.id)
-  order.splice(drag.order.indexOf(nearest), 0, drag.id)
-  drag.order = order
+  const order = drag.ids.filter((x2) => x2 !== drag.id)
+  order.splice(target, 0, drag.id)
+  if (order.some((id2, i) => id2 !== drag.order[i])) drag.order = order
+}
+
+const tagStyle = (id) => {
+  const drag = tagDrag.value
+  if (!drag) return null
+  if (id === drag.id) return { transform: `translate(${drag.dx}px, ${drag.dy}px)` }
+  const own = drag.slots.get(id)
+  const slot = drag.slots.get(drag.ids[drag.order.indexOf(id)])
+  return { transform: `translate(${slot.x - own.x}px, ${slot.y - own.y}px)` }
 }
 
 const stopTagListening = () => {
@@ -269,10 +295,12 @@ const stopTagListening = () => {
 const endTagDrag = () => {
   const drag = tagDrag.value
   stopTagListening()
-  tagDrag.value = null
   if (!drag) return
-  const before = activeBand.value.members.map((m) => m.memberId)
-  if (drag.order.some((id, i) => id !== before[i])) onReorder(drag.order)
+  const changed = drag.order.some((id, i) => id !== drag.ids[i])
+  tagSettling.value = true
+  tagDrag.value = null
+  if (changed) onReorder(drag.order)
+  requestAnimationFrame(() => requestAnimationFrame(() => { tagSettling.value = false }))
 }
 
 const cancelTagDrag = () => {
@@ -435,9 +463,10 @@ button::-moz-focus-inner { border: 0 !important; }
 .m-item { text-align: center; padding: 8px 12px; border-radius: 12px; background: #f8f9fa; min-width: 88px; }
 .m-item.me { background: #f0f4ff; }
 .member-list.reorderable .m-item { cursor: grab; touch-action: none; user-select: none; }
-.member-list.dragging .m-item { cursor: grabbing; }
-.m-item.held { box-shadow: 0 0 0 2px #2d5bff; background: #fff; }
-.tag-move { transition: transform 0.18s ease; }
+.member-list.dragging .m-item { cursor: grabbing; transition: transform 0.18s ease; }
+.member-list.settling .m-item { transition: none; }
+.m-item.held { position: relative; z-index: 2; box-shadow: 0 6px 16px rgba(45, 91, 255, 0.18), 0 0 0 2px #2d5bff; background: #fff; }
+.member-list.dragging .m-item.held { transition: none; }
 .m-name { font-size: 0.8rem; font-weight: 800; margin-bottom: 4px; white-space: nowrap; }
 .m-role { font-size: 0.7rem; font-weight: 700; color: #868e96; }
 
