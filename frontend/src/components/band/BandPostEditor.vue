@@ -52,13 +52,12 @@
           <label><input v-model="draft.endMode" type="radio" value="none" :disabled="saving"><span>무기한</span></label>
           <label><input v-model="draft.endMode" type="radio" value="scheduled" :disabled="saving"><span>종료일 지정</span></label>
         </div>
+        <div v-if="draft.endMode === 'scheduled'" class="period-end">
+          <label class="sr-only" for="notice-end">공지 종료 일시</label>
+          <input id="notice-end" v-model="draft.noticeEnd" type="datetime-local" :min="localDateTime(Date.now() + 60000)" :disabled="saving" required>
+        </div>
       </div>
-      <div v-if="draft.endMode === 'scheduled'" class="period-end">
-        <label class="sr-only" for="notice-end">공지 종료 일시</label>
-        <input id="notice-end" v-model="draft.noticeEnd" type="datetime-local" :min="localDateTime(Date.now() + 60000)" :disabled="saving" required>
-        <p>종료 후 일반 글로 전환 · {{ timeZone === 'Asia/Seoul' ? '한국 시간' : timeZone }}</p>
-        <p v-if="expiryError" class="schedule-error" role="alert">{{ expiryError }}</p>
-      </div>
+      <p v-if="draft.endMode === 'scheduled'" class="period-hint">종료 후 일반 글로 전환</p>
     </section>
     <div v-if="saving" class="save-progress" role="status"><span :style="{ width: `${progress}%` }" /><p>{{ progress < 100 ? `첨부 올리는 중 ${progress}%` : '게시글을 저장하고 있어요…' }}</p></div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -95,7 +94,6 @@ const saving = ref(false)
 const progress = ref(0)
 let key = 0
 const dirty = computed(() => JSON.stringify(draft) !== initial || retained.value.length !== originalFiles.length || picked.value.length > 0)
-const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 const expiryError = computed(() => {
   if (!canNotice.value || !draft.notice || draft.endMode !== 'scheduled') return ''
   if (!draft.noticeEnd) return '공지 종료 날짜와 시간을 선택해 주세요.'
@@ -197,26 +195,30 @@ input:checked + .switch::after { transform: translateX(15px); }
 input:focus-visible + .switch { outline: 3px solid #b6c5ff; outline-offset: 3px; }
 .error { color: #d94841; background: #fff5f5; border-radius: 10px; padding: 12px; font-size: 12px; line-height: 1.6; }
 .notice-schedule { margin: 14px 0 0 48px; }
-.period-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.period-row > span { color: #7b8491; font-size: 12px; }
-.period-options { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: #f1f3f6; }
+.period-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
+.period-row > span { flex: none; white-space: nowrap; color: #7b8491; font-size: 12px; }
+.period-options { flex: none; white-space: nowrap; display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: #f1f3f6; }
 .period-options label { position: relative; cursor: pointer; }
 .period-options input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .period-options span { display: block; padding: 7px 11px; border-radius: 6px; color: #858e9b; font-size: 11px; font-weight: 600; }
 .period-options input:checked + span { color: #343f52; background: white; box-shadow: 0 1px 3px #17243b10; }
 .period-options input:focus-visible + span { outline: 2px solid #a7b9ff; outline-offset: 1px; }
 .period-options input:disabled + span { opacity: .5; cursor: default; }
-.period-end { margin-top: 11px; }
-.period-end > input { box-sizing: border-box; width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid #e1e6ee; border-radius: 9px; background: #fff; color: #495057; font: inherit; font-size: 13px; outline: none; }
+.period-end { flex: 1; min-width: 0; max-width: 240px; }
+.period-end > input { box-sizing: border-box; width: 100%; min-width: 0; padding: 7px 10px; border: 1px solid #e1e6ee; border-radius: 9px; background: #fff; color: #495057; font: inherit; font-size: 13px; outline: none; }
 .period-end > input:focus { border-color: #9aaff4; box-shadow: 0 0 0 3px #2d5bff08; }
-.period-end p { margin: 7px 0 0; color: #939ba7; font-size: 10px; line-height: 1.6; }
-.period-end .schedule-error { color: #d94841; }
+.period-hint { margin: 7px 0 0; color: #939ba7; font-size: 10px; line-height: 1.6; }
 .notice-hint { color: #62708c; background: #f5f7fb; border-radius: 10px; padding: 12px; font-size: 12px; }
 .save-progress { margin-top: 20px; height: 3px; background: #edf0f5; border-radius: 3px; }
 .save-progress > span { display: block; height: 3px; background: #2d5bff; border-radius: 3px; }
 .save-progress p { color: #868e96; font-size: 11px; margin-top: 8px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 @media(max-width: 600px) {
+  .notice-schedule { margin-left: 0; }
+  .period-row { gap: 6px; }
+  .period-row > span { font-size: 10px; }
+  .period-options span { padding: 7px 6px; font-size: 10px; }
+  .period-end > input { padding: 7px 5px; font-size: 11px; }
   .editor { padding: 22px 20px 28px; }
   .title-input { font-size: 21px; }
   :deep(.content-input) { min-height: 160px; }
