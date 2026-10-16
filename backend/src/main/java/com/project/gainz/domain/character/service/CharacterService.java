@@ -52,7 +52,7 @@ public class CharacterService {
         }
 
         OutfitItem defaultOutfit = outfitItemRepository
-                .findByCategoryAndRequiredLevel(OutfitCategory.CLOTHES, 1)
+                .findFirstBySpriteKey(OutfitItem.DEFAULT_SPRITE_KEY)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DEFAULT_OUTFIT_NOT_FOUND));
 
         Character character = Character.builder()
@@ -123,10 +123,10 @@ public class CharacterService {
         List<WardrobeResponse.BackgroundView> backgrounds = Arrays.stream(StageBackground.values())
                 .map(bg -> new WardrobeResponse.BackgroundView(bg, bg.getRequiredLevel(), bg.isUnlockedAt(character.getLevel())))
                 .toList();
-        return new WardrobeResponse(outfits, backgrounds, character.getStageBackground());
+        return new WardrobeResponse(outfits, backgrounds, character.getCurrentStageBackground());
     }
 
-    // 옷장 저장: 보유한 의상으로 갈아입고, 해금한 무대 배경을 고른다 (null이면 레벨에 맞춰 자동)
+    // 옷장 저장: 보유한 의상으로 갈아입고, 얻은 무대 배경 중 하나를 고른다
     public CharacterResponse updateWardrobe(Long userId, WardrobeUpdateRequest request) {
         Character character = characterRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
@@ -135,7 +135,7 @@ public class CharacterService {
             throw new BusinessException(ErrorCode.OUTFIT_NOT_OWNED);
         }
         StageBackground background = request.stageBackground();
-        if (background != null && !background.isUnlockedAt(character.getLevel())) {
+        if (!background.isUnlockedAt(character.getLevel())) {
             throw new BusinessException(ErrorCode.STAGE_BACKGROUND_LOCKED);
         }
 

@@ -22,7 +22,8 @@ public record CharacterResponse(
         Integer maxStreak,
         Long totalPracticeTime,
         Long currentOutfitId,
-        StageBackground stageBackground   // null이면 레벨에 맞춰 자동
+        String currentOutfitSpriteKey,    // 입은 의상 스프라이트 키 (성별에 맞는 그림은 프론트에서 고름)
+        StageBackground stageBackground
 ) {
     public static CharacterResponse from(Character character) {
         return new CharacterResponse(
@@ -40,7 +41,8 @@ public record CharacterResponse(
                 character.getMaxStreak(),
                 character.getTotalPracticeTime(),
                 character.getCurrentOutfit() != null ? character.getCurrentOutfit().getId() : null,
-                character.getStageBackground()
+                character.getCurrentOutfit() != null ? character.getCurrentOutfit().getSpriteKey() : null,
+                character.getCurrentStageBackground()
         );
     }
 }

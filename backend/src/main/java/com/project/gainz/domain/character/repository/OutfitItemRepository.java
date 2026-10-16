@@ -13,7 +13,10 @@ import java.util.Optional;
 @Repository
 public interface OutfitItemRepository extends JpaRepository<OutfitItem, Long> {
 
-    Optional<OutfitItem> findByCategoryAndRequiredLevel(OutfitCategory category, Integer requiredLevel);
+    // 기본 의상 (스프라이트 키 DEFAULT)
+    Optional<OutfitItem> findFirstBySpriteKey(String spriteKey);
+
+    Optional<OutfitItem> findFirstByCategoryAndRequiredLevelOrderByIdAsc(OutfitCategory category, Integer requiredLevel);
 
     // 옷장 목록: 해금 레벨 순
     List<OutfitItem> findAllByOrderByRequiredLevelAscIdAsc();

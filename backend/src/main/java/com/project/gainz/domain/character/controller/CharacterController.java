@@ -43,7 +43,7 @@ public class CharacterController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    // 옷장: 전체 의상(보유·착용)과 무대 배경(해금 여부)
+    // 옷장: 전체 아이템(보유·착용)과 무대 배경(해금 여부)
     @GetMapping("/me/wardrobe")
     public ResponseEntity<ApiResponse<WardrobeResponse>> getWardrobe(
             @AuthenticationPrincipal UserPrincipal principal

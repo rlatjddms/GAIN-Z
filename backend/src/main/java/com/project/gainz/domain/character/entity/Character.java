@@ -86,7 +86,7 @@ public class Character extends BaseEntity {
     @JoinColumn(name = "current_outfit_id", nullable = false)
     private OutfitItem currentOutfit;
 
-    // 고른 무대 배경. null이면 레벨에 맞춰 자동
+    // 고른 무대 배경. 예전 캐릭터처럼 비어 있으면 레벨로 얻은 가장 큰 무대
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
     private StageBackground stageBackground;
@@ -108,6 +108,7 @@ public class Character extends BaseEntity {
         this.hairColor = hairColor;
         this.skinColor = skinColor != null ? skinColor : DEFAULT_SKIN_COLOR;
         this.currentOutfit = currentOutfit;
+        this.stageBackground = StageBackground.ROOKIE;
         this.level = 1;
         this.exp = 0;
         this.currentStreak = 0;
@@ -131,9 +132,14 @@ public class Character extends BaseEntity {
         this.currentOutfit = outfit;
     }
 
-    // 옷장: 무대 배경 고르기. null이면 레벨에 맞춰 자동 (해금 여부는 서비스에서 확인)
+    // 옷장: 얻은 무대 배경 중 하나 고르기 (해금 여부는 서비스에서 확인)
     public void changeStageBackground(StageBackground background) {
         this.stageBackground = background;
+    }
+
+    // 지금 무대 배경. 아직 고른 적 없으면 레벨로 얻은 가장 큰 무대
+    public StageBackground getCurrentStageBackground() {
+        return stageBackground != null ? stageBackground : StageBackground.highestUnlockedAt(level);
     }
 
     public boolean gainExperience(int amount) {
