@@ -54,6 +54,29 @@ class BandBoardControllerTest {
         verify(service).list(1L, 10L, 2, 6, true);
     }
 
+    @Test void mineFilterUsesAuthenticatedUser() throws Exception {
+        when(service.list(1L, 10L, 1, 7, null, true)).thenReturn(new PostPage(List.of(), 1, 2, 9));
+        mvc.perform(get("/api/v1/bands/10/posts?mine=true&page=1&size=7&userId=999"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(9));
+        verify(service).list(1L, 10L, 1, 7, null, true);
+    }
+
+    @Test void archiveStreamsAllFilesWithSafeDistinctNames() throws Exception {
+        when(service.allFiles(1L, 10L, 20L)).thenReturn(List.of(
+                new BandBoardService.AttachmentFile(new ByteArrayResource(new byte[] {1, 2}), "../사진.png", "image/png"),
+                new BandBoardService.AttachmentFile(new ByteArrayResource(new byte[] {3}), "../사진.png", "image/png")));
+        var response = mvc.perform(get("/api/v1/bands/10/posts/20/attachments.zip")).andExpect(status().isOk())
+                .andExpect(content().contentType("application/zip"))
+                .andExpect(header().string("Cache-Control", "private, no-store")).andReturn().getResponse();
+        try (var zip = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(response.getContentAsByteArray()))) {
+            org.assertj.core.api.Assertions.assertThat(zip.getNextEntry().getName()).isEqualTo("1_.._사진.png");
+            org.assertj.core.api.Assertions.assertThat(zip.readAllBytes()).containsExactly(1, 2);
+            org.assertj.core.api.Assertions.assertThat(zip.getNextEntry().getName()).isEqualTo("2_.._사진.png");
+            org.assertj.core.api.Assertions.assertThat(zip.readAllBytes()).containsExactly(3);
+            org.assertj.core.api.Assertions.assertThat(zip.getNextEntry()).isNull();
+        }
+    }
+
     @Test void emptyAndTooLongPostAreRejectedBeforeService() throws Exception {
         mvc.perform(post("/api/v1/bands/10/posts").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\" \",\"content\":\"본문\"}"))

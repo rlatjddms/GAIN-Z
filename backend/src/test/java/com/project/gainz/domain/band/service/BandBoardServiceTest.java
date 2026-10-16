@@ -41,6 +41,26 @@ class BandBoardServiceTest {
     @Mock BandAttachmentStorage storage;
     @InjectMocks BandBoardService service;
 
+    @Test void myPostsFilterIsAppliedBeforePagination() {
+        member(1, Position.MEMBER);
+        when(posts.findMine(eq(10L), eq(1L), isNull(), any())).thenReturn(new PageImpl<>(List.of(), org.springframework.data.domain.PageRequest.of(2, 7), 18));
+        var result = service.list(1L, 10L, 2, 7, null, true);
+        assertThat(result.totalElements()).isEqualTo(18);
+        verify(posts).findMine(eq(10L), eq(1L), isNull(), argThat(p -> p.getPageNumber() == 2 && p.getPageSize() == 7));
+    }
+
+    @Test void archiveRequiresMembershipAndIncludesLegacyAndNewFiles() {
+        fails(() -> service.allFiles(1L, 10L, 20L), ErrorCode.NOT_BAND_MEMBER);
+        verifyNoInteractions(storage);
+        var post = post(member(1, Position.MEMBER));
+        post.changeFile("old", "기존.png", "image/png");
+        post.replaceFiles(List.of(new BandPostFile("new", "영상.webm", "video/webm")));
+        when(storage.load(anyString())).thenReturn(new org.springframework.core.io.ByteArrayResource(new byte[] {1}));
+        assertThat(service.allFiles(1L, 10L, 20L)).extracting(BandBoardService.AttachmentFile::name).containsExactly("기존.png", "영상.webm");
+        post.changeFile(null, null, null); post.replaceFiles(List.of());
+        fails(() -> service.allFiles(1L, 10L, 20L), ErrorCode.BAND_FILE_NOT_FOUND);
+    }
+
     private User user(long id) {
         User user = User.builder().name("멤버").email(id + "@example.com").build();
         ReflectionTestUtils.setField(user, "id", id);
