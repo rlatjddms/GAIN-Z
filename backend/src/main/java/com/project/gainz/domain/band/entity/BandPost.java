@@ -3,6 +3,9 @@ package com.project.gainz.domain.band.entity;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -15,6 +18,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -46,6 +51,16 @@ public class BandPost extends BaseEntity {
     private String fileName;
 
     private String fileType;
+
+    @ElementCollection
+    @CollectionTable(name = "band_post_attachment", joinColumns = @JoinColumn(name = "post_id"))
+    @OrderColumn(name = "attachment_order")
+    private List<BandPostFile> files = new ArrayList<>();
+
+    public void replaceFiles(List<BandPostFile> next) {
+        files.clear();
+        files.addAll(next);
+    }
 
     @Column(nullable = false)
     private Boolean isNotice = false;

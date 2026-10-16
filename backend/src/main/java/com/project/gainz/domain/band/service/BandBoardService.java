@@ -5,6 +5,7 @@ import com.project.gainz.domain.band.dto.response.BandBoardResponse.*;
 import com.project.gainz.domain.band.entity.BandComment;
 import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.entity.BandPost;
+import com.project.gainz.domain.band.entity.BandPostFile;
 import com.project.gainz.domain.band.repository.BandCommentRepository;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.BandPostRepository;
@@ -22,11 +23,14 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class BandBoardService {
+    public static final int MAX_ATTACHMENTS = 8;
     private final BandMemberRepository members;
     private final BandPostRepository posts;
     private final BandCommentRepository comments;
@@ -60,6 +64,45 @@ public class BandBoardService {
         return response(post, userId);
     }
 
+    // 본문·공지·첨부 변경을 한 트랜잭션으로 저장한다. 파일 오류가 나면 글도 롤백한다.
+    public Post save(Long userId, Long bandId, Long postId, BandBoardRequest.Save request, List<MultipartFile> uploads) {
+        BandMember me = requireMember(userId, bandId);
+        BandPost post = postId == null ? new BandPost(me.getBand(), me.getUser(), request.title(), request.content())
+                : lockedPost(bandId, postId);
+        if (!post.getAuthor().getId().equals(userId)) throw new BusinessException(ErrorCode.BAND_AUTHOR_ONLY);
+        if (request.notice() != null && request.notice() != Boolean.TRUE.equals(post.getIsNotice()) && !me.isLeader()) {
+            throw new BusinessException(ErrorCode.BAND_LEADER_ONLY);
+        }
+        List<String> keep = request.keepAttachmentIds() == null ? List.of() : request.keepAttachmentIds();
+        List<MultipartFile> added = uploads == null ? List.of() : uploads;
+        var existing = new HashSet<String>();
+        post.getFiles().forEach(f -> existing.add(f.getKey()));
+        if (post.getFileUrl() != null) existing.add("legacy");
+        if (new HashSet<>(keep).size() != keep.size() || !existing.containsAll(keep)) {
+            throw new BusinessException(ErrorCode.BAND_FILE_SELECTION_INVALID);
+        }
+        if (keep.size() + added.size() > MAX_ATTACHMENTS) throw new BusinessException(ErrorCode.BAND_FILE_LIMIT);
+        var next = new ArrayList<BandPostFile>();
+        for (BandPostFile file : post.getFiles()) {
+            if (keep.contains(file.getKey())) next.add(file);
+            else cleanAfterCompletion(file.getKey(), true);
+        }
+        for (MultipartFile file : added) {
+            var stored = storage.store(file);
+            cleanAfterCompletion(stored.key(), false);
+            next.add(new BandPostFile(stored.key(), stored.name(), stored.type()));
+        }
+        if (post.getFileUrl() != null && !keep.contains("legacy")) {
+            cleanAfterCompletion(post.getFileUrl(), true);
+            post.changeFile(null, null, null);
+        }
+        post.replaceFiles(next);
+        post.update(request.title(), request.content());
+        if (request.notice() != null) post.changeNotice(request.notice());
+        if (postId == null) post = posts.save(post);
+        return response(post, userId);
+    }
+
     public Post update(Long userId, Long bandId, Long postId, BandBoardRequest.Post request) {
         BandPost post = ownPost(userId, bandId, postId);
         post.update(request.title(), request.content());
@@ -70,17 +113,19 @@ public class BandBoardService {
         BandPost post = ownPost(userId, bandId, postId);
         post.delete();
         cleanAfterCompletion(post.getFileUrl(), true);
+        post.getFiles().forEach(f -> cleanAfterCompletion(f.getKey(), true));
     }
 
     public Post notice(Long userId, Long bandId, Long postId, boolean notice) {
         if (!requireMember(userId, bandId).isLeader()) throw new BusinessException(ErrorCode.BAND_LEADER_ONLY);
-        BandPost post = findPost(bandId, postId);
+        BandPost post = lockedPost(bandId, postId);
         post.changeNotice(notice);
         return response(post, userId);
     }
 
     public Post attach(Long userId, Long bandId, Long postId, MultipartFile file) {
         BandPost post = ownPost(userId, bandId, postId);
+        if (post.getFileUrl() == null && post.getFiles().size() >= MAX_ATTACHMENTS) throw new BusinessException(ErrorCode.BAND_FILE_LIMIT);
         var stored = storage.store(file);
         cleanAfterCompletion(stored.key(), false);
         cleanAfterCompletion(post.getFileUrl(), true);
@@ -106,6 +151,15 @@ public class BandBoardService {
     }
 
     @Transactional(readOnly = true)
+    public AttachmentFile file(Long userId, Long bandId, Long postId, String attachmentId) {
+        requireMember(userId, bandId);
+        BandPost post = findPost(bandId, postId);
+        BandPostFile file = post.getFiles().stream().filter(f -> f.getKey().equals(attachmentId)).findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND));
+        return new AttachmentFile(storage.load(file.getKey()), file.getName(), file.getType());
+    }
+
+    @Transactional(readOnly = true)
     public List<Comment> comments(Long userId, Long bandId, Long postId) {
         requireMember(userId, bandId);
         findPost(bandId, postId);
@@ -114,7 +168,7 @@ public class BandBoardService {
 
     public Comment addComment(Long userId, Long bandId, Long postId, BandBoardRequest.Comment request) {
         BandMember me = requireMember(userId, bandId);
-        BandPost post = findPost(bandId, postId);
+        BandPost post = lockedPost(bandId, postId);
         BandComment parent = request.parentId() == null ? null : findComment(postId, request.parentId());
         if (parent != null && parent.getParent() != null) throw new BusinessException(ErrorCode.BAND_REPLY_DEPTH);
         return response(comments.save(new BandComment(post, me.getUser(), request.content(), parent)), userId);
@@ -144,9 +198,15 @@ public class BandBoardService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.BAND_POST_NOT_FOUND));
     }
 
+    private BandPost lockedPost(Long bandId, Long postId) {
+        return posts.findForUpdate(postId, bandId)
+                .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.BAND_POST_NOT_FOUND));
+    }
+
     private BandPost ownPost(Long userId, Long bandId, Long postId) {
         requireMember(userId, bandId);
-        BandPost post = findPost(bandId, postId);
+        BandPost post = lockedPost(bandId, postId);
         if (!post.getAuthor().getId().equals(userId)) throw new BusinessException(ErrorCode.BAND_AUTHOR_ONLY);
         return post;
     }
@@ -159,7 +219,7 @@ public class BandBoardService {
 
     private BandComment ownComment(Long userId, Long bandId, Long postId, Long commentId) {
         requireMember(userId, bandId);
-        findPost(bandId, postId);
+        lockedPost(bandId, postId);
         BandComment comment = findComment(postId, commentId);
         if (!comment.getAuthor().getId().equals(userId)) throw new BusinessException(ErrorCode.BAND_AUTHOR_ONLY);
         if (comment.isContentDeleted()) throw new BusinessException(ErrorCode.BAND_COMMENT_NOT_FOUND);
@@ -172,11 +232,13 @@ public class BandBoardService {
     }
 
     private Post response(BandPost post, Long userId) {
-        Attachment attachment = post.getFileUrl() == null ? null : new Attachment(post.getFileName(), post.getFileType(),
-                "/api/v1/bands/" + post.getBand().getId() + "/posts/" + post.getId() + "/attachment");
+        String path = "/api/v1/bands/" + post.getBand().getId() + "/posts/" + post.getId();
+        var attachments = new ArrayList<Attachment>();
+        if (post.getFileUrl() != null) attachments.add(new Attachment("legacy", post.getFileName(), post.getFileType(), path + "/attachment"));
+        post.getFiles().forEach(f -> attachments.add(new Attachment(f.getKey(), f.getName(), f.getType(), path + "/attachments/" + f.getKey())));
         return new Post(post.getId(), post.getTitle(), post.getContent(), Boolean.TRUE.equals(post.getIsNotice()),
                 author(post.getAuthor()), post.getCreatedAt(), post.getAuthor().getId().equals(userId),
-                comments.countByPostIdAndContentDeletedFalse(post.getId()), attachment);
+                comments.countByPostIdAndContentDeletedFalse(post.getId()), attachments.isEmpty() ? null : attachments.get(0), attachments);
     }
 
     private Comment response(BandComment comment, Long userId) {

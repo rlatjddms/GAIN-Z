@@ -30,10 +30,24 @@ public class BandBoardController {
         return ApiResponse.success(service.list(me.getUserId(), bandId, page, size, notice));
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<Post> create(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
                                     @Valid @RequestBody BandBoardRequest.Post request) {
         return ApiResponse.success(service.create(me.getUserId(), bandId, request));
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Post> createWithFiles(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
+                                             @Valid @RequestPart("post") BandBoardRequest.Save request,
+                                             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        return ApiResponse.success(service.save(me.getUserId(), bandId, null, request, files));
+    }
+
+    @PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Post> saveWithFiles(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
+                                           @PathVariable Long postId, @Valid @RequestPart("post") BandBoardRequest.Save request,
+                                           @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        return ApiResponse.success(service.save(me.getUserId(), bandId, postId, request, files));
     }
 
     @GetMapping("/{postId}")
@@ -74,7 +88,17 @@ public class BandBoardController {
     @GetMapping("/{postId}/attachment")
     public ResponseEntity<Resource> file(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
                                          @PathVariable Long postId, @RequestParam(defaultValue = "false") boolean download) {
-        var file = service.file(me.getUserId(), bandId, postId);
+        return fileResponse(service.file(me.getUserId(), bandId, postId), download);
+    }
+
+    @GetMapping("/{postId}/attachments/{attachmentId}")
+    public ResponseEntity<Resource> attachment(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
+                                               @PathVariable Long postId, @PathVariable String attachmentId,
+                                               @RequestParam(defaultValue = "false") boolean download) {
+        return fileResponse(service.file(me.getUserId(), bandId, postId, attachmentId), download);
+    }
+
+    private ResponseEntity<Resource> fileResponse(BandBoardService.AttachmentFile file, boolean download) {
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(file.type()))
                 .header("Content-Disposition", ContentDisposition.builder(download ? "attachment" : "inline")
                         .filename(file.name(), StandardCharsets.UTF_8).build().toString())

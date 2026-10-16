@@ -75,7 +75,9 @@ public enum ErrorCode {
     BAND_REPLY_DEPTH(400, "B018", "대댓글에는 답글을 달 수 없습니다."),
     BAND_FILE_INVALID(400, "B019", "사진·영상·오디오·PDF 파일을 10MB까지 첨부할 수 있습니다."),
     BAND_FILE_NOT_FOUND(404, "B020", "첨부 파일이 없습니다."),
-    BAND_FILE_STORAGE_FAILED(500, "B021", "첨부 파일을 저장하지 못했습니다.");
+    BAND_FILE_STORAGE_FAILED(500, "B021", "첨부 파일을 저장하지 못했습니다."),
+    BAND_FILE_LIMIT(400, "B022", "첨부 파일은 최대 8개까지 올릴 수 있습니다."),
+    BAND_FILE_SELECTION_INVALID(400, "B023", "첨부 목록이 변경되었습니다. 글을 다시 열어 주세요.");
 
     private final int status;
     private final String code;
