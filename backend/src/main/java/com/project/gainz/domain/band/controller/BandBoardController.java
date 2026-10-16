@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 @RestController
 @RequiredArgsConstructor
@@ -26,8 +30,10 @@ public class BandBoardController {
     @GetMapping
     public ApiResponse<PostPage> list(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
                                       @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "12") int size,
-                                      @RequestParam(required = false) Boolean notice) {
-        return ApiResponse.success(service.list(me.getUserId(), bandId, page, size, notice));
+                                      @RequestParam(required = false) Boolean notice,
+                                      @RequestParam(defaultValue = "false") boolean mine) {
+        return ApiResponse.success(mine ? service.list(me.getUserId(), bandId, page, size, notice, true)
+                : service.list(me.getUserId(), bandId, page, size, notice));
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -96,6 +102,27 @@ public class BandBoardController {
                                                @PathVariable Long postId, @PathVariable String attachmentId,
                                                @RequestParam(defaultValue = "false") boolean download) {
         return fileResponse(service.file(me.getUserId(), bandId, postId, attachmentId), download);
+    }
+
+    @GetMapping("/{postId}/attachments.zip")
+    public void archive(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
+                        @PathVariable Long postId, HttpServletResponse response) throws IOException {
+        var files = service.allFiles(me.getUserId(), bandId, postId);
+        response.setContentType("application/zip");
+        response.setHeader("Content-Disposition", "attachment; filename=community-" + postId + ".zip");
+        response.setHeader("Cache-Control", "private, no-store");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        // 현재 인증 요청에서 스트리밍해 ZIP 전체를 메모리에 쌓지 않는다.
+        try (var zip = new ZipOutputStream(response.getOutputStream(), StandardCharsets.UTF_8)) {
+            for (int i = 0; i < files.size(); i++) {
+                var file = files.get(i);
+                // 순번으로 중복 이름을 구분하고 ZIP 내부 경로를 만들지 못하게 한다.
+                String name = file.name().replaceAll("[\\\\/\\p{Cntrl}]", "_");
+                zip.putNextEntry(new ZipEntry((i + 1) + "_" + name));
+                try (var input = file.resource().getInputStream()) { input.transferTo(zip); }
+                zip.closeEntry();
+            }
+        }
     }
 
     private ResponseEntity<Resource> fileResponse(BandBoardService.AttachmentFile file, boolean download) {

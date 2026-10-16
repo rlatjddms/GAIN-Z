@@ -44,9 +44,14 @@ public class BandBoardService {
 
     @Transactional(readOnly = true)
     public PostPage list(Long userId, Long bandId, int page, int size, Boolean notice) {
+        return list(userId, bandId, page, size, notice, false);
+    }
+
+    @Transactional(readOnly = true)
+    public PostPage list(Long userId, Long bandId, int page, int size, Boolean notice, boolean mine) {
         requireMember(userId, bandId);
         var pageable = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(20, size)));
-        var result = notice == null ? posts.findByBandIdOrderByIsNoticeDescCreatedAtDescIdDesc(bandId, pageable)
+        var result = mine ? posts.findMine(bandId, userId, notice, pageable) : notice == null ? posts.findByBandIdOrderByIsNoticeDescCreatedAtDescIdDesc(bandId, pageable)
                 : posts.findByBandIdAndIsNoticeOrderByCreatedAtDescIdDesc(bandId, notice, pageable);
         return new PostPage(result.getContent().stream().map(p -> response(p, userId)).toList(),
                 result.getNumber(), result.getTotalPages(), result.getTotalElements());
@@ -141,6 +146,17 @@ public class BandBoardService {
     }
 
     public record AttachmentFile(Resource resource, String name, String type) {}
+
+    @Transactional(readOnly = true)
+    public List<AttachmentFile> allFiles(Long userId, Long bandId, Long postId) {
+        requireMember(userId, bandId);
+        BandPost post = findPost(bandId, postId);
+        var result = new ArrayList<AttachmentFile>();
+        if (post.getFileUrl() != null) result.add(new AttachmentFile(storage.load(post.getFileUrl()), post.getFileName(), post.getFileType()));
+        post.getFiles().forEach(f -> result.add(new AttachmentFile(storage.load(f.getKey()), f.getName(), f.getType())));
+        if (result.isEmpty()) throw new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND);
+        return result;
+    }
 
     @Transactional(readOnly = true)
     public AttachmentFile file(Long userId, Long bandId, Long postId) {

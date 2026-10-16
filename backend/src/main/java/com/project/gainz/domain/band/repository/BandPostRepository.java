@@ -13,6 +13,8 @@ import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface BandPostRepository extends JpaRepository<BandPost, Long> {
+    @Query("select p from BandPost p where p.band.id = :bandId and p.author.id = :userId and (:notice is null or p.isNotice = :notice) order by p.isNotice desc, p.createdAt desc, p.id desc")
+    Page<BandPost> findMine(@Param("bandId") Long bandId, @Param("userId") Long userId, @Param("notice") Boolean notice, Pageable pageable);
     Page<BandPost> findByBandIdOrderByIsNoticeDescCreatedAtDescIdDesc(Long bandId, Pageable pageable);
     Optional<BandPost> findByIdAndBandId(Long id, Long bandId);
     Page<BandPost> findByBandIdAndIsNoticeOrderByCreatedAtDescIdDesc(Long bandId, boolean notice, Pageable pageable);

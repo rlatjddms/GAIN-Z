@@ -5,9 +5,10 @@
 
 | 메서드 | 경로 | 동작 |
 | --- | --- | --- |
-| GET | `/` | 공지 우선, 생성 시각·ID 내림차순 목록. `page=0`, `size=12`(최대 20), 선택 `notice=true/false` 필터 |
+| GET | `/` | 공지 우선, 생성 시각·ID 내림차순 목록. `page=0`, `size=12`(최대 20), 선택 `notice=true/false`, `mine=true`(로그인한 작성자의 글만) 필터 |
 | POST | `/` | JSON `{title, content}` 또는 아래 multipart로 글 작성 |
 | PUT | `/{postId}` | multipart로 본문·공지·첨부를 한 번에 수정 |
+| GET | `/{postId}/attachments.zip` | 멤버만 전체 첨부 ZIP 다운로드. 중복 이름은 순번으로 구분 |
 | GET | `/{postId}/attachments/{attachmentId}` | 여러 첨부 중 파일 조회, `download=true` 지원 |
 | GET / PATCH / DELETE | `/{postId}` | 조회 / 작성자만 수정 / 작성자만 삭제 |
 | PATCH | `/{postId}/notice` | 리더만 `{notice: true/false}`로 공지 지정·해제 |
@@ -33,3 +34,5 @@ multipart의 `post` 파트는 application/json인 `{title, content, notice, keep
 파일 응답은 `private, no-store`와 `nosniff`를 사용한다.
 
 검증: `backend`에서 `./gradlew test` (Windows: `gradlew.bat test`). 서비스·저장소 파일 처리·독립 MockMvc 테스트이며 실제 MariaDB/Redis 통합 검증은 포함하지 않는다.
+
+내 글 필터는 서버에서 페이지를 나누기 전에 적용한다. ZIP도 동일한 멤버 권한과 삭제된 게시글 검증을 거치며, 기존 단일 파일과 새 첨부를 모두 포함한다. ZIP은 인증 요청에서 스트리밍하고 파일 이름의 경로 구분자를 제거한다.
