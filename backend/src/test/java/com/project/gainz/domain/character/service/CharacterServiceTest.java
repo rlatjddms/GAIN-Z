@@ -1,11 +1,16 @@
 package com.project.gainz.domain.character.service;
 
+import com.project.gainz.domain.character.dto.request.WardrobeUpdateRequest;
+import com.project.gainz.domain.character.dto.response.CharacterResponse;
 import com.project.gainz.domain.character.dto.response.ExperienceResult;
+import com.project.gainz.domain.character.dto.response.WardrobeResponse;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.entity.UserOutfit;
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
+import com.project.gainz.domain.character.enums.OutfitCategory;
+import com.project.gainz.domain.character.enums.StageBackground;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.character.repository.OutfitItemRepository;
 import com.project.gainz.domain.character.repository.UserOutfitRepository;
@@ -21,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -136,5 +142,99 @@ class CharacterServiceTest {
 
         assertThat(result.currentLevel()).isEqualTo(3);
         verify(outfitItemRepository).findUnlockableItems(1, 3);
+    }
+
+    // ---------- 옷장 ----------
+
+    private OutfitItem outfit(Long id, String name, OutfitCategory category, int requiredLevel) {
+        OutfitItem item = mock(OutfitItem.class);
+        org.mockito.Mockito.lenient().when(item.getId()).thenReturn(id);
+        org.mockito.Mockito.lenient().when(item.getName()).thenReturn(name);
+        org.mockito.Mockito.lenient().when(item.getCategory()).thenReturn(category);
+        org.mockito.Mockito.lenient().when(item.getRequiredLevel()).thenReturn(requiredLevel);
+        return item;
+    }
+
+    @Test
+    void 옷장은_보유_착용_여부와_레벨에_따른_배경_해금을_보여_준다() {
+        OutfitItem basic = outfit(1L, "기본 티셔츠", OutfitCategory.CLOTHES, 1);
+        OutfitItem jacket = outfit(2L, "가죽 재킷", OutfitCategory.CLOTHES, 10);
+        OutfitItem bg = outfit(3L, "배경 아이템", OutfitCategory.BACKGROUND, 1);
+        character.changeOutfit(basic);
+        ReflectionTestUtils.setField(character, "level", 12);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        when(userOutfitRepository.findOutfitItemIdsByUserId(USER_ID)).thenReturn(List.of(1L));
+        when(outfitItemRepository.findAllByOrderByRequiredLevelAscIdAsc()).thenReturn(List.of(basic, jacket, bg));
+
+        WardrobeResponse result = characterService.getWardrobe(USER_ID);
+
+        // 배경 카테고리 아이템은 의상 목록에서 뺀다
+        assertThat(result.outfits()).extracting(WardrobeResponse.OutfitView::id, WardrobeResponse.OutfitView::owned, WardrobeResponse.OutfitView::equipped)
+                .containsExactly(Tuple.tuple(1L, true, true), Tuple.tuple(2L, false, false));
+        assertThat(result.backgrounds()).extracting(WardrobeResponse.BackgroundView::key, WardrobeResponse.BackgroundView::unlocked)
+                .containsExactly(
+                        Tuple.tuple(StageBackground.ROOKIE, true), Tuple.tuple(StageBackground.RISING, true),
+                        Tuple.tuple(StageBackground.PRO, false), Tuple.tuple(StageBackground.LEGEND, false));
+        // 새 캐릭터는 방구석으로 시작하고, 레벨이 올라도 고른 배경은 그대로
+        assertThat(result.stageBackground()).isEqualTo(StageBackground.ROOKIE);
+    }
+
+    @Test
+    void 배경을_고른_적_없는_예전_캐릭터는_레벨로_얻은_가장_큰_무대가_보인다() {
+        ReflectionTestUtils.setField(character, "stageBackground", null);
+        ReflectionTestUtils.setField(character, "level", 12);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+
+        assertThat(characterService.getCharacter(USER_ID).stageBackground()).isEqualTo(StageBackground.RISING);
+    }
+
+    @Test
+    void 보유한_의상으로_갈아입고_해금한_배경을_고른다() {
+        OutfitItem jacket = outfit(2L, "가죽 재킷", OutfitCategory.CLOTHES, 10);
+        ReflectionTestUtils.setField(character, "level", 12);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        when(userOutfitRepository.existsByUserIdAndOutfitItemId(USER_ID, 2L)).thenReturn(true);
+        when(outfitItemRepository.findById(2L)).thenReturn(Optional.of(jacket));
+
+        CharacterResponse result = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(2L, StageBackground.RISING));
+
+        assertThat(character.getCurrentOutfit()).isSameAs(jacket);
+        assertThat(result.currentOutfitId()).isEqualTo(2L);
+        assertThat(result.stageBackground()).isEqualTo(StageBackground.RISING);
+    }
+
+    @Test
+    void 레벨이_올라도_예전에_얻은_배경으로_바꿀_수_있다() {
+        OutfitItem basic = outfit(1L, "기본 의상", OutfitCategory.CLOTHES, 1);
+        ReflectionTestUtils.setField(character, "level", 35);
+        character.changeStageBackground(StageBackground.PRO);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        when(userOutfitRepository.existsByUserIdAndOutfitItemId(USER_ID, 1L)).thenReturn(true);
+        when(outfitItemRepository.findById(1L)).thenReturn(Optional.of(basic));
+
+        characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.ROOKIE));
+
+        assertThat(character.getCurrentStageBackground()).isEqualTo(StageBackground.ROOKIE);
+    }
+
+    @Test
+    void 가지고_있지_않은_의상은_입을_수_없다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        when(userOutfitRepository.existsByUserIdAndOutfitItemId(USER_ID, 2L)).thenReturn(false);
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(2L, StageBackground.ROOKIE)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.OUTFIT_NOT_OWNED);
+    }
+
+    @Test
+    void 해금하지_않은_배경은_고를_수_없다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));   // 레벨 1
+        when(userOutfitRepository.existsByUserIdAndOutfitItemId(USER_ID, 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.RISING)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.STAGE_BACKGROUND_LOCKED);
+        assertThat(character.getCurrentStageBackground()).isEqualTo(StageBackground.ROOKIE);
     }
 }

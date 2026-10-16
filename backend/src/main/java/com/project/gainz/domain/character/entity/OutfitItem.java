@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -17,6 +18,10 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OutfitItem extends BaseEntity {
+
+    // 처음부터 가지고 있는 기본 의상
+    public static final String DEFAULT_NAME = "기본 의상";
+    public static final String DEFAULT_SPRITE_KEY = "DEFAULT";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,4 +39,27 @@ public class OutfitItem extends BaseEntity {
 
     @Column(nullable = false)
     private String imageUrl;
+
+    // 프론트 스프라이트 이름 (frontend/src/assets/sprites/outfit/<키>_<MALE|FEMALE>.png). 성별마다 다른 그림을 쓴다
+    @Column(length = 40)
+    private String spriteKey;
+
+    @Builder
+    public OutfitItem(String name, OutfitCategory category, Integer requiredLevel, String imageUrl, String spriteKey) {
+        this.name = name;
+        this.category = category;
+        this.requiredLevel = requiredLevel;
+        this.imageUrl = imageUrl != null ? imageUrl : "";
+        this.spriteKey = spriteKey;
+    }
+
+    // 기본 의상 데이터 맞추기 (초기 데이터용)
+    public void markAsDefault() {
+        this.name = DEFAULT_NAME;
+        this.spriteKey = DEFAULT_SPRITE_KEY;
+    }
+
+    public boolean isDefault() {
+        return DEFAULT_NAME.equals(name) && DEFAULT_SPRITE_KEY.equals(spriteKey);
+    }
 }

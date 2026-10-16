@@ -2,6 +2,7 @@ package com.project.gainz.domain.character.dto.response;
 
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
+import com.project.gainz.domain.character.enums.StageBackground;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.character.entity.Character;
 
@@ -19,7 +20,10 @@ public record CharacterResponse(
         Integer exp,
         Integer currentStreak,
         Integer maxStreak,
-        Long totalPracticeTime
+        Long totalPracticeTime,
+        Long currentOutfitId,
+        String currentOutfitSpriteKey,    // 입은 의상 스프라이트 키 (성별에 맞는 그림은 프론트에서 고름)
+        StageBackground stageBackground
 ) {
     public static CharacterResponse from(Character character) {
         return new CharacterResponse(
@@ -35,7 +39,10 @@ public record CharacterResponse(
                 character.getExp(),
                 character.getCurrentStreak(),
                 character.getMaxStreak(),
-                character.getTotalPracticeTime()
+                character.getTotalPracticeTime(),
+                character.getCurrentOutfit() != null ? character.getCurrentOutfit().getId() : null,
+                character.getCurrentOutfit() != null ? character.getCurrentOutfit().getSpriteKey() : null,
+                character.getCurrentStageBackground()
         );
     }
 }

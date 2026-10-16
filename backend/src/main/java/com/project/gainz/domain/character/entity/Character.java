@@ -3,6 +3,7 @@ package com.project.gainz.domain.character.entity;
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.LevelPolicy;
+import com.project.gainz.domain.character.enums.StageBackground;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
@@ -85,6 +86,11 @@ public class Character extends BaseEntity {
     @JoinColumn(name = "current_outfit_id", nullable = false)
     private OutfitItem currentOutfit;
 
+    // 고른 무대 배경. 예전 캐릭터처럼 비어 있으면 레벨로 얻은 가장 큰 무대
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private StageBackground stageBackground;
+
     @Version
     private Long version;
 
@@ -102,6 +108,7 @@ public class Character extends BaseEntity {
         this.hairColor = hairColor;
         this.skinColor = skinColor != null ? skinColor : DEFAULT_SKIN_COLOR;
         this.currentOutfit = currentOutfit;
+        this.stageBackground = StageBackground.ROOKIE;
         this.level = 1;
         this.exp = 0;
         this.currentStreak = 0;
@@ -118,6 +125,21 @@ public class Character extends BaseEntity {
         this.hairStyle = hairStyle;
         this.hairColor = hairColor;
         if (skinColor != null) this.skinColor = skinColor;
+    }
+
+    // 옷장: 의상 갈아입기 (보유 여부는 서비스에서 확인)
+    public void changeOutfit(OutfitItem outfit) {
+        this.currentOutfit = outfit;
+    }
+
+    // 옷장: 얻은 무대 배경 중 하나 고르기 (해금 여부는 서비스에서 확인)
+    public void changeStageBackground(StageBackground background) {
+        this.stageBackground = background;
+    }
+
+    // 지금 무대 배경. 아직 고른 적 없으면 레벨로 얻은 가장 큰 무대
+    public StageBackground getCurrentStageBackground() {
+        return stageBackground != null ? stageBackground : StageBackground.highestUnlockedAt(level);
     }
 
     public boolean gainExperience(int amount) {
