@@ -41,12 +41,58 @@ class BandBoardServiceTest {
     @Mock BandAttachmentStorage storage;
     @InjectMocks BandBoardService service;
 
+    @Test void noticeExpiryBoundaryIsExclusiveAndClearedWhenUnpinned() {
+        var post = new BandPost(null, null, "공지", "내용");
+        var end = java.time.Instant.parse("2030-01-01T10:00:00Z");
+        post.changeNotice(true, end);
+        assertThat(post.isNoticeActive(end.minusMillis(1))).isTrue();
+        assertThat(post.isNoticeActive(end)).isFalse();
+        assertThat(post.isNoticeActive(end.plusMillis(1))).isFalse();
+        post.changeNotice(false, end);
+        assertThat(post.getNoticeExpiresAt()).isNull();
+        post.changeNotice(true);
+        assertThat(post.isNoticeActive(end.plusSeconds(100))).isTrue();
+    }
+
+    @Test void leaderCanSetExtendAndRemoveExpiryButCannotSetPastTime() {
+        var post = post(member(1, Position.LEADER));
+        var future = java.time.Instant.now().plusSeconds(3600);
+        assertThat(service.notice(1L, 10L, 20L, true, future).noticeExpiresAt()).isEqualTo(future);
+        assertThat(service.notice(1L, 10L, 20L, true, future.plusSeconds(3600)).noticeExpiresAt()).isEqualTo(future.plusSeconds(3600));
+        fails(() -> service.notice(1L, 10L, 20L, true, java.time.Instant.EPOCH), ErrorCode.BAND_NOTICE_EXPIRY_INVALID);
+        assertThat(post.getNoticeExpiresAt()).isEqualTo(future.plusSeconds(3600));
+        assertThat(service.notice(1L, 10L, 20L, true, null).noticeExpiresAt()).isNull();
+        assertThat(service.notice(1L, 10L, 20L, false, future).notice()).isFalse();
+        assertThat(post.getNoticeExpiresAt()).isNull();
+    }
+
+    @Test void nonLeaderCannotExtendOrRemoveNoticeExpiryThroughPostSave() {
+        var post = atomicPost(Position.MEMBER);
+        var future = java.time.Instant.now().plusSeconds(3600);
+        post.changeNotice(true, future);
+        fails(() -> service.save(1L, 10L, 20L, new BandBoardRequest.Save("글", "본문", true, List.of(), future.plusSeconds(1)), List.of()), ErrorCode.BAND_LEADER_ONLY);
+        fails(() -> service.save(1L, 10L, 20L, new BandBoardRequest.Save("글", "본문", true, List.of()), List.of()), ErrorCode.BAND_LEADER_ONLY);
+        var result = service.save(1L, 10L, 20L, new BandBoardRequest.Save("글", "본문", null, List.of()), List.of());
+        assertThat(result.noticeExpiresAt()).isEqualTo(future);
+    }
+
+    @Test void expiredNoticeIsReturnedAsOrdinaryPostAndAtomicSaveRejectsPastExpiry() {
+        var post = post(member(1, Position.LEADER));
+        post.changeNotice(true, java.time.Instant.EPOCH);
+        assertThat(service.get(1L, 10L, 20L).notice()).isFalse();
+        fails(() -> service.save(1L, 10L, 20L, new BandBoardRequest.Save("수정", "본문", true, List.of(), java.time.Instant.EPOCH), List.of()), ErrorCode.BAND_NOTICE_EXPIRY_INVALID);
+        assertThat(post.getTitle()).isEqualTo("제목");
+        verifyNoInteractions(storage);
+        var future = java.time.Instant.now().plusSeconds(3600);
+        assertThat(service.save(1L, 10L, 20L, new BandBoardRequest.Save("수정", "본문", true, List.of(), future), List.of()).noticeExpiresAt()).isEqualTo(future);
+    }
+
     @Test void myPostsFilterIsAppliedBeforePagination() {
         member(1, Position.MEMBER);
-        when(posts.findMine(eq(10L), eq(1L), isNull(), any())).thenReturn(new PageImpl<>(List.of(), org.springframework.data.domain.PageRequest.of(2, 7), 18));
+        when(posts.findVisible(eq(10L), eq(1L), eq(true), isNull(), any(), any())).thenReturn(new PageImpl<>(List.of(), org.springframework.data.domain.PageRequest.of(2, 7), 18));
         var result = service.list(1L, 10L, 2, 7, null, true);
         assertThat(result.totalElements()).isEqualTo(18);
-        verify(posts).findMine(eq(10L), eq(1L), isNull(), argThat(p -> p.getPageNumber() == 2 && p.getPageSize() == 7));
+        verify(posts).findVisible(eq(10L), eq(1L), eq(true), isNull(), any(), argThat(p -> p.getPageNumber() == 2 && p.getPageSize() == 7));
     }
 
     @Test void archiveRequiresMembershipAndIncludesLegacyAndNewFiles() {
@@ -198,10 +244,10 @@ class BandBoardServiceTest {
 
     @Test void listBoundsPageSizeAndUsesNoticeFirstQuery() {
         member(1, Position.MEMBER);
-        when(posts.findByBandIdOrderByIsNoticeDescCreatedAtDescIdDesc(eq(10L), any()))
+        when(posts.findVisible(eq(10L), eq(1L), eq(false), isNull(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         service.list(1L, 10L, -5, 100);
-        verify(posts).findByBandIdOrderByIsNoticeDescCreatedAtDescIdDesc(eq(10L), argThat((Pageable p) -> p.getPageSize() == 20 && p.getPageNumber() == 0));
+        verify(posts).findVisible(eq(10L), eq(1L), eq(false), isNull(), any(), argThat((Pageable p) -> p.getPageSize() == 20 && p.getPageNumber() == 0));
     }
 
     @Test void createUsesMemberIdentityAndTrimsText() {

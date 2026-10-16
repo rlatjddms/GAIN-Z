@@ -54,6 +54,16 @@ class BandBoardControllerTest {
         verify(service).list(1L, 10L, 2, 6, true);
     }
 
+    @Test void noticeDeadlineParsesOffsetAndRejectsMalformedTime() throws Exception {
+        mvc.perform(patch("/api/v1/bands/10/posts/20/notice").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"notice\":true,\"noticeExpiresAt\":\"2030-01-02T19:30:00+09:00\"}"))
+                .andExpect(status().isOk());
+        verify(service).notice(1L, 10L, 20L, true, java.time.Instant.parse("2030-01-02T10:30:00Z"));
+        mvc.perform(patch("/api/v1/bands/10/posts/20/notice").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"notice\":true,\"noticeExpiresAt\":\"잘못된 시간\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test void mineFilterUsesAuthenticatedUser() throws Exception {
         when(service.list(1L, 10L, 1, 7, null, true)).thenReturn(new PostPage(List.of(), 1, 2, 9));
         mvc.perform(get("/api/v1/bands/10/posts?mine=true&page=1&size=7&userId=999"))
