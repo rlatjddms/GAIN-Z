@@ -10,7 +10,7 @@ export const MAX_JOINED_BANDS = 5
 export const INVITE_CODE_LENGTH = 8
 
 // 밴드 상세
-// → { id, name, description, inviteCode, stage: STUDIO|GARAGE|ROOFTOP, myPosition: LEADER|MEMBER, createdAt,
+// → { id, name, description, inviteCode, stage: STUDIO|LIVE|GARAGE|ROOFTOP, myPosition: LEADER|MEMBER, createdAt,
 //     members: [{ memberId, userId, part, position, me, joinedAt, character: CharacterResponse | null }] }
 // 멤버는 합주실 무대에 선 순서 (왼쪽부터)
 

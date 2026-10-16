@@ -108,20 +108,22 @@
             </div>
 
             <div class="band-scene">
-              <BandStageScene :members="activeBand.members" :stage-key="activeBand.stage"
+              <BandStageScene :members="shownMembers" :stage-key="activeBand.stage"
                               :reorderable="canReorder" @reorder="onReorder" />
             </div>
-            <p v-if="canReorder" class="scene-hint">캐릭터를 좌우로 끌어서 자리를 바꿀 수 있어요.</p>
+            <p v-if="canReorder" class="scene-hint">캐릭터나 아래 이름표를 끌어서 자리를 바꿀 수 있어요.</p>
             <p v-if="reorderError" class="scene-hint bad">{{ reorderError }}</p>
 
-            <div class="member-list">
-              <div v-for="m in activeBand.members" :key="m.memberId" class="m-item" :class="{ me: m.me }">
+            <TransitionGroup tag="div" name="tag" class="member-list" :class="{ reorderable: canReorder, dragging: !!tagDrag }">
+              <div v-for="m in shownMembers" :key="m.memberId" class="m-item" :data-member-id="m.memberId"
+                   :class="{ me: m.me, held: tagDrag?.id === m.memberId }"
+                   @pointerdown="startTagDrag($event, m.memberId)">
                 <div class="m-name">
                   <span v-if="m.position === 'LEADER'" title="리더">👑</span>{{ m.character?.nickname || '알 수 없는 멤버' }}
                 </div>
                 <div class="m-role">{{ partEmoji(m.part) }} {{ partLabel(m.part) }}<template v-if="m.me"> · 나</template></div>
               </div>
-            </div>
+            </TransitionGroup>
           </section>
 
           <BandStartModal :open="isStartOpen" :initial-tab="startTab"
@@ -156,7 +158,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppHeader from '../components/AppHeader.vue'
@@ -221,6 +223,63 @@ const onReorder = async (memberIds) => {
     reorderError.value = apiErrorMessage(e, '자리를 바꾸지 못했어요.')
   }
 }
+
+// 이름표 끌기: 끄는 동안 이름표와 무대 캐릭터를 같은 순서로 미리 보여 준다
+const tagDrag = ref(null) // { id, order: [memberId] }
+const shownMembers = computed(() => {
+  const band = activeBand.value
+  if (!band) return []
+  if (!tagDrag.value) return band.members
+  const byId = new Map(band.members.map((m) => [m.memberId, m]))
+  return tagDrag.value.order.map((id) => byId.get(id)).filter(Boolean)
+})
+
+const startTagDrag = (e, id) => {
+  if (!canReorder.value || e.button > 0) return
+  e.preventDefault()
+  tagDrag.value = { id, order: activeBand.value.members.map((m) => m.memberId) }
+  window.addEventListener('pointermove', onTagMove)
+  window.addEventListener('pointerup', endTagDrag)
+  window.addEventListener('pointercancel', cancelTagDrag)
+}
+
+// 손에 가장 가까운 이름표 자리로 잡은 이름표를 옮긴다
+const onTagMove = (e) => {
+  const drag = tagDrag.value
+  if (!drag) return
+  let nearest = null
+  let best = Infinity
+  document.querySelectorAll('.member-list [data-member-id]').forEach((el) => {
+    const r = el.getBoundingClientRect()
+    const d = Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2))
+    if (d < best) { best = d; nearest = Number(el.dataset.memberId) }
+  })
+  if (nearest === null || nearest === drag.id) return
+  const order = drag.order.filter((x) => x !== drag.id)
+  order.splice(drag.order.indexOf(nearest), 0, drag.id)
+  drag.order = order
+}
+
+const stopTagListening = () => {
+  window.removeEventListener('pointermove', onTagMove)
+  window.removeEventListener('pointerup', endTagDrag)
+  window.removeEventListener('pointercancel', cancelTagDrag)
+}
+
+const endTagDrag = () => {
+  const drag = tagDrag.value
+  stopTagListening()
+  tagDrag.value = null
+  if (!drag) return
+  const before = activeBand.value.members.map((m) => m.memberId)
+  if (drag.order.some((id, i) => id !== before[i])) onReorder(drag.order)
+}
+
+const cancelTagDrag = () => {
+  stopTagListening()
+  tagDrag.value = null
+}
+onBeforeUnmount(stopTagListening)
 
 const partOption = (part) => INSTRUMENT_OPTIONS.find((o) => o.value === part)
 const partLabel = (part) => partOption(part)?.label || part
@@ -375,6 +434,10 @@ button::-moz-focus-inner { border: 0 !important; }
 .member-list { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .m-item { text-align: center; padding: 8px 12px; border-radius: 12px; background: #f8f9fa; min-width: 88px; }
 .m-item.me { background: #f0f4ff; }
+.member-list.reorderable .m-item { cursor: grab; touch-action: none; user-select: none; }
+.member-list.dragging .m-item { cursor: grabbing; }
+.m-item.held { box-shadow: 0 0 0 2px #2d5bff; background: #fff; }
+.tag-move { transition: transform 0.18s ease; }
 .m-name { font-size: 0.8rem; font-weight: 800; margin-bottom: 4px; white-space: nowrap; }
 .m-role { font-size: 0.7rem; font-weight: 700; color: #868e96; }
 

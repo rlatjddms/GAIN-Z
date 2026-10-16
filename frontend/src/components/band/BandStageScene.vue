@@ -33,7 +33,7 @@ import { SPRITE_WIDTH, SPRITE_HEIGHT, STAGE_WIDTH, STAGE_HEIGHT } from '../../pi
 const props = defineProps({
   // 밴드 상세의 members (무대 배치 순서)
   members: { type: Array, default: () => [] },
-  // 합주실 배경 키 (STUDIO / GARAGE / ROOFTOP)
+  // 합주실 배경 키 (constants/bandStage.js)
   stageKey: { type: String, default: 'STUDIO' },
   // 끌어서 자리 바꾸기 (리더만)
   reorderable: { type: Boolean, default: false },

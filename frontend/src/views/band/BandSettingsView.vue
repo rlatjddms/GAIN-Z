@@ -336,7 +336,7 @@ const joinedLabel = (iso) => {
 
 .danger-zone h2 { color: #e03131; }
 
-.stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stages { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .stage-option {
   border: 2px solid #e9ecef; background: #fff; border-radius: 14px; padding: 6px; cursor: pointer;
   font-family: inherit; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.15s;
