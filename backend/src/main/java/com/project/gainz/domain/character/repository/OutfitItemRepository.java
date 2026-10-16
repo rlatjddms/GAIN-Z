@@ -14,6 +14,9 @@ import java.util.Optional;
 public interface OutfitItemRepository extends JpaRepository<OutfitItem, Long> {
 
     Optional<OutfitItem> findByCategoryAndRequiredLevel(OutfitCategory category, Integer requiredLevel);
+
+    // 옷장 목록: 해금 레벨 순
+    List<OutfitItem> findAllByOrderByRequiredLevelAscIdAsc();
     @Query("SELECT o FROM OutfitItem o WHERE o.requiredLevel > :prevLevel AND o.requiredLevel <= :currentLevel")
     List<OutfitItem> findUnlockableItems(@Param("prevLevel") int prevLevel, @Param("currentLevel") int currentLevel);
 }

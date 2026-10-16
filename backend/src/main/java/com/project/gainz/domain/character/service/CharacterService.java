@@ -1,5 +1,8 @@
 package com.project.gainz.domain.character.service;
 
+import com.project.gainz.domain.character.dto.request.WardrobeUpdateRequest;
+import com.project.gainz.domain.character.dto.response.WardrobeResponse;
+import com.project.gainz.domain.character.enums.StageBackground;
 import com.project.gainz.domain.character.dto.request.CharacterCreateRequest;
 import com.project.gainz.domain.character.dto.request.CharacterUpdateRequest;
 import com.project.gainz.domain.character.dto.response.CharacterResponse;
@@ -20,7 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -100,6 +106,44 @@ public class CharacterService {
                 request.hairColor(),
                 request.skinColor()
         );
+    }
+
+    // 옷장 조회: 전체 의상(보유·착용 여부)과 무대 배경(해금 여부)
+    @Transactional(readOnly = true)
+    public WardrobeResponse getWardrobe(Long userId) {
+        Character character = characterRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
+        Set<Long> owned = new HashSet<>(userOutfitRepository.findOutfitItemIdsByUserId(userId));
+        Long equippedId = character.getCurrentOutfit() != null ? character.getCurrentOutfit().getId() : null;
+
+        List<WardrobeResponse.OutfitView> outfits = outfitItemRepository.findAllByOrderByRequiredLevelAscIdAsc().stream()
+                .filter(item -> item.getCategory() != OutfitCategory.BACKGROUND)
+                .map(item -> WardrobeResponse.OutfitView.of(item, owned.contains(item.getId()), item.getId().equals(equippedId)))
+                .toList();
+        List<WardrobeResponse.BackgroundView> backgrounds = Arrays.stream(StageBackground.values())
+                .map(bg -> new WardrobeResponse.BackgroundView(bg, bg.getRequiredLevel(), bg.isUnlockedAt(character.getLevel())))
+                .toList();
+        return new WardrobeResponse(outfits, backgrounds, character.getStageBackground());
+    }
+
+    // 옷장 저장: 보유한 의상으로 갈아입고, 해금한 무대 배경을 고른다 (null이면 레벨에 맞춰 자동)
+    public CharacterResponse updateWardrobe(Long userId, WardrobeUpdateRequest request) {
+        Character character = characterRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
+
+        if (!userOutfitRepository.existsByUserIdAndOutfitItemId(userId, request.outfitId())) {
+            throw new BusinessException(ErrorCode.OUTFIT_NOT_OWNED);
+        }
+        StageBackground background = request.stageBackground();
+        if (background != null && !background.isUnlockedAt(character.getLevel())) {
+            throw new BusinessException(ErrorCode.STAGE_BACKGROUND_LOCKED);
+        }
+
+        OutfitItem outfit = outfitItemRepository.findById(request.outfitId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.OUTFIT_NOT_OWNED));
+        character.changeOutfit(outfit);
+        character.changeStageBackground(background);
+        return CharacterResponse.from(character);
     }
 
     // 경험치 추가 후 레벨업 및 아이템 해금

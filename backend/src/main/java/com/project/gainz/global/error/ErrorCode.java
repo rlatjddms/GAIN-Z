@@ -18,6 +18,8 @@ public enum ErrorCode {
     DUPLICATE_NICKNAME(409, "C002", "이미 사용 중인 캐릭터 닉네임입니다."),
     DEFAULT_OUTFIT_NOT_FOUND(500, "C003", "시스템 오류: 초기 기본 의상 아이템이 설정되지 않았습니다."),
     CHARACTER_NOT_FOUND(404, "C004", "존재하지 않는 캐릭터입니다."),
+    OUTFIT_NOT_OWNED(400, "C005", "가지고 있지 않은 의상입니다."),
+    STAGE_BACKGROUND_LOCKED(400, "C006", "아직 해금하지 않은 무대 배경입니다."),
 
     /* Practice (연습) */
     PRACTICE_DAY_LIMIT_EXCEEDED(400, "P001", "하루 연습 시간은 24시간을 넘을 수 없습니다."),

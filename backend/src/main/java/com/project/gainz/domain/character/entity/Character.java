@@ -3,6 +3,7 @@ package com.project.gainz.domain.character.entity;
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.LevelPolicy;
+import com.project.gainz.domain.character.enums.StageBackground;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
@@ -85,6 +86,11 @@ public class Character extends BaseEntity {
     @JoinColumn(name = "current_outfit_id", nullable = false)
     private OutfitItem currentOutfit;
 
+    // 고른 무대 배경. null이면 레벨에 맞춰 자동
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private StageBackground stageBackground;
+
     @Version
     private Long version;
 
@@ -118,6 +124,16 @@ public class Character extends BaseEntity {
         this.hairStyle = hairStyle;
         this.hairColor = hairColor;
         if (skinColor != null) this.skinColor = skinColor;
+    }
+
+    // 옷장: 의상 갈아입기 (보유 여부는 서비스에서 확인)
+    public void changeOutfit(OutfitItem outfit) {
+        this.currentOutfit = outfit;
+    }
+
+    // 옷장: 무대 배경 고르기. null이면 레벨에 맞춰 자동 (해금 여부는 서비스에서 확인)
+    public void changeStageBackground(StageBackground background) {
+        this.stageBackground = background;
     }
 
     public boolean gainExperience(int amount) {
