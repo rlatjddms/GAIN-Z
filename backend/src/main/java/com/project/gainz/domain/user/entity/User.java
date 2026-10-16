@@ -63,4 +63,20 @@ public class User extends BaseEntity {
         this.name = name;
         return this;
     }
+
+    public boolean isLocal() {
+        return provider == SocialProvider.LOCAL;
+    }
+
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    // 회원 탈퇴: 같은 이메일로 다시 가입할 수 있게 이메일을 비우고(유니크 제약) 개인정보를 지운 뒤 소프트 삭제
+    public void withdraw() {
+        this.email = "withdrawn_" + id + "_" + System.currentTimeMillis() + "@gainz.invalid";
+        this.password = null;
+        this.name = "탈퇴한 사용자";
+        delete();
+    }
 }
