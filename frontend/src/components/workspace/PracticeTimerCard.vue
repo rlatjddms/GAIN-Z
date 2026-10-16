@@ -1,30 +1,46 @@
 <template>
-  <WsCard title="오늘 연습">
+  <WsCard :title="isToday ? '오늘 연습' : `${dateLabel(date)} 연습`">
     <template #actions>
-      <span v-if="timer.running" class="badge live"><i></i>연습 중</span>
+      <span v-if="isToday && timer.running" class="badge live"><i></i>연습 중</span>
+      <button v-else-if="isToday && editable" class="text-btn" :disabled="saving" @click="editing = date">시간 고치기</button>
     </template>
 
-    <div class="timer-display" :class="{ running: timer.running }">{{ clock(todaySeconds) }}</div>
+    <div class="timer-display" :class="{ running: isToday && timer.running }">{{ clock(shownSeconds) }}</div>
 
-    <button
-      class="toggle"
-      :class="{ running: timer.running }"
-      :disabled="saving"
-      :aria-label="timer.running ? '연습 정지' : '연습 시작'"
-      @click="toggle"
-    >
-      <span class="icon">{{ timer.running ? '■' : '▶' }}</span>
-      {{ saving ? '저장 중…' : timer.running ? '정지' : '시작' }}
-    </button>
+    <!-- 오늘: 시작/정지 -->
+    <template v-if="isToday">
+      <button
+        class="toggle"
+        :class="{ running: timer.running }"
+        :disabled="saving"
+        :aria-label="timer.running ? '연습 정지' : '연습 시작'"
+        @click="toggle"
+      >
+        <span class="icon">{{ timer.running ? '■' : '▶' }}</span>
+        {{ saving ? '저장 중…' : timer.running ? '정지' : '시작' }}
+      </button>
 
-    <p v-if="timer.running" class="status">이번 구간 {{ clock(sessionSeconds) }}</p>
-    <p v-else-if="error" class="status error">
-      {{ error }}
-      <button class="retry" :disabled="saving" @click="saveParts(timer.pending)">다시 저장</button>
-    </p>
-    <p v-else-if="savedMessage" class="status saved">{{ savedMessage }}</p>
-    <p v-else class="status">정지할 때마다 오늘 기록에 쌓이고, 연습한 만큼 경험치를 받아요.</p>
+      <p v-if="timer.running" class="status">이번 구간 {{ clock(sessionSeconds) }}</p>
+      <p v-else-if="error" class="status error">
+        {{ error }}
+        <button class="retry" :disabled="saving" @click="saveParts(timer.pending)">다시 저장</button>
+      </p>
+      <p v-else-if="savedMessage" class="status saved">{{ savedMessage }}</p>
+      <p v-else class="status">정지할 때마다 오늘 기록에 쌓이고, 연습한 만큼 경험치를 받아요.</p>
+    </template>
 
+    <!-- 지난 날: 그날 총 시간 + 고치기 -->
+    <template v-else>
+      <button v-if="editable" class="toggle secondary" @click="editing = date">시간 고치기</button>
+      <p class="status">
+        {{ editable ? '기록을 놓쳤거나 잘못 잰 날은 직접 고칠 수 있어요.' : '7일이 지난 기록은 볼 수만 있어요.' }}
+      </p>
+      <p v-if="timer.running" class="status live-note">
+        오늘 타이머가 켜져 있어요 · <button class="link" @click="emit('go-today')">오늘로 가기</button>
+      </p>
+    </template>
+
+    <EditDayModal :date="editing" @close="editing = null" @saved="onEdited" />
     <LevelUpModal :result="levelUp" @close="levelUp = null" />
   </WsCard>
 </template>
@@ -33,11 +49,15 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import WsCard from './WsCard.vue'
 import LevelUpModal from './LevelUpModal.vue'
+import EditDayModal from './EditDayModal.vue'
 import { usePracticeTimerStore } from '../../stores/practiceTimer'
 import { usePracticeStore } from '../../stores/practice'
 import { apiErrorMessage } from '../../api/practice'
-import { clock, dateKey, durationText, startOfDay } from '../../constants/practice'
+import { clock, dateKey, dateLabel, durationText, isEditable, startOfDay } from '../../constants/practice'
 
+// date: 보고 있는 날짜 ('YYYY-MM-DD'). 오늘이면 타이머, 지난 날이면 그날 총 시간과 고치기
+const props = defineProps({ date: { type: String, required: true } })
+const emit = defineEmits(['go-today'])
 const timer = usePracticeTimerStore()
 const practice = usePracticeStore()
 
@@ -60,6 +80,19 @@ const todaySeconds = computed(() => {
   if (timer.running) live = Math.floor((now.value - Math.max(timer.startedAt, startOfDay(now.value).getTime())) / 1000)
   return practice.totalOf(todayKey.value) + Math.max(0, live)
 })
+const isToday = computed(() => props.date === todayKey.value)
+const shownSeconds = computed(() => (isToday.value ? todaySeconds.value : practice.totalOf(props.date)))
+// 오늘은 타이머를 멈춘 뒤에만 고칠 수 있다 (켜져 있는 구간과 섞이지 않게)
+const editable = computed(() => isEditable(props.date) && !(isToday.value && timer.running))
+
+// 하루 시간 직접 고치기
+const editing = ref(null)
+const onEdited = (result) => {
+  const exp = result?.experience
+  if (exp && ((exp.isLeveledUp ?? exp.leveledUp) || exp.unlockedOutfits?.length)) {
+    levelUp.value = { ...exp, expGained: result.expGained }
+  }
+}
 
 const saving = ref(false)
 const error = ref('')
@@ -155,6 +188,15 @@ const showSaved = (seconds, exp) => {
 .toggle.running { background: #1a1a1a; }
 .toggle.running:hover:not(:disabled) { background: #343a40; }
 .toggle:disabled { opacity: 0.6; cursor: wait; }
+.toggle.secondary { background: #fff; color: #2d5bff; box-shadow: inset 0 0 0 1px #c9d6ff; }
+.toggle.secondary:hover { background: #f0f4ff; }
+.text-btn {
+  border: none; background: none; padding: 0; font: inherit; font-size: 0.75rem; font-weight: 800;
+  color: #2d5bff; cursor: pointer;
+}
+.text-btn:disabled { color: #ced4da; cursor: default; }
+.live-note { color: #e03131; font-weight: 700; }
+.link { border: none; background: none; padding: 0; font: inherit; font-weight: 800; color: #2d5bff; cursor: pointer; text-decoration: underline; }
 .icon { font-size: 0.85rem; }
 
 .badge { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 800; color: #e03131; }

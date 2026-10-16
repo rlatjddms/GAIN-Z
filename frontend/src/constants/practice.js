@@ -21,6 +21,24 @@ export function startOfDay(date = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
 
+// 'YYYY-MM-DD' → 로컬 Date (자정)
+export function parseKey(key) {
+  const [y, m, d] = key.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+// 그 날짜가 들어 있는 주의 월요일
+export function weekStart(date) {
+  const d = startOfDay(date)
+  return addDays(d, -((d.getDay() + 6) % 7))
+}
+
+// 'YYYY-MM-DD' → '10월 16일 금요일'
+export function fullDateLabel(key) {
+  const d = parseKey(key)
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${DOW[d.getDay()]}요일`
+}
+
 // 'YYYY-MM-DD' → '10월 14일 (화)'
 export function dateLabel(key) {
   const [y, m, d] = key.split('-').map(Number)

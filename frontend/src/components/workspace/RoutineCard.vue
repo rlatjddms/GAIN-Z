@@ -1,18 +1,16 @@
 <template>
   <WsCard :title="isToday ? '오늘의 루틴' : `${dateLabel(date)} 루틴`">
     <template #actions>
-      <div class="date-nav">
-        <button class="nav-btn" :disabled="!canGoBack" aria-label="전날" @click="moveDay(-1)">‹</button>
-        <button class="nav-btn" :disabled="isToday" aria-label="다음 날" @click="moveDay(1)">›</button>
-      </div>
-      <button v-if="!adding" class="text-btn" @click="startAdd">+ 추가</button>
+      <button v-if="isToday && !adding" class="text-btn" @click="startAdd">+ 추가</button>
     </template>
 
     <p v-if="routines.length" class="summary" :class="{ done: allDone }">
       {{ allDone ? '모두 완료했어요 🎉' : `${doneCount} / ${routines.length} 완료` }}
     </p>
 
-    <ul class="routine-list" :class="{ loading }">
+    <p v-if="!editable && routines.length" class="readonly">7일이 지난 날은 볼 수만 있어요.</p>
+
+    <ul class="routine-list" :class="{ loading, readonly: !editable }">
       <li v-for="r in routines" :key="r.id" :class="{ completed: r.completed }">
         <!-- 수정 모드 -->
         <form v-if="editingId === r.id" class="edit-form" @submit.prevent="saveEdit(r)">
@@ -31,19 +29,20 @@
         <template v-else>
           <button
             class="check" :class="{ on: r.completed }"
+            :disabled="!editable"
             :aria-label="r.completed ? '완료 취소' : '완료로 표시'"
             @click="setCount(r, r.completed ? 0 : r.targetCount)"
           >{{ r.completed ? '✓' : '' }}</button>
-          <div class="body" @dblclick="startEdit(r)">
+          <div class="body" @dblclick="isToday && startEdit(r)">
             <span class="content">{{ r.content }}</span>
             <span class="bar"><i :style="{ width: `${Math.min(100, (r.count / r.targetCount) * 100)}%` }"></i></span>
           </div>
           <div class="counter">
-            <button class="step" :disabled="r.count <= 0" aria-label="한 번 빼기" @click="setCount(r, r.count - 1)">−</button>
+            <button class="step" :disabled="!editable || r.count <= 0" aria-label="한 번 빼기" @click="setCount(r, r.count - 1)">−</button>
             <span class="count">{{ r.count }} / {{ r.targetCount }}</span>
-            <button class="step" aria-label="한 번 더하기" @click="setCount(r, r.count + 1)">+</button>
+            <button class="step" :disabled="!editable" aria-label="한 번 더하기" @click="setCount(r, r.count + 1)">+</button>
           </div>
-          <button class="more" aria-label="루틴 수정" @click="startEdit(r)">⋯</button>
+          <button v-if="isToday" class="more" aria-label="루틴 수정" @click="startEdit(r)">⋯</button>
         </template>
       </li>
     </ul>
@@ -62,7 +61,7 @@
 
     <div v-if="!loading && !routines.length && !adding" class="empty">
       <p>스케일 10회처럼 매일 할 연습을 정해 두고 체크해요.</p>
-      <button class="small primary" @click="startAdd">첫 루틴 추가하기</button>
+      <button v-if="isToday" class="small primary" @click="startAdd">첫 루틴 추가하기</button>
     </div>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -70,16 +69,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import WsCard from './WsCard.vue'
 import { getRoutines, createRoutine, updateRoutine, deleteRoutine, checkRoutine } from '../../api/routine'
 import { apiErrorMessage } from '../../api/practice'
-import { addDays, dateKey, dateLabel, isEditable } from '../../constants/practice'
+import { dateKey, dateLabel, isEditable } from '../../constants/practice'
 
-const today = dateKey()
-const date = ref(today)
-const isToday = computed(() => date.value === today)
-const canGoBack = computed(() => isEditable(dateKey(addDays(new Date(`${date.value}T00:00:00`), -1))))
+// date: 보고 있는 날짜 ('YYYY-MM-DD'). 체크는 최근 7일만, 루틴 추가·수정은 오늘 화면에서만
+const props = defineProps({ date: { type: String, required: true } })
+const date = computed(() => props.date)
+const isToday = computed(() => props.date === dateKey())
+const editable = computed(() => isEditable(props.date))
 
 const routines = ref([])
 const loading = ref(false)
@@ -102,12 +102,13 @@ const load = async () => {
 }
 onMounted(load)
 
-const moveDay = async (diff) => {
+// 날짜가 바뀌면 보내지 않은 체크를 먼저 저장하고 그 날짜로 다시 불러온다
+watch(() => props.date, async () => {
   await flushChecks()
-  date.value = dateKey(addDays(new Date(`${date.value}T00:00:00`), diff))
   editingId.value = null
+  adding.value = false
   load()
-}
+})
 
 // 체크: 화면은 바로 바꾸고, 빠르게 여러 번 눌러도 마지막 횟수만 잠시 뒤 한 번 보낸다
 const timers = new Map()
@@ -116,7 +117,8 @@ const setCount = (r, count) => {
   r.count = next
   r.completed = next >= r.targetCount
   clearTimeout(timers.get(r.id)?.timer)
-  timers.set(r.id, { timer: setTimeout(() => sendCheck(r, date.value), 400), routine: r, date: date.value })
+  const day = date.value
+  timers.set(r.id, { timer: setTimeout(() => sendCheck(r, day), 400), routine: r, date: day })
 }
 const sendCheck = async (r, day) => {
   timers.delete(r.id)
@@ -194,14 +196,8 @@ const remove = async (r) => {
 </script>
 
 <style scoped>
-.date-nav { display: flex; gap: 2px; }
-.nav-btn {
-  width: 24px; height: 24px; border: none; border-radius: 7px; background: #f1f3f5; color: #495057;
-  font-size: 0.9rem; font-weight: 900; cursor: pointer; line-height: 1;
-}
-.nav-btn:disabled { opacity: 0.35; cursor: default; }
 .text-btn {
-  border: none; background: none; padding: 0 0 0 6px; font: inherit; font-size: 0.75rem; font-weight: 800;
+  border: none; background: none; padding: 0; font: inherit; font-size: 0.75rem; font-weight: 800;
   color: #2d5bff; cursor: pointer;
 }
 
@@ -210,6 +206,8 @@ const remove = async (r) => {
 
 .routine-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; transition: opacity 0.2s; }
 .routine-list.loading { opacity: 0.4; }
+.readonly { margin: -6px 0 10px; font-size: 0.75rem; font-weight: 700; color: #adb5bd; }
+.check:disabled { cursor: default; }
 .routine-list li {
   display: flex; align-items: center; gap: 10px;
   background: #f8f9fa; border-radius: 12px; padding: 10px 12px; transition: background 0.2s;
