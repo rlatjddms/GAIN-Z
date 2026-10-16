@@ -3,12 +3,15 @@ package com.project.gainz.domain.band.service;
 import com.project.gainz.domain.band.dto.request.BandCreateRequest;
 import com.project.gainz.domain.band.dto.request.BandJoinRequest;
 import com.project.gainz.domain.band.dto.request.BandLeaderRequest;
+import com.project.gainz.domain.band.dto.request.BandMemberOrderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberPartRequest;
+import com.project.gainz.domain.band.dto.request.BandStageRequest;
 import com.project.gainz.domain.band.dto.request.BandUpdateRequest;
 import com.project.gainz.domain.band.dto.response.BandMemberResponse;
 import com.project.gainz.domain.band.dto.response.BandResponse;
 import com.project.gainz.domain.band.entity.Band;
 import com.project.gainz.domain.band.entity.BandMember;
+import com.project.gainz.domain.band.enums.BandStage;
 import com.project.gainz.domain.band.enums.Position;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.BandRepository;
@@ -155,6 +158,7 @@ class BandServiceTest {
         assertThat(response.description()).isNull();
         assertThat(response.myPosition()).isEqualTo(Position.LEADER);
         assertThat(response.inviteCode()).hasSize(BandService.INVITE_CODE_LENGTH);
+        assertThat(response.stage()).isEqualTo(BandStage.STUDIO);
         assertThat(response.members()).singleElement().satisfies(m -> {
             assertThat(m.position()).isEqualTo(Position.LEADER);
             assertThat(m.part()).isEqualTo(InstrumentType.BASS);
@@ -192,12 +196,14 @@ class BandServiceTest {
     /* ---------- 조회 ---------- */
 
     @Test
-    void 내_밴드_목록은_리더를_먼저_보여_주고_나를_표시한다() {
+    void 내_밴드_목록은_무대_순서대로_보여_주고_나를_표시한다() {
         User leaderUser = user(LEADER_ID);
         Band band = band(leaderUser);
-        // 일반 멤버가 먼저 들어왔고 나중에 리더를 넘겨받은 경우
+        // 먼저 들어온 멤버를 리더 오른쪽에 세운 경우
         BandMember early = member(100L, band, user(MEMBER_ID), Position.MEMBER, InstrumentType.DRUM);
         BandMember leader = member(200L, band, leaderUser, Position.LEADER, InstrumentType.GUITAR);
+        early.changeStageOrder(1);
+        leader.changeStageOrder(0);
         when(bandMemberRepository.findAllByUserIdOrderByIdAsc(MEMBER_ID)).thenReturn(List.of(early));
         when(bandMemberRepository.findAllByBandIdInOrderByIdAsc(List.of(BAND_ID))).thenReturn(List.of(early, leader));
         when(characterRepository.findAllByUserIdIn(anyCollection())).thenReturn(List.of());
@@ -242,14 +248,16 @@ class BandServiceTest {
         when(bandRepository.findByInviteCode("ABCD2345")).thenReturn(Optional.of(band));
         when(bandMemberRepository.findByBandIdAndUserId(BAND_ID, OTHER_ID)).thenReturn(Optional.empty());
         when(bandMemberRepository.countByUserId(OTHER_ID)).thenReturn(0L);
-        when(bandMemberRepository.countByBandId(BAND_ID)).thenReturn(1L);
+        BandMember leader = member(100L, band, band.getLeader(), Position.LEADER, InstrumentType.GUITAR);
+        leader.changeStageOrder(3);
         when(userRepository.findById(OTHER_ID)).thenReturn(Optional.of(user(OTHER_ID)));
         when(bandMemberRepository.save(any(BandMember.class))).thenAnswer(inv -> {
             BandMember m = inv.getArgument(0);
             ReflectionTestUtils.setField(m, "id", 300L);
             return m;
         });
-        when(bandMemberRepository.findAllByBandIdOrderByIdAsc(BAND_ID)).thenReturn(List.of());
+        when(bandMemberRepository.findAllByBandIdOrderByIdAsc(BAND_ID)).thenReturn(List.of(leader));
+        when(characterRepository.findAllByUserIdIn(anyCollection())).thenReturn(List.of());
 
         // 소문자·앞뒤 공백은 무시
         BandResponse response = bandService.joinBand(OTHER_ID, new BandJoinRequest(" abcd2345 ", InstrumentType.VOCAL));
@@ -258,6 +266,8 @@ class BandServiceTest {
         verify(bandMemberRepository).save(saved.capture());
         assertThat(saved.getValue().getPosition()).isEqualTo(Position.MEMBER);
         assertThat(saved.getValue().getPart()).isEqualTo(InstrumentType.VOCAL);
+        // 새 멤버는 무대 맨 오른쪽
+        assertThat(saved.getValue().getStageOrder()).isEqualTo(4);
         assertThat(response.myPosition()).isEqualTo(Position.MEMBER);
     }
 
@@ -284,7 +294,11 @@ class BandServiceTest {
         when(bandRepository.findByInviteCode("ABCD2345")).thenReturn(Optional.of(band));
         when(bandMemberRepository.findByBandIdAndUserId(BAND_ID, OTHER_ID)).thenReturn(Optional.empty());
         when(bandMemberRepository.countByUserId(OTHER_ID)).thenReturn(0L);
-        when(bandMemberRepository.countByBandId(BAND_ID)).thenReturn((long) BandService.MAX_MEMBERS);
+        List<BandMember> full = new ArrayList<>();
+        for (long i = 0; i < BandService.MAX_MEMBERS; i++) {
+            full.add(member(100L + i, band, user(100L + i), Position.MEMBER, InstrumentType.GUITAR));
+        }
+        when(bandMemberRepository.findAllByBandIdOrderByIdAsc(BAND_ID)).thenReturn(full);
 
         assertError(() -> bandService.joinBand(OTHER_ID, new BandJoinRequest("ABCD2345", InstrumentType.GUITAR)),
                 ErrorCode.BAND_FULL);
@@ -426,7 +440,8 @@ class BandServiceTest {
         assertThat(f.member().getPosition()).isEqualTo(Position.LEADER);
         assertThat(f.band().getLeader().getId()).isEqualTo(MEMBER_ID);
         assertThat(response.myPosition()).isEqualTo(Position.MEMBER);
-        assertThat(response.members()).extracting(BandMemberResponse::memberId).containsExactly(200L, 100L);
+        assertThat(response.members()).extracting(BandMemberResponse::position)
+                .containsExactly(Position.MEMBER, Position.LEADER);
     }
 
     @Test
@@ -436,6 +451,79 @@ class BandServiceTest {
 
         assertError(() -> bandService.transferLeader(LEADER_ID, BAND_ID, new BandLeaderRequest(100L)),
                 ErrorCode.ALREADY_BAND_LEADER);
+    }
+
+    /* ---------- 배경·무대 순서 ---------- */
+
+    @Test
+    void 리더는_합주실_배경을_바꾼다() {
+        Fixture f = fixture();
+        membersAre(f.all());
+
+        BandResponse response = bandService.changeStage(LEADER_ID, BAND_ID, new BandStageRequest(BandStage.ROOFTOP));
+
+        assertThat(response.stage()).isEqualTo(BandStage.ROOFTOP);
+    }
+
+    @Test
+    void 일반_멤버는_합주실_배경을_못_바꾼다() {
+        Fixture f = fixture();
+
+        assertError(() -> bandService.changeStage(MEMBER_ID, BAND_ID, new BandStageRequest(BandStage.GARAGE)),
+                ErrorCode.BAND_LEADER_ONLY);
+        assertThat(f.band().getStage()).isEqualTo(BandStage.STUDIO);
+    }
+
+    @Test
+    void 배경이_비어_있는_예전_밴드는_연습실이다() {
+        Band band = band(user(LEADER_ID));
+        ReflectionTestUtils.setField(band, "stage", null);
+
+        assertThat(band.getStage()).isEqualTo(BandStage.STUDIO);
+    }
+
+    @Test
+    void 리더는_무대_자리_순서를_바꾼다() {
+        Fixture f = fixture();
+        membersAre(f.all());
+
+        BandResponse response = bandService.reorderMembers(LEADER_ID, BAND_ID, new BandMemberOrderRequest(List.of(200L, 100L)));
+
+        assertThat(f.member().getStageOrder()).isZero();
+        assertThat(f.leader().getStageOrder()).isEqualTo(1);
+        assertThat(response.members()).extracting(BandMemberResponse::memberId).containsExactly(200L, 100L);
+    }
+
+    @Test
+    void 순서가_없는_예전_멤버는_들어온_순서대로_오른쪽에_선다() {
+        Fixture f = fixture();
+        f.member().changeStageOrder(0);
+        membersAre(f.all());
+
+        BandResponse response = bandService.getBand(LEADER_ID, BAND_ID);
+
+        assertThat(response.members()).extracting(BandMemberResponse::memberId).containsExactly(200L, 100L);
+    }
+
+    @Test
+    void 멤버가_빠지거나_겹친_순서는_받지_않는다() {
+        Fixture f = fixture();
+        when(bandMemberRepository.findAllByBandIdOrderByIdAsc(BAND_ID)).thenReturn(f.all());
+
+        assertError(() -> bandService.reorderMembers(LEADER_ID, BAND_ID, new BandMemberOrderRequest(List.of(100L))),
+                ErrorCode.INVALID_MEMBER_ORDER);
+        assertError(() -> bandService.reorderMembers(LEADER_ID, BAND_ID, new BandMemberOrderRequest(List.of(100L, 100L))),
+                ErrorCode.INVALID_MEMBER_ORDER);
+        assertError(() -> bandService.reorderMembers(LEADER_ID, BAND_ID, new BandMemberOrderRequest(List.of(100L, 999L))),
+                ErrorCode.INVALID_MEMBER_ORDER);
+    }
+
+    @Test
+    void 일반_멤버는_무대_자리를_못_바꾼다() {
+        fixture();
+
+        assertError(() -> bandService.reorderMembers(MEMBER_ID, BAND_ID, new BandMemberOrderRequest(List.of(200L, 100L))),
+                ErrorCode.BAND_LEADER_ONLY);
     }
 
     /* ---------- 없애기·탈퇴 ---------- */
