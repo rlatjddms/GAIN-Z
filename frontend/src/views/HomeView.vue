@@ -143,9 +143,7 @@
               </button>
             </section>
 
-            <!-- 게시판 API(#94)를 붙이기 전까지 미리보기 글 -->
-            <BandCommunityFeed :members="activeBand.members" :notice="PLACEHOLDER_NOTICE"
-                               :posts="PLACEHOLDER_POSTS" preview />
+            <BandCommunityPanel :key="activeBand.id" :band-id="activeBand.id" />
           </template>
         </template>
       </div>
@@ -165,8 +163,7 @@ import RecordIcon from '../components/workspace/RecordIcon.vue'
 import { PLACEHOLDER_RECORDS } from '../constants/records'
 import BandStageScene from '../components/band/BandStageScene.vue'
 import BandStartModal from '../components/band/BandStartModal.vue'
-import BandCommunityFeed from '../components/band/BandCommunityFeed.vue'
-import { PLACEHOLDER_NOTICE, PLACEHOLDER_POSTS } from '../constants/bandCommunity'
+import BandCommunityPanel from '../components/band/BandCommunityPanel.vue'
 import { useBandStore } from '../stores/band'
 import { MAX_JOINED_BANDS, reorderMembers } from '../api/band'
 import { apiErrorMessage } from '../api/practice'
