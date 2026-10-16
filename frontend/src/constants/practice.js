@@ -70,12 +70,12 @@ export function clock(seconds) {
   return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`
 }
 
-// 초 → '1시간 20분' / '25분' / '40초'
-export function durationText(seconds) {
+// 초 → '1시간 20분' / '25분' / '40초'. withSeconds면 1시간 미만일 때 초까지 ('1분 6초')
+export function durationText(seconds, withSeconds = false) {
   const s = Math.max(0, Math.floor(seconds))
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
   if (h) return m ? `${h}시간 ${m}분` : `${h}시간`
-  if (m) return `${m}분`
+  if (m) return withSeconds && sec ? `${m}분 ${sec}초` : `${m}분`
   return s ? `${s}초` : '0분'
 }
 

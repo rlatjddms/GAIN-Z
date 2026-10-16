@@ -5,7 +5,7 @@
       <div ref="pickerRef" class="date-picker">
         <button class="arrow" aria-label="전날" @click="move(-1)">‹</button>
         <button class="date-title" :aria-expanded="calendarOpen" @click="calendarOpen = !calendarOpen">
-          {{ fullDateLabel(selected) }}<span class="caret">▾</span>
+          {{ fullDateLabel(selected) }}
         </button>
         <button class="arrow" :disabled="isToday" aria-label="다음 날" @click="move(1)">›</button>
         <PracticeCalendar v-model="selected" :open="calendarOpen" @close="calendarOpen = false" />
@@ -101,7 +101,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
   padding: 4px 8px; border-radius: 10px; font-family: inherit; font-size: 1.3rem; font-weight: 900; color: #1a1a1a;
 }
 .date-title:hover { background: #f1f3f5; }
-.caret { font-size: 0.7rem; color: #adb5bd; }
 .today-btn {
   border: 1px solid #c9d6ff; background: #f0f4ff; color: #2d5bff; cursor: pointer; font-family: inherit;
   font-size: 0.75rem; font-weight: 800; padding: 6px 12px; border-radius: 9px;

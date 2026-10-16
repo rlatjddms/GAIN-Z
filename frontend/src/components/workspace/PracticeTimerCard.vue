@@ -126,7 +126,6 @@ const saveParts = async (parts) => {
   saving.value = true
   error.value = ''
   let expGained = 0
-  let seconds = 0
   const levels = []
   const unlocked = []
   let remaining = [...parts]
@@ -136,14 +135,13 @@ const saveParts = async (parts) => {
       remaining = remaining.slice(1)
       timer.setPending(remaining)
       expGained += result.expGained || 0
-      seconds += part.seconds
       const exp = result.experience
       if (exp) {
         levels.push(exp)
         unlocked.push(...(exp.unlockedOutfits || []))
       }
     }
-    showSaved(seconds, expGained)
+    showSaved(expGained)
     // 서버 직렬화에 따라 isLeveledUp 또는 leveledUp으로 올 수 있다
     const leveled = levels.filter((e) => e.isLeveledUp ?? e.leveledUp)
     if (leveled.length || unlocked.length) {
@@ -162,9 +160,10 @@ const saveParts = async (parts) => {
   }
 }
 
-const showSaved = (seconds, exp) => {
-  // 경험치는 하루 합계 1분 단위라 짧은 구간은 0일 수 있다. 받았을 때만 표시
-  savedMessage.value = exp > 0 ? `${durationText(seconds)} 기록했어요 · +${exp} EXP` : `${durationText(seconds)} 기록했어요`
+const showSaved = (exp) => {
+  // 경험치는 구간이 아니라 오늘 총 시간 기준이라, 문구도 오늘 총 시간으로 보여 준다. 경험치는 받았을 때만 표시
+  const total = `기록했어요 · 오늘 총 ${durationText(practice.totalOf(dateKey()), true)}`
+  savedMessage.value = exp > 0 ? `${total} · +${exp} EXP` : total
   clearTimeout(savedTimer)
   savedTimer = setTimeout(() => { savedMessage.value = '' }, 6000)
 }
