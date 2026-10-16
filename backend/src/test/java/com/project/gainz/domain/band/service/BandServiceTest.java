@@ -460,9 +460,9 @@ class BandServiceTest {
         Fixture f = fixture();
         membersAre(f.all());
 
-        BandResponse response = bandService.changeStage(LEADER_ID, BAND_ID, new BandStageRequest(BandStage.ROOFTOP));
+        BandResponse response = bandService.changeStage(LEADER_ID, BAND_ID, new BandStageRequest(BandStage.LIVE));
 
-        assertThat(response.stage()).isEqualTo(BandStage.ROOFTOP);
+        assertThat(response.stage()).isEqualTo(BandStage.LIVE);
     }
 
     @Test
