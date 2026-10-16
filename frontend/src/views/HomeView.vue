@@ -143,7 +143,7 @@
               </button>
             </section>
 
-            <BandCommunityPanel :key="activeBand.id" :band-id="activeBand.id" />
+            <BandCommunityPanel :key="activeBand.id" :band="activeBand" />
           </template>
         </template>
       </div>
@@ -153,7 +153,7 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppHeader from '../components/AppHeader.vue'
 import CharacterStage from '../components/CharacterStage.vue'
@@ -170,8 +170,16 @@ import { apiErrorMessage } from '../api/practice'
 import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const bandStore = useBandStore()
+// 게시글 링크를 직접 열어도 기존 BAND 화면과 상단 탭을 유지한다
+watch(() => route.query.band, (id) => {
+  if (id && Number.isFinite(Number(id))) {
+    bandStore.selectedBandId = Number(id)
+    bandStore.isBandMode = true
+  }
+}, { immediate: true })
 // SOLO / BAND 탭은 스토어에 둬서 밴드 설정에 다녀와도 BAND 탭으로 돌아온다
 const isBandMode = computed({
   get: () => bandStore.isBandMode,

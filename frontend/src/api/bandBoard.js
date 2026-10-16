@@ -28,3 +28,15 @@ export async function loadBandAttachment(url) {
 
 export const BAND_ATTACHMENT_ACCEPT = 'image/png,image/jpeg,image/webp,video/mp4,video/webm,audio/mpeg,audio/wav,application/pdf'
 export const BAND_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
+export const BAND_ATTACHMENT_MAX_COUNT = 8
+
+export async function saveBandPost(bandId, id, post, files, onProgress) {
+  const form = new FormData()
+  form.append('post', new Blob([JSON.stringify(post)], { type: 'application/json' }))
+  files.forEach(file => form.append('files', file))
+  return data(api.request({
+    method: id ? 'put' : 'post', url: id ? `${base(bandId)}/${id}` : base(bandId), data: form,
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: event => onProgress?.(event.total ? Math.round(event.loaded / event.total * 100) : 0),
+  }))
+}

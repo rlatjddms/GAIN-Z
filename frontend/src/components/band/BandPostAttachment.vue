@@ -1,13 +1,24 @@
 <template>
-  <div v-if="attachment" class="attachment" :class="{ compact }">
-    <span v-if="loading" class="status">첨부 불러오는 중…</span>
-    <button v-else-if="error" class="status" @click.stop="load">첨부 다시 불러오기</button>
-    <template v-else-if="url">
-      <img v-if="attachment.type.startsWith('image/')" :src="url" :alt="attachment.name" @error="error = true">
-      <video v-else-if="attachment.type.startsWith('video/')" :src="url" controls preload="metadata" playsinline
-             :aria-label="attachment.name" @click.stop @error="error = true" />
-      <audio v-else-if="!compact && attachment.type.startsWith('audio/')" :src="url" controls :aria-label="attachment.name" @click.stop @error="error = true" />
-      <a v-if="!compact || !isVisual" :href="url" :download="attachment.name" @click.stop>📎 {{ attachment.name }}</a>
+  <div class="attachment" :class="{ compact, tile, visual: isVisual }">
+    <div v-if="isVisual || tile" class="media-frame">
+      <span v-if="loading" class="media-placeholder"><BoardIcon :name="isVisual ? 'image' : 'file'" :size="26" /></span>
+      <div v-else-if="error" class="media-placeholder"><BoardIcon name="file" :size="24" /><button @click.stop="load">다시 불러오기</button></div>
+      <template v-else>
+        <img v-if="url && attachment.type.startsWith('image/')" :src="url" :alt="attachment.name" @error="error = true">
+        <video v-else-if="url && attachment.type.startsWith('video/')" :src="url" :controls="!compact" preload="auto" playsinline :aria-label="attachment.name" @click.stop @error="error = true" />
+        <div v-else class="media-placeholder"><BoardIcon name="file" :size="28" /><span>{{ attachment.type.startsWith('audio/') ? '오디오' : 'PDF' }}</span></div>
+        <span v-if="compact && attachment.type.startsWith('video/')" class="play-badge"><BoardIcon name="play" :size="14" /></span>
+      </template>
+    </div>
+    <template v-if="!compact && !tile">
+      <audio v-if="url && attachment.type.startsWith('audio/')" :src="url" controls :aria-label="attachment.name" />
+      <div class="file-row" :class="{ document: !isVisual }">
+        <span v-if="!isVisual" class="document-icon"><BoardIcon name="file" :size="20" /></span>
+        <span class="file-name">{{ attachment.name }}</span>
+        <a v-if="url" :href="url" :download="attachment.name" :aria-label="`${attachment.name} 다운로드`" @click.stop><BoardIcon name="download" :size="16" /></a>
+        <button v-else :disabled="loading" :aria-label="`${attachment.name} 다운로드`" @click.stop="download"><BoardIcon name="download" :size="16" /></button>
+      </div>
+      <p v-if="error && !isVisual" class="file-error">파일을 불러오지 못했어요. 다운로드를 눌러 다시 시도해 주세요.</p>
     </template>
   </div>
 </template>
@@ -15,45 +26,63 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { loadBandAttachment } from '../../api/bandBoard'
-
-const props = defineProps({ attachment: { type: Object, default: null }, compact: Boolean })
+import BoardIcon from './BoardIcon.vue'
+const props = defineProps({ attachment: { type: Object, required: true }, compact: Boolean, tile: Boolean })
 const url = ref(null)
 const loading = ref(false)
 const error = ref(false)
 const isVisual = computed(() => /^(image|video)\//.test(props.attachment?.type || ''))
 let sequence = 0
-function release() {
-  if (url.value) URL.revokeObjectURL(url.value)
-  url.value = null
-}
+function release() { if (url.value) URL.revokeObjectURL(url.value); url.value = null }
 async function load() {
   const current = ++sequence
   release()
   error.value = false
-  loading.value = false
-  if (!props.attachment) return
   loading.value = true
   try {
     const next = await loadBandAttachment(props.attachment.url)
     if (current !== sequence) { URL.revokeObjectURL(next); return }
     url.value = next
-  } catch {
-    if (current === sequence) error.value = true
-  } finally {
-    if (current === sequence) loading.value = false
-  }
+  } catch { if (current === sequence) error.value = true }
+  finally { if (current === sequence) loading.value = false }
 }
-watch(() => props.attachment?.url, load, { immediate: true })
+async function download() {
+  await load()
+  if (!url.value) return
+  const link = document.createElement('a')
+  link.href = url.value
+  link.download = props.attachment.name
+  link.click()
+}
+watch(() => props.attachment.url, () => {
+  if (isVisual.value || props.attachment.type.startsWith('audio/')) load()
+  else { sequence++; release(); error.value = false; loading.value = false }
+}, { immediate: true })
 onBeforeUnmount(() => { sequence++; release() })
 </script>
 
 <style scoped>
-.attachment { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
-img, video { display: block; max-width: 100%; max-height: 480px; border-radius: 12px; background: #f1f3f5; object-fit: contain; }
-audio { max-width: 100%; }
-a { color: #495057; font-size: .8rem; overflow-wrap: anywhere; }
-.compact { width: 112px; height: 84px; flex: none; overflow: hidden; border-radius: 10px; }
-.compact img, .compact video { width: 112px; height: 84px; }
-.compact img { object-fit: cover; }
-.status { color: #868e96; font: inherit; font-size: .75rem; }
+.attachment { min-width: 0; }
+.media-frame { position: relative; height: 220px; border-radius: 12px; overflow: hidden; background: #f3f5f8; }
+img, video { width: 100%; height: 100%; object-fit: contain; display: block; }
+video { background: #242832; }
+.media-placeholder { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #a2adbf; font-size: 11px; }
+.media-placeholder button { border: 0; border-radius: 6px; background: #e9edf4; color: #68788f; padding: 6px 10px; font: inherit; cursor: pointer; }
+.file-row { display: flex; align-items: center; gap: 10px; padding: 9px 2px 0; }
+.file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #868e96; }
+.file-row a, .file-row button { color: #868e96; display: grid; place-items: center; width: 26px; height: 26px; background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.file-row a:hover, .file-row button:hover { color: #2d5bff; background: #f0f4ff; }
+.file-row.document { border: 1px solid #e9edf2; border-radius: 12px; padding: 12px 14px; }
+.document .file-name { color: #495057; font-size: 12px; font-weight: 700; }
+.document-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: #f1f4f9; color: #8290a7; }
+audio { width: 100%; margin-bottom: 8px; }
+.file-error { color: #d94841; font-size: 11px; }
+.compact { width: 112px; height: 84px; flex: none; }
+.compact .media-frame { width: 112px; height: 84px; border-radius: 10px; }
+.compact img, .compact video { object-fit: cover; }
+.play-badge { position: absolute; inset: 0; display: grid; place-items: center; color: white; background: #0002; pointer-events: none; }
+.play-badge svg { background: #15203999; padding: 7px; border-radius: 50%; }
+.tile .media-frame { height: 124px; border-radius: 0; }
+.tile img { object-fit: cover; }
+@media(max-width: 600px) { .media-frame { height: 160px; } }
 </style>

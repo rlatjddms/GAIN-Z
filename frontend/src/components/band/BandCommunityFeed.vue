@@ -4,10 +4,10 @@
     <header class="head">
       <div class="title">
         COMMUNITY
+        <span class="post-total">{{ total }}</span>
       </div>
       <div class="head-actions">
-        <button class="write-btn" @click="$emit('list')">전체 보기</button>
-        <button class="write-btn" @click="$emit('write')">✏️ 글쓰기</button>
+        <button class="write-btn" @click="$emit('write')"><BoardIcon name="edit" :size="14" />글쓰기</button>
       </div>
     </header>
 
@@ -20,7 +20,8 @@
       <span class="notice-meta">{{ authorName(notice) }} · {{ timeAgo(notice.createdAt) }}</span>
     </article>
 
-    <div v-if="posts.length" class="grid">
+    <div v-if="loading" class="grid" role="status" aria-label="게시글 불러오는 중"><div v-for="i in 3" :key="i" class="post skeleton" /></div>
+    <div v-else-if="posts.length" class="grid">
       <article v-for="p in posts" :key="p.id" class="post" role="link" tabindex="0" @click="$emit('open', p)" @keydown.enter.self="$emit('open', p)">
         <div class="author">
           <ProfileAvatar :src="p.author?.profileImageUrl" :size="36" :alt="`${authorName(p)} 프로필 사진`" />
@@ -29,14 +30,14 @@
             <span>{{ timeAgo(p.createdAt) }}</span>
           </div>
         </div>
-        <h3>{{ p.title }}</h3>
+        <h3><span v-if="p.notice" class="small-notice">공지</span>{{ p.title }}</h3>
         <div class="post-body">
           <p>{{ p.content }}</p>
-          <BandPostAttachment v-if="p.attachment && /^(image|video)\//.test(p.attachment.type)" :attachment="p.attachment" compact />
+          <div v-if="firstVisual(p)" class="thumbnail-wrap"><BandPostAttachment :attachment="firstVisual(p)" compact /><span v-if="attachmentsOf(p).length > 1" class="attachment-count">+{{ attachmentsOf(p).length - 1 }}</span></div>
         </div>
         <footer>
-          <span v-if="p.attachment" class="file" :title="p.attachment.name">📎 {{ p.attachment.name }}</span>
-          <span class="comments">💬 {{ p.commentCount }}</span>
+          <span v-if="attachmentsOf(p).length" class="file"><BoardIcon name="attach" :size="12" />첨부 {{ attachmentsOf(p).length }}</span>
+          <span class="comments"><BoardIcon name="comment" :size="13" />{{ p.commentCount }}</span>
         </footer>
       </article>
     </div>
@@ -47,22 +48,21 @@
 <script setup>
 import ProfileAvatar from '../ProfileAvatar.vue'
 import BandPostAttachment from './BandPostAttachment.vue'
+import BoardIcon from './BoardIcon.vue'
+import { attachmentsOf, postTimeAgo } from '../../constants/bandBoard'
 
 defineProps({
   notice: { type: Object, default: null },
   posts: { type: Array, default: () => [] },
+  total: { type: Number, default: 0 },
+  loading: Boolean,
 })
-defineEmits(['open', 'write', 'list'])
+defineEmits(['open', 'write'])
+const firstVisual = post => attachmentsOf(post).find(file => /^(image|video)\//.test(file.type))
 
 const authorName = (post) => post.author?.nickname || '멤버'
 
-const timeAgo = (date) => {
-  const minutes = Math.max(0, (Date.now() - new Date(date).getTime()) / 60000)
-  if (minutes < 1) return '방금'
-  if (minutes < 60) return `${Math.floor(minutes)}분 전`
-  if (minutes < 60 * 24) return `${Math.floor(minutes / 60)}시간 전`
-  return `${Math.floor(minutes / (60 * 24))}일 전`
-}
+const timeAgo = postTimeAgo
 </script>
 
 <style scoped>
@@ -71,6 +71,7 @@ const timeAgo = (date) => {
 .head-actions { display: flex; gap: 8px; }
 .title { font-weight: 800; font-size: 0.85rem; color: #495057; display: flex; align-items: center; gap: 8px; }
 .write-btn {
+  display: flex; align-items: center; gap: 7px;
   border: 1px solid #2d5bff; background: #fff; color: #2d5bff; border-radius: 10px; padding: 7px 14px;
   font-family: inherit; font-size: 0.78rem; font-weight: 800; cursor: pointer; transition: 0.2s;
 }
@@ -116,7 +117,13 @@ const timeAgo = (date) => {
   font-size: 0.72rem; color: #adb5bd; font-weight: 700;
 }
 .file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #495057; background: #f8f9fa; padding: 3px 8px; border-radius: 6px; }
-.comments { margin-left: auto; flex-shrink: 0; }
+.comments { margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 5px; }
+.file { display: flex; align-items: center; gap: 4px; }
+.post-total { color: #adb5bd; font-size: 11px; font-weight: 600; }
+.thumbnail-wrap { position: relative; flex: none; }
+.attachment-count { position: absolute; right: 5px; bottom: 5px; color: white; background: #17243bbb; padding: 3px 5px; border-radius: 5px; font-size: 10px; font-weight: 700; }
+.small-notice { color: #2d5bff; font-size: 10px; margin-right: 6px; }
+.skeleton { min-height: 180px; background: linear-gradient(110deg, #fff, #f5f7fa, #fff); }
 .empty { text-align: center; color: #adb5bd; font-size: 0.85rem; padding: 32px 0; }
 
 @media (max-width: 900px) {

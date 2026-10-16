@@ -77,7 +77,7 @@ const routes = [
     {
       path: '/bands/:id(\\d+)/community',
       name: 'band-community',
-      component: () => import('../views/band/BandCommunityView.vue'),
+      redirect: to => ({ path: '/home', query: { band: to.params.id, ...(to.query.post ? { post: to.query.post } : {}), ...(to.query.new ? { compose: '1' } : {}), ...(to.query.edit ? { edit: '1' } : {}) } }),
       meta: { requiresCharacter: true }
     },
     {
