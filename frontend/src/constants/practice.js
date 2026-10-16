@@ -21,6 +21,24 @@ export function startOfDay(date = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
 
+// 'YYYY-MM-DD' → 로컬 Date (자정)
+export function parseKey(key) {
+  const [y, m, d] = key.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+// 그 날짜가 들어 있는 주의 월요일
+export function weekStart(date) {
+  const d = startOfDay(date)
+  return addDays(d, -((d.getDay() + 6) % 7))
+}
+
+// 'YYYY-MM-DD' → '10월 16일 금요일'
+export function fullDateLabel(key) {
+  const d = parseKey(key)
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${DOW[d.getDay()]}요일`
+}
+
 // 'YYYY-MM-DD' → '10월 14일 (화)'
 export function dateLabel(key) {
   const [y, m, d] = key.split('-').map(Number)
@@ -52,12 +70,12 @@ export function clock(seconds) {
   return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`
 }
 
-// 초 → '1시간 20분' / '25분' / '40초'
-export function durationText(seconds) {
+// 초 → '1시간 20분' / '25분' / '40초'. withSeconds면 1시간 미만일 때 초까지 ('1분 6초')
+export function durationText(seconds, withSeconds = false) {
   const s = Math.max(0, Math.floor(seconds))
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
   if (h) return m ? `${h}시간 ${m}분` : `${h}시간`
-  if (m) return `${m}분`
+  if (m) return withSeconds && sec ? `${m}분 ${sec}초` : `${m}분`
   return s ? `${s}초` : '0분'
 }
 
