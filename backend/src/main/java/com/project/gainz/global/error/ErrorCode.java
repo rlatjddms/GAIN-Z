@@ -38,7 +38,14 @@ public enum ErrorCode {
     WORKSPACE_ITEM_NOT_FOUND(404, "S002", "보관함에 없는 악보입니다."),
     SHEET_ALREADY_IN_WORKSPACE(409, "S003", "이미 보관함에 담긴 악보입니다."),
     SHEET_EDIT_DENIED(403, "S004", "직접 만든 악보만 고칠 수 있습니다."),
-    WORKSPACE_LIMIT_EXCEEDED(400, "S005", "보관함에는 악보를 최대 200개까지 담을 수 있습니다.");
+    WORKSPACE_LIMIT_EXCEEDED(400, "S005", "보관함에는 악보를 최대 200개까지 담을 수 있습니다."),
+    SHEET_FILE_REQUIRED(400, "S006", "악보 파일을 한 장 이상 올려 주세요."),
+    INVALID_SHEET_FILE(400, "S007", "PNG·JPG·WEBP 이미지나 PDF만 올릴 수 있습니다."),
+    SHEET_FILE_TOO_LARGE(400, "S008", "악보 파일은 한 장에 10MB까지 올릴 수 있습니다."),
+    SHEET_PAGE_LIMIT_EXCEEDED(400, "S009", "악보는 최대 20장까지 올릴 수 있습니다."),
+    SHEET_PAGE_NOT_FOUND(404, "S010", "존재하지 않는 악보 장입니다."),
+    SHEET_LAST_PAGE(400, "S011", "마지막 한 장은 지울 수 없습니다."),
+    SHEET_FILE_STORAGE_FAILED(500, "S012", "악보 파일을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
 
     private final int status;
     private final String code;
