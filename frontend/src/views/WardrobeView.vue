@@ -17,7 +17,9 @@
       <div class="layout">
         <!-- 미리보기: 바꾼 모습이 바로 보인다 -->
         <div class="preview">
-          <CharacterStage v-if="preview" :character="preview" bare />
+          <!-- 무대 가운데(캐릭터 쪽)만 카메라처럼 잘라 보여 준다. 배율은 무대 전체와 같다 -->
+          <CharacterStage v-if="preview" :character="preview" bare :view-width="PREVIEW_VIEW_WIDTH" />
+          <p class="preview-caption">{{ STAGE_NAMES[draft.stageBackground] }} 무대 · {{ clothes.find((o) => o.id === draft.outfitId)?.name || '기본 의상' }}</p>
         </div>
 
         <section class="panel">
@@ -171,6 +173,8 @@ const TABS = [
   { key: 'accessory', label: '악세서리' },
   { key: 'stage', label: '배경' },
 ]
+// 미리보기는 무대(208칸) 중 가운데 96칸만 보여 준다 → 왼쪽 칸에 크게, 한 화면에 들어가게
+const PREVIEW_VIEW_WIDTH = 96
 const STAGE_NAMES = { ROOKIE: '방구석', RISING: '동네 클럽', PRO: '투어 공연장', LEGEND: '전설의 무대' }
 
 const authStore = useAuthStore()
@@ -279,9 +283,19 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .error { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fff5f5; color: #e03131; font-size: 0.8rem; font-weight: 700; }
 
-.layout { display: flex; flex-direction: column; gap: 16px; }
-/* 무대는 가로로 긴 비율(208:72)이라 위에 넓게 두고, 탭은 아래에 */
-.preview { width: 100%; }
+.layout { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
+.preview { display: flex; flex-direction: column; gap: 8px; }
+.preview-caption { margin: 0; text-align: center; font-size: 0.78rem; font-weight: 800; color: #868e96; }
+
+/* 넓은 화면: 옷장 전체가 한 화면에 들어오고, 긴 목록은 오른쪽 칸 안에서만 스크롤 */
+@media (min-width: 861px) {
+  .layout { height: calc(100vh - 250px); min-height: 440px; }
+  .panel { height: 100%; display: flex; flex-direction: column; }
+  .tab-body { flex: 1; min-height: 0; overflow-y: auto; }
+}
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+}
 
 .panel { background: #fff; border: 1px solid #e9ecef; border-radius: 20px; overflow: hidden; }
 .tabs { display: flex; border-bottom: 1px solid #f1f3f5; }

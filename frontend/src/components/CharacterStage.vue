@@ -10,7 +10,7 @@
     </div>
 
     <!-- 배경과 캐릭터는 같은 도트 격자 (홈과 옷장 미리보기가 똑같이 보인다) -->
-    <StageScene :character="character" :stage-key="bgTier.key" @actor-click="!bare && toggleSpeech()">
+    <StageScene :character="character" :stage-key="bgTier.key" :view-width="viewWidth" @actor-click="!bare && toggleSpeech()">
       <template #behind>
         <div v-if="!bare && tier.aura !== 'none'" class="aura" :class="`aura-${tier.aura}`"></div>
       </template>
@@ -49,6 +49,8 @@ const props = defineProps({
   character: { type: Object, default: null },
   // 캐릭터와 배경만 (옷장 미리보기용: 레벨·칭호·경험치 숨김)
   bare: { type: Boolean, default: false },
+  // 무대 중 보여 줄 가로 폭 (무대 도트 기준). 작게 주면 캐릭터 쪽만 카메라처럼 잘라서 보여 준다
+  viewWidth: { type: Number, default: 208 },
 })
 
 const showSpeech = ref(false)
