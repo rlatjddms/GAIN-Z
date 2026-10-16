@@ -36,6 +36,25 @@ const routes = [
       component: () => import('../views/workspace/SheetsView.vue'),
       meta: { requiresCharacter: true }
     },
+    // 악보 쓰기 / 보관함 악보 보기(:id = 보관함 항목) / 내가 쓴 악보 고치기
+    {
+      path: '/sheets/new',
+      name: 'sheet-new',
+      component: () => import('../views/workspace/SheetEditorView.vue'),
+      meta: { requiresCharacter: true }
+    },
+    {
+      path: '/sheets/:id(\\d+)',
+      name: 'sheet-detail',
+      component: () => import('../views/workspace/SheetDetailView.vue'),
+      meta: { requiresCharacter: true }
+    },
+    {
+      path: '/sheets/:id(\\d+)/edit',
+      name: 'sheet-edit',
+      component: () => import('../views/workspace/SheetEditorView.vue'),
+      meta: { requiresCharacter: true }
+    },
     {
       path: '/transcribe',
       name: 'transcribe',
