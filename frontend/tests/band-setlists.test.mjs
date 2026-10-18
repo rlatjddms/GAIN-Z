@@ -7,7 +7,7 @@ import { chromium } from 'playwright'
 
 // 셋리스트 API를 메모리에서 흉내 낸다. 응답 모양은 백엔드 SetlistResponse와 같다.
 function createSetlistApi() {
-  const state = { lists: [], files: new Map(), nextId: 30, failNextSave: false, saves: 0 }
+  const state = { lists: [], files: new Map(), nextId: 30, failNextSave: false, saves: 0, workspaceAdds: 0 }
   const id = () => state.nextId++
   const view = list => ({ id: list.id, title: list.title, favorite: list.favorite, items: list.items.map(item => ({ ...item, attachments: item.attachments.map(a => ({ ...a, url: `/api/v1/bands/10/setlists/${list.id}/items/${item.id}/attachments/${a.id}` })) })) })
   const find = listId => state.lists.find(list => list.id === Number(listId))
@@ -31,7 +31,13 @@ function createSetlistApi() {
   function handle(method, path, request) {
     let m
     if ((m = path.match(/^\/api\/v1\/bands\/10\/setlists\/(\d+)\/items\/(\d+)\/attachments\/(.+)$/))) return { raw: state.files.get(m[3]) }
-    if (path === '/api/v1/bands/10/setlists/practice') return { from: '2026-10-12', to: '2026-10-18', members: [{ memberId: 1, userId: 1, practiceSeconds: 5400, practiceDays: 2, routineTotal: 4, routineCompleted: 3 }, { memberId: 2, userId: 2, practiceSeconds: 0, practiceDays: 0, routineTotal: 0, routineCompleted: 0 }] }
+    // 보관함에 담으면 같은 악보를 쓰는 곡에 보관함 항목 id가 붙는다.
+    if (path === '/api/v1/workspace/sheets' && method === 'POST') {
+      const sheetId = request.postDataJSON().sheetId
+      state.workspaceAdds++
+      state.lists.flatMap(list => list.items).filter(item => item.sheet?.sheetId === sheetId).forEach(item => { item.sheet.workspaceItemId = 71 })
+      return { id: 71, sheetId }
+    }
     if (path === '/api/v1/bands/10/setlists/order') { const ids = request.postDataJSON().ids; state.lists = ids.map(find); return state.lists.map(view) }
     if (path === '/api/v1/bands/10/setlists') {
       if (method === 'POST') { const list = { id: id(), title: request.postDataJSON().title, favorite: false, items: [] }; state.lists.push(list); return view(list) }
@@ -57,7 +63,7 @@ function createSetlistApi() {
   return { state, handle }
 }
 
-test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·연습 현황·삭제 및 반응형 배치', async () => {
+test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 담기·첨부·삭제 및 반응형 배치', async () => {
   const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4181', '--strictPort'], { cwd: fileURLToPath(new URL('../', import.meta.url)), stdio: 'pipe', windowsHide: true })
   let browser
   try {
@@ -89,13 +95,6 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·연�
       await route.fulfill({ headers, contentType: 'application/json', body: JSON.stringify({ success: true, data }) })
     })
     await page.goto('http://127.0.0.1:4181/bands/10/setlists')
-    // 멤버별 이번 주 연습 현황
-    const practice = page.getByRole('region', { name: '이번 주 연습 현황' })
-    await practice.waitFor()
-    assert.match(await practice.textContent(), /10\.12 ~ 10\.18/)
-    assert.match(await practice.locator('li').first().textContent(), /신대방불꽃기타리스트.*1시간 30분.*2일 연습 · 루틴 3\/4/)
-    assert.match(await practice.locator('li').nth(1).textContent(), /0분.*루틴 없음/)
-
     const create = page.getByRole('button', { name: '+ 셋리스트 만들기', exact: true })
     async function createList(title) {
       await create.click()
@@ -183,6 +182,30 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·연�
     assert.match(await songs.first().locator('.read-section').first().textContent(), /연결한 악보가 없어요/)
     await songs.nth(1).getByRole('button', { name: 'Hysteria 보기 →' }).click()
     await page.waitForURL('**/sheets/70')
+    await page.goBack()
+    await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
+    // 다른 멤버가 연결해 내 보관함에 없는 악보는 담을지 묻고, 담은 뒤에는 바로 연다.
+    api.state.lists[0].items[1].sheet = { sheetId: 8, title: 'Starlight', artist: 'Muse', workspaceItemId: null }
+    await page.reload()
+    await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
+    await songs.nth(1).locator('.song-toggle').click()
+    const openStarlight = songs.nth(1).getByRole('button', { name: 'Starlight 보기 →' })
+    await openStarlight.click()
+    const ask = page.getByRole('dialog', { name: '보관함에 저장하시겠습니까?' })
+    await ask.waitFor()
+    await ask.getByRole('button', { name: '아니요', exact: true }).click()
+    await ask.waitFor({ state: 'hidden' })
+    assert.equal(api.state.workspaceAdds, 0)
+    await openStarlight.click()
+    await ask.getByRole('button', { name: '예', exact: true }).click()
+    await page.waitForURL('**/sheets/71')
+    assert.equal(api.state.workspaceAdds, 1)
+    await page.goBack()
+    await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
+    await songs.nth(1).locator('.song-toggle').click()
+    await openStarlight.click()
+    await page.waitForURL('**/sheets/71')
+    assert.equal(api.state.workspaceAdds, 1)
     await page.goBack()
     await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
     // 빈 곡은 저장되지 않으며 다른 곡의 보기 화면은 유지한다.
