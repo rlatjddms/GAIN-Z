@@ -4,11 +4,6 @@
     <p v-else-if="!band" class="muted">셋리스트를 불러오는 중…</p>
     <div v-else class="page">
       <header class="page-head"><h1>BAND SETLIST</h1><p>{{ band.name }} · 함께 준비할 곡과 합주 메모를 모아 보세요.</p></header>
-      <section v-if="practice" class="practice" aria-labelledby="practice-title">
-        <div class="practice-head"><h2 id="practice-title">이번 주 연습 현황</h2><span>{{ weekLabel }}</span></div>
-        <ul class="practice-list"><li v-for="row in practiceRows" :key="row.memberId"><span class="practice-who"><strong>{{ memberName(row.memberId) }}</strong><small>{{ memberPart(row.memberId) }}</small></span><b class="practice-time">{{ formatDuration(row.practiceSeconds) }}</b><span class="practice-meta">{{ row.practiceDays }}일 연습 · 루틴 {{ row.routineTotal ? `${row.routineCompleted}/${row.routineTotal}` : '없음' }}</span></li></ul>
-      </section>
-      <p v-else-if="practiceError" class="notice">이번 주 연습 현황을 불러오지 못했어요.</p>
       <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
       <p v-if="notice" class="status" role="status">{{ notice }}</p>
       <div class="workspace" :inert="busy" :aria-busy="busy">
@@ -56,7 +51,7 @@
                       <label class="memo">합주 메모<textarea v-model="song.memo" rows="2" maxlength="500" placeholder="합주 메모를 적어주세요"></textarea></label>
                     </template>
                     <template v-else>
-                      <div class="read-section"><h4>연결한 악보</h4><template v-if="song.sheetId"><button class="sheet-link" :disabled="busy" @click="openSheet(song)">{{ song.sheetTitle || '악보' }} 보기 →</button><p v-if="!song.workspaceItemId" class="sheet-hint">열면 내 보관함에 함께 담겨요.</p></template><p v-else class="muted">연결한 악보가 없어요.</p></div>
+                      <div class="read-section"><h4>연결한 악보</h4><template v-if="song.sheetId"><button class="sheet-link" :disabled="busy" @click="openSheet(song)">{{ song.sheetTitle || '악보' }} 보기 →</button></template><p v-else class="muted">연결한 악보가 없어요.</p></div>
                       <div class="read-section"><h4>함께 준비할 멤버</h4><div v-if="song.memberIds.length" class="member-options"><span v-for="id in song.memberIds" :key="id" class="member-tag">{{ memberName(id) }}<small>{{ memberPart(id) }}</small></span></div><p v-else class="muted">선택한 멤버가 없어요.</p></div>
                       <div class="read-section"><h4>합주 메모</h4><p class="read-memo" :class="{ muted: !song.memo }">{{ song.memo || '등록된 메모가 없어요.' }}</p></div>
                     </template>
@@ -74,6 +69,7 @@
     </div>
     <Teleport to="body">
       <dialog ref="createDialog" class="setlist-dialog" aria-labelledby="create-title" @click="closeOnBackdrop($event, createDialog)" @close="listTitle = ''"><form @submit.prevent="submitList"><div class="dialog-head"><h2 id="create-title">{{ renaming ? '셋리스트 이름 변경' : '새 셋리스트' }}</h2><button type="button" class="close-btn" aria-label="닫기" @click="createDialog.close()">×</button></div><label>셋리스트 이름<input v-model="listTitle" autofocus required maxlength="80" placeholder="셋리스트 이름을 적어주세요"></label><div class="form-actions"><button type="button" class="btn" @click="createDialog.close()">취소</button><button class="btn primary" :disabled="!listTitle.trim() || busy">{{ renaming ? '저장' : '만들기' }}</button></div></form></dialog>
+      <dialog ref="sheetDialog" class="setlist-dialog sheet-dialog" aria-labelledby="sheet-title" @click="closeOnBackdrop($event, sheetDialog)" @close="sheetSong = null"><h2 id="sheet-title">보관함에 저장하시겠습니까?</h2><p class="delete-description">{{ sheetSong?.sheetTitle || '이 악보' }} 악보를 내 보관함에 담고 열어요. 다음부터는 바로 열려요.</p><div class="form-actions"><button class="btn" autofocus :disabled="busy" @click="sheetDialog.close()">아니요</button><button class="btn primary" :disabled="busy" @click="confirmAddSheet">예</button></div></dialog>
       <dialog ref="deleteDialog" class="setlist-dialog" aria-labelledby="delete-title" @click="closeOnBackdrop($event, deleteDialog)"><h2 id="delete-title">셋리스트 {{ deleteIds.length }}개를 삭제할까요?</h2><p class="delete-description">선택한 셋리스트의 곡 목록과 메모, 첨부파일이 함께 삭제돼요.</p><div class="form-actions"><button class="btn" autofocus :disabled="busy" @click="deleteDialog.close()">취소</button><button class="btn danger" :disabled="busy" @click="deleteLists">삭제</button></div></dialog>
     </Teleport>
   </SubPageLayout>
@@ -87,7 +83,7 @@ import WsCard from '../../components/workspace/WsCard.vue'
 import SmoothReorder from '../../components/band/SmoothReorder.vue'
 import { getBand } from '../../api/band'
 import { BAND_ATTACHMENT_ACCEPT, BAND_ATTACHMENT_MAX_BYTES, BAND_ATTACHMENT_MAX_COUNT, loadBandAttachment } from '../../api/bandBoard'
-import { createSetlist, deleteSetlist, deleteSetlistItem, getSetlistPractice, listSetlists, reorderSetlistItems, reorderSetlists, saveSetlistItem, updateSetlist } from '../../api/setlist'
+import { createSetlist, deleteSetlist, deleteSetlistItem, listSetlists, reorderSetlistItems, reorderSetlists, saveSetlistItem, updateSetlist } from '../../api/setlist'
 import { addToWorkspace, getWorkspace } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
 import { useBandStore } from '../../stores/band'
@@ -101,7 +97,7 @@ const listTitle = ref(''), renaming = ref(false)
 const createDialog = ref(null), deleteDialog = ref(null), deleteIds = ref([])
 const expandedIds = ref([]), favoritesOnly = ref(false), selecting = ref(false), checkedIds = ref([])
 const sheets = ref(null), sheetsLoading = ref(false), sheetsError = ref('')
-const practice = ref(null), practiceError = ref(false)
+const sheetDialog = ref(null), sheetSong = ref(null)
 const urls = new Set()
 let request = 0
 const bandId = () => band.value.id
@@ -123,14 +119,6 @@ const dirty = computed(() => Object.keys(drafts.value).length > 0)
 const partLabel = part => INSTRUMENT_OPTIONS.find(option => option.value === part)?.label || part
 const memberName = id => band.value.members.find(member => member.memberId === id)?.character?.nickname || '탈퇴한 멤버'
 const memberPart = id => partLabel(band.value.members.find(member => member.memberId === id)?.part) || ''
-const practiceRows = computed(() => (practice.value?.members || []).filter(row => band.value.members.some(member => member.memberId === row.memberId)))
-const shortDate = date => date.slice(5).replace('-', '.')
-const weekLabel = computed(() => practice.value ? `${shortDate(practice.value.from)} ~ ${shortDate(practice.value.to)}` : '')
-function formatDuration(seconds) {
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}분`
-  return minutes % 60 ? `${Math.floor(minutes / 60)}시간 ${minutes % 60}분` : `${minutes / 60}시간`
-}
 // 서버 곡 → 화면 곡. 서버에 올라간 첨부는 remote, 새로 고른 파일은 local로 구분한다.
 const toSong = item => ({
   id: item.id, title: item.title, artist: item.artist || '', memo: item.memo || '',
@@ -161,13 +149,35 @@ function linkSheet(song, value) {
   if (sheet && !song.title.trim()) song.title = sheet.title
   if (sheet && !song.artist.trim()) song.artist = sheet.artist || ''
 }
-// 다른 멤버가 연결한 악보는 내 보관함에 담은 뒤 기존 악보 보기 화면으로 연다.
-async function openSheet(song) {
+// 내 보관함에 있는 악보는 바로 열고, 없으면 담을지 먼저 묻는다.
+function openSheet(song) {
   if (song.workspaceItemId) return router.push(`/sheets/${song.workspaceItemId}`)
-  await run(async () => {
-    const item = await addToWorkspace(song.sheetId)
-    router.push(`/sheets/${item.id}`)
-  }, '악보를 열지 못했어요.')
+  sheetSong.value = song
+  sheetDialog.value.showModal()
+}
+// 같은 악보를 쓰는 곡에도 보관함 항목을 기억해 다음부터 바로 연다.
+function rememberWorkspaceItem(sheetId, workspaceItemId) {
+  for (const song of [...lists.value.flatMap(list => list.songs), ...Object.values(drafts.value)]) {
+    if (song.sheetId === sheetId) song.workspaceItemId = workspaceItemId
+  }
+}
+async function confirmAddSheet() {
+  const song = sheetSong.value
+  let itemId = null
+  const ok = await run(async () => {
+    try { itemId = (await addToWorkspace(song.sheetId)).id }
+    catch (e) {
+      // 이미 담겨 있으면 목록을 새로 받아 보관함 항목을 찾는다.
+      if (e?.response?.status !== 409) throw e
+      const saved = (await listSetlists(bandId())).flatMap(list => list.items).find(item => item.sheet?.sheetId === song.sheetId)
+      itemId = saved?.sheet?.workspaceItemId
+      if (!itemId) throw e
+    }
+    rememberWorkspaceItem(song.sheetId, itemId)
+  }, '악보를 보관함에 담지 못했어요.')
+  sheetDialog.value.close()
+  // 저장 중에는 화면 이동이 막히므로 끝난 뒤에 연다.
+  if (ok) router.push(`/sheets/${itemId}`)
 }
 function objectUrl(blob) { const url = URL.createObjectURL(blob); urls.add(url); return url }
 function cleanupUrls() {
@@ -189,8 +199,6 @@ async function loadBand() {
   const token = ++request
   band.value = null
   error.value = ''
-  practice.value = null
-  practiceError.value = false
   try {
     const id = Number(route.params.id)
     const [result, saved] = await Promise.all([getBand(id), listSetlists(id)])
@@ -200,13 +208,7 @@ async function loadBand() {
     band.value = result
     store.upsertBand(result, true)
     store.isBandMode = true
-    loadPractice(token)
   } catch (e) { if (token === request) error.value = apiErrorMessage(e, '셋리스트를 불러오지 못했어요.') }
-}
-// 연습 현황은 실패해도 셋리스트는 그대로 쓸 수 있게 따로 불러온다.
-async function loadPractice(token) {
-  try { const result = await getSetlistPractice(bandId()); if (token === request) practice.value = result }
-  catch { if (token === request) practiceError.value = true }
 }
 async function run(work, fallback = '저장하지 못했어요. 잠시 후 다시 시도해 주세요.') {
   if (busy.value) return false
@@ -327,7 +329,7 @@ function beforeUnload(event) { if (dirty.value || busy.value) { event.preventDef
 onBeforeRouteLeave(() => !busy.value && discardAllowed())
 onBeforeRouteUpdate(() => !busy.value && discardAllowed())
 onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-watch(() => route.params.id, () => { resetEditor(); lists.value = []; selectedId.value = null; cleanupUrls(); checkedIds.value = []; saveError.value = notice.value = ''; createDialog.value?.close(); deleteDialog.value?.close(); loadBand() }, { immediate: true })
+watch(() => route.params.id, () => { resetEditor(); lists.value = []; selectedId.value = null; cleanupUrls(); checkedIds.value = []; saveError.value = notice.value = ''; createDialog.value?.close(); deleteDialog.value?.close(); sheetDialog.value?.close(); loadBand() }, { immediate: true })
 onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', beforeUnload); urls.forEach(url => URL.revokeObjectURL(url)) })
 </script>
 
@@ -385,66 +387,7 @@ textarea { resize:vertical; min-height:64px; }
 select { width:100%; min-width:0; border:1px solid #e9ecef; padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; line-height:1.6; outline:none; }
 select:focus { border-color:#adb5bd; }
 .sheet-link { border:0; background:transparent; padding:0; font-family:inherit; cursor:pointer; text-align:left; color:#2d5bff; font-size:.8rem; font-weight:700; overflow-wrap:anywhere; }
-.sheet-hint { margin:6px 0 0 !important; color:#adb5bd; font-size:.7rem; }
-.practice { padding:16px 18px; border:1px solid #e9ecef; border-radius:16px; background:#fff; }
-.practice-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; }
-.practice-head h2 { margin:0; font-size:.86rem; font-weight:800; color:#343a40; }
-.practice-head span { font-size:.72rem; color:#868e96; }
-.practice-list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px; }
-.practice-list li { display:flex; flex-direction:column; gap:4px; min-width:0; padding:10px 12px; border-radius:12px; background:#f8f9fa; }
-.practice-who { display:flex; align-items:baseline; gap:6px; min-width:0; overflow-wrap:anywhere; }
-.practice-who strong { font-size:.78rem; color:#343a40; }
-.practice-who small { font-size:.66rem; color:#adb5bd; }
-.practice-time { font-size:.95rem; color:#2d5bff; }
-.practice-meta { font-size:.7rem; color:#868e96; }
-.form-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; grid-column:1 / -1; }
-.songs { margin-top:16px; }
-.song-card { border:1px solid #e9ecef; border-radius:12px; background:#fff; }
-.song-editing { border-color:#d3d9e0; }
-.song-actions { display:flex; align-items:center; gap:10px; flex-shrink:0; }
-.song-head { display:flex; align-items:center; gap:10px; padding:12px 14px; }
-.drag-handle { border:0; background:transparent; color:#adb5bd; border-radius:7px; width:26px; height:32px; flex-shrink:0; font-size:22px; cursor:grab; touch-action:none; user-select:none; }
-.drag-handle:active { cursor:grabbing; }
-.list-handle { width:18px; font-size:18px; padding:0; }
-.number { font-size:.8rem; color:#868e96; font-weight:700; }
-.song-toggle { display:flex; flex:1; min-width:0; align-items:center; justify-content:space-between; gap:10px; border:0; background:transparent; text-align:left; font-family:inherit; cursor:pointer; padding:0; color:#343a40; }
-.song-name { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; overflow-wrap:anywhere; }
-.song-name strong { font-size:.86rem; }
-.song-name>span { font-size:.72rem; color:#868e96; }
-.chevron { flex-shrink:0; color:#868e96; transition:transform .2s ease; }
-.chevron.open { transform:rotate(180deg); }
-.song-collapse { display:grid; grid-template-rows:0fr; transition:grid-template-rows .22s ease; }
-.song-collapse.expanded { grid-template-rows:1fr; }
-.collapse-inner { overflow:hidden; min-height:0; }
-.song-body { border-top:1px solid #f1f3f5; padding:16px; display:flex; flex-direction:column; gap:18px; }
-.participants { min-width:0; border:0; margin:0; padding:0; }
-legend,.read-section h4 { padding:0; margin:0 0 10px; font-size:.75rem; font-weight:600; color:#868e96; }
-legend span { margin-left:6px; font-weight:400; }
-.member-options { display:flex; flex-wrap:wrap; gap:7px; }
-.member-option,.member-tag { display:inline-flex; align-items:center; gap:7px; max-width:100%; padding:7px 10px; border:1px solid #e9ecef; border-radius:20px; font-family:inherit; font-size:.74rem; background:#fff; color:#495057; line-height:1.5; overflow-wrap:anywhere; }
-.member-option { cursor:pointer; }
-.member-option.chosen { border-color:#c9d6ff; background:#f0f4ff; color:#365bb8; }
-.member-option small,.member-tag small { color:#adb5bd; font-size:.66rem; }
-.member-tag { background:#f8f9fa; border:0; }
-.read-section p { margin:0; }
-.read-memo { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.8; font-size:.82rem; color:#495057; }
-.attachment-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:.75rem; color:#868e96; }
-.attachment-head small { margin-left:4px; }
-.file-picker { position:relative; overflow:hidden; }
-.file-picker input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
-.file-picker:focus-within { outline:1px solid #adb5bd; }
-.file-hint { font-size:.73rem; color:#adb5bd; line-height:1.6; margin:10px 0 0; }
-.file-list { list-style:none; padding:0; margin:10px 0 0; display:flex; flex-direction:column; gap:6px; }
-.file-list li { display:flex; align-items:center; gap:10px; padding:8px 10px; background:#f8f9fa; border-radius:8px; }
-.file-list a { flex:1; min-width:0; overflow-wrap:anywhere; color:#495057; font-size:.76rem; text-decoration:none; line-height:1.6; }
-.file-list small { color:#adb5bd; margin-left:6px; }
-.remove-file,.close-btn { border:0; background:transparent; color:#868e96; font-size:22px; cursor:pointer; min-width:28px; min-height:28px; }
-.setlist-dialog { width:calc(100% - 32px); max-width:400px; max-height:calc(100dvh - 48px); overflow-y:auto; padding:24px; border:1px solid #e9ecef; border-radius:18px; color:#343a40; font-family:'Pretendard',sans-serif; box-shadow:0 20px 80px #0002; }
-.setlist-dialog::backdrop { background:rgba(20,28,40,.4); }
-.dialog-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }
-.setlist-dialog h2 { font-size:1rem; margin:0; }
-.setlist-dialog .form-actions { margin-top:22px; }
-.delete-description { font-size:.82rem; line-height:1.7; color:#868e96; }
+.sheet-dialog { max-width:340px; }
 @media(max-width:760px) { .workspace { grid-template-columns:1fr; } }
 @media(max-width:480px) { .song-form,.song-fields { grid-template-columns:1fr; } .song-head { padding:12px 10px; gap:7px; } .detail :deep(.actions) { gap:6px; } .song-body { padding:14px; } }
 @media(prefers-reduced-motion:reduce) { .song-collapse,.chevron { transition:none; } }

@@ -23,5 +23,3 @@ export async function saveSetlistItem(bandId, setlistId, itemId, item, files) {
 export const deleteSetlistItem = (bandId, setlistId, itemId) => data(api.delete(`${base(bandId)}/${setlistId}/items/${itemId}`))
 export const reorderSetlistItems = (bandId, setlistId, ids) => data(api.put(`${base(bandId)}/${setlistId}/items/order`, { ids }))
 
-// 멤버별 이번 주 연습 → { from, to, members: [{ memberId, userId, practiceSeconds, practiceDays, routineTotal, routineCompleted }] }
-export const getSetlistPractice = (bandId) => data(api.get(`${base(bandId)}/practice`))
