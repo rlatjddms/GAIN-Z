@@ -85,7 +85,14 @@ public enum ErrorCode {
     SETLIST_ITEM_LIMIT_EXCEEDED(400, "B028", "셋리스트에는 곡을 최대 50곡까지 담을 수 있습니다."),
     INVALID_SETLIST_ORDER(400, "B029", "순서가 지금 목록과 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요."),
     SETLIST_ASSIGNEE_INVALID(400, "B030", "이 밴드에 없는 멤버는 담당자로 고를 수 없습니다."),
-    SETLIST_TITLE_REQUIRED(400, "B031", "셋리스트 이름을 적어 주세요.");
+    SETLIST_TITLE_REQUIRED(400, "B031", "셋리스트 이름을 적어 주세요."),
+    JAM_NOT_FOUND(404, "B032", "잼을 찾을 수 없습니다."),
+    JAM_TRACK_NOT_FOUND(404, "B033", "트랙을 찾을 수 없습니다."),
+    JAM_LIMIT_EXCEEDED(400, "B034", "잼은 밴드마다 50개까지 만들 수 있습니다."),
+    JAM_TRACK_LIMIT_EXCEEDED(400, "B035", "트랙은 잼마다 8개까지 올릴 수 있습니다."),
+    JAM_TRACK_FILE_INVALID(400, "B036", "WebM·OGG·M4A·MP3·WAV 녹음 파일을 30MB까지 올릴 수 있습니다."),
+    JAM_PERMISSION_DENIED(403, "B037", "만든 멤버나 리더만 할 수 있습니다."),
+    JAM_SONG_INVALID(400, "B038", "이 밴드 셋리스트에 없는 곡입니다.");
 
     private final int status;
     private final String code;

@@ -14,11 +14,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Slf4j
 @Component
 public class BandAttachmentStorage {
     public static final long MAX_BYTES = 10L * 1024 * 1024;
+    // 레이어 잼 녹음 트랙 (Opus·AAC 약 25분)
+    public static final long AUDIO_MAX_BYTES = 30L * 1024 * 1024;
     private final Path baseDir;
 
     public record StoredFile(String key, String name, String type) {}
@@ -28,13 +31,22 @@ public class BandAttachmentStorage {
     }
 
     public StoredFile store(MultipartFile file) {
-        if (file == null || file.isEmpty() || file.getSize() > MAX_BYTES) {
-            throw new BusinessException(ErrorCode.BAND_FILE_INVALID);
+        return save(file, MAX_BYTES, BandAttachmentStorage::detectType, ErrorCode.BAND_FILE_INVALID);
+    }
+
+    // 녹음 트랙은 오디오 형식만 받는다
+    public StoredFile storeAudio(MultipartFile file) {
+        return save(file, AUDIO_MAX_BYTES, BandAttachmentStorage::detectAudioType, ErrorCode.JAM_TRACK_FILE_INVALID);
+    }
+
+    private StoredFile save(MultipartFile file, long maxBytes, Function<byte[], String> detector, ErrorCode invalid) {
+        if (file == null || file.isEmpty() || file.getSize() > maxBytes) {
+            throw new BusinessException(invalid);
         }
         try (var input = file.getInputStream()) {
             byte[] head = input.readNBytes(16);
-            String type = detectType(head);
-            if (type == null) throw new BusinessException(ErrorCode.BAND_FILE_INVALID);
+            String type = detector.apply(head);
+            if (type == null) throw new BusinessException(invalid);
             String key = UUID.randomUUID().toString();
             Files.createDirectories(baseDir);
             Path target = resolve(key);
@@ -64,6 +76,21 @@ public class BandAttachmentStorage {
         if (head.length >= 4 && head[0] == 0x1a && head[1] == 0x45 && head[2] == (byte) 0xdf && head[3] == (byte) 0xa3) return "video/webm";
         if (text.startsWith("ID3") || (head.length > 1 && head[0] == (byte) 0xff && (head[1] & 0xe0) == 0xe0)) return "audio/mpeg";
         return null;
+    }
+
+    // 브라우저 녹음(webm·ogg·mp4)과 일반 음원(mp3·wav). WebM·MP4는 영상과 머리가 같아서 오디오로 표시한다
+    static String detectAudioType(byte[] head) {
+        String type = detectType(head);
+        if (type == null) {
+            String text = new String(head, StandardCharsets.ISO_8859_1);
+            return text.startsWith("OggS") ? "audio/ogg" : null;
+        }
+        return switch (type) {
+            case "audio/wav", "audio/mpeg" -> type;
+            case "video/webm" -> "audio/webm";
+            case "video/mp4" -> "audio/mp4";
+            default -> null;
+        };
     }
 
     public Resource load(String key) {
