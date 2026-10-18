@@ -193,6 +193,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     assert.equal(await tracks.count(), 3)
     assert.equal(await take.count(), 0)
     assert.match(await page.locator('.jam-link.active').textContent(), /트랙 3/)
+    assert.match(await page.locator('.jam-link.active small').textContent(), /^🎶 Hysteria$/)
 
     // 내가 올린 트랙을 지운다.
     const uploadedId = api.state.jams[0].tracks[2].id
