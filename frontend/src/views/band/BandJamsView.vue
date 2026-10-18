@@ -628,6 +628,9 @@ button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset
 .record-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
 .record { color:#e03131; border-color:#ffc9c9; }
 .record.on { background:#e03131; border-color:#e03131; color:#fff; }
+/* 공통 .btn 회색 hover 대신 녹음 색을 유지한다 */
+.record:hover:not(:disabled) { background:#fff5f5; }
+.record.on:hover:not(:disabled) { background:#c92a2a; border-color:#c92a2a; }
 .rec-time { font-size:.78rem; color:#e03131; font-weight:700; font-variant-numeric:tabular-nums; }
 .jam-dialog { width:min(420px, calc(100vw - 32px)); border:0; border-radius:16px; padding:22px; font-family:'Pretendard', sans-serif; color:#343a40; }
 .jam-dialog::backdrop { background:rgba(33,37,41,.35); }
