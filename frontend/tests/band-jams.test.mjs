@@ -225,7 +225,10 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.getByRole('status').filter({ hasText: '트랙을 삭제했어요' }).waitFor()
 
     // M·S 뜻을 쉬운 말로 적어 둔다.
-    assert.match(await page.locator('.legend').textContent(), /끄기 · 이 트랙 소리를 꺼요\..*혼자 듣기 · 이 트랙만 들려요\./)
+    assert.match(await page.locator('.legend').textContent(), /M끄기 \(멤버 모두\)S이 트랙만 듣기 \(나만\)/)
+    // 두 설명이 한 줄에 놓인다.
+    const legendTops = await page.locator('.legend li').evaluateAll(items => items.map(item => Math.round(item.getBoundingClientRect().top)))
+    assert.equal(new Set(legendTops).size, 1)
     assert.match(await page.getByRole('button', { name: '랍스타 베이스 솔로' }).getAttribute('title'), /^혼자 듣기/)
 
     // 셋리스트 곡은 입력해야 찾은 곡만 몇 개 보여 준다. 고르면 이름이 채워진다. BPM 범위를 확인한다.
@@ -233,6 +236,9 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     const dialog = page.getByRole('dialog')
     const search = dialog.getByLabel('셋리스트 곡 검색')
     const options = dialog.locator('.song-option')
+    // 입력칸은 다른 화면처럼 굵은 테두리 없이 테두리 색만 바뀐다.
+    await search.focus()
+    assert.deepEqual(await search.evaluate(el => { const c = getComputedStyle(el); return [c.outlineStyle, c.borderTopWidth, c.borderTopColor] }), ['none', '1px', 'rgb(173, 181, 189)'])
     assert.equal(await search.getAttribute('placeholder'), '곡 제목, 아티스트 또는 셋리스트 이름을 입력해 주세요')
     assert.equal(await dialog.getByLabel('잼 이름').getAttribute('placeholder'), '잼 이름을 입력해 주세요')
     await search.fill('MUSE')
@@ -287,6 +293,8 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.setViewportSize({ width: 390, height: 844 })
     await page.waitForTimeout(200)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), '모바일 가로 넘침')
+    const mobileTops = await page.locator('.legend li').evaluateAll(items => items.map(item => Math.round(item.getBoundingClientRect().top)))
+    assert.equal(new Set(mobileTops).size, 1, '모바일에서 M·S 설명이 두 줄로 나뉨')
     await page.screenshot({ path: 'test-results/jams-mobile.png', fullPage: true })
     assert.deepEqual(errors, [])
   } finally {
