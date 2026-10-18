@@ -6,6 +6,8 @@ export const JAM_VOLUME_MAX = 150
 export const JAM_OFFSET_MIN_MS = -10000
 export const JAM_OFFSET_MAX_MS = 600000
 export const LATENCY_MAX_MS = 1000
+// 따로 녹음한 음원 파일 (서버가 파일 머리로 다시 확인한다)
+export const JAM_FILE_ACCEPT = 'audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/ogg,audio/webm,.mp3,.wav,.m4a,.ogg,.oga,.opus,.webm'
 
 // 브라우저가 녹음할 수 있는 형식 중 서버가 받는 순서대로 고른다
 const RECORDING_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']

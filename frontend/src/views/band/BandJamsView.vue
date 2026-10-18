@@ -30,16 +30,26 @@
           <div v-else-if="!jam" class="empty"><div class="empty-icon">🎙️</div><strong>잼을 골라 주세요</strong><p>멤버가 올린 트랙을 들으며 내 파트를 녹음해 쌓을 수 있어요.</p></div>
           <template v-else>
             <p class="jam-meta">{{ jam.bpm }} BPM<template v-if="jam.song"> · 셋리스트 <router-link :to="`/bands/${band.id}/setlists`">{{ jam.song.title }}</router-link></template> · {{ jam.creatorName || '멤버' }}님이 만듦</p>
+            <details class="guide">
+              <summary>레이어 잼은 이렇게 써요</summary>
+              <ol>
+                <li>첫 멤버는 <b>메트로놈</b>(박자마다 울리는 틱 소리)을 들으며 자기 파트를 녹음해 올려요.</li>
+                <li>다음 멤버는 먼저 올라온 트랙을 들으며 녹음하거나, 따로 녹음한 음원 파일을 올려요.</li>
+                <li>트랙마다 볼륨을 맞추고 <b>M</b>(음소거)·<b>S</b>(솔로: 이 트랙만 듣기)으로 골라 들어요.</li>
+                <li>다 쌓이면 <b>합친 음원 내려받기</b>로 한 파일(WAV)로 받아요. 메트로놈 소리는 들어가지 않아요.</li>
+              </ol>
+            </details>
 
             <div class="transport" role="group" aria-label="재생">
               <button class="btn primary play" :disabled="recording || !canPlay" :aria-label="playing ? '정지' : '재생'" @click="togglePlay">{{ playing ? '■ 정지' : '▶ 재생' }}</button>
               <button class="btn" :disabled="recording" aria-label="처음으로" @click="rewind">⏮</button>
               <span class="time" aria-live="off"><b data-testid="position">{{ formatTime(position) }}</b> / {{ formatTime(totalLength) }}</span>
               <input class="seek" type="range" min="0" :max="Math.max(totalLength, 0.1)" step="0.1" :value="position" :disabled="recording || !totalLength" aria-label="재생 위치" @input="seek(Number($event.target.value))">
-              <label class="check"><input v-model="metronomeOn" type="checkbox" @change="restart"> 메트로놈</label>
+              <label class="check" :title="`${jam.bpm} BPM으로 박자마다 틱 소리를 내요. 합친 음원에는 들어가지 않아요.`"><input v-model="metronomeOn" type="checkbox" @change="restart"> 메트로놈</label>
               <button class="btn" :disabled="busy || recording || !mixable" @click="downloadMix">합친 음원 내려받기</button>
             </div>
 
+            <p v-if="tracks.length" class="legend"><span><span class="toggle-chip">M</span> 음소거 (멤버 모두에게 저장)</span><span><span class="toggle-chip solo">S</span> 솔로: 이 트랙만 듣기 (내 화면에서만)</span></p>
             <ul class="tracks" aria-label="트랙">
               <li v-for="track in tracks" :key="track.id" class="track" :class="{ silent: !isAudible(track) }">
                 <div class="track-name">
@@ -49,26 +59,28 @@
                   <small v-else-if="track.status === 'error'" class="track-error">재생할 수 없는 파일이에요</small>
                 </div>
                 <div class="track-controls">
-                  <button class="toggle" :class="{ on: track.muted }" :aria-pressed="track.muted" :aria-label="`${trackLabel(track)} 음소거`" @click="toggleMute(track)">M</button>
-                  <button class="toggle solo" :class="{ on: soloIds.includes(track.id) }" :aria-pressed="soloIds.includes(track.id)" :aria-label="`${trackLabel(track)} 솔로`" @click="toggleSolo(track.id)">S</button>
+                  <button class="toggle" :class="{ on: track.muted }" :aria-pressed="track.muted" :aria-label="`${trackLabel(track)} 음소거`" title="음소거: 이 트랙 소리 끄기" @click="toggleMute(track)">M</button>
+                  <button class="toggle solo" :class="{ on: soloIds.includes(track.id) }" :aria-pressed="soloIds.includes(track.id)" :aria-label="`${trackLabel(track)} 솔로`" title="솔로: 이 트랙만 듣기" @click="toggleSolo(track.id)">S</button>
                   <label class="volume"><span>볼륨 {{ track.volume }}%</span><input type="range" min="0" :max="JAM_VOLUME_MAX" step="1" :value="track.volume" :aria-label="`${trackLabel(track)} 볼륨`" @input="changeVolume(track, Number($event.target.value))" @change="saveTrack(track, { volume: track.volume })"></label>
                   <label class="offset"><span>시작 위치(ms)</span><input type="number" :min="JAM_OFFSET_MIN_MS" :max="JAM_OFFSET_MAX_MS" step="10" :value="track.offsetMs" :disabled="recording" :aria-label="`${trackLabel(track)} 시작 위치`" @change="changeOffset(track, $event.target.value, true)"></label>
                   <button v-if="track.canDelete" class="remove" :disabled="busy || recording" :aria-label="`${trackLabel(track)} 트랙 삭제`" @click="askDelete({ kind: 'track', track })">×</button>
                 </div>
               </li>
               <li v-if="take" class="track take">
-                <div class="track-name"><strong>새 녹음</strong><small>올리기 전 · {{ formatTime(take.buffer.duration) }}</small></div>
+                <div class="track-name"><strong>{{ takeLabel }}</strong><small>올리기 전 · {{ take.file ? `${take.file.name} · ` : '' }}{{ formatTime(take.buffer.duration) }}</small></div>
                 <div class="track-controls">
-                  <label class="volume"><span>볼륨 {{ take.volume }}%</span><input type="range" min="0" :max="JAM_VOLUME_MAX" step="1" :value="take.volume" aria-label="새 녹음 볼륨" @input="changeVolume(take, Number($event.target.value))"></label>
-                  <div class="nudge" role="group" aria-label="새 녹음 시작 위치 미세 조정">
+                  <label class="volume"><span>볼륨 {{ take.volume }}%</span><input type="range" min="0" :max="JAM_VOLUME_MAX" step="1" :value="take.volume" :aria-label="`${takeLabel} 볼륨`" @input="changeVolume(take, Number($event.target.value))"></label>
+                  <div class="nudge" role="group" :aria-label="`${takeLabel} 시작 위치 미세 조정`">
+                    <button class="btn" :disabled="uploading" @click="nudgeTake(-1000)">−1초</button>
                     <button class="btn" :disabled="uploading" @click="nudgeTake(-50)">−50</button>
                     <button class="btn" :disabled="uploading" @click="nudgeTake(-10)">−10</button>
-                    <label class="offset"><span>시작 위치(ms)</span><input type="number" step="10" :value="take.offsetMs" :disabled="uploading" aria-label="새 녹음 시작 위치" @change="changeOffset(take, $event.target.value)"></label>
+                    <label class="offset"><span>시작 위치(ms)</span><input type="number" step="10" :value="take.offsetMs" :disabled="uploading" :aria-label="`${takeLabel} 시작 위치`" @change="changeOffset(take, $event.target.value)"></label>
                     <button class="btn" :disabled="uploading" @click="nudgeTake(10)">+10</button>
                     <button class="btn" :disabled="uploading" @click="nudgeTake(50)">+50</button>
+                    <button class="btn" :disabled="uploading" @click="nudgeTake(1000)">+1초</button>
                   </div>
                 </div>
-                <p class="take-hint">재생해서 다른 트랙과 박자가 맞는지 들어 보고, 어긋나면 시작 위치를 옮겨 주세요. 늦게 들리면 −, 빠르게 들리면 +.</p>
+                <p class="take-hint">{{ take.file ? '파일 처음(0초)이 곡 시작에 놓여 있어요. 파일 앞에 빈 부분이 있으면 −로 당겨 주세요.' : '' }} 재생해서 다른 트랙과 박자가 맞는지 들어 보고, 어긋나면 시작 위치를 옮겨 주세요. 늦게 들리면 −, 빠르게 들리면 +.</p>
                 <div class="take-actions">
                   <span v-if="uploading" class="muted" role="status">올리는 중 {{ uploadProgress }}%</span>
                   <button class="btn" :disabled="uploading" @click="discardTake(true)">버리기</button>
@@ -79,24 +91,34 @@
             </ul>
 
             <section class="recorder" aria-labelledby="recorder-title">
-              <h4 id="recorder-title">내 파트 녹음</h4>
-              <p class="hint">🎧 이어폰을 끼고 녹음하세요. 스피커로 들으면 반주가 함께 녹음돼요.</p>
+              <h4 id="recorder-title">내 파트 올리기</h4>
               <p v-if="trackLimitReached" class="hint">트랙은 잼마다 {{ JAM_MAX_TRACKS }}개까지 쌓을 수 있어요.</p>
-              <button v-if="!micReady" class="btn" :disabled="busy" @click="connectMic">🎙️ 마이크 연결</button>
-              <template v-else>
-                <div class="latency">
-                  <label><span>녹음 지연 보정 <b>{{ latencyMs }}ms</b></span><input type="range" min="0" :max="LATENCY_MAX_MS" step="5" :value="latencyMs" :disabled="recording || measuring" aria-label="녹음 지연 보정" @input="setLatency(Number($event.target.value))"></label>
-                  <small>기기 추정값 {{ latencyEstimate }}ms. 녹음이 늦게 붙으면 값을 키워 주세요.</small>
-                  <button class="btn" :disabled="recording || measuring || busy" @click="measure">{{ measuring ? '측정 중…' : '지연 측정' }}</button>
-                  <small>지연 측정은 스피커로 클릭 6번을 내서 잽니다. 이어폰을 빼고 조용한 곳에서 해 주세요.</small>
+              <div class="add-ways">
+                <div class="way">
+                  <strong>📁 음원 파일 올리기</strong>
+                  <p class="hint">녹음 앱이나 녹음기로 따로 녹음한 MP3·WAV·M4A·OGG·WebM 파일을 30MB까지 올릴 수 있어요.</p>
+                  <label class="btn file-picker" :class="{ disabled: fileDisabled }">파일 고르기<input type="file" :accept="JAM_FILE_ACCEPT" :disabled="fileDisabled" aria-label="음원 파일 고르기" @change="pickFile"></label>
                 </div>
+                <div class="way">
+                  <strong>🎙️ 여기서 바로 녹음</strong>
+                  <p class="hint">🎧 이어폰을 끼고 녹음하세요. 스피커로 들으면 반주가 함께 녹음돼요.</p>
+                  <button v-if="!micReady" class="btn" :disabled="busy" @click="connectMic">마이크 연결</button>
+                  <template v-else>
+                    <div class="latency">
+                      <label><span>녹음 지연 보정 <b>{{ latencyMs }}ms</b></span><input type="range" min="0" :max="LATENCY_MAX_MS" step="5" :value="latencyMs" :disabled="recording || measuring" aria-label="녹음 지연 보정" @input="setLatency(Number($event.target.value))"></label>
+                      <small>소리가 이어폰에 닿고 마이크로 다시 들어오는 데 걸리는 시간만큼 녹음을 앞당겨 붙여요. 기기 추정값 {{ latencyEstimate }}ms. 녹음이 늦게 붙으면 값을 키워 주세요.</small>
+                      <button class="btn" :disabled="recording || measuring || busy" @click="measure">{{ measuring ? '측정 중…' : '지연 측정' }}</button>
+                      <small>스피커로 딱 소리를 6번 내며 녹음해서, 소리를 낸 시각과 녹음된 시각의 차이로 지연을 자동으로 맞춰요. 이어폰을 빼고 조용한 곳에서 해 주세요.</small>
+                    </div>
                 <div class="record-row">
                   <label class="check"><input v-model="countInOn" type="checkbox" :disabled="recording"> 한 마디 카운트인</label>
                   <button v-if="!recording" class="btn record" :disabled="busy || measuring || uploading || trackLimitReached" @click="startRecording">● 녹음 시작</button>
                   <button v-else class="btn record on" @click="stopRecording">■ 녹음 끝내기</button>
                   <span v-if="recording" class="rec-time" role="status">녹음 중 {{ formatTime(position) }}</span>
                 </div>
-              </template>
+                  </template>
+                </div>
+              </div>
             </section>
           </template>
         </WsCard>
@@ -106,12 +128,25 @@
     <dialog ref="formDialog" class="jam-dialog" aria-labelledby="jam-form-title" @close="formError = ''">
       <form method="dialog" novalidate @submit.prevent="saveForm">
         <h3 id="jam-form-title">{{ form.id ? '잼 수정' : '잼 만들기' }}</h3>
-        <label>셋리스트 곡 (선택)
-          <select v-model="form.setlistItemId" @change="pickSong">
-            <option :value="null">연결하지 않음</option>
-            <option v-for="song in songOptions" :key="song.id" :value="song.id">{{ song.label }}</option>
-          </select>
-        </label>
+        <fieldset class="song-picker">
+          <legend>셋리스트 곡 연결 (선택)</legend>
+          <div v-if="form.song" class="picked">
+            <span>🎶 <b>{{ form.song.title }}</b><small v-if="form.song.setlist"> · {{ form.song.setlist }}</small></span>
+            <button type="button" class="text-btn" @click="form.song = null">연결 해제</button>
+          </div>
+          <input v-model="songQuery" type="search" placeholder="곡 제목·아티스트·셋리스트 이름으로 찾기" aria-label="셋리스트 곡 검색">
+          <p v-if="songsLoading" class="muted">곡 목록을 불러오는 중…</p>
+          <p v-else-if="!songGroups.length" class="muted">{{ setlistGroups.length ? '찾는 곡이 없어요.' : '셋리스트에 담긴 곡이 없어요.' }}</p>
+          <div v-else class="song-results" role="group" aria-label="셋리스트 곡 목록">
+            <section v-for="group in songGroups" :key="group.id">
+              <h4>{{ group.title }} <small>{{ group.songs.length }}곡</small></h4>
+              <button v-for="song in group.songs" :key="song.id" type="button" class="song-option" :class="{ chosen: form.song?.setlistItemId === song.id }"
+                      :aria-pressed="form.song?.setlistItemId === song.id" @click="pickSong(song)">
+                <span>{{ song.title }}</span><small v-if="song.artist">{{ song.artist }}</small>
+              </button>
+            </section>
+          </div>
+        </fieldset>
         <label>잼 이름<input v-model="form.title" maxlength="60" placeholder="예) Hysteria 합주" required></label>
         <label>BPM<input v-model.number="form.bpm" type="number" min="40" max="240" required></label>
         <p v-if="formError" class="save-error" role="alert">{{ formError }}</p>
@@ -141,7 +176,7 @@ import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { JamEngine } from '../../audio/JamEngine'
 import {
   JAM_MAX_TRACKS, JAM_OFFSET_MAX_MS, JAM_OFFSET_MIN_MS, JAM_TRACK_MAX_BYTES, JAM_VOLUME_MAX, LATENCY_MAX_MS,
-  audibleTracks, clamp, formatTime, recordedOffsetMs, recordingExtension, timelineLength,
+  JAM_FILE_ACCEPT, audibleTracks, clamp, formatTime, recordedOffsetMs, recordingExtension, timelineLength,
 } from '../../audio/jamAudio'
 
 const LATENCY_KEY = 'gainz.jam.latencyMs'
@@ -154,7 +189,7 @@ const jams = ref([]), selectedId = ref(null), jam = ref(null), jamLoading = ref(
 const playing = ref(false), position = ref(0), metronomeOn = ref(false), countInOn = ref(true)
 const micReady = ref(false), latencyMs = ref(readLatency() ?? 0), latencyEstimate = ref(0), measuring = ref(false)
 const recording = ref(false), take = ref(null), uploading = ref(false), uploadProgress = ref(0)
-const formDialog = ref(null), form = ref({}), formError = ref(''), songOptions = ref([])
+const formDialog = ref(null), form = ref({}), formError = ref(''), setlistGroups = ref([]), songQuery = ref(''), songsLoading = ref(false)
 const deleteDialog = ref(null), deleteTarget = ref(null)
 let session = null, frame = 0, request = 0, jamRequest = 0
 
@@ -169,6 +204,17 @@ const isAudible = track => audibleIds.value.has(track.id)
 const mixable = computed(() => audibleIds.value.size > 0)
 const canPlay = computed(() => mixable.value || metronomeOn.value)
 const trackLimitReached = computed(() => tracks.value.length >= JAM_MAX_TRACKS)
+const fileDisabled = computed(() => busy.value || recording.value || measuring.value || uploading.value || trackLimitReached.value)
+const takeLabel = computed(() => take.value?.file ? '불러온 파일' : '새 녹음')
+// 띄어쓰기·대소문자와 상관없이 곡 제목·아티스트·셋리스트 이름으로 찾는다
+const normalize = text => (text || '').toLowerCase().replace(/\s+/g, '')
+const songGroups = computed(() => {
+  const query = normalize(songQuery.value)
+  if (!query) return setlistGroups.value
+  return setlistGroups.value
+    .map(group => normalize(group.title).includes(query) ? group : { ...group, songs: group.songs.filter(song => normalize(song.title).includes(query) || normalize(song.artist).includes(query)) })
+    .filter(group => group.songs.length)
+})
 
 function readLatency() {
   try { const value = localStorage.getItem(LATENCY_KEY); return value === null ? null : clamp(Number(value) || 0, 0, LATENCY_MAX_MS) } catch { return null }
@@ -364,7 +410,7 @@ async function stopRecording() {
   try {
     const buffer = await engine.decode(await blob.arrayBuffer())
     const offsetMs = clamp(recordedOffsetMs(recordStart, timelineStart, latencyMs.value), JAM_OFFSET_MIN_MS, JAM_OFFSET_MAX_MS)
-    take.value = { id: 'take', blob, buffer, offsetMs, volume: 100, muted: false }
+    take.value = { id: 'take', blob, file: null, buffer, offsetMs, volume: 100, muted: false }
     notice.value = '녹음했어요. 재생해서 들어 보고 트랙을 올려 주세요.'
   } catch { saveError.value = '녹음한 소리를 읽지 못했어요. 다시 녹음해 주세요.' }
 }
@@ -379,6 +425,22 @@ async function finishSession() {
   return blob
 }
 async function cancelRecording() { if (session) await finishSession() }
+// 따로 녹음한 음원은 0초를 곡 시작에 두고, 들어 보며 시작 위치를 맞춘다
+async function pickFile(event) {
+  const file = event.target.files[0]
+  event.target.value = ''
+  if (!file) return
+  if (take.value && !window.confirm('올리지 않은 트랙을 버리고 이 파일로 바꿀까요?')) return
+  saveError.value = notice.value = ''
+  if (file.size > JAM_TRACK_MAX_BYTES) { saveError.value = '음원 파일은 30MB까지 올릴 수 있어요.'; return }
+  stopPlayback()
+  discardTake()
+  try {
+    const buffer = await engine.decode(await file.arrayBuffer())
+    take.value = { id: 'take', blob: file, file, buffer, offsetMs: 0, volume: 100, muted: false }
+    notice.value = '파일을 불러왔어요. 재생해서 다른 트랙과 맞는지 들어 보고 올려 주세요.'
+  } catch { saveError.value = '재생할 수 없는 파일이에요. MP3·WAV·M4A·OGG·WebM 파일을 골라 주세요.' }
+}
 function discardTake(ask = false) {
   if (ask && !window.confirm('녹음을 버릴까요?')) return
   if (take.value && playing.value) stopPlayback()
@@ -393,7 +455,7 @@ async function uploadTake() {
   saveError.value = ''
   const jamId = jam.value.id
   try {
-    const file = new File([current.blob], `layer-jam-${Date.now()}.${recordingExtension(current.blob.type)}`, { type: current.blob.type })
+    const file = current.file || new File([current.blob], `layer-jam-${Date.now()}.${recordingExtension(current.blob.type)}`, { type: current.blob.type })
     const saved = await uploadJamTrack(bandId(), jamId, { offsetMs: current.offsetMs, volume: current.volume, durationMs: Math.round(current.buffer.duration * 1000) }, file, value => { uploadProgress.value = value })
     if (jam.value?.id !== jamId) return
     tracks.value.push({ ...saved, buffer: current.buffer, status: 'ready' })
@@ -407,24 +469,32 @@ async function uploadTake() {
 /* ---------- 잼 만들기·수정·삭제 ---------- */
 
 async function openForm(target) {
-  form.value = target ? { id: target.id, title: target.title, bpm: target.bpm, setlistItemId: target.song?.setlistItemId ?? null } : { id: null, title: '', bpm: 100, setlistItemId: null }
+  form.value = target ? { id: target.id, title: target.title, bpm: target.bpm, song: target.song ? { ...target.song } : null } : { id: null, title: '', bpm: 100, song: null }
   formError.value = ''
+  songQuery.value = ''
   formDialog.value.showModal()
+  songsLoading.value = true
   try {
     const lists = await listSetlists(bandId())
-    songOptions.value = lists.flatMap(list => list.items.map(item => ({ id: item.id, title: item.title, label: `${list.title} · ${item.title}` })))
-  } catch { songOptions.value = [] }
+    setlistGroups.value = lists.filter(list => list.items.length).map(list => ({
+      id: list.id, title: list.title,
+      songs: list.items.map(item => ({ id: item.id, title: item.title, artist: item.artist || '', setlist: list.title })),
+    }))
+    const linked = setlistGroups.value.flatMap(group => group.songs).find(song => song.id === form.value.song?.setlistItemId)
+    if (linked) form.value.song.setlist = linked.setlist
+  } catch { setlistGroups.value = [] }
+  finally { songsLoading.value = false }
 }
-function pickSong() {
-  const song = songOptions.value.find(item => item.id === form.value.setlistItemId)
-  if (song && !form.value.title.trim()) form.value.title = song.title
+function pickSong(song) {
+  form.value.song = { setlistItemId: song.id, title: song.title, setlist: song.setlist }
+  if (!form.value.title.trim()) form.value.title = song.title
 }
 async function saveForm() {
   const title = form.value.title.trim()
   const bpm = Number(form.value.bpm)
   if (!title) { formError.value = '잼 이름을 적어 주세요.'; return }
   if (!Number.isInteger(bpm) || bpm < 40 || bpm > 240) { formError.value = 'BPM은 40에서 240 사이로 적어 주세요.'; return }
-  const payload = { title, bpm, setlistItemId: form.value.setlistItemId }
+  const payload = { title, bpm, setlistItemId: form.value.song?.setlistItemId ?? null }
   const id = form.value.id
   let result = null
   const ok = await run(async () => { result = id ? await updateJam(bandId(), id, payload) : await createJam(bandId(), payload) }, id ? '잼을 저장하지 못했어요.' : '잼을 만들지 못했어요.')
@@ -561,9 +631,36 @@ button:focus-visible,a:focus-visible,input:focus-visible { outline:2px solid #ad
 .jam-dialog label { display:flex; flex-direction:column; gap:6px; font-size:.75rem; color:#868e96; }
 .jam-dialog input,.jam-dialog select { width:100%; border:1px solid #e9ecef; padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; }
 .dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:6px; }
+.guide { margin:0 0 14px; padding:10px 14px; border:1px solid #e9ecef; border-radius:12px; font-size:.76rem; color:#495057; }
+.guide summary { cursor:pointer; font-weight:700; color:#2d5bff; }
+.guide ol { margin:10px 0 2px; padding-left:20px; display:flex; flex-direction:column; gap:6px; line-height:1.6; }
+.legend { margin:12px 0 0; display:flex; align-items:center; flex-wrap:wrap; gap:6px 14px; font-size:.7rem; color:#868e96; }
+.legend > span { display:inline-flex; align-items:center; gap:6px; }
+.toggle-chip { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:#ff6b6b; color:#fff; font-weight:800; font-size:.65rem; }
+.toggle-chip.solo { background:#fab005; }
+.add-ways { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:100%; }
+.way { display:flex; flex-direction:column; align-items:flex-start; gap:8px; min-width:0; padding:14px; border-radius:10px; background:#fff; border:1px solid #e9ecef; }
+.way > strong { font-size:.8rem; color:#343a40; }
+.file-picker { position:relative; overflow:hidden; }
+.file-picker input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.file-picker.disabled { opacity:.4; }
+.file-picker:focus-within { outline:2px solid #adb5bd; outline-offset:2px; }
+.song-picker { margin:0; padding:0; border:0; min-width:0; display:flex; flex-direction:column; gap:8px; }
+.song-picker legend { padding:0; margin-bottom:6px; font-size:.75rem; color:#868e96; }
+.picked { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px; background:#f0f4ff; font-size:.78rem; color:#343a40; }
+.picked small { color:#868e96; }
+.text-btn { border:0; background:transparent; padding:2px 0; font-family:inherit; font-size:.74rem; color:#868e96; cursor:pointer; flex-shrink:0; }
+.song-results { max-height:220px; overflow-y:auto; border:1px solid #e9ecef; border-radius:10px; padding:6px; }
+.song-results h4 { margin:6px 6px 4px; font-size:.7rem; color:#868e96; font-weight:700; }
+.song-results h4 small { font-weight:400; }
+.song-option { width:100%; display:flex; align-items:baseline; gap:8px; padding:8px 10px; border:0; border-radius:8px; background:transparent; font-family:inherit; text-align:left; cursor:pointer; color:#343a40; font-size:.78rem; }
+.song-option small { color:#868e96; font-size:.7rem; }
+.song-option:hover { background:#f8f9fa; }
+.song-option.chosen { background:#f0f4ff; color:#2d5bff; font-weight:700; }
 @media (max-width:760px) {
   .workspace { grid-template-columns:minmax(0,1fr); }
   .track { align-items:flex-start; }
   .volume input { width:100px; }
+  .add-ways { grid-template-columns:minmax(0,1fr); }
 }
 </style>
