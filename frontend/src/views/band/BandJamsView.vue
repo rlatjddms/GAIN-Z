@@ -14,7 +14,7 @@
               <button class="jam-link" :class="{ active: item.id === selectedId }" :aria-pressed="item.id === selectedId" :disabled="recording" @click="selectJam(item.id)">
                 <strong>{{ item.title }}</strong>
                 <span>{{ item.bpm }} BPM · 트랙 {{ item.trackCount }}</span>
-                <small v-if="item.song">🎶 {{ item.song.title }}</small>
+                <small v-if="item.song">셋리스트 · {{ item.song.title }}</small>
               </button>
             </li>
           </ul>
@@ -35,7 +35,7 @@
               <ol>
                 <li>첫 멤버는 <b>메트로놈</b>(박자마다 울리는 틱 소리)을 들으며 자기 파트를 녹음해 올려요.</li>
                 <li>다음 멤버는 먼저 올라온 트랙을 들으며 녹음하거나, 따로 녹음한 음원 파일을 올려요.</li>
-                <li>트랙마다 볼륨을 맞추고, <b>M</b>으로 트랙을 끄거나 <b>S</b>로 그 트랙만 골라 들어요.</li>
+                <li>트랙마다 볼륨을 맞추고, <b>M</b>(뮤트)으로 트랙을 끄거나 <b>S</b>(솔로)로 그 트랙만 골라 들어요.</li>
                 <li>다 쌓이면 <b>합친 음원 내려받기</b>로 한 파일(WAV)로 받아요. 메트로놈 소리는 들어가지 않아요.</li>
               </ol>
             </details>
@@ -50,8 +50,8 @@
             </div>
 
             <ul v-if="tracks.length" class="legend">
-              <li><span class="toggle-chip">M</span>끄기 (멤버 모두)</li>
-              <li><span class="toggle-chip solo">S</span>이 트랙만 듣기 (나만)</li>
+              <li><span class="toggle-chip">M</span>뮤트: 끄기</li>
+              <li><span class="toggle-chip solo">S</span>솔로: 이 트랙만 듣기</li>
             </ul>
             <ul class="tracks" aria-label="트랙">
               <li v-for="track in tracks" :key="track.id" class="track" :class="{ silent: !isAudible(track) }">
@@ -62,8 +62,8 @@
                   <small v-else-if="track.status === 'error'" class="track-error">재생할 수 없는 파일이에요</small>
                 </div>
                 <div class="track-controls">
-                  <button class="toggle" :class="{ on: track.muted }" :aria-pressed="track.muted" :aria-label="`${trackLabel(track)} 음소거`" title="끄기: 이 트랙 소리를 꺼요 (다른 멤버에게도 꺼진 채로 들려요)" @click="toggleMute(track)">M</button>
-                  <button class="toggle solo" :class="{ on: soloIds.includes(track.id) }" :aria-pressed="soloIds.includes(track.id)" :aria-label="`${trackLabel(track)} 솔로`" title="혼자 듣기: 이 트랙만 들려요 (나에게만 적용)" @click="toggleSolo(track.id)">S</button>
+                  <button class="toggle" :class="{ on: track.muted }" :aria-pressed="track.muted" :aria-label="`${trackLabel(track)} 음소거`" title="뮤트: 이 트랙 소리를 꺼요 (다른 멤버에게도 꺼진 채로 들려요)" @click="toggleMute(track)">M</button>
+                  <button class="toggle solo" :class="{ on: soloIds.includes(track.id) }" :aria-pressed="soloIds.includes(track.id)" :aria-label="`${trackLabel(track)} 솔로`" title="솔로: 이 트랙만 들려요 (내 화면에만 적용)" @click="toggleSolo(track.id)">S</button>
                   <label class="volume"><span>볼륨 {{ track.volume }}%</span><input type="range" min="0" :max="JAM_VOLUME_MAX" step="1" :value="track.volume" :aria-label="`${trackLabel(track)} 볼륨`" @input="changeVolume(track, Number($event.target.value))" @change="saveTrack(track, { volume: track.volume })"></label>
                   <label class="offset"><span>시작 위치(ms)</span><input type="number" :min="JAM_OFFSET_MIN_MS" :max="JAM_OFFSET_MAX_MS" step="10" :value="track.offsetMs" :disabled="recording" :aria-label="`${trackLabel(track)} 시작 위치`" @change="changeOffset(track, $event.target.value, true)"></label>
                   <button v-if="track.canDelete" class="remove" :disabled="busy || recording" :aria-label="`${trackLabel(track)} 트랙 삭제`" @click="askDelete({ kind: 'track', track })">×</button>
@@ -134,7 +134,7 @@
         <fieldset class="song-picker">
           <legend>셋리스트 곡 연결 (선택)</legend>
           <div v-if="form.song" class="picked">
-            <span>🎶 <b>{{ form.song.title }}</b><small v-if="form.song.setlist"> · {{ form.song.setlist }}</small></span>
+            <span><b>{{ form.song.title }}</b><small v-if="form.song.setlist"> · {{ form.song.setlist }}</small></span>
             <button type="button" class="text-btn" @click="form.song = null">연결 해제</button>
           </div>
           <template v-else>
