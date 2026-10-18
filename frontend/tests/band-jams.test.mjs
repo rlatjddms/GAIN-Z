@@ -225,11 +225,11 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.getByRole('status').filter({ hasText: '트랙을 삭제했어요' }).waitFor()
 
     // M·S 뜻을 쉬운 말로 적어 둔다.
-    assert.match(await page.locator('.legend').textContent(), /M끄기 \(멤버 모두\)S이 트랙만 듣기 \(나만\)/)
+    assert.match(await page.locator('.legend').textContent(), /M뮤트: 끄기S솔로: 이 트랙만 듣기/)
     // 두 설명이 한 줄에 놓인다.
     const legendTops = await page.locator('.legend li').evaluateAll(items => items.map(item => Math.round(item.getBoundingClientRect().top)))
     assert.equal(new Set(legendTops).size, 1)
-    assert.match(await page.getByRole('button', { name: '랍스타 베이스 솔로' }).getAttribute('title'), /^혼자 듣기/)
+    assert.match(await page.getByRole('button', { name: '랍스타 베이스 솔로' }).getAttribute('title'), /^솔로: /)
 
     // 셋리스트 곡은 입력해야 찾은 곡만 몇 개 보여 준다. 고르면 이름이 채워진다. BPM 범위를 확인한다.
     await page.getByRole('button', { name: '+ 잼 만들기' }).click()
@@ -260,7 +260,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await dialog.getByText('찾는 곡이 없어요.').waitFor()
     await search.fill('hyst')
     await options.filter({ hasText: 'Hysteria' }).click()
-    assert.match(await dialog.locator('.picked').textContent(), /Hysteria · 정기공연/)
+    assert.equal((await dialog.locator('.picked > span').textContent()).trim(), 'Hysteria · 정기공연')
     assert.equal(await search.count(), 0)
     assert.equal(await dialog.getByLabel('잼 이름').inputValue(), 'Hysteria')
     // 연결을 풀었다가 다시 고를 수 있다.
