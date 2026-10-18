@@ -19,7 +19,7 @@ function createJamApi() {
   const state = { nextId: 60, files: new Map(), patches: [], uploads: [], jams: [] }
   const id = () => state.nextId++
   const track = (props, body) => {
-    const t = { id: id(), volume: 100, offsetMs: 0, muted: false, createdAt: '2026-10-18T10:00:00', ...props }
+    const t = { id: id(), volume: 100, offsetMs: 0, createdAt: '2026-10-18T10:00:00', ...props }
     state.files.set(t.id, body)
     return t
   }
@@ -142,18 +142,18 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.waitForTimeout(300)
     assert.equal(await page.getByTestId('position').textContent(), stopped)
 
-    // 볼륨·음소거·시작 위치는 서버에 저장하고, 솔로는 화면에서만 바꾼다.
+    // 볼륨·시작 위치는 서버에 저장하고, 뮤트·솔로는 내 화면에서만 바꾼다.
     await page.getByLabel(`${ME} 일렉기타 볼륨`).evaluate(el => { el.value = '80'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })) })
     await page.getByRole('button', { name: '랍스타 베이스 음소거' }).click()
     await page.getByLabel(`${ME} 일렉기타 시작 위치`).fill('120')
     await page.getByLabel(`${ME} 일렉기타 시작 위치`).press('Tab')
     await page.waitForFunction(() => document.querySelector('.tracks .track.silent'))
     await new Promise(resolve => setTimeout(resolve, 200))
-    assert.deepEqual(api.state.patches, [{ volume: 80 }, { muted: true }, { offsetMs: 120 }])
+    assert.deepEqual(api.state.patches, [{ volume: 80 }, { offsetMs: 120 }])
     assert.equal(await page.getByRole('button', { name: '랍스타 베이스 음소거' }).getAttribute('aria-pressed'), 'true')
     await page.getByRole('button', { name: '랍스타 베이스 음소거' }).click()
     await page.getByRole('button', { name: `${ME} 일렉기타 솔로` }).click()
-    assert.equal(api.state.patches.length, 4)
+    assert.equal(api.state.patches.length, 2)
     assert.equal(await tracks.first().getAttribute('class'), 'track silent')
 
     // 들리는 트랙(솔로한 기타 2초 + 시작 위치 120ms)만 WAV로 합친다.
@@ -225,9 +225,9 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.getByRole('status').filter({ hasText: '트랙을 삭제했어요' }).waitFor()
 
     // M·S 뜻을 쉬운 말로 적어 둔다.
-    assert.match(await page.locator('.legend').textContent(), /M뮤트: 끄기S솔로: 이 트랙만 듣기/)
+    assert.match(await page.locator('.legend').textContent(), /M뮤트: 끄기S솔로: 이 트랙만 듣기둘 다 내 화면에만 적용돼요/)
     // 두 설명이 한 줄에 놓인다.
-    const legendTops = await page.locator('.legend li').evaluateAll(items => items.map(item => Math.round(item.getBoundingClientRect().top)))
+    const legendTops = await page.locator('.legend li:not(.legend-note)').evaluateAll(items => items.map(item => Math.round(item.getBoundingClientRect().top)))
     assert.equal(new Set(legendTops).size, 1)
     assert.match(await page.getByRole('button', { name: '랍스타 베이스 솔로' }).getAttribute('title'), /^솔로: /)
 
@@ -293,7 +293,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.setViewportSize({ width: 390, height: 844 })
     await page.waitForTimeout(200)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), '모바일 가로 넘침')
-    const mobileTops = await page.locator('.legend li').evaluateAll(items => items.map(item => Math.round(item.getBoundingClientRect().top)))
+    const mobileTops = await page.locator('.legend li:not(.legend-note)').evaluateAll(items => items.map(item => Math.round(item.getBoundingClientRect().top)))
     assert.equal(new Set(mobileTops).size, 1, '모바일에서 M·S 설명이 두 줄로 나뉨')
     await page.screenshot({ path: 'test-results/jams-mobile.png', fullPage: true })
     assert.deepEqual(errors, [])
