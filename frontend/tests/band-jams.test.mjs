@@ -198,6 +198,11 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.getByRole('button', { name: '● 녹음 시작' }).click()
     await page.getByRole('status').filter({ hasText: '녹음 중' }).waitFor()
     await page.waitForTimeout(3200)
+    // 마우스를 올려도 녹음 버튼은 회색이 아니라 더 진한 빨간색이 된다.
+    const stopButton = page.getByRole('button', { name: '■ 녹음 끝내기' })
+    await stopButton.hover()
+    await page.waitForTimeout(100)
+    assert.equal(await stopButton.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(201, 42, 42)')
     await page.getByRole('button', { name: '■ 녹음 끝내기' }).click()
     const take = page.locator('.track.take')
     await take.waitFor()
