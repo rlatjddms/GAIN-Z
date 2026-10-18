@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -41,12 +40,6 @@ public class SetlistController {
     public ApiResponse<List<SetlistResponse.Setlist>> reorder(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
                                                               @Valid @RequestBody SetlistRequest.Order request) {
         return ApiResponse.success(service.reorder(me.getUserId(), bandId, request));
-    }
-
-    // 멤버별 이번 주(월~일) 연습 시간과 루틴 달성
-    @GetMapping("/practice")
-    public ApiResponse<SetlistResponse.PracticeWeek> practice(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId) {
-        return ApiResponse.success(service.practice(me.getUserId(), bandId, LocalDate.now()));
     }
 
     @PatchMapping("/{setlistId}")

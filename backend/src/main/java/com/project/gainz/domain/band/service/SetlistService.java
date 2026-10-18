@@ -5,8 +5,6 @@ import com.project.gainz.domain.band.dto.response.BandBoardResponse.Attachment;
 import com.project.gainz.domain.band.dto.response.SetlistResponse;
 import com.project.gainz.domain.band.dto.response.SetlistResponse.Item;
 import com.project.gainz.domain.band.dto.response.SetlistResponse.LinkedSheet;
-import com.project.gainz.domain.band.dto.response.SetlistResponse.MemberPractice;
-import com.project.gainz.domain.band.dto.response.SetlistResponse.PracticeWeek;
 import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.entity.BandPostFile;
 import com.project.gainz.domain.band.entity.Setlist;
@@ -14,10 +12,6 @@ import com.project.gainz.domain.band.entity.SetlistItem;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.SetlistRepository;
 import com.project.gainz.domain.band.service.BandBoardService.AttachmentFile;
-import com.project.gainz.domain.practice.dto.response.RoutineDailySummaryResponse;
-import com.project.gainz.domain.practice.dto.response.UserDailyPracticeTotal;
-import com.project.gainz.domain.practice.repository.PracticeLogRepository;
-import com.project.gainz.domain.practice.service.RoutineService;
 import com.project.gainz.domain.sheet.entity.SheetMusic;
 import com.project.gainz.domain.sheet.entity.UserWorkspace;
 import com.project.gainz.domain.sheet.repository.SheetMusicRepository;
@@ -31,8 +25,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -54,8 +46,6 @@ public class SetlistService {
     private final SetlistRepository setlists;
     private final SheetMusicRepository sheets;
     private final UserWorkspaceRepository workspaces;
-    private final PracticeLogRepository practiceLogs;
-    private final RoutineService routineService;
     private final BandAttachmentStorage storage;
 
     /* ---------- 셋리스트 ---------- */
@@ -159,32 +149,6 @@ public class SetlistService {
         BandPostFile file = item.getFiles().stream().filter(f -> f.getKey().equals(attachmentId)).findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND));
         return new AttachmentFile(storage.load(file.getKey()), file.getName(), file.getType());
-    }
-
-    /* ---------- 멤버별 이번 주 연습 현황 ---------- */
-
-    @Transactional(readOnly = true)
-    public PracticeWeek practice(Long userId, Long bandId, LocalDate today) {
-        requireMember(userId, bandId);
-        LocalDate from = today.with(DayOfWeek.MONDAY);
-        List<BandMember> bandMembers = members.findAllByBandIdOrderByIdAsc(bandId);
-        // 날짜별 합계가 0보다 큰 날만 연습한 날로 센다 (직접 수정한 차이분은 음수일 수 있다)
-        Map<Long, List<Long>> dailyByUser = practiceLogs
-                .findDailyTotalsByUsers(bandMembers.stream().map(m -> m.getUser().getId()).toList(), from, today)
-                .stream().filter(d -> d.seconds() > 0)
-                .collect(Collectors.groupingBy(UserDailyPracticeTotal::userId,
-                        Collectors.mapping(UserDailyPracticeTotal::seconds, Collectors.toList())));
-        List<MemberPractice> result = new ArrayList<>();
-        for (BandMember member : bandMembers) {
-            Long memberUserId = member.getUser().getId();
-            List<Long> days = dailyByUser.getOrDefault(memberUserId, List.of());
-            List<RoutineDailySummaryResponse> routines = routineService.getDailySummary(memberUserId, from, today);
-            result.add(new MemberPractice(member.getId(), memberUserId,
-                    days.stream().mapToLong(Long::longValue).sum(), days.size(),
-                    routines.stream().mapToInt(RoutineDailySummaryResponse::total).sum(),
-                    routines.stream().mapToInt(RoutineDailySummaryResponse::completed).sum()));
-        }
-        return new PracticeWeek(from, from.plusDays(6), result);
     }
 
     /* ---------- 도움 ---------- */
