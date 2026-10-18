@@ -41,11 +41,18 @@ function createJamApi() {
     const text = buffer.toString('latin1')
     const json = JSON.parse(Buffer.from(text.match(/name="track"[^\r]*\r\n(?:[^\r]+\r\n)*\r\n([\s\S]*?)\r\n--/)[1], 'latin1').toString('utf8'))
     const file = text.match(/name="file"; filename="([^"]+)"\r\n(?:[^\r]+\r\n)*\r\n([\s\S]*?)\r\n--/)
-    return { json, name: file[1], body: Buffer.from(file[2], 'latin1') }
+    return { json, name: Buffer.from(file[1], 'latin1').toString('utf8'), body: Buffer.from(file[2], 'latin1') }
   }
   function handle(method, path, request) {
     let m
-    if (path === '/api/v1/bands/10/setlists') return [{ id: 20, title: '정기공연', favorite: false, items: [{ id: 31, title: 'Hysteria', memberIds: [], attachments: [] }] }]
+    if (path === '/api/v1/bands/10/setlists') {
+      const item = (id, title, artist) => ({ id, title, artist, memberIds: [], attachments: [] })
+      return [
+        { id: 20, title: '정기공연', favorite: false, items: [item(31, 'Hysteria', 'Muse'), item(32, 'Creep', 'Radiohead')] },
+        { id: 21, title: '여름 축제', favorite: false, items: [item(33, 'Time Is Running Out', 'Muse')] },
+        { id: 22, title: '빈 셋리스트', favorite: false, items: [] },
+      ]
+    }
     if (path === '/api/v1/bands/10/jams') {
       if (method === 'GET') return state.jams.map(summary)
       const body = request.postDataJSON()
@@ -159,7 +166,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.getByRole('button', { name: `${ME} 일렉기타 솔로` }).click()
 
     // 마이크를 열고 카운트인 뒤 녹음한다. 시작 위치는 반주보다 먼저 시작한 만큼 음수로 잡힌다.
-    await page.getByRole('button', { name: '🎙️ 마이크 연결' }).click()
+    await page.getByRole('button', { name: '마이크 연결', exact: true }).click()
     await page.getByLabel('녹음 지연 보정').evaluate(el => { el.value = '50'; el.dispatchEvent(new Event('input', { bubbles: true })) })
     assert.equal(await page.evaluate(() => localStorage.getItem('gainz.jam.latencyMs')), '50')
     await page.getByRole('button', { name: '● 녹음 시작' }).click()
@@ -194,11 +201,55 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     assert.equal(await tracks.count(), 2)
     assert.ok(!api.state.jams[0].tracks.some(t => t.id === uploadedId))
 
-    // 셋리스트 곡을 고르면 이름이 채워지고, BPM 범위를 확인한다.
+    // 따로 녹음한 음원 파일도 들어 보고 시작 위치를 맞춰 올린다. 재생할 수 없는 파일은 거부한다.
+    const picker = page.getByLabel('음원 파일 고르기')
+    await picker.setInputFiles({ name: 'notes.wav', mimeType: 'audio/wav', buffer: Buffer.from('이건 음원이 아니에요') })
+    await page.getByRole('alert').filter({ hasText: '재생할 수 없는 파일' }).waitFor()
+    assert.equal(await take.count(), 0)
+    await picker.setInputFiles({ name: '베이스 녹음.wav', mimeType: 'audio/wav', buffer: sineWav(1, 330) })
+    await take.waitFor()
+    assert.match(await take.textContent(), /불러온 파일.*베이스 녹음\.wav/)
+    assert.equal(await page.getByLabel('불러온 파일 시작 위치', { exact: true }).inputValue(), '0')
+    await take.getByRole('button', { name: '+1초', exact: true }).click()
+    await take.getByRole('button', { name: '−10', exact: true }).click()
+    await page.getByRole('button', { name: '트랙 올리기' }).click()
+    await page.getByRole('status').filter({ hasText: '트랙을 올렸어요' }).waitFor()
+    const fileUpload = api.state.uploads[1]
+    assert.equal(fileUpload.name, '베이스 녹음.wav')
+    assert.equal(fileUpload.body.toString('latin1', 0, 4), 'RIFF')
+    assert.deepEqual([fileUpload.json.offsetMs, fileUpload.json.durationMs], [990, 1000])
+    assert.equal(await tracks.count(), 3)
+    await page.getByRole('button', { name: `${ME} 일렉기타 트랙 삭제` }).last().click()
+    await page.getByRole('dialog').getByRole('button', { name: '삭제', exact: true }).click()
+    await page.getByRole('status').filter({ hasText: '트랙을 삭제했어요' }).waitFor()
+
+    // M·S 뜻을 화면에 적어 둔다.
+    assert.match(await page.locator('.legend').textContent(), /음소거.*솔로: 이 트랙만 듣기/)
+    assert.equal(await page.getByRole('button', { name: '랍스타 베이스 솔로' }).getAttribute('title'), '솔로: 이 트랙만 듣기')
+
+    // 셋리스트 곡은 제목·아티스트·셋리스트 이름으로 찾아 고르고, 고르면 이름이 채워진다. BPM 범위를 확인한다.
     await page.getByRole('button', { name: '+ 잼 만들기' }).click()
     const dialog = page.getByRole('dialog')
-    await dialog.getByLabel('셋리스트 곡 (선택)').selectOption({ label: '정기공연 · Hysteria' })
+    const search = dialog.getByLabel('셋리스트 곡 검색')
+    const options = dialog.locator('.song-option')
+    await options.first().waitFor()
+    assert.deepEqual(await dialog.locator('.song-results h4').allTextContents(), ['정기공연 2곡', '여름 축제 1곡'])
+    await search.fill('MUSE')
+    assert.deepEqual(await options.locator('span').allTextContents(), ['Hysteria', 'Time Is Running Out'])
+    await search.fill('여름축제')
+    assert.deepEqual(await options.locator('span').allTextContents(), ['Time Is Running Out'])
+    await search.fill('없는 곡')
+    await dialog.getByText('찾는 곡이 없어요.').waitFor()
+    await search.fill('hyst')
+    await options.filter({ hasText: 'Hysteria' }).click()
+    assert.match(await dialog.locator('.picked').textContent(), /Hysteria · 정기공연/)
     assert.equal(await dialog.getByLabel('잼 이름').inputValue(), 'Hysteria')
+    // 연결을 풀었다가 다시 고를 수 있다.
+    await dialog.getByRole('button', { name: '연결 해제' }).click()
+    assert.equal(await dialog.locator('.picked').count(), 0)
+    await options.filter({ hasText: 'Hysteria' }).click()
+    await mkdir('test-results', { recursive: true })
+    await page.screenshot({ path: 'test-results/jams-song-picker.png' })
     await dialog.getByLabel('BPM').fill('300')
     await dialog.getByRole('button', { name: '만들기' }).click()
     await dialog.getByRole('alert').filter({ hasText: 'BPM은 40에서 240' }).waitFor()
