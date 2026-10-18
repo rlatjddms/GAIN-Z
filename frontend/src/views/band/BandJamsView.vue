@@ -29,7 +29,7 @@
           <div v-if="jamLoading" class="muted">잼을 불러오는 중…</div>
           <div v-else-if="!jam" class="empty"><div class="empty-icon">🎙️</div><strong>잼을 골라 주세요</strong><p>멤버가 올린 트랙을 들으며 내 파트를 녹음해 쌓을 수 있어요.</p></div>
           <template v-else>
-            <p class="jam-meta">{{ jam.bpm }} BPM<template v-if="jam.song"> · 셋리스트 <router-link :to="`/bands/${band.id}/setlists`">{{ jam.song.title }}</router-link></template> · {{ jam.creatorName || '멤버' }}님이 만듦</p>
+            <p class="jam-meta">{{ jam.bpm }} BPM<template v-if="jam.song"> · 셋리스트 <router-link :to="`/bands/${band.id}/setlists?item=${jam.song.setlistItemId}`">{{ jam.song.title }}</router-link></template> · {{ jam.creatorName || '멤버' }}님이 만듦</p>
             <details class="guide">
               <summary>레이어 잼은 이렇게 써요</summary>
               <ol>
