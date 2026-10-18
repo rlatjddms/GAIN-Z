@@ -27,8 +27,9 @@ function start(event, id) {
   if (props.disabled || drag.value || event.button !== 0 || !event.isPrimary) return
   event.preventDefault()
   event.currentTarget.focus({ preventScroll: true })
-  const rects = new Map([...root.value.children].map(el => [el.dataset.reorderId, el.getBoundingClientRect()]))
+  // DOM 속성은 문자열이라 숫자 id와 맞지 않으므로 목록 순서대로 원래 id에 붙인다.
   const ids = props.items.map(item => item.id)
+  const rects = new Map([...root.value.children].map((el, index) => [ids[index], el.getBoundingClientRect()]))
   const gap = parseFloat(getComputedStyle(root.value).rowGap) || 0
   drag.value = { id, pointerId: event.pointerId, ids, order: [...ids], rects, gap, firstTop: rects.get(ids[0]).top, startX: event.clientX, startY: event.clientY, scrollY: window.scrollY, dx: 0, dy: 0 }
   pointerY = event.clientY

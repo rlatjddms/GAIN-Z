@@ -1,5 +1,6 @@
 package com.project.gainz.domain.sheet.service;
 
+import com.project.gainz.domain.band.repository.SetlistItemRepository;
 import com.project.gainz.domain.sheet.dto.request.SheetRequest;
 import com.project.gainz.domain.sheet.dto.request.WorkspaceUpdateRequest;
 import com.project.gainz.domain.sheet.dto.response.SheetDetailResponse;
@@ -56,6 +57,7 @@ class SheetServiceTest {
     @Mock private UserWorkspaceRepository userWorkspaceRepository;
     @Mock private UserRepository userRepository;
     @Mock private SheetFileStorage fileStorage;
+    @Mock private SetlistItemRepository setlistItemRepository;
 
     @InjectMocks private SheetService sheetService;
 
@@ -275,6 +277,18 @@ class SheetServiceTest {
     }
 
     @Test
+    void 내_밴드_셋리스트에_연결된_남의_악보는_보고_보관함에_담을_수_있다() {
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(mock(User.class)));
+        SheetMusic others = sheet(10L, user(OTHER_ID), "남의 악보");
+        when(sheetMusicRepository.findById(10L)).thenReturn(Optional.of(others));
+        when(setlistItemRepository.existsLinkedForMember(10L, USER_ID)).thenReturn(true);
+        when(userWorkspaceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThat(sheetService.getSheet(USER_ID, 10L).id()).isEqualTo(10L);
+        assertThat(sheetService.addToWorkspace(USER_ID, 10L).sheetId()).isEqualTo(10L);
+    }
+
+    @Test
     void 다른_악보의_장_번호로는_파일을_받을_수_없다() {
         SheetMusic mine = sheet(10L, user(USER_ID), "곡");
         when(sheetMusicRepository.findById(10L)).thenReturn(Optional.of(mine));
@@ -386,6 +400,21 @@ class SheetServiceTest {
         verify(sheetMusicRepository).delete(mine);
         verify(fileStorage).delete("f1");
         verify(fileStorage).delete("f2");
+    }
+
+    @Test
+    void 셋리스트에_연결된_내_악보는_보관함에서_빼도_악보를_남긴다() {
+        SheetMusic mine = sheet(10L, user(USER_ID), "내 악보");
+        UserWorkspace item = item(1L, mine);
+        when(userWorkspaceRepository.findWithSheetByIdAndUserId(1L, USER_ID)).thenReturn(Optional.of(item));
+        when(userWorkspaceRepository.existsBySheetMusicId(10L)).thenReturn(false);
+        when(setlistItemRepository.existsBySheetMusicId(10L)).thenReturn(true);
+
+        sheetService.removeFromWorkspace(USER_ID, 1L);
+
+        verify(userWorkspaceRepository).delete(item);
+        verify(sheetMusicRepository, never()).delete(any());
+        verify(fileStorage, never()).delete(any());
     }
 
     @Test

@@ -16,6 +16,12 @@ export async function getWorkspaceItem(id) {
   return response.data.data
 }
 
+// 이미 있는 악보(공용 악보, 내 밴드 셋리스트에 연결된 악보)를 보관함에 담기 → 보관함 항목
+export async function addToWorkspace(sheetId) {
+  const response = await axiosInstance.post('/api/v1/workspace/sheets', { sheetId })
+  return response.data.data
+}
+
 // 메모·연습 키·즐겨찾기 중 보낸 것만 수정 (원래 키를 보내면 원래 키로, 빈 메모는 지움)
 export async function updateWorkspaceItem(id, { customKey, personalMemo, isFavorite }) {
   const response = await axiosInstance.patch(`/api/v1/workspace/sheets/${id}`, { customKey, personalMemo, isFavorite })

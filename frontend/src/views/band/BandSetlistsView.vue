@@ -4,7 +4,6 @@
     <p v-else-if="!band" class="muted">셋리스트를 불러오는 중…</p>
     <div v-else class="page">
       <header class="page-head"><h1>BAND SETLIST</h1><p>{{ band.name }} · 함께 준비할 곡과 합주 메모를 모아 보세요.</p></header>
-      <p class="notice">이 브라우저에 저장돼요. 밴드 멤버와의 공유는 아직 지원하지 않아요.</p>
       <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
       <p v-if="notice" class="status" role="status">{{ notice }}</p>
       <div class="workspace" :inert="busy" :aria-busy="busy">
@@ -47,16 +46,16 @@
                   <div class="song-collapse" :class="{ expanded: expandedIds.includes(song.id) }" :inert="!expandedIds.includes(song.id)"><div class="collapse-inner"><div :id="`song-${song.id}`" class="song-body">
                     <template v-if="drafts[song.id]">
                       <div class="song-fields"><label>곡 제목<input v-model="song.title" maxlength="120" placeholder="곡 제목을 적어주세요" @keydown.enter.prevent="saveSong(song)"></label><label>아티스트<input v-model="song.artist" maxlength="120" placeholder="아티스트 이름을 적어주세요" @keydown.enter.prevent="saveSong(song)"></label></div>
-                      <label class="sheet-field">보관함 악보 연결<select :value="song.sheetId ?? ''" :disabled="sheetsLoading" @change="linkSheet(song, $event.target.value)"><option value="">{{ sheetsLoading ? '악보를 불러오는 중…' : sheetsError || '연결하지 않음' }}</option><option v-for="sheet in sheetOptions(song)" :key="sheet.id" :value="sheet.id">{{ sheet.title }}{{ sheet.artist ? ` · ${sheet.artist}` : '' }}</option></select></label>
+                      <label class="sheet-field">보관함 악보 연결<select :value="song.sheetId ?? ''" :disabled="sheetsLoading" @change="linkSheet(song, $event.target.value)"><option value="">{{ sheetsLoading ? '악보를 불러오는 중…' : sheetsError || '연결하지 않음' }}</option><option v-for="sheet in sheetOptions(song)" :key="sheet.id" :value="sheet.sheetId">{{ sheet.title }}{{ sheet.artist ? ` · ${sheet.artist}` : '' }}</option></select></label>
                       <fieldset class="participants"><legend>함께 준비할 멤버 <span>{{ song.memberIds.length }}명</span></legend><div class="member-options"><button v-for="member in band.members" :key="member.memberId" type="button" class="member-option" :class="{ chosen: song.memberIds.includes(member.memberId) }" :aria-pressed="song.memberIds.includes(member.memberId)" @click="toggleMember(song, member.memberId)"><span>{{ member.character?.nickname || '멤버' }}</span><small>{{ partLabel(member.part) }}</small><span v-if="song.memberIds.includes(member.memberId)" aria-hidden="true">✓</span></button></div></fieldset>
                       <label class="memo">합주 메모<textarea v-model="song.memo" rows="2" maxlength="500" placeholder="합주 메모를 적어주세요"></textarea></label>
                     </template>
                     <template v-else>
-                      <div class="read-section"><h4>연결한 악보</h4><router-link v-if="song.sheetId" class="sheet-link" :to="`/sheets/${song.sheetId}`">{{ song.sheetTitle || '악보' }} 보기 →</router-link><p v-else class="muted">연결한 악보가 없어요.</p></div>
+                      <div class="read-section"><h4>연결한 악보</h4><template v-if="song.sheetId"><button class="sheet-link" :disabled="busy" @click="openSheet(song)">{{ song.sheetTitle || '악보' }} 보기 →</button></template><p v-else class="muted">연결한 악보가 없어요.</p></div>
                       <div class="read-section"><h4>함께 준비할 멤버</h4><div v-if="song.memberIds.length" class="member-options"><span v-for="id in song.memberIds" :key="id" class="member-tag">{{ memberName(id) }}<small>{{ memberPart(id) }}</small></span></div><p v-else class="muted">선택한 멤버가 없어요.</p></div>
                       <div class="read-section"><h4>합주 메모</h4><p class="read-memo" :class="{ muted: !song.memo }">{{ song.memo || '등록된 메모가 없어요.' }}</p></div>
                     </template>
-                    <div class="attachments"><div class="attachment-head"><span>첨부파일 <small>{{ song.files.length }}</small></span><label v-if="drafts[song.id]" class="btn file-picker">+ 파일 첨부<input type="file" multiple accept="image/*,video/*,audio/*,.pdf,.musicxml,.mxl,.gp,.gp3,.gp4,.gp5,.gpx,.gpif" :aria-label="`${song.title || '새 곡'} 파일 첨부`" @change="attachFiles(song, $event)"></label></div><p v-if="!song.files.length" class="file-hint">{{ drafts[song.id] ? '악보, 영상, 음원 파일을 첨부할 수 있어요.' : '첨부된 파일이 없어요.' }}</p><ul v-else class="file-list"><li v-for="file in song.files" :key="file.id"><a :href="file.url" :download="file.name">{{ file.name }} <small>{{ formatSize(file.size) }}</small></a><button v-if="drafts[song.id]" class="remove-file" :aria-label="`${file.name} 첨부 해제`" @click="song.files = song.files.filter(item => item.id !== file.id)">×</button></li></ul></div>
+                    <div class="attachments"><div class="attachment-head"><span>첨부파일 <small>{{ song.files.length }}</small></span><label v-if="drafts[song.id]" class="btn file-picker">+ 파일 첨부<input type="file" multiple :accept="BAND_ATTACHMENT_ACCEPT" :aria-label="`${song.title || '새 곡'} 파일 첨부`" @change="attachFiles(song, $event)"></label></div><p v-if="!song.files.length" class="file-hint">{{ drafts[song.id] ? 'PDF 악보, 사진, 영상, 음원을 10MB까지 첨부할 수 있어요.' : '첨부된 파일이 없어요.' }}</p><ul v-else class="file-list"><li v-for="file in song.files" :key="file.id"><a :href="file.local ? file.url : '#'" :download="file.name" @click="openFile($event, file)">{{ file.name }} <small v-if="file.size">{{ formatSize(file.size) }}</small></a><button v-if="drafts[song.id]" class="remove-file" :aria-label="`${file.name} 첨부 해제`" @click="song.files = song.files.filter(item => item.id !== file.id)">×</button></li></ul></div>
                   </div></div></div>
                 </article>
               </template>
@@ -70,6 +69,7 @@
     </div>
     <Teleport to="body">
       <dialog ref="createDialog" class="setlist-dialog" aria-labelledby="create-title" @click="closeOnBackdrop($event, createDialog)" @close="listTitle = ''"><form @submit.prevent="submitList"><div class="dialog-head"><h2 id="create-title">{{ renaming ? '셋리스트 이름 변경' : '새 셋리스트' }}</h2><button type="button" class="close-btn" aria-label="닫기" @click="createDialog.close()">×</button></div><label>셋리스트 이름<input v-model="listTitle" autofocus required maxlength="80" placeholder="셋리스트 이름을 적어주세요"></label><div class="form-actions"><button type="button" class="btn" @click="createDialog.close()">취소</button><button class="btn primary" :disabled="!listTitle.trim() || busy">{{ renaming ? '저장' : '만들기' }}</button></div></form></dialog>
+      <dialog ref="sheetDialog" class="setlist-dialog sheet-dialog" aria-labelledby="sheet-title" @click="closeOnBackdrop($event, sheetDialog)" @close="sheetSong = null"><h2 id="sheet-title">보관함에 저장하시겠습니까?</h2><p class="delete-description">{{ sheetSong?.sheetTitle || '이 악보' }} 악보를 내 보관함에 담고 열어요. 다음부터는 바로 열려요.</p><div class="form-actions"><button class="btn" autofocus :disabled="busy" @click="sheetDialog.close()">아니요</button><button class="btn primary" :disabled="busy" @click="confirmAddSheet">예</button></div></dialog>
       <dialog ref="deleteDialog" class="setlist-dialog" aria-labelledby="delete-title" @click="closeOnBackdrop($event, deleteDialog)"><h2 id="delete-title">셋리스트 {{ deleteIds.length }}개를 삭제할까요?</h2><p class="delete-description">선택한 셋리스트의 곡 목록과 메모, 첨부파일이 함께 삭제돼요.</p><div class="form-actions"><button class="btn" autofocus :disabled="busy" @click="deleteDialog.close()">취소</button><button class="btn danger" :disabled="busy" @click="deleteLists">삭제</button></div></dialog>
     </Teleport>
   </SubPageLayout>
@@ -77,29 +77,30 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 import SmoothReorder from '../../components/band/SmoothReorder.vue'
 import { getBand } from '../../api/band'
-import { readLocalSetlists, writeLocalSetlists } from '../../api/setlistLocal'
-import { getWorkspace } from '../../api/sheet'
+import { BAND_ATTACHMENT_ACCEPT, BAND_ATTACHMENT_MAX_BYTES, BAND_ATTACHMENT_MAX_COUNT, loadBandAttachment } from '../../api/bandBoard'
+import { createSetlist, deleteSetlist, deleteSetlistItem, listSetlists, reorderSetlistItems, reorderSetlists, saveSetlistItem, updateSetlist } from '../../api/setlist'
+import { addToWorkspace, getWorkspace } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
-import { useAuthStore } from '../../stores/auth'
 import { useBandStore } from '../../stores/band'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 const route = useRoute()
+const router = useRouter()
 const store = useBandStore()
-const auth = useAuthStore()
 const band = ref(null), error = ref(''), saveError = ref(''), notice = ref(''), busy = ref(false)
 const lists = ref([]), selectedId = ref(null), drafts = ref({}), songOrder = ref([])
 const listTitle = ref(''), renaming = ref(false)
 const createDialog = ref(null), deleteDialog = ref(null), deleteIds = ref([])
 const expandedIds = ref([]), favoritesOnly = ref(false), selecting = ref(false), checkedIds = ref([])
 const sheets = ref(null), sheetsLoading = ref(false), sheetsError = ref('')
+const sheetDialog = ref(null), sheetSong = ref(null)
 const urls = new Set()
 let request = 0
-let storageKey = ''
+const bandId = () => band.value.id
 const selected = computed(() => lists.value.find(list => list.id === selectedId.value))
 // 저장한 곡에 곡별 초안을 겹쳐 표시해 다른 곡을 저장해도 작성 중인 내용을 유지한다.
 const current = computed(() => {
@@ -109,17 +110,23 @@ const current = computed(() => {
   const byId = new Map(songs.map(song => [song.id, song]))
   return { ...selected.value, songs: [...songOrder.value.filter(id => byId.has(id)).map(id => byId.get(id)), ...songs.filter(song => !songOrder.value.includes(song.id))] }
 })
-const newSongCount = computed(() => Object.keys(drafts.value).filter(id => !selected.value?.songs.some(song => song.id === id)).length)
+const newSongCount = computed(() => Object.values(drafts.value).filter(draft => !selected.value?.songs.some(song => song.id === draft.id)).length)
 const visibleLists = computed(() => lists.value.filter(list => !favoritesOnly.value || list.favorite))
 const allExpanded = computed(() => current.value?.songs.length && current.value.songs.every(song => expandedIds.value.includes(song.id)))
 const cloneSong = song => ({ ...song, memberIds: [...song.memberIds], files: song.files.map(file => ({ ...file })) })
-const serializeSong = song => ({ id: song.id, title: song.title, artist: song.artist, memo: song.memo, sheetId: song.sheetId ?? null, sheetTitle: song.sheetTitle ?? '', memberIds: [...song.memberIds], files: song.files.map(file => ({ id: file.id, name: file.name, size: file.size, blob: file.blob })) })
-const serializable = list => ({ id: list.id, title: list.title, favorite: list.favorite, songs: list.songs.map(serializeSong) })
-const songJson = song => JSON.stringify(serializeSong(song), (key, value) => key === 'blob' ? undefined : value)
+const songJson = song => JSON.stringify([song.title, song.artist, song.memo, song.sheetId, song.memberIds, song.files.map(file => file.id)])
 const dirty = computed(() => Object.keys(drafts.value).length > 0)
 const partLabel = part => INSTRUMENT_OPTIONS.find(option => option.value === part)?.label || part
 const memberName = id => band.value.members.find(member => member.memberId === id)?.character?.nickname || '탈퇴한 멤버'
 const memberPart = id => partLabel(band.value.members.find(member => member.memberId === id)?.part) || ''
+// 서버 곡 → 화면 곡. 서버에 올라간 첨부는 remote, 새로 고른 파일은 local로 구분한다.
+const toSong = item => ({
+  id: item.id, title: item.title, artist: item.artist || '', memo: item.memo || '',
+  sheetId: item.sheet?.sheetId ?? null, sheetTitle: item.sheet?.title || '', workspaceItemId: item.sheet?.workspaceItemId ?? null,
+  memberIds: [...item.memberIds], files: item.attachments.map(file => ({ id: file.id, name: file.name, type: file.type, url: file.url, remote: true })),
+})
+const toList = list => ({ id: list.id, title: list.title, favorite: list.favorite, songs: list.items.map(toSong) })
+function replaceList(result) { lists.value = lists.value.map(list => list.id === result.id ? toList(result) : list) }
 // 보관함 악보는 곡을 처음 편집할 때 한 번만 불러온다.
 async function loadSheets() {
   if (sheets.value || sheetsLoading.value) return
@@ -129,47 +136,86 @@ async function loadSheets() {
   catch { sheetsError.value = '악보를 불러오지 못했어요' }
   finally { sheetsLoading.value = false }
 }
-// 보관함에서 빠진 악보도 이미 연결돼 있으면 선택지에 남긴다.
+// 다른 멤버가 연결해 내 보관함에 없는 악보도 선택지에 남긴다.
 function sheetOptions(song) {
   const options = sheets.value || []
-  return song.sheetId && !options.some(sheet => sheet.id === song.sheetId) ? [{ id: song.sheetId, title: song.sheetTitle || '연결한 악보' }, ...options] : options
+  return song.sheetId && !options.some(sheet => sheet.sheetId === song.sheetId) ? [{ id: `linked-${song.sheetId}`, sheetId: song.sheetId, title: song.sheetTitle || '연결한 악보' }, ...options] : options
 }
 function linkSheet(song, value) {
-  const sheet = sheets.value?.find(item => item.id === Number(value))
-  song.sheetId = sheet ? sheet.id : null
+  const sheet = sheetOptions(song).find(item => item.sheetId === Number(value))
+  song.sheetId = sheet ? sheet.sheetId : null
   song.sheetTitle = sheet ? sheet.title : ''
+  song.workspaceItemId = sheet && typeof sheet.id === 'number' ? sheet.id : null
   if (sheet && !song.title.trim()) song.title = sheet.title
   if (sheet && !song.artist.trim()) song.artist = sheet.artist || ''
 }
+// 내 보관함에 있는 악보는 바로 열고, 없으면 담을지 먼저 묻는다.
+function openSheet(song) {
+  if (song.workspaceItemId) return router.push(`/sheets/${song.workspaceItemId}`)
+  sheetSong.value = song
+  sheetDialog.value.showModal()
+}
+// 같은 악보를 쓰는 곡에도 보관함 항목을 기억해 다음부터 바로 연다.
+function rememberWorkspaceItem(sheetId, workspaceItemId) {
+  for (const song of [...lists.value.flatMap(list => list.songs), ...Object.values(drafts.value)]) {
+    if (song.sheetId === sheetId) song.workspaceItemId = workspaceItemId
+  }
+}
+async function confirmAddSheet() {
+  const song = sheetSong.value
+  let itemId = null
+  const ok = await run(async () => {
+    try { itemId = (await addToWorkspace(song.sheetId)).id }
+    catch (e) {
+      // 이미 담겨 있으면 목록을 새로 받아 보관함 항목을 찾는다.
+      if (e?.response?.status !== 409) throw e
+      const saved = (await listSetlists(bandId())).flatMap(list => list.items).find(item => item.sheet?.sheetId === song.sheetId)
+      itemId = saved?.sheet?.workspaceItemId
+      if (!itemId) throw e
+    }
+    rememberWorkspaceItem(song.sheetId, itemId)
+  }, '악보를 보관함에 담지 못했어요.')
+  sheetDialog.value.close()
+  // 저장 중에는 화면 이동이 막히므로 끝난 뒤에 연다.
+  if (ok) router.push(`/sheets/${itemId}`)
+}
 function objectUrl(blob) { const url = URL.createObjectURL(blob); urls.add(url); return url }
 function cleanupUrls() {
-  const used = new Set([...lists.value.flatMap(list => list.songs), ...Object.values(drafts.value)].flatMap(song => song.files.map(file => file.url)))
+  const used = new Set(Object.values(drafts.value).flatMap(song => song.files.filter(file => file.local).map(file => file.url)))
   for (const url of urls) if (!used.has(url)) { URL.revokeObjectURL(url); urls.delete(url) }
+}
+// 서버 첨부는 로그인 토큰이 필요해서 받아서 저장한다.
+async function openFile(event, file) {
+  if (file.local) return
+  event.preventDefault()
+  try {
+    const url = await loadBandAttachment(`${file.url}?download=true`)
+    const link = Object.assign(document.createElement('a'), { href: url, download: file.name })
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } catch (e) { saveError.value = apiErrorMessage(e, '첨부파일을 받지 못했어요.') }
 }
 async function loadBand() {
   const token = ++request
   band.value = null
   error.value = ''
   try {
-    const [result, profile] = await Promise.all([getBand(Number(route.params.id)), auth.profile ? Promise.resolve(auth.profile) : auth.fetchProfile()])
-    if (!profile?.id) throw new Error('계정 정보를 불러오지 못했어요.')
-    const key = `${profile.id}:${result.id}`
-    const saved = await readLocalSetlists(key)
+    const id = Number(route.params.id)
+    const [result, saved] = await Promise.all([getBand(id), listSetlists(id)])
     if (token !== request) return
-    storageKey = key
-    lists.value = saved.map(list => ({ ...list, songs: list.songs.map(song => ({ ...song, files: song.files.map(file => ({ ...file, url: objectUrl(file.blob) })) })) }))
+    lists.value = saved.map(toList)
     selectedId.value = lists.value[0]?.id ?? null
     band.value = result
     store.upsertBand(result, true)
     store.isBandMode = true
   } catch (e) { if (token === request) error.value = apiErrorMessage(e, '셋리스트를 불러오지 못했어요.') }
 }
-async function persist(next) {
+async function run(work, fallback = '저장하지 못했어요. 잠시 후 다시 시도해 주세요.') {
   if (busy.value) return false
   busy.value = true
   saveError.value = ''
-  try { await writeLocalSetlists(storageKey, next.map(serializable)); lists.value = next; return true }
-  catch { saveError.value = '저장하지 못했어요. 브라우저 저장 공간과 설정을 확인하고 다시 시도해 주세요.'; return false }
+  try { await work(); return true }
+  catch (e) { saveError.value = apiErrorMessage(e, fallback); return false }
   finally { busy.value = false }
 }
 function discardAllowed() { return !dirty.value || window.confirm('저장하지 않은 곡이 있어요. 변경사항을 버릴까요?') }
@@ -177,7 +223,7 @@ function resetEditor() { drafts.value = {}; songOrder.value = []; expandedIds.va
 function selectList(id) { if (id === selectedId.value || busy.value || !discardAllowed()) return; resetEditor(); selectedId.value = id; notice.value = saveError.value = '' }
 function addSong() {
   if (!selected.value || busy.value) return
-  const song = { id: crypto.randomUUID(), title: '', artist: '', memo: '', sheetId: null, sheetTitle: '', memberIds: [], files: [] }
+  const song = { id: crypto.randomUUID(), title: '', artist: '', memo: '', sheetId: null, sheetTitle: '', workspaceItemId: null, memberIds: [], files: [] }
   songOrder.value = [...current.value.songs.map(item => item.id), song.id]
   drafts.value[song.id] = song
   expandedIds.value.push(song.id)
@@ -196,25 +242,35 @@ function cancelSong(id) {
 }
 async function saveSong(song) {
   if (!song.title.trim()) { saveError.value = '곡 제목을 적어주세요.'; return }
-  const savedSong = cloneSong(song)
-  savedSong.title = savedSong.title.trim()
-  savedSong.artist = savedSong.artist.trim()
-  // 이 곡만 저장하고, 다른 곡의 작성 중인 값은 브라우저 저장소에 섞지 않는다.
-  const savedById = new Map(selected.value.songs.map(item => [item.id, item]))
-  savedById.set(song.id, savedSong)
-  const songs = current.value.songs.map(item => savedById.get(item.id)).filter(Boolean)
-  if (await persist(lists.value.map(list => list.id === selectedId.value ? { ...list, songs } : list))) {
+  const setlistId = selectedId.value
+  const isNew = !selected.value.songs.some(item => item.id === song.id)
+  const before = new Set(selected.value.songs.map(item => item.id))
+  const payload = { title: song.title.trim(), artist: song.artist.trim(), memo: song.memo, sheetId: song.sheetId, memberIds: song.memberIds, keepAttachmentIds: song.files.filter(file => file.remote).map(file => file.id) }
+  // 이 곡만 저장하고, 다른 곡의 작성 중인 값은 그대로 둔다.
+  await run(async () => {
+    let result = await saveSetlistItem(bandId(), setlistId, isNew ? null : song.id, payload, song.files.filter(file => file.local).map(file => file.blob))
+    if (isNew) {
+      const created = result.items.find(item => !before.has(item.id))
+      songOrder.value = songOrder.value.map(id => id === song.id ? created.id : id)
+      expandedIds.value = expandedIds.value.map(id => id === song.id ? created.id : id)
+      // 작성하던 자리 그대로 서버 순서를 맞춘다.
+      const savedIds = result.items.map(item => item.id)
+      const desired = [...songOrder.value.filter(id => savedIds.includes(id)), ...savedIds.filter(id => !songOrder.value.includes(id))]
+      if (desired.join() !== savedIds.join()) result = await reorderSetlistItems(bandId(), setlistId, desired)
+    }
     delete drafts.value[song.id]
+    replaceList(result)
     cleanupUrls()
-    notice.value = `${savedSong.title} 곡을 저장했어요.`
-  }
+    notice.value = `${payload.title} 곡을 저장했어요.`
+  })
 }
 async function removeSong(song) {
-  if (await persist(lists.value.map(list => list.id === selectedId.value ? { ...list, songs: list.songs.filter(item => item.id !== song.id) } : list))) {
+  if (!window.confirm(`${song.title} 곡을 삭제할까요?`)) return
+  await run(async () => {
+    replaceList(await deleteSetlistItem(bandId(), selectedId.value, song.id))
     songOrder.value = songOrder.value.filter(id => id !== song.id)
     expandedIds.value = expandedIds.value.filter(id => id !== song.id)
-    cleanupUrls()
-  }
+  }, '곡을 삭제하지 못했어요.')
 }
 function openCreate() { renaming.value = false; listTitle.value = ''; createDialog.value.showModal() }
 function openRename() { renaming.value = true; listTitle.value = selected.value.title; createDialog.value.showModal() }
@@ -224,40 +280,56 @@ function closeOnBackdrop(event, dialog) {
   if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close()
 }
 async function submitList() {
-  if (!listTitle.value.trim()) return
+  const title = listTitle.value.trim()
+  if (!title) return
   if (renaming.value) {
-    if (await persist(lists.value.map(list => list.id === selectedId.value ? { ...list, title: listTitle.value.trim() } : list))) createDialog.value.close()
+    if (await run(async () => replaceList(await updateSetlist(bandId(), selectedId.value, { title })))) createDialog.value.close()
     return
   }
   if (!discardAllowed()) return
-  const list = { id: crypto.randomUUID(), title: listTitle.value.trim(), favorite: false, songs: [] }
-  if (await persist([...lists.value, list])) { resetEditor(); favoritesOnly.value = false; selectedId.value = list.id; createDialog.value.close() }
+  await run(async () => {
+    const list = toList(await createSetlist(bandId(), title))
+    lists.value = [...lists.value, list]
+    resetEditor(); favoritesOnly.value = false; selectedId.value = list.id; createDialog.value.close()
+  })
 }
 function askDelete(ids) { if (busy.value) return; deleteIds.value = [...ids]; deleteDialog.value.showModal() }
 async function deleteLists() {
   if (deleteIds.value.includes(selectedId.value) && !discardAllowed()) return
-  if (await persist(lists.value.filter(list => !deleteIds.value.includes(list.id)))) {
-    if (deleteIds.value.includes(selectedId.value)) { resetEditor(); selectedId.value = lists.value[0]?.id ?? null }
-    checkedIds.value = []; deleteDialog.value.close(); cleanupUrls()
-  }
+  const removed = []
+  await run(async () => { for (const id of deleteIds.value) { await deleteSetlist(bandId(), id); removed.push(id) } }, '셋리스트를 삭제하지 못했어요.')
+  // 일부만 지워졌어도 지운 것은 목록에서 뺀다.
+  lists.value = lists.value.filter(list => !removed.includes(list.id))
+  if (removed.includes(selectedId.value)) { resetEditor(); selectedId.value = lists.value[0]?.id ?? null }
+  checkedIds.value = checkedIds.value.filter(id => !removed.includes(id))
+  if (removed.length === deleteIds.value.length) deleteDialog.value.close()
 }
-async function toggleFavorite(list) { await persist(lists.value.map(item => item.id === list.id ? { ...item, favorite: !item.favorite } : item)) }
-async function reorderLists(ids) { await persist(ids.map(id => lists.value.find(list => list.id === id))) }
+async function toggleFavorite(list) { await run(async () => replaceList(await updateSetlist(bandId(), list.id, { favorite: !list.favorite }))) }
+async function reorderLists(ids) { await run(async () => { lists.value = (await reorderSetlists(bandId(), ids)).map(toList) }, '순서를 바꾸지 못했어요.') }
 async function reorderSongs(ids) {
-  const savedById = new Map(selected.value.songs.map(song => [song.id, song]))
-  const songs = ids.map(id => savedById.get(id)).filter(Boolean)
-  if (await persist(lists.value.map(list => list.id === selectedId.value ? { ...list, songs } : list))) songOrder.value = ids
+  const savedIds = selected.value.songs.map(song => song.id)
+  const next = ids.filter(id => savedIds.includes(id))
+  if (next.join() === savedIds.join()) { songOrder.value = ids; return }
+  if (await run(async () => replaceList(await reorderSetlistItems(bandId(), selectedId.value, next)), '순서를 바꾸지 못했어요.')) songOrder.value = ids
 }
 function toggleSong(id) { expandedIds.value = expandedIds.value.includes(id) ? expandedIds.value.filter(item => item !== id) : [...expandedIds.value, id] }
 function toggleAllSongs() { expandedIds.value = allExpanded.value ? [] : current.value.songs.map(song => song.id) }
 function toggleMember(song, id) { song.memberIds = song.memberIds.includes(id) ? song.memberIds.filter(memberId => memberId !== id) : [...song.memberIds, id] }
-function attachFiles(song, event) { for (const file of event.target.files) song.files.push({ id: crypto.randomUUID(), name: file.name, size: file.size, blob: file, url: objectUrl(file) }); event.target.value = '' }
+function attachFiles(song, event) {
+  saveError.value = ''
+  for (const file of event.target.files) {
+    if (song.files.length >= BAND_ATTACHMENT_MAX_COUNT) { saveError.value = `첨부파일은 곡마다 ${BAND_ATTACHMENT_MAX_COUNT}개까지 올릴 수 있어요.`; break }
+    if (file.size > BAND_ATTACHMENT_MAX_BYTES) { saveError.value = `${file.name}: 10MB까지 첨부할 수 있어요.`; continue }
+    song.files.push({ id: crypto.randomUUID(), name: file.name, size: file.size, blob: file, url: objectUrl(file), local: true })
+  }
+  event.target.value = ''
+}
 const formatSize = size => size < 1024 * 1024 ? `${Math.max(1, Math.round(size / 1024))} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`
 function beforeUnload(event) { if (dirty.value || busy.value) { event.preventDefault(); event.returnValue = '' } }
 onBeforeRouteLeave(() => !busy.value && discardAllowed())
 onBeforeRouteUpdate(() => !busy.value && discardAllowed())
 onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-watch(() => route.params.id, () => { resetEditor(); lists.value = []; selectedId.value = null; cleanupUrls(); checkedIds.value = []; saveError.value = notice.value = ''; createDialog.value?.close(); deleteDialog.value?.close(); loadBand() }, { immediate: true })
+watch(() => route.params.id, () => { resetEditor(); lists.value = []; selectedId.value = null; cleanupUrls(); checkedIds.value = []; saveError.value = notice.value = ''; createDialog.value?.close(); deleteDialog.value?.close(); sheetDialog.value?.close(); loadBand() }, { immediate: true })
 onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', beforeUnload); urls.forEach(url => URL.revokeObjectURL(url)) })
 </script>
 
@@ -314,7 +386,7 @@ textarea { resize:vertical; min-height:64px; }
 .memo,.sheet-field { max-width:480px; }
 select { width:100%; min-width:0; border:1px solid #e9ecef; padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; line-height:1.6; outline:none; }
 select:focus { border-color:#adb5bd; }
-.sheet-link { color:#2d5bff; font-size:.8rem; font-weight:700; text-decoration:none; overflow-wrap:anywhere; }
+.sheet-link { border:0; background:transparent; padding:0; font-family:inherit; cursor:pointer; text-align:left; color:#2d5bff; font-size:.8rem; font-weight:700; overflow-wrap:anywhere; }
 .form-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; grid-column:1 / -1; }
 .songs { margin-top:16px; }
 .song-card { border:1px solid #e9ecef; border-radius:12px; background:#fff; }
@@ -363,6 +435,7 @@ legend span { margin-left:6px; font-weight:400; }
 .setlist-dialog h2 { font-size:1rem; margin:0; }
 .setlist-dialog .form-actions { margin-top:22px; }
 .delete-description { font-size:.82rem; line-height:1.7; color:#868e96; }
+.sheet-dialog { max-width:340px; }
 @media(max-width:760px) { .workspace { grid-template-columns:1fr; } }
 @media(max-width:480px) { .song-form,.song-fields { grid-template-columns:1fr; } .song-head { padding:12px 10px; gap:7px; } .detail :deep(.actions) { gap:6px; } .song-body { padding:14px; } }
 @media(prefers-reduced-motion:reduce) { .song-collapse,.chevron { transition:none; } }

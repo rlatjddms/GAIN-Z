@@ -6,6 +6,7 @@ import com.project.gainz.domain.sheet.dto.response.SheetDetailResponse;
 import com.project.gainz.domain.sheet.dto.response.SheetSummaryResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceDetailResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceItemResponse;
+import com.project.gainz.domain.band.repository.SetlistItemRepository;
 import com.project.gainz.domain.sheet.entity.SheetMusic;
 import com.project.gainz.domain.sheet.entity.SheetPage;
 import com.project.gainz.domain.sheet.entity.UserWorkspace;
@@ -53,6 +54,7 @@ public class SheetService {
     private final UserWorkspaceRepository userWorkspaceRepository;
     private final UserRepository userRepository;
     private final SheetFileStorage fileStorage;
+    private final SetlistItemRepository setlistItemRepository;
 
     /* ---------- 악보 ---------- */
 
@@ -176,12 +178,12 @@ public class SheetService {
         return workspaceDetail(findOwnItem(userId, itemId), userId);
     }
 
-    // 이미 있는 악보(공용 악보 등)를 보관함에 담는다
+    // 이미 있는 악보(공용 악보, 내 밴드 셋리스트에 연결된 악보 등)를 보관함에 담는다
     public WorkspaceItemResponse addToWorkspace(Long userId, Long sheetId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         SheetMusic sheet = sheetMusicRepository.findById(sheetId)
-                .filter(s -> s.isShared() || s.isOwnedBy(userId))
+                .filter(s -> s.isShared() || s.isOwnedBy(userId) || setlistItemRepository.existsLinkedForMember(sheetId, userId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.SHEET_NOT_FOUND));
         if (userWorkspaceRepository.existsByUserIdAndSheetMusicId(userId, sheetId)) {
             throw new BusinessException(ErrorCode.SHEET_ALREADY_IN_WORKSPACE);
@@ -206,13 +208,14 @@ public class SheetService {
         return workspaceDetail(item, userId);
     }
 
-    // 보관함에서 뺀다. 내가 올린 악보이고 다른 사람 보관함에도 없으면 악보와 파일까지 지운다
+    // 보관함에서 뺀다. 내가 올린 악보이고 다른 사람 보관함·셋리스트에도 없으면 악보와 파일까지 지운다
     public void removeFromWorkspace(Long userId, Long itemId) {
         UserWorkspace item = findOwnItem(userId, itemId);
         SheetMusic sheet = item.getSheetMusic();
         userWorkspaceRepository.delete(item);
         userWorkspaceRepository.flush();
-        if (sheet.isOwnedBy(userId) && !userWorkspaceRepository.existsBySheetMusicId(sheet.getId())) {
+        if (sheet.isOwnedBy(userId) && !userWorkspaceRepository.existsBySheetMusicId(sheet.getId())
+                && !setlistItemRepository.existsBySheetMusicId(sheet.getId())) {
             List<SheetPage> pages = sheetPageRepository.findAllBySheetMusicIdOrderByPageNumberAsc(sheet.getId());
             sheetPageRepository.deleteAll(pages);
             tabDataRepository.deleteAllBySheetMusicId(sheet.getId());
@@ -223,11 +226,12 @@ public class SheetService {
 
     /* ---------- 도움 ---------- */
 
-    // 공용 악보, 내가 올린 악보, 내 보관함에 있는 악보만 볼 수 있다 (그 밖에는 없는 악보로 본다)
+    // 공용 악보, 내가 올린 악보, 내 보관함에 있는 악보, 내 밴드 셋리스트에 연결된 악보만 볼 수 있다 (그 밖에는 없는 악보로 본다)
     private SheetMusic findViewableSheet(Long userId, Long sheetId) {
         return sheetMusicRepository.findById(sheetId)
                 .filter(s -> s.isShared() || s.isOwnedBy(userId)
-                        || userWorkspaceRepository.existsByUserIdAndSheetMusicId(userId, sheetId))
+                        || userWorkspaceRepository.existsByUserIdAndSheetMusicId(userId, sheetId)
+                        || setlistItemRepository.existsLinkedForMember(sheetId, userId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.SHEET_NOT_FOUND));
     }
 

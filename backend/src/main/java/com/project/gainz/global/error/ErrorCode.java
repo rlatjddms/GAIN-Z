@@ -78,7 +78,14 @@ public enum ErrorCode {
     BAND_FILE_STORAGE_FAILED(500, "B021", "첨부 파일을 저장하지 못했습니다."),
     BAND_FILE_LIMIT(400, "B022", "첨부 파일은 최대 8개까지 올릴 수 있습니다."),
     BAND_FILE_SELECTION_INVALID(400, "B023", "첨부 목록이 변경되었습니다. 글을 다시 열어 주세요."),
-    BAND_NOTICE_EXPIRY_INVALID(400, "B024", "공지 종료 시각은 현재보다 이후로 설정해 주세요.");
+    BAND_NOTICE_EXPIRY_INVALID(400, "B024", "공지 종료 시각은 현재보다 이후로 설정해 주세요."),
+    SETLIST_NOT_FOUND(404, "B025", "셋리스트가 없습니다."),
+    SETLIST_ITEM_NOT_FOUND(404, "B026", "셋리스트에 없는 곡입니다."),
+    SETLIST_LIMIT_EXCEEDED(400, "B027", "셋리스트는 밴드마다 최대 50개까지 만들 수 있습니다."),
+    SETLIST_ITEM_LIMIT_EXCEEDED(400, "B028", "셋리스트에는 곡을 최대 50곡까지 담을 수 있습니다."),
+    INVALID_SETLIST_ORDER(400, "B029", "순서가 지금 목록과 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요."),
+    SETLIST_ASSIGNEE_INVALID(400, "B030", "이 밴드에 없는 멤버는 담당자로 고를 수 없습니다."),
+    SETLIST_TITLE_REQUIRED(400, "B031", "셋리스트 이름을 적어 주세요.");
 
     private final int status;
     private final String code;

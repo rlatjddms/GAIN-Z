@@ -5,7 +5,65 @@ import { fileURLToPath } from 'node:url'
 import { mkdir } from 'node:fs/promises'
 import { chromium } from 'playwright'
 
-test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·삭제 및 반응형 배치', async () => {
+// 셋리스트 API를 메모리에서 흉내 낸다. 응답 모양은 백엔드 SetlistResponse와 같다.
+function createSetlistApi() {
+  const state = { lists: [], files: new Map(), nextId: 30, failNextSave: false, saves: 0, workspaceAdds: 0 }
+  const id = () => state.nextId++
+  const view = list => ({ id: list.id, title: list.title, favorite: list.favorite, items: list.items.map(item => ({ ...item, attachments: item.attachments.map(a => ({ ...a, url: `/api/v1/bands/10/setlists/${list.id}/items/${item.id}/attachments/${a.id}` })) })) })
+  const find = listId => state.lists.find(list => list.id === Number(listId))
+  // multipart 본문에서 item JSON과 파일 이름·내용만 꺼낸다.
+  function multipart(buffer) {
+    const text = buffer.toString('utf8')
+    const item = JSON.parse(text.match(/name="item"[^\r]*\r\n(?:[^\r]+\r\n)*\r\n([\s\S]*?)\r\n--/)[1])
+    const files = [...text.matchAll(/name="files"; filename="([^"]+)"\r\n(?:[^\r]+\r\n)*\r\n([\s\S]*?)\r\n--/g)].map(m => ({ name: m[1], body: m[2] }))
+    return { item, files }
+  }
+  function saveItem(list, itemId, body) {
+    const { item, files } = multipart(body)
+    let target = itemId ? list.items.find(i => i.id === Number(itemId)) : null
+    if (!target) { target = { id: id(), attachments: [] }; list.items.push(target) }
+    const kept = target.attachments.filter(a => item.keepAttachmentIds.includes(a.id))
+    const added = files.map(file => { const key = `file-${id()}`; state.files.set(key, file.body); return { id: key, name: file.name, type: 'application/pdf' } })
+    const sheet = item.sheetId ? { sheetId: item.sheetId, title: 'Hysteria', artist: 'Muse', workspaceItemId: item.sheetId === 7 ? 70 : null } : null
+    Object.assign(target, { title: item.title, artist: item.artist || null, memo: item.memo || null, sheet, memberIds: item.memberIds, attachments: [...kept, ...added] })
+    return view(list)
+  }
+  function handle(method, path, request) {
+    let m
+    if ((m = path.match(/^\/api\/v1\/bands\/10\/setlists\/(\d+)\/items\/(\d+)\/attachments\/(.+)$/))) return { raw: state.files.get(m[3]) }
+    // 보관함에 담으면 같은 악보를 쓰는 곡에 보관함 항목 id가 붙는다.
+    if (path === '/api/v1/workspace/sheets' && method === 'POST') {
+      const sheetId = request.postDataJSON().sheetId
+      state.workspaceAdds++
+      state.lists.flatMap(list => list.items).filter(item => item.sheet?.sheetId === sheetId).forEach(item => { item.sheet.workspaceItemId = 71 })
+      return { id: 71, sheetId }
+    }
+    if (path === '/api/v1/bands/10/setlists/order') { const ids = request.postDataJSON().ids; state.lists = ids.map(find); return state.lists.map(view) }
+    if (path === '/api/v1/bands/10/setlists') {
+      if (method === 'POST') { const list = { id: id(), title: request.postDataJSON().title, favorite: false, items: [] }; state.lists.push(list); return view(list) }
+      return state.lists.map(view)
+    }
+    if ((m = path.match(/^\/api\/v1\/bands\/10\/setlists\/(\d+)\/items\/order$/))) { const list = find(m[1]); list.items = request.postDataJSON().ids.map(i => list.items.find(item => item.id === i)); return view(list) }
+    if ((m = path.match(/^\/api\/v1\/bands\/10\/setlists\/(\d+)\/items(?:\/(\d+))?$/))) {
+      const list = find(m[1])
+      if (method === 'DELETE') { list.items = list.items.filter(item => item.id !== Number(m[2])); return view(list) }
+      state.saves++
+      if (state.failNextSave) { state.failNextSave = false; return { status: 500, error: '저장하지 못했어요. 잠시 후 다시 시도해 주세요.' } }
+      return saveItem(list, m[2], request.postDataBuffer())
+    }
+    if ((m = path.match(/^\/api\/v1\/bands\/10\/setlists\/(\d+)$/))) {
+      if (method === 'DELETE') { state.lists = state.lists.filter(list => list.id !== Number(m[1])); return null }
+      const list = find(m[1]); const body = request.postDataJSON()
+      if (body.title != null) list.title = body.title
+      if (body.favorite != null) list.favorite = body.favorite
+      return view(list)
+    }
+    return undefined
+  }
+  return { state, handle }
+}
+
+test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 담기·첨부·삭제 및 반응형 배치', async () => {
   const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4181', '--strictPort'], { cwd: fileURLToPath(new URL('../', import.meta.url)), stdio: 'pipe', windowsHide: true })
   let browser
   try {
@@ -15,16 +73,25 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·삭�
       await new Promise(resolve => setTimeout(resolve, 100))
     }
     browser = await chromium.launch({ headless: true })
-    const page = await browser.newPage({ viewport: { width: 1280, height: 960 } })
+    const page = await browser.newPage({ viewport: { width: 1280, height: 960 }, acceptDownloads: true })
     const errors = []
     page.on('pageerror', e => errors.push(e.message))
     await page.addInitScript(() => localStorage.setItem('accessToken', 'test'))
+    const api = createSetlistApi()
     await page.route('http://localhost:8080/**', async route => {
       const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' }
-      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers })
+      const request = route.request()
+      if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers })
       const character = { nickname: '신대방불꽃기타리스트', instrumentType: 'GUITAR', level: 1 }
-      const path = new URL(route.request().url()).pathname
-      const data = path.includes('/workspace/sheets') ? [{ id: 7, title: 'Hysteria', artist: 'Muse' }] : path.includes('/bands/') ? { id: 10, name: '합주 밴드', members: [{ memberId: 1, part: 'BASS', character }, { memberId: 2, part: 'GUITAR', character: { nickname: '랍스타' } }] } : path.includes('/characters/') ? character : { id: 1, name: '테스트' }
+      const path = new URL(request.url()).pathname
+      let data = api.handle(request.method(), path, request)
+      if (data?.raw !== undefined) return route.fulfill({ headers, contentType: 'application/pdf', body: data.raw })
+      if (data?.status) return route.fulfill({ status: data.status, headers, contentType: 'application/json', body: JSON.stringify({ success: false, message: data.error }) })
+      if (data === undefined) {
+        data = path === '/api/v1/workspace/sheets' && request.method() === 'GET' ? [{ id: 70, sheetId: 7, title: 'Hysteria', artist: 'Muse' }]
+          : path.includes('/bands/') ? { id: 10, name: '합주 밴드', members: [{ memberId: 1, part: 'BASS', character }, { memberId: 2, part: 'GUITAR', character: { nickname: '랍스타' } }] }
+          : path.includes('/characters/') ? character : { id: 1, name: '테스트' }
+      }
       await route.fulfill({ headers, contentType: 'application/json', body: JSON.stringify({ success: true, data }) })
     })
     await page.goto('http://127.0.0.1:4181/bands/10/setlists')
@@ -51,14 +118,12 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·삭�
     // 제목은 이미 적었으니 유지하고, 비어 있던 아티스트만 악보에서 채운다.
     assert.equal(await songs.first().getByPlaceholder('곡 제목을 적어주세요').inputValue(), '첫 곡')
     assert.equal(await songs.first().getByPlaceholder('아티스트 이름을 적어주세요').inputValue(), 'Muse')
-    await songs.first().locator('input[type=file]').setInputFiles([{ name: '악보.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF') }, { name: '영상.mp4', mimeType: 'video/mp4', buffer: Buffer.from('preview') }])
+    await songs.first().locator('input[type=file]').setInputFiles([{ name: '악보.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF') }])
     // 첫 곡을 저장해도 다른 곡은 작성 상태로 남아 있어야 한다.
     await addSong('둘째 곡')
     await songs.nth(1).getByPlaceholder('합주 메모를 적어주세요').fill('작성 중인 다른 곡')
-    await page.evaluate(() => {
-      const original = IDBObjectStore.prototype.put
-      IDBObjectStore.prototype.put = function() { IDBObjectStore.prototype.put = original; throw new DOMException('공간 부족', 'QuotaExceededError') }
-    })
+    // 서버 저장이 실패하면 작성 내용을 그대로 둔다.
+    api.state.failNextSave = true
     await songs.first().getByRole('button', { name: '저장', exact: true }).click()
     await page.getByRole('alert').filter({ hasText: '저장하지 못했어요' }).waitFor()
     assert.equal(await songs.first().getByPlaceholder('합주 메모를 적어주세요').inputValue(), '후렴 반복')
@@ -66,27 +131,30 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·삭�
     await songs.first().getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
     assert.equal(await songs.first().locator('input,textarea').count(), 0)
     assert.equal(await songs.first().locator('.read-memo').textContent(), '후렴 반복')
-    assert.equal(await songs.first().getByRole('link', { name: 'Hysteria 보기 →' }).getAttribute('href'), '/sheets/7')
     assert.equal(await songs.nth(1).getByPlaceholder('합주 메모를 적어주세요').inputValue(), '작성 중인 다른 곡')
-    const stored = await page.evaluate(() => new Promise((resolve, reject) => {
-      const open = indexedDB.open('gainz-setlists', 1)
-      open.onsuccess = () => {
-        const db = open.result
-        const get = db.transaction('bands').objectStore('bands').get('1:10')
-        get.onsuccess = () => { resolve(get.result[0].songs.map(song => song.title)); db.close() }
-        get.onerror = reject
-      }
-    }))
-    assert.deepEqual(stored, ['첫 곡'])
+    const saved = api.state.lists[0].items[0]
+    assert.deepEqual([saved.title, saved.artist, saved.memo, saved.sheet.sheetId, saved.memberIds, saved.attachments.map(a => a.name)], ['첫 곡', 'Muse', '후렴 반복', 7, [1], ['악보.pdf']])
+    assert.equal(api.state.lists[0].items.length, 1)
     await songs.nth(1).getByRole('button', { name: '저장', exact: true }).click()
     await songs.nth(1).getByRole('button', { name: '둘째 곡 수정', exact: true }).waitFor()
+    // 수정 취소는 확인 후 서버에 보내지 않는다.
+    const savesBeforeCancel = api.state.saves
     await songs.first().getByRole('button', { name: '첫 곡 수정', exact: true }).click()
     await songs.first().getByPlaceholder('합주 메모를 적어주세요').fill('취소할 메모')
     page.once('dialog', dialog => dialog.accept())
     await songs.first().getByRole('button', { name: '취소', exact: true }).click()
     assert.equal(await songs.first().locator('.read-memo').textContent(), '후렴 반복')
+    assert.equal(api.state.saves, savesBeforeCancel)
+    // 첨부를 남긴 채 메모만 고쳐도 기존 첨부는 유지된다.
+    await songs.first().getByRole('button', { name: '첫 곡 수정', exact: true }).click()
+    await songs.first().getByPlaceholder('합주 메모를 적어주세요').fill('후렴 두 번')
+    await songs.first().getByRole('button', { name: '저장', exact: true }).click()
+    await songs.first().getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
+    assert.deepEqual(api.state.lists[0].items[0].attachments.map(a => a.name), ['악보.pdf'])
     await page.getByRole('button', { name: '모두 접기', exact: true }).click()
+    const idle = () => page.waitForFunction(() => !document.querySelector('.workspace').inert)
     async function dragItem(items, handleName) {
+      await idle()
       const h = await items.first().getByRole('button', { name: handleName, exact: true }).boundingBox()
       const t = await items.nth(1).boundingBox()
       await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2)
@@ -99,13 +167,47 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·삭�
     }
     await dragItem(songs, '첫 곡 순서 변경')
     assert.equal(await songs.first().locator('.song-name strong').textContent(), '둘째 곡')
+    assert.deepEqual(api.state.lists[0].items.map(item => item.title), ['둘째 곡', '첫 곡'])
     await page.reload()
     await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
     assert.equal(await songs.first().locator('.song-name strong').textContent(), '둘째 곡')
     await songs.nth(1).locator('.song-toggle').click()
     assert.match(await songs.nth(1).locator('.member-tag').textContent(), /신대방불꽃/)
-    const bytes = await songs.nth(1).locator('.file-list a').first().evaluate(async el => (await fetch(el.href)).text())
-    assert.equal(bytes, '%PDF')
+    // 서버 첨부는 로그인 요청으로 받아 저장한다.
+    const [download] = await Promise.all([page.waitForEvent('download'), songs.nth(1).locator('.file-list a').first().click()])
+    assert.equal(download.suggestedFilename(), '악보.pdf')
+    // 연결한 악보는 내 보관함 항목의 악보 보기 화면으로 연다.
+    assert.doesNotMatch(await songs.nth(1).locator('.read-section').first().textContent(), /연결한 악보가 없어요/)
+    await songs.first().locator('.song-toggle').click()
+    assert.match(await songs.first().locator('.read-section').first().textContent(), /연결한 악보가 없어요/)
+    await songs.nth(1).getByRole('button', { name: 'Hysteria 보기 →' }).click()
+    await page.waitForURL('**/sheets/70')
+    await page.goBack()
+    await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
+    // 다른 멤버가 연결해 내 보관함에 없는 악보는 담을지 묻고, 담은 뒤에는 바로 연다.
+    api.state.lists[0].items[1].sheet = { sheetId: 8, title: 'Starlight', artist: 'Muse', workspaceItemId: null }
+    await page.reload()
+    await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
+    await songs.nth(1).locator('.song-toggle').click()
+    const openStarlight = songs.nth(1).getByRole('button', { name: 'Starlight 보기 →' })
+    await openStarlight.click()
+    const ask = page.getByRole('dialog', { name: '보관함에 저장하시겠습니까?' })
+    await ask.waitFor()
+    await ask.getByRole('button', { name: '아니요', exact: true }).click()
+    await ask.waitFor({ state: 'hidden' })
+    assert.equal(api.state.workspaceAdds, 0)
+    await openStarlight.click()
+    await ask.getByRole('button', { name: '예', exact: true }).click()
+    await page.waitForURL('**/sheets/71')
+    assert.equal(api.state.workspaceAdds, 1)
+    await page.goBack()
+    await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
+    await songs.nth(1).locator('.song-toggle').click()
+    await openStarlight.click()
+    await page.waitForURL('**/sheets/71')
+    assert.equal(api.state.workspaceAdds, 1)
+    await page.goBack()
+    await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
     // 빈 곡은 저장되지 않으며 다른 곡의 보기 화면은 유지한다.
     await page.getByRole('button', { name: '+ 곡 추가', exact: true }).click()
     await songs.last().getByRole('button', { name: '저장', exact: true }).click()
@@ -120,13 +222,20 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·삭�
     const entries = page.locator('.list-nav > .reorder-item')
     await dragItem(entries, '정기 합주 수정 셋리스트 순서 변경')
     assert.equal(await entries.first().locator('.list-link strong').textContent(), '공연 준비')
+    assert.deepEqual(api.state.lists.map(list => list.title), ['공연 준비', '정기 합주 수정'])
     await page.getByRole('button', { name: '정기 합주 수정 즐겨찾기', exact: true }).click()
     await page.waitForFunction(() => !document.querySelector('.workspace').inert)
+    assert.equal(api.state.lists[1].favorite, true)
     await page.getByRole('button', { name: '☆ 즐겨찾기', exact: true }).click()
     assert.equal(await entries.count(), 1)
     await entries.first().locator('.list-link').click()
     await page.getByRole('button', { name: '★ 즐겨찾기', exact: true }).click()
     await page.getByRole('button', { name: '모두 펼치기', exact: true }).click()
+    // 곡 삭제는 확인한 뒤 서버에서 지운다.
+    page.once('dialog', dialog => dialog.accept())
+    await page.getByRole('button', { name: '둘째 곡 삭제', exact: true }).click()
+    await page.getByRole('button', { name: '둘째 곡 수정', exact: true }).waitFor({ state: 'detached' })
+    assert.deepEqual(api.state.lists[1].items.map(item => item.title), ['첫 곡'])
     await mkdir(new URL('../test-results/', import.meta.url), { recursive: true })
     async function screenshot(name) {
       await page.evaluate(async () => { window.scrollTo(0, 0); await new Promise(requestAnimationFrame); await Promise.all(document.getAnimations().map(animation => animation.finished)) })
@@ -134,6 +243,12 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·삭�
     }
     // 저장된 곡 옆에 작성 중인 곡이 공존하는 화면도 확인한다.
     await addSong('새 합주곡')
+    // 스타일이 빠지면 카드 테두리·멤버 칩·대화상자 모양이 깨지므로 대표 규칙이 적용됐는지 본다.
+    const styles = await page.evaluate(() => {
+      const css = selector => getComputedStyle(document.querySelector(selector))
+      return { card: css('.song-card').borderTopStyle, chip: css('.member-option').borderRadius, dialog: css('.setlist-dialog').borderRadius, head: css('.song-head').display }
+    })
+    assert.deepEqual(styles, { card: 'solid', chip: '20px', dialog: '18px', head: 'flex' })
     await screenshot('setlists-song-edit-desktop')
     for (const width of [375, 760, 1040]) {
       await page.setViewportSize({ width, height: 900 })
@@ -150,7 +265,7 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·첨부·삭�
     await page.getByRole('dialog').getByRole('button', { name: '삭제', exact: true }).click()
     await page.getByRole('dialog').waitFor({ state: 'hidden' })
     assert.equal(await entries.count(), 1)
+    assert.deepEqual(api.state.lists.map(list => list.title), ['공연 준비'])
     assert.deepEqual(errors, [])
-
   } finally { await browser?.close(); server.kill() }
 })
