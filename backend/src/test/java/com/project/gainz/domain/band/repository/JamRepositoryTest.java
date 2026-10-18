@@ -55,7 +55,6 @@ class JamRepositoryTest {
         assertThat(loaded.getSongTitle()).isEqualTo("Hysteria");
         assertThat(loaded.getTracks()).extracting(t -> t.getFile().getKey()).containsExactly("a", "b");
         assertThat(loaded.getTracks().get(0).getOffsetMs()).isEqualTo(-2170);
-        assertThat(loaded.getTracks().get(0).isMuted()).isFalse();
         assertThat(loaded.getCreatedAt()).isNotNull();
         assertThat(jams.countByBandId(band.getId())).isEqualTo(2);
         assertThat(jams.findByIdAndBandId(old.getId(), other.getId())).isEmpty();

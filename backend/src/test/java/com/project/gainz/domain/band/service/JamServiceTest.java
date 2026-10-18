@@ -176,15 +176,13 @@ class JamServiceTest {
         Jam jam = jam(50L, me);
         JamTrack track = track(jam, me);
 
-        JamResponse.Track changed = service.updateTrack(2L, 10L, 50L, track.getId(), new JamRequest.TrackUpdate(80, null, true));
+        JamResponse.Track changed = service.updateTrack(2L, 10L, 50L, track.getId(), new JamRequest.TrackUpdate(80, null));
         assertThat(changed.volume()).isEqualTo(80);
         assertThat(changed.offsetMs()).isZero();
-        assertThat(changed.muted()).isTrue();
         assertThat(changed.canDelete()).isFalse();
-        service.updateTrack(2L, 10L, 50L, track.getId(), new JamRequest.TrackUpdate(null, 120, null));
+        service.updateTrack(2L, 10L, 50L, track.getId(), new JamRequest.TrackUpdate(null, 120));
         assertThat(track.getVolume()).isEqualTo(80);
         assertThat(track.getOffsetMs()).isEqualTo(120);
-        assertThat(track.isMuted()).isTrue();
 
         fails(() -> service.deleteTrack(2L, 10L, 50L, track.getId()), ErrorCode.JAM_PERMISSION_DENIED);
         TransactionSynchronizationManager.initSynchronization();
