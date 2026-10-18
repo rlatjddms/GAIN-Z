@@ -48,10 +48,11 @@ function createJamApi() {
     if (path === '/api/v1/bands/10/setlists') {
       const item = (id, title, artist) => ({ id, title, artist, memberIds: [], attachments: [] })
       return [
+        // 연결 곡이 첫 셋리스트에 있지 않아야 셋리스트 전환을 확인할 수 있다
+        { id: 23, title: '연습용', favorite: false, items: Array.from({ length: 10 }, (_, i) => item(40 + i, `연습곡 ${i + 1}`, null)) },
         { id: 20, title: '정기공연', favorite: false, items: [item(31, 'Hysteria', 'Muse'), item(32, 'Creep', 'Radiohead')] },
         { id: 21, title: '여름 축제', favorite: false, items: [item(33, 'Time Is Running Out', 'Muse')] },
         { id: 22, title: '빈 셋리스트', favorite: false, items: [] },
-        { id: 23, title: '연습용', favorite: false, items: Array.from({ length: 10 }, (_, i) => item(40 + i, `연습곡 ${i + 1}`, null)) },
       ]
     }
     if (path === '/api/v1/bands/10/jams') {
@@ -133,6 +134,30 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     assert.match(await page.locator('.jam-meta').textContent(), /120 BPM · 셋리스트 Hysteria/)
     // 내가 올리지 않은 트랙은 삭제 버튼이 없다.
     assert.equal(await page.getByRole('button', { name: '랍스타 베이스 트랙 삭제' }).count(), 0)
+
+    // 잼의 연결 곡을 누르면 그 곡이 펼쳐진 셋리스트로 가고, 곡 카드에서 다시 잼으로 돌아온다.
+    await page.locator('.jam-meta').getByRole('link', { name: 'Hysteria' }).click()
+    await page.waitForURL(/\/bands\/10\/setlists$/)
+    const songCard = page.locator('#song-card-31')
+    await songCard.waitFor()
+    assert.equal(await page.getByRole('button', { name: '정기공연 2곡', exact: true }).getAttribute('aria-pressed'), 'true')
+    assert.equal(await songCard.locator('.song-toggle').getAttribute('aria-expanded'), 'true')
+    assert.match(await songCard.getAttribute('class'), /focused/)
+    assert.equal(await page.locator('#song-card-32 .song-toggle').getAttribute('aria-expanded'), 'false')
+    // 연결된 잼이 없는 곡에는 잼 버튼이 없다.
+    assert.equal(await page.locator('#song-card-32 .jam-go').count(), 0)
+    const jamButton = songCard.getByRole('link', { name: /Hysteria 합주/ })
+    await mkdir('test-results', { recursive: true })
+    await page.screenshot({ path: 'test-results/jams-setlist-link.png' })
+    assert.match(await jamButton.textContent(), /🎙️ Hysteria 합주\s*트랙 2/)
+    await jamButton.click()
+    await page.waitForURL(/\/bands\/10\/jams\?jam=50$/)
+    await page.waitForFunction(() => document.querySelectorAll('.tracks .track').length === 2 && !document.querySelector('.tracks')?.textContent.includes('불러오는 중'))
+    // 지워진 곡으로 넘어오면 알려 준다.
+    await page.goto('http://127.0.0.1:4183/bands/10/setlists?item=999')
+    await page.getByRole('status').filter({ hasText: '연결한 곡이 셋리스트에서 지워졌어요' }).waitFor()
+    await page.goto('http://127.0.0.1:4183/bands/10/jams?jam=50')
+    await page.waitForFunction(() => document.querySelectorAll('.tracks .track').length === 2 && !document.querySelector('.tracks')?.textContent.includes('불러오는 중'))
 
     // 재생하면 위치가 움직이고, 정지하면 멈춘다.
     await page.getByRole('button', { name: '재생', exact: true }).click()
