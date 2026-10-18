@@ -112,13 +112,12 @@ public class JamService {
         return track(track, me, nicknames(List.of(userId)));
     }
 
-    // 볼륨·시작 위치·음소거는 밴드가 함께 맞추는 믹스라 멤버 누구나 바꿀 수 있다
+    // 볼륨·시작 위치는 밴드가 함께 맞추는 믹스라 멤버 누구나 바꿀 수 있다
     public Track updateTrack(Long userId, Long bandId, Long jamId, Long trackId, JamRequest.TrackUpdate request) {
         BandMember me = requireMember(userId, bandId);
         JamTrack track = findTrack(findJam(bandId, jamId), trackId);
         if (request.volume() != null) track.changeVolume(request.volume());
         if (request.offsetMs() != null) track.changeOffset(request.offsetMs());
-        if (request.muted() != null) track.changeMuted(request.muted());
         return track(track, me, nicknames(List.of(track.getUploader().getId())));
     }
 
@@ -203,7 +202,7 @@ public class JamService {
         User uploader = track.getUploader();
         String url = "/api/v1/bands/" + jam.getBand().getId() + "/jams/" + jam.getId() + "/tracks/" + track.getId() + "/file";
         return new Track(track.getId(), uploader.getId(), names.get(uploader.getId()), track.getPart(),
-                track.getFile().getName(), track.getFile().getType(), track.getVolume(), track.getOffsetMs(), track.isMuted(),
+                track.getFile().getName(), track.getFile().getType(), track.getVolume(), track.getOffsetMs(),
                 track.getDurationMs(), canDelete(track, me), url, track.getCreatedAt());
     }
 

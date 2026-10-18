@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
-// 잼에 쌓인 녹음 한 겹. 볼륨·시작 위치·음소거는 밴드가 함께 보는 믹스 설정
+// 잼에 쌓인 녹음 한 겹. 볼륨·시작 위치는 밴드가 함께 듣는 믹스 설정
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -57,9 +57,6 @@ public class JamTrack extends BaseEntity {
     @Column(nullable = false)
     private Integer offsetMs;
 
-    @Column(nullable = false)
-    private Boolean muted = false;
-
     private Integer durationMs;
 
     @Builder
@@ -79,13 +76,5 @@ public class JamTrack extends BaseEntity {
 
     public void changeOffset(Integer offsetMs) {
         this.offsetMs = offsetMs;
-    }
-
-    public void changeMuted(boolean muted) {
-        this.muted = muted;
-    }
-
-    public boolean isMuted() {
-        return Boolean.TRUE.equals(muted);
     }
 }

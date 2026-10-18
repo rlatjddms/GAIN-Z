@@ -18,6 +18,6 @@ public final class JamResponse {
 
     // canDelete: 올린 멤버·리더만 지울 수 있다. url로 녹음 파일을 받는다
     public record Track(Long id, Long userId, String nickname, InstrumentType part, String name, String type,
-                        int volume, int offsetMs, boolean muted, Integer durationMs, boolean canDelete,
+                        int volume, int offsetMs, Integer durationMs, boolean canDelete,
                         String url, LocalDateTime createdAt) {}
 }

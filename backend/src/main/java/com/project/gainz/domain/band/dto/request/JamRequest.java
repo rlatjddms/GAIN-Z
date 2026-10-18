@@ -27,10 +27,9 @@ public final class JamRequest {
             @Min(0) @Max(3_600_000) Integer durationMs
     ) {}
 
-    // 보낸 값만 바꾼다
+    // 보낸 값만 바꾼다. 뮤트·솔로는 듣는 사람 화면에서만 바꾼다
     public record TrackUpdate(
             @Min(0) @Max(VOLUME_MAX) Integer volume,
-            @Min(OFFSET_MIN_MS) @Max(OFFSET_MAX_MS) Integer offsetMs,
-            Boolean muted
+            @Min(OFFSET_MIN_MS) @Max(OFFSET_MAX_MS) Integer offsetMs
     ) {}
 }
