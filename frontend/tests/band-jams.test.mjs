@@ -26,8 +26,8 @@ function createJamApi() {
   state.jams.push({
     id: 50, title: 'Hysteria 합주', bpm: 120, song: { setlistItemId: 31, title: 'Hysteria' }, creatorName: ME, canManage: true,
     tracks: [
-      track({ memberId: 2, nickname: '랍스타', part: 'BASS', name: 'bass.wav', type: 'audio/wav', durationMs: 2000, canDelete: false }, sineWav(2, 110)),
-      track({ memberId: 1, nickname: ME, part: 'GUITAR', name: 'guitar.wav', type: 'audio/wav', durationMs: 2000, canDelete: true }, sineWav(2, 440)),
+      track({ userId: 2, nickname: '랍스타', part: 'BASS', name: 'bass.wav', type: 'audio/wav', durationMs: 2000, canDelete: false }, sineWav(2, 110)),
+      track({ userId: 1, nickname: ME, part: 'GUITAR', name: 'guitar.wav', type: 'audio/wav', durationMs: 2000, canDelete: true }, sineWav(2, 440)),
     ],
   })
   const url = (jam, t) => `/api/v1/bands/10/jams/${jam.id}/tracks/${t.id}/file`
@@ -67,7 +67,7 @@ function createJamApi() {
       const jam = find(m[1])
       const upload = multipart(request.postDataBuffer())
       state.uploads.push(upload)
-      const t = track({ memberId: 1, nickname: ME, part: 'GUITAR', name: upload.name, type: 'audio/webm', canDelete: true, ...upload.json }, upload.body)
+      const t = track({ userId: 1, nickname: ME, part: 'GUITAR', name: upload.name, type: 'audio/webm', canDelete: true, ...upload.json }, upload.body)
       jam.tracks.push(t)
       return trackView(jam, t)
     }
