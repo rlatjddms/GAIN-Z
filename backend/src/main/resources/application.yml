@@ -16,7 +16,7 @@ spring:
   # 악보 파일 올리기: 한 장 10MB (SheetFileStorage.MAX_FILE_BYTES와 같게), 한 번에 100MB
   servlet:
     multipart:
-      max-file-size: 10MB
+      max-file-size: 30MB
       max-request-size: 100MB
 
 # 올린 파일 저장 폴더 (기본: 사용자 홈/.gainz/uploads)
