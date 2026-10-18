@@ -51,6 +51,7 @@ function createJamApi() {
         { id: 20, title: '정기공연', favorite: false, items: [item(31, 'Hysteria', 'Muse'), item(32, 'Creep', 'Radiohead')] },
         { id: 21, title: '여름 축제', favorite: false, items: [item(33, 'Time Is Running Out', 'Muse')] },
         { id: 22, title: '빈 셋리스트', favorite: false, items: [] },
+        { id: 23, title: '연습용', favorite: false, items: Array.from({ length: 10 }, (_, i) => item(40 + i, `연습곡 ${i + 1}`, null)) },
       ]
     }
     if (path === '/api/v1/bands/10/jams') {
@@ -223,33 +224,44 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.getByRole('dialog').getByRole('button', { name: '삭제', exact: true }).click()
     await page.getByRole('status').filter({ hasText: '트랙을 삭제했어요' }).waitFor()
 
-    // M·S 뜻을 화면에 적어 둔다.
-    assert.match(await page.locator('.legend').textContent(), /음소거.*솔로: 이 트랙만 듣기/)
-    assert.equal(await page.getByRole('button', { name: '랍스타 베이스 솔로' }).getAttribute('title'), '솔로: 이 트랙만 듣기')
+    // M·S 뜻을 쉬운 말로 적어 둔다.
+    assert.match(await page.locator('.legend').textContent(), /끄기 · 이 트랙 소리를 꺼요\..*혼자 듣기 · 이 트랙만 들려요\./)
+    assert.match(await page.getByRole('button', { name: '랍스타 베이스 솔로' }).getAttribute('title'), /^혼자 듣기/)
 
-    // 셋리스트 곡은 제목·아티스트·셋리스트 이름으로 찾아 고르고, 고르면 이름이 채워진다. BPM 범위를 확인한다.
+    // 셋리스트 곡은 입력해야 찾은 곡만 몇 개 보여 준다. 고르면 이름이 채워진다. BPM 범위를 확인한다.
     await page.getByRole('button', { name: '+ 잼 만들기' }).click()
     const dialog = page.getByRole('dialog')
     const search = dialog.getByLabel('셋리스트 곡 검색')
     const options = dialog.locator('.song-option')
-    await options.first().waitFor()
-    assert.deepEqual(await dialog.locator('.song-results h4').allTextContents(), ['정기공연 2곡', '여름 축제 1곡'])
+    assert.equal(await search.getAttribute('placeholder'), '곡 제목, 아티스트 또는 셋리스트 이름을 입력해 주세요')
+    assert.equal(await dialog.getByLabel('잼 이름').getAttribute('placeholder'), '잼 이름을 입력해 주세요')
     await search.fill('MUSE')
-    assert.deepEqual(await options.locator('span').allTextContents(), ['Hysteria', 'Time Is Running Out'])
+    await options.first().waitFor()
+    assert.deepEqual(await options.locator('b').allTextContents(), ['Hysteria', 'Time Is Running Out'])
+    await search.fill('')
+    assert.equal(await options.count(), 0)
     await search.fill('여름축제')
-    assert.deepEqual(await options.locator('span').allTextContents(), ['Time Is Running Out'])
+    assert.deepEqual(await options.locator('b').allTextContents(), ['Time Is Running Out'])
+    // 곡이 많아도 6개까지만 보여 주고 나머지 수를 알려 준다.
+    await search.fill('연습곡')
+    assert.equal(await options.count(), 6)
+    await dialog.getByText('4곡이 더 있어요. 조금 더 자세히 입력해 주세요.').waitFor()
+    await mkdir('test-results', { recursive: true })
+    await page.screenshot({ path: 'test-results/jams-song-picker.png' })
+    await search.fill('연습곡 10')
+    assert.deepEqual(await options.locator('b').allTextContents(), ['연습곡 10'])
     await search.fill('없는 곡')
     await dialog.getByText('찾는 곡이 없어요.').waitFor()
     await search.fill('hyst')
     await options.filter({ hasText: 'Hysteria' }).click()
     assert.match(await dialog.locator('.picked').textContent(), /Hysteria · 정기공연/)
+    assert.equal(await search.count(), 0)
     assert.equal(await dialog.getByLabel('잼 이름').inputValue(), 'Hysteria')
     // 연결을 풀었다가 다시 고를 수 있다.
     await dialog.getByRole('button', { name: '연결 해제' }).click()
     assert.equal(await dialog.locator('.picked').count(), 0)
+    await search.fill('hysteria')
     await options.filter({ hasText: 'Hysteria' }).click()
-    await mkdir('test-results', { recursive: true })
-    await page.screenshot({ path: 'test-results/jams-song-picker.png' })
     await dialog.getByLabel('BPM').fill('300')
     await dialog.getByRole('button', { name: '만들기' }).click()
     await dialog.getByRole('alert').filter({ hasText: 'BPM은 40에서 240' }).waitFor()
