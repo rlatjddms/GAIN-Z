@@ -35,7 +35,7 @@
               <ol>
                 <li>첫 멤버는 <b>메트로놈</b>(박자마다 울리는 틱 소리)을 들으며 자기 파트를 녹음해 올려요.</li>
                 <li>다음 멤버는 먼저 올라온 트랙을 들으며 녹음하거나, 따로 녹음한 음원 파일을 올려요.</li>
-                <li>트랙마다 볼륨을 맞추고 <b>M</b>(음소거)·<b>S</b>(솔로: 이 트랙만 듣기)으로 골라 들어요.</li>
+                <li>트랙마다 볼륨을 맞추고, <b>M</b>으로 트랙을 끄거나 <b>S</b>로 그 트랙만 골라 들어요.</li>
                 <li>다 쌓이면 <b>합친 음원 내려받기</b>로 한 파일(WAV)로 받아요. 메트로놈 소리는 들어가지 않아요.</li>
               </ol>
             </details>
@@ -49,7 +49,10 @@
               <button class="btn" :disabled="busy || recording || !mixable" @click="downloadMix">합친 음원 내려받기</button>
             </div>
 
-            <p v-if="tracks.length" class="legend"><span><span class="toggle-chip">M</span> 음소거 (멤버 모두에게 저장)</span><span><span class="toggle-chip solo">S</span> 솔로: 이 트랙만 듣기 (내 화면에서만)</span></p>
+            <ul v-if="tracks.length" class="legend">
+              <li><span class="toggle-chip">M</span><span><b>끄기</b> · 이 트랙 소리를 꺼요. 다른 멤버가 들을 때도 꺼진 채로 들려요.</span></li>
+              <li><span class="toggle-chip solo">S</span><span><b>혼자 듣기</b> · 이 트랙만 들려요. 내 화면에서만 바뀌고 다른 멤버에게는 영향이 없어요.</span></li>
+            </ul>
             <ul class="tracks" aria-label="트랙">
               <li v-for="track in tracks" :key="track.id" class="track" :class="{ silent: !isAudible(track) }">
                 <div class="track-name">
@@ -59,8 +62,8 @@
                   <small v-else-if="track.status === 'error'" class="track-error">재생할 수 없는 파일이에요</small>
                 </div>
                 <div class="track-controls">
-                  <button class="toggle" :class="{ on: track.muted }" :aria-pressed="track.muted" :aria-label="`${trackLabel(track)} 음소거`" title="음소거: 이 트랙 소리 끄기" @click="toggleMute(track)">M</button>
-                  <button class="toggle solo" :class="{ on: soloIds.includes(track.id) }" :aria-pressed="soloIds.includes(track.id)" :aria-label="`${trackLabel(track)} 솔로`" title="솔로: 이 트랙만 듣기" @click="toggleSolo(track.id)">S</button>
+                  <button class="toggle" :class="{ on: track.muted }" :aria-pressed="track.muted" :aria-label="`${trackLabel(track)} 음소거`" title="끄기: 이 트랙 소리를 꺼요 (다른 멤버에게도 꺼진 채로 들려요)" @click="toggleMute(track)">M</button>
+                  <button class="toggle solo" :class="{ on: soloIds.includes(track.id) }" :aria-pressed="soloIds.includes(track.id)" :aria-label="`${trackLabel(track)} 솔로`" title="혼자 듣기: 이 트랙만 들려요 (나에게만 적용)" @click="toggleSolo(track.id)">S</button>
                   <label class="volume"><span>볼륨 {{ track.volume }}%</span><input type="range" min="0" :max="JAM_VOLUME_MAX" step="1" :value="track.volume" :aria-label="`${trackLabel(track)} 볼륨`" @input="changeVolume(track, Number($event.target.value))" @change="saveTrack(track, { volume: track.volume })"></label>
                   <label class="offset"><span>시작 위치(ms)</span><input type="number" :min="JAM_OFFSET_MIN_MS" :max="JAM_OFFSET_MAX_MS" step="10" :value="track.offsetMs" :disabled="recording" :aria-label="`${trackLabel(track)} 시작 위치`" @change="changeOffset(track, $event.target.value, true)"></label>
                   <button v-if="track.canDelete" class="remove" :disabled="busy || recording" :aria-label="`${trackLabel(track)} 트랙 삭제`" @click="askDelete({ kind: 'track', track })">×</button>
@@ -134,20 +137,25 @@
             <span>🎶 <b>{{ form.song.title }}</b><small v-if="form.song.setlist"> · {{ form.song.setlist }}</small></span>
             <button type="button" class="text-btn" @click="form.song = null">연결 해제</button>
           </div>
-          <input v-model="songQuery" type="search" placeholder="곡 제목·아티스트·셋리스트 이름으로 찾기" aria-label="셋리스트 곡 검색">
-          <p v-if="songsLoading" class="muted">곡 목록을 불러오는 중…</p>
-          <p v-else-if="!songGroups.length" class="muted">{{ setlistGroups.length ? '찾는 곡이 없어요.' : '셋리스트에 담긴 곡이 없어요.' }}</p>
-          <div v-else class="song-results" role="group" aria-label="셋리스트 곡 목록">
-            <section v-for="group in songGroups" :key="group.id">
-              <h4>{{ group.title }} <small>{{ group.songs.length }}곡</small></h4>
-              <button v-for="song in group.songs" :key="song.id" type="button" class="song-option" :class="{ chosen: form.song?.setlistItemId === song.id }"
-                      :aria-pressed="form.song?.setlistItemId === song.id" @click="pickSong(song)">
-                <span>{{ song.title }}</span><small v-if="song.artist">{{ song.artist }}</small>
-              </button>
-            </section>
-          </div>
+          <template v-else>
+            <input v-model="songQuery" type="search" placeholder="곡 제목, 아티스트 또는 셋리스트 이름을 입력해 주세요" aria-label="셋리스트 곡 검색">
+            <p v-if="songsLoading" class="muted">곡 목록을 불러오는 중…</p>
+            <p v-else-if="!setlistSongs.length" class="muted">셋리스트에 담긴 곡이 없어요.</p>
+            <template v-else-if="songQuery.trim()">
+              <p v-if="!songMatches.length" class="muted">찾는 곡이 없어요.</p>
+              <ul v-else class="song-results" aria-label="검색한 곡">
+                <li v-for="song in songMatches.slice(0, SONG_RESULT_LIMIT)" :key="song.id">
+                  <button type="button" class="song-option" @click="pickSong(song)">
+                    <span><b>{{ song.title }}</b><small v-if="song.artist"> · {{ song.artist }}</small></span>
+                    <small>{{ song.setlist }}</small>
+                  </button>
+                </li>
+              </ul>
+              <p v-if="songMatches.length > SONG_RESULT_LIMIT" class="muted more">{{ songMatches.length - SONG_RESULT_LIMIT }}곡이 더 있어요. 조금 더 자세히 입력해 주세요.</p>
+            </template>
+          </template>
         </fieldset>
-        <label>잼 이름<input v-model="form.title" maxlength="60" placeholder="예) Hysteria 합주" required></label>
+        <label>잼 이름<input v-model="form.title" maxlength="60" placeholder="잼 이름을 입력해 주세요" required></label>
         <label>BPM<input v-model.number="form.bpm" type="number" min="40" max="240" required></label>
         <p v-if="formError" class="save-error" role="alert">{{ formError }}</p>
         <div class="dialog-actions"><button type="button" class="btn" @click="formDialog.close()">취소</button><button class="btn primary" :disabled="busy">{{ form.id ? '저장' : '만들기' }}</button></div>
@@ -189,7 +197,7 @@ const jams = ref([]), selectedId = ref(null), jam = ref(null), jamLoading = ref(
 const playing = ref(false), position = ref(0), metronomeOn = ref(false), countInOn = ref(true)
 const micReady = ref(false), latencyMs = ref(readLatency() ?? 0), latencyEstimate = ref(0), measuring = ref(false)
 const recording = ref(false), take = ref(null), uploading = ref(false), uploadProgress = ref(0)
-const formDialog = ref(null), form = ref({}), formError = ref(''), setlistGroups = ref([]), songQuery = ref(''), songsLoading = ref(false)
+const formDialog = ref(null), form = ref({}), formError = ref(''), setlistSongs = ref([]), songQuery = ref(''), songsLoading = ref(false)
 const deleteDialog = ref(null), deleteTarget = ref(null)
 let session = null, frame = 0, request = 0, jamRequest = 0
 
@@ -206,14 +214,13 @@ const canPlay = computed(() => mixable.value || metronomeOn.value)
 const trackLimitReached = computed(() => tracks.value.length >= JAM_MAX_TRACKS)
 const fileDisabled = computed(() => busy.value || recording.value || measuring.value || uploading.value || trackLimitReached.value)
 const takeLabel = computed(() => take.value?.file ? '불러온 파일' : '새 녹음')
-// 띄어쓰기·대소문자와 상관없이 곡 제목·아티스트·셋리스트 이름으로 찾는다
+// 띄어쓰기·대소문자와 상관없이 곡 제목·아티스트·셋리스트 이름으로 찾는다. 곡이 많아도 입력한 것만 몇 개 보여 준다
+const SONG_RESULT_LIMIT = 6
 const normalize = text => (text || '').toLowerCase().replace(/\s+/g, '')
-const songGroups = computed(() => {
+const songMatches = computed(() => {
   const query = normalize(songQuery.value)
-  if (!query) return setlistGroups.value
-  return setlistGroups.value
-    .map(group => normalize(group.title).includes(query) ? group : { ...group, songs: group.songs.filter(song => normalize(song.title).includes(query) || normalize(song.artist).includes(query)) })
-    .filter(group => group.songs.length)
+  if (!query) return []
+  return setlistSongs.value.filter(song => [song.title, song.artist, song.setlist].some(text => normalize(text).includes(query)))
 })
 
 function readLatency() {
@@ -476,17 +483,15 @@ async function openForm(target) {
   songsLoading.value = true
   try {
     const lists = await listSetlists(bandId())
-    setlistGroups.value = lists.filter(list => list.items.length).map(list => ({
-      id: list.id, title: list.title,
-      songs: list.items.map(item => ({ id: item.id, title: item.title, artist: item.artist || '', setlist: list.title })),
-    }))
-    const linked = setlistGroups.value.flatMap(group => group.songs).find(song => song.id === form.value.song?.setlistItemId)
+    setlistSongs.value = lists.flatMap(list => list.items.map(item => ({ id: item.id, title: item.title, artist: item.artist || '', setlist: list.title })))
+    const linked = setlistSongs.value.find(song => song.id === form.value.song?.setlistItemId)
     if (linked) form.value.song.setlist = linked.setlist
-  } catch { setlistGroups.value = [] }
+  } catch { setlistSongs.value = [] }
   finally { songsLoading.value = false }
 }
 function pickSong(song) {
   form.value.song = { setlistItemId: song.id, title: song.title, setlist: song.setlist }
+  songQuery.value = ''
   if (!form.value.title.trim()) form.value.title = song.title
 }
 async function saveForm() {
@@ -634,8 +639,10 @@ button:focus-visible,a:focus-visible,input:focus-visible { outline:2px solid #ad
 .guide { margin:0 0 14px; padding:10px 14px; border:1px solid #e9ecef; border-radius:12px; font-size:.76rem; color:#495057; }
 .guide summary { cursor:pointer; font-weight:700; color:#2d5bff; }
 .guide ol { margin:10px 0 2px; padding-left:20px; display:flex; flex-direction:column; gap:6px; line-height:1.6; }
-.legend { margin:12px 0 0; display:flex; align-items:center; flex-wrap:wrap; gap:6px 14px; font-size:.7rem; color:#868e96; }
-.legend > span { display:inline-flex; align-items:center; gap:6px; }
+.legend { list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; font-size:.72rem; color:#868e96; line-height:1.5; }
+.legend li { display:flex; align-items:flex-start; gap:8px; }
+.legend b { color:#495057; }
+.legend .toggle-chip { flex-shrink:0; }
 .toggle-chip { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:#ff6b6b; color:#fff; font-weight:800; font-size:.65rem; }
 .toggle-chip.solo { background:#fab005; }
 .add-ways { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:100%; }
@@ -650,13 +657,12 @@ button:focus-visible,a:focus-visible,input:focus-visible { outline:2px solid #ad
 .picked { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px; background:#f0f4ff; font-size:.78rem; color:#343a40; }
 .picked small { color:#868e96; }
 .text-btn { border:0; background:transparent; padding:2px 0; font-family:inherit; font-size:.74rem; color:#868e96; cursor:pointer; flex-shrink:0; }
-.song-results { max-height:220px; overflow-y:auto; border:1px solid #e9ecef; border-radius:10px; padding:6px; }
-.song-results h4 { margin:6px 6px 4px; font-size:.7rem; color:#868e96; font-weight:700; }
-.song-results h4 small { font-weight:400; }
-.song-option { width:100%; display:flex; align-items:baseline; gap:8px; padding:8px 10px; border:0; border-radius:8px; background:transparent; font-family:inherit; text-align:left; cursor:pointer; color:#343a40; font-size:.78rem; }
-.song-option small { color:#868e96; font-size:.7rem; }
-.song-option:hover { background:#f8f9fa; }
-.song-option.chosen { background:#f0f4ff; color:#2d5bff; font-weight:700; }
+.song-results { list-style:none; margin:0; padding:4px; border:1px solid #e9ecef; border-radius:10px; }
+.song-option { width:100%; display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:8px 10px; border:0; border-radius:8px; background:transparent; font-family:inherit; text-align:left; cursor:pointer; color:#343a40; font-size:.78rem; }
+.song-option span { min-width:0; overflow-wrap:anywhere; }
+.song-option small { color:#868e96; font-size:.7rem; flex-shrink:0; }
+.song-option:hover,.song-option:focus-visible { background:#f0f4ff; }
+.more { margin:0; font-size:.72rem; }
 @media (max-width:760px) {
   .workspace { grid-template-columns:minmax(0,1fr); }
   .track { align-items:flex-start; }
