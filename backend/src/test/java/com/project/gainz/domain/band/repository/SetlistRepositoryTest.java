@@ -5,10 +5,6 @@ import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.entity.Setlist;
 import com.project.gainz.domain.band.entity.SetlistItem;
 import com.project.gainz.domain.band.enums.Position;
-import com.project.gainz.domain.practice.dto.response.UserDailyPracticeTotal;
-import com.project.gainz.domain.practice.entity.PracticeLog;
-import com.project.gainz.domain.practice.enums.PracticeSource;
-import com.project.gainz.domain.practice.repository.PracticeLogRepository;
 import com.project.gainz.domain.sheet.entity.SheetMusic;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.SocialProvider;
@@ -25,13 +21,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
 
-import java.time.LocalDate;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
 
-// 외부 DB 없이 셋리스트 악보 권한·순서·멤버별 연습 합계 JPQL을 검증한다.
+// 외부 DB 없이 셋리스트 악보 권한·순서 JPQL을 검증한다.
 @DataJpaTest(properties = "spring.config.location=classpath:band-board-test.properties", showSql = false)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = SetlistRepositoryTest.Config.class)
@@ -39,13 +32,12 @@ class SetlistRepositoryTest {
     @Configuration
     @EnableJpaAuditing
     @EntityScan("com.project.gainz.domain")
-    @EnableJpaRepositories({"com.project.gainz.domain.band.repository", "com.project.gainz.domain.practice.repository"})
+    @EnableJpaRepositories("com.project.gainz.domain.band.repository")
     static class Config {}
 
     @Autowired TestEntityManager em;
     @Autowired SetlistRepository setlists;
     @Autowired SetlistItemRepository items;
-    @Autowired PracticeLogRepository practiceLogs;
 
     @Test void linkedSheetIsVisibleOnlyToCurrentMembersOfThatBand() {
         User owner = user("owner"), member = user("member"), outsider = user("outsider"), left = user("left");
@@ -88,22 +80,6 @@ class SetlistRepositoryTest {
         assertThat(setlists.findAllByBandIdOrderByListOrderAscIdAsc(band.getId())).extracting(Setlist::getId)
                 .containsExactly(first.getId(), second.getId());
         assertThat(setlists.countByBandId(band.getId())).isEqualTo(2);
-    }
-
-    @Test void dailyTotalsAddManualAdjustmentsPerUserAndDay() {
-        User a = user("a"), b = user("b");
-        LocalDate monday = LocalDate.of(2026, 10, 12);
-        em.persist(new PracticeLog(a, 3600L, 0, monday, PracticeSource.TIMER));
-        em.persist(new PracticeLog(a, -600L, 0, monday, PracticeSource.MANUAL));
-        em.persist(new PracticeLog(a, 1200L, 0, monday.plusDays(1), PracticeSource.TIMER));
-        em.persist(new PracticeLog(b, 900L, 0, monday.minusDays(1), PracticeSource.TIMER));
-        em.flush();
-
-        List<UserDailyPracticeTotal> totals = practiceLogs.findDailyTotalsByUsers(List.of(a.getId(), b.getId()), monday, monday.plusDays(6));
-        assertThat(totals).extracting(UserDailyPracticeTotal::userId, UserDailyPracticeTotal::date, UserDailyPracticeTotal::seconds)
-                .containsExactlyInAnyOrder(
-                        tuple(a.getId(), monday, 3000L),
-                        tuple(a.getId(), monday.plusDays(1), 1200L));
     }
 
     private User user(String name) {

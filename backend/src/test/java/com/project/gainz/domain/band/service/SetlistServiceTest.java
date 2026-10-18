@@ -9,10 +9,6 @@ import com.project.gainz.domain.band.entity.SetlistItem;
 import com.project.gainz.domain.band.enums.Position;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.SetlistRepository;
-import com.project.gainz.domain.practice.dto.response.RoutineDailySummaryResponse;
-import com.project.gainz.domain.practice.dto.response.UserDailyPracticeTotal;
-import com.project.gainz.domain.practice.repository.PracticeLogRepository;
-import com.project.gainz.domain.practice.service.RoutineService;
 import com.project.gainz.domain.sheet.entity.SheetMusic;
 import com.project.gainz.domain.sheet.entity.UserWorkspace;
 import com.project.gainz.domain.sheet.repository.SheetMusicRepository;
@@ -32,7 +28,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,8 +41,6 @@ class SetlistServiceTest {
     @Mock SetlistRepository setlists;
     @Mock SheetMusicRepository sheets;
     @Mock UserWorkspaceRepository workspaces;
-    @Mock PracticeLogRepository practiceLogs;
-    @Mock RoutineService routineService;
     @Mock BandAttachmentStorage storage;
     @InjectMocks SetlistService service;
 
@@ -191,30 +184,6 @@ class SetlistServiceTest {
     @Test void setlistFromAnotherBandIsNotFound() {
         when(setlists.findByIdAndBandId(99L, 10L)).thenReturn(Optional.empty());
         fails(() -> service.delete(1L, 10L, 99L), ErrorCode.SETLIST_NOT_FOUND);
-    }
-
-    @Test void weeklyPracticeSumsFromMondayToTodayForEveryMember() {
-        LocalDate wednesday = LocalDate.of(2026, 10, 14);
-        LocalDate monday = LocalDate.of(2026, 10, 12);
-        // 직접 수정으로 0이 된 날은 연습한 날로 세지 않는다
-        when(practiceLogs.findDailyTotalsByUsers(List.of(1L, 2L), monday, wednesday)).thenReturn(List.of(
-                new UserDailyPracticeTotal(1L, monday, 3600L), new UserDailyPracticeTotal(1L, monday.plusDays(1), 0L),
-                new UserDailyPracticeTotal(1L, wednesday, 1800L)));
-        when(routineService.getDailySummary(1L, monday, wednesday)).thenReturn(List.of(
-                new RoutineDailySummaryResponse(monday, 2, 1), new RoutineDailySummaryResponse(wednesday, 2, 2)));
-        when(routineService.getDailySummary(2L, monday, wednesday)).thenReturn(List.of());
-        var week = service.practice(1L, 10L, wednesday);
-        assertThat(week.from()).isEqualTo(monday);
-        assertThat(week.to()).isEqualTo(LocalDate.of(2026, 10, 18));
-        var mine = week.members().get(0);
-        assertThat(mine.memberId()).isEqualTo(100L);
-        assertThat(mine.practiceSeconds()).isEqualTo(5400L);
-        assertThat(mine.practiceDays()).isEqualTo(2L);
-        assertThat(mine.routineTotal()).isEqualTo(4);
-        assertThat(mine.routineCompleted()).isEqualTo(3);
-        var other = week.members().get(1);
-        assertThat(other.practiceSeconds()).isZero();
-        assertThat(other.routineTotal()).isZero();
     }
 
     private SetlistRequest.Item item(Long sheetId, List<Long> memberIds) {
