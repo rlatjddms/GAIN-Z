@@ -33,4 +33,10 @@ html, body {
   width: 100%;
   height: 100%;
 }
+
+input::placeholder, textarea::placeholder {
+  color: #adb5bd;
+  opacity: 1;
+  font-weight: 400;
+}
 </style>

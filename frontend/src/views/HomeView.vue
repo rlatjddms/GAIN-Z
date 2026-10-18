@@ -133,7 +133,7 @@
 
           <template v-if="activeBand">
             <section class="quick-grid grid-2 band-menus">
-              <button class="card-btn">
+              <button class="card-btn" @click="router.push(`/bands/${activeBand.id}/setlists`)">
                 <div class="c-icon">🎶</div>
                 <div class="c-text"><strong>BAND SETLIST</strong><span>파트 분배 및 합주 현황 공유</span></div>
               </button>
