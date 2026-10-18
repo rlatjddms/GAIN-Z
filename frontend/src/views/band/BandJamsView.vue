@@ -50,8 +50,8 @@
             </div>
 
             <ul v-if="tracks.length" class="legend">
-              <li><span class="toggle-chip">M</span><span><b>끄기</b> · 이 트랙 소리를 꺼요. 다른 멤버가 들을 때도 꺼진 채로 들려요.</span></li>
-              <li><span class="toggle-chip solo">S</span><span><b>혼자 듣기</b> · 이 트랙만 들려요. 내 화면에서만 바뀌고 다른 멤버에게는 영향이 없어요.</span></li>
+              <li><span class="toggle-chip">M</span>끄기 (멤버 모두)</li>
+              <li><span class="toggle-chip solo">S</span>이 트랙만 듣기 (나만)</li>
             </ul>
             <ul class="tracks" aria-label="트랙">
               <li v-for="track in tracks" :key="track.id" class="track" :class="{ silent: !isAudible(track) }">
@@ -575,7 +575,7 @@ onBeforeUnmount(() => {
 .btn.primary:hover:not(:disabled) { background:#244de0; }
 button:disabled { opacity:.4; cursor:default; }
 .danger { color:#e03131; }
-button:focus-visible,a:focus-visible,input:focus-visible { outline:2px solid #adb5bd; outline-offset:2px; }
+button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset:2px; }
 .add-jam { width:100%; margin-bottom:12px; background:#f8f9fa; border-style:dashed; }
 .jam-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
 .jam-link { width:100%; display:flex; flex-direction:column; gap:5px; padding:10px 12px; text-align:left; border:1px solid #e9ecef; border-radius:12px; background:#fff; font-family:inherit; color:#343a40; cursor:pointer; overflow-wrap:anywhere; }
@@ -609,7 +609,7 @@ button:focus-visible,a:focus-visible,input:focus-visible { outline:2px solid #ad
 .toggle.solo.on { background:#fab005; border-color:#fab005; }
 .volume,.offset,.latency label { display:flex; flex-direction:column; gap:3px; font-size:.68rem; color:#868e96; }
 .volume input { width:120px; accent-color:#2d5bff; }
-.offset input { width:96px; border:1px solid #e9ecef; padding:5px 8px; border-radius:8px; font-family:inherit; font-size:.76rem; color:#343a40; }
+.offset input { width:96px; border:1px solid #e9ecef; padding:5px 8px; border-radius:8px; font-family:inherit; font-size:.76rem; color:#343a40; outline:none; }
 .remove { border:0; background:transparent; color:#adb5bd; font-size:20px; cursor:pointer; padding:2px 6px; }
 .remove:hover:not(:disabled) { color:#e03131; }
 .nudge { display:flex; align-items:flex-end; flex-wrap:wrap; gap:6px; }
@@ -634,15 +634,16 @@ button:focus-visible,a:focus-visible,input:focus-visible { outline:2px solid #ad
 .jam-dialog h3 { margin:0 0 14px; font-size:1rem; }
 .jam-dialog form { display:flex; flex-direction:column; gap:12px; }
 .jam-dialog label { display:flex; flex-direction:column; gap:6px; font-size:.75rem; color:#868e96; }
-.jam-dialog input,.jam-dialog select { width:100%; border:1px solid #e9ecef; padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; }
+.jam-dialog input,.jam-dialog select { width:100%; border:1px solid #e9ecef; padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; outline:none; box-shadow:none; }
+.jam-dialog input::placeholder { color:#adb5bd; opacity:1; }
+/* 입력칸은 다른 화면처럼 테두리 색만 바꾼다 */
+.offset input:focus,.jam-dialog input:focus,.jam-dialog select:focus { border-color:#adb5bd; outline:none; box-shadow:none; }
 .dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:6px; }
 .guide { margin:0 0 14px; padding:10px 14px; border:1px solid #e9ecef; border-radius:12px; font-size:.76rem; color:#495057; }
 .guide summary { cursor:pointer; font-weight:700; color:#2d5bff; }
 .guide ol { margin:10px 0 2px; padding-left:20px; display:flex; flex-direction:column; gap:6px; line-height:1.6; }
-.legend { list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; font-size:.72rem; color:#868e96; line-height:1.5; }
-.legend li { display:flex; align-items:flex-start; gap:8px; }
-.legend b { color:#495057; }
-.legend .toggle-chip { flex-shrink:0; }
+.legend { list-style:none; margin:12px 0 0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 14px; font-size:.72rem; color:#868e96; }
+.legend li { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
 .toggle-chip { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:#ff6b6b; color:#fff; font-weight:800; font-size:.65rem; }
 .toggle-chip.solo { background:#fab005; }
 .add-ways { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:100%; }
