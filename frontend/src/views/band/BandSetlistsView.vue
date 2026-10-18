@@ -33,7 +33,7 @@
             <div class="summary"><span>총 <b>{{ selected.songs.length }}</b>곡 <em v-if="newSongCount">작성 중 {{ newSongCount }}곡</em></span><button class="text-btn" @click="toggleAllSongs">{{ allExpanded ? '모두 접기' : '모두 펼치기' }}</button></div>
             <SmoothReorder v-if="current.songs.length" :items="current.songs" :disabled="busy" class="songs" @reorder="reorderSongs">
               <template #default="{ item: song, index, start, move }">
-                <article class="song-card" :class="{ 'song-editing': drafts[song.id] }">
+                <article :id="`song-card-${song.id}`" class="song-card" :class="{ 'song-editing': drafts[song.id], focused: focusedId === song.id }">
                   <div class="song-head">
                     <button class="drag-handle" :aria-label="`${song.title || '새 곡'} 순서 변경`" title="끌어서 이동 · 위아래 방향키로 이동" @pointerdown="start" @keydown.up.prevent="move(-1)" @keydown.down.prevent="move(1)">⠿</button>
                     <span class="number">{{ String(index + 1).padStart(2, '0') }}</span>
@@ -54,6 +54,7 @@
                       <div class="read-section"><h4>연결한 악보</h4><template v-if="song.sheetId"><button class="sheet-link" :disabled="busy" @click="openSheet(song)">{{ song.sheetTitle || '악보' }} 보기 →</button></template><p v-else class="muted">연결한 악보가 없어요.</p></div>
                       <div class="read-section"><h4>함께 준비할 멤버</h4><div v-if="song.memberIds.length" class="member-options"><span v-for="id in song.memberIds" :key="id" class="member-tag">{{ memberName(id) }}<small>{{ memberPart(id) }}</small></span></div><p v-else class="muted">선택한 멤버가 없어요.</p></div>
                       <div class="read-section"><h4>합주 메모</h4><p class="read-memo" :class="{ muted: !song.memo }">{{ song.memo || '등록된 메모가 없어요.' }}</p></div>
+                      <div v-if="jamsFor(song.id).length" class="read-section"><h4>레이어 잼</h4><div class="jam-links"><router-link v-for="jam in jamsFor(song.id)" :key="jam.id" :to="`/bands/${band.id}/jams?jam=${jam.id}`" class="btn jam-go">🎙️ {{ jam.title }} <small>트랙 {{ jam.trackCount }}</small></router-link></div></div>
                     </template>
                     <div class="attachments"><div class="attachment-head"><span>첨부파일 <small>{{ song.files.length }}</small></span><label v-if="drafts[song.id]" class="btn file-picker">+ 파일 첨부<input type="file" multiple :accept="BAND_ATTACHMENT_ACCEPT" :aria-label="`${song.title || '새 곡'} 파일 첨부`" @change="attachFiles(song, $event)"></label></div><p v-if="!song.files.length" class="file-hint">{{ drafts[song.id] ? 'PDF 악보, 사진, 영상, 음원을 10MB까지 첨부할 수 있어요.' : '첨부된 파일이 없어요.' }}</p><ul v-else class="file-list"><li v-for="file in song.files" :key="file.id"><a :href="file.local ? file.url : '#'" :download="file.name" @click="openFile($event, file)">{{ file.name }} <small v-if="file.size">{{ formatSize(file.size) }}</small></a><button v-if="drafts[song.id]" class="remove-file" :aria-label="`${file.name} 첨부 해제`" @click="song.files = song.files.filter(item => item.id !== file.id)">×</button></li></ul></div>
                   </div></div></div>
@@ -76,13 +77,14 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 import SmoothReorder from '../../components/band/SmoothReorder.vue'
 import { getBand } from '../../api/band'
 import { BAND_ATTACHMENT_ACCEPT, BAND_ATTACHMENT_MAX_BYTES, BAND_ATTACHMENT_MAX_COUNT, loadBandAttachment } from '../../api/bandBoard'
+import { listJams } from '../../api/jam'
 import { createSetlist, deleteSetlist, deleteSetlistItem, listSetlists, reorderSetlistItems, reorderSetlists, saveSetlistItem, updateSetlist } from '../../api/setlist'
 import { addToWorkspace, getWorkspace } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
@@ -99,6 +101,8 @@ const expandedIds = ref([]), favoritesOnly = ref(false), selecting = ref(false),
 const sheets = ref(null), sheetsLoading = ref(false), sheetsError = ref('')
 const sheetDialog = ref(null), sheetSong = ref(null)
 const urls = new Set()
+const jams = ref([]), focusedId = ref(null)
+const jamsFor = songId => jams.value.filter(jam => jam.song?.setlistItemId === songId)
 let request = 0
 const bandId = () => band.value.id
 const selected = computed(() => lists.value.find(list => list.id === selectedId.value))
@@ -195,19 +199,34 @@ async function openFile(event, file) {
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   } catch (e) { saveError.value = apiErrorMessage(e, '첨부파일을 받지 못했어요.') }
 }
+// 레이어 잼에서 넘어오면 그 곡이 든 셋리스트를 열고 곡을 펼쳐 보여 준다
+async function focusSong(itemId) {
+  router.replace({ query: { ...route.query, item: undefined } })
+  const list = lists.value.find(entry => entry.songs.some(song => song.id === itemId))
+  if (!list) { notice.value = '연결한 곡이 셋리스트에서 지워졌어요.'; return }
+  selectedId.value = list.id
+  expandedIds.value = [itemId]
+  focusedId.value = itemId
+  await nextTick()
+  document.getElementById(`song-card-${itemId}`)?.scrollIntoView({ block: 'center' })
+  setTimeout(() => { if (focusedId.value === itemId) focusedId.value = null }, 2000)
+}
 async function loadBand() {
   const token = ++request
   band.value = null
   error.value = ''
   try {
     const id = Number(route.params.id)
-    const [result, saved] = await Promise.all([getBand(id), listSetlists(id)])
+    // 레이어 잼을 못 불러와도 셋리스트는 보여 준다
+    const [result, saved, jamList] = await Promise.all([getBand(id), listSetlists(id), listJams(id).catch(() => [])])
     if (token !== request) return
     lists.value = saved.map(toList)
+    jams.value = Array.isArray(jamList) ? jamList : []
     selectedId.value = lists.value[0]?.id ?? null
     band.value = result
     store.upsertBand(result, true)
     store.isBandMode = true
+    if (route.query.item) focusSong(Number(route.query.item))
   } catch (e) { if (token === request) error.value = apiErrorMessage(e, '셋리스트를 불러오지 못했어요.') }
 }
 async function run(work, fallback = '저장하지 못했어요. 잠시 후 다시 시도해 주세요.') {
@@ -389,7 +408,11 @@ select:focus { border-color:#adb5bd; }
 .sheet-link { border:0; background:transparent; padding:0; font-family:inherit; cursor:pointer; text-align:left; color:#2d5bff; font-size:.8rem; font-weight:700; overflow-wrap:anywhere; }
 .form-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; grid-column:1 / -1; }
 .songs { margin-top:16px; }
-.song-card { border:1px solid #e9ecef; border-radius:12px; background:#fff; }
+.song-card { border:1px solid #e9ecef; border-radius:12px; background:#fff; transition:border-color .3s, box-shadow .3s; }
+.song-card.focused { border-color:#2d5bff; box-shadow:0 0 0 3px rgba(45,91,255,.12); }
+.jam-links { display:flex; flex-wrap:wrap; gap:8px; }
+.jam-go { gap:6px; text-decoration:none; }
+.jam-go small { color:#868e96; font-weight:500; }
 .song-editing { border-color:#d3d9e0; }
 .song-actions { display:flex; align-items:center; gap:10px; flex-shrink:0; }
 .song-head { display:flex; align-items:center; gap:10px; padding:12px 14px; }

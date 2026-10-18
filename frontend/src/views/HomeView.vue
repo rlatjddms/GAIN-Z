@@ -137,7 +137,7 @@
                 <div class="c-icon">🎶</div>
                 <div class="c-text"><strong>BAND SETLIST</strong><span>파트 분배 및 합주 현황 공유</span></div>
               </button>
-              <button class="card-btn">
+              <button class="card-btn" @click="router.push(`/bands/${activeBand.id}/jams`)">
                 <div class="c-icon">🎙️</div>
                 <div class="c-text"><strong>LAYER JAM</strong><span>레이어링 방식 비대면 합주</span></div>
               </button>
