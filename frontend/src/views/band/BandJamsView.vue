@@ -52,6 +52,7 @@
             <ul v-if="tracks.length" class="legend">
               <li><span class="toggle-chip">M</span>뮤트: 끄기</li>
               <li><span class="toggle-chip solo">S</span>솔로: 이 트랙만 듣기</li>
+              <li class="legend-note">둘 다 내 화면에만 적용돼요</li>
             </ul>
             <ul class="tracks" aria-label="트랙">
               <li v-for="track in tracks" :key="track.id" class="track" :class="{ silent: !isAudible(track) }">
@@ -62,7 +63,7 @@
                   <small v-else-if="track.status === 'error'" class="track-error">재생할 수 없는 파일이에요</small>
                 </div>
                 <div class="track-controls">
-                  <button class="toggle" :class="{ on: track.muted }" :aria-pressed="track.muted" :aria-label="`${trackLabel(track)} 음소거`" title="뮤트: 이 트랙 소리를 꺼요 (다른 멤버에게도 꺼진 채로 들려요)" @click="toggleMute(track)">M</button>
+                  <button class="toggle" :class="{ on: track.muted }" :aria-pressed="track.muted" :aria-label="`${trackLabel(track)} 음소거`" title="뮤트: 이 트랙 소리를 꺼요 (내 화면에만 적용)" @click="toggleMute(track)">M</button>
                   <button class="toggle solo" :class="{ on: soloIds.includes(track.id) }" :aria-pressed="soloIds.includes(track.id)" :aria-label="`${trackLabel(track)} 솔로`" title="솔로: 이 트랙만 들려요 (내 화면에만 적용)" @click="toggleSolo(track.id)">S</button>
                   <label class="volume"><span>볼륨 {{ track.volume }}%</span><input type="range" min="0" :max="JAM_VOLUME_MAX" step="1" :value="track.volume" :aria-label="`${trackLabel(track)} 볼륨`" @input="changeVolume(track, Number($event.target.value))" @change="saveTrack(track, { volume: track.volume })"></label>
                   <label class="offset"><span>시작 위치(ms)</span><input type="number" :min="JAM_OFFSET_MIN_MS" :max="JAM_OFFSET_MAX_MS" step="10" :value="track.offsetMs" :disabled="recording" :aria-label="`${trackLabel(track)} 시작 위치`" @change="changeOffset(track, $event.target.value, true)"></label>
@@ -285,7 +286,7 @@ async function selectJam(id, force = false) {
 }
 function showJam(result) {
   jam.value = result
-  tracks.value = result.tracks.map(track => ({ ...track, buffer: null, status: 'loading' }))
+  tracks.value = result.tracks.map(track => ({ ...track, muted: false, buffer: null, status: 'loading' }))
   tracks.value.forEach(track => loadTrack(track, jamRequest))
   syncSummary()
 }
@@ -340,7 +341,6 @@ function changeVolume(track, value) {
 function toggleMute(track) {
   track.muted = !track.muted
   restart()
-  saveTrack(track, { muted: track.muted })
 }
 function toggleSolo(id) {
   soloIds.value = soloIds.value.includes(id) ? soloIds.value.filter(item => item !== id) : [...soloIds.value, id]
@@ -352,12 +352,12 @@ function changeOffset(track, value, save = false) {
   if (save) saveTrack(track, { offsetMs: track.offsetMs })
 }
 function nudgeTake(ms) { changeOffset(take.value, take.value.offsetMs + ms) }
-// 볼륨·음소거·시작 위치는 멤버 모두가 함께 보는 믹스라 바로 저장한다
+// 볼륨·시작 위치는 멤버 모두가 함께 듣는 믹스라 바로 저장한다. 뮤트·솔로는 내 화면에서만 바꾼다
 async function saveTrack(track, changes) {
   const jamId = jam.value.id
   try {
     const saved = await updateJamTrack(bandId(), jamId, track.id, changes)
-    if (jam.value?.id === jamId) Object.assign(track, { volume: saved.volume, offsetMs: saved.offsetMs, muted: saved.muted })
+    if (jam.value?.id === jamId) Object.assign(track, { volume: saved.volume, offsetMs: saved.offsetMs })
   } catch (e) { saveError.value = apiErrorMessage(e, '믹서 설정을 저장하지 못했어요.') }
 }
 
@@ -465,7 +465,7 @@ async function uploadTake() {
     const file = current.file || new File([current.blob], `layer-jam-${Date.now()}.${recordingExtension(current.blob.type)}`, { type: current.blob.type })
     const saved = await uploadJamTrack(bandId(), jamId, { offsetMs: current.offsetMs, volume: current.volume, durationMs: Math.round(current.buffer.duration * 1000) }, file, value => { uploadProgress.value = value })
     if (jam.value?.id !== jamId) return
-    tracks.value.push({ ...saved, buffer: current.buffer, status: 'ready' })
+    tracks.value.push({ ...saved, muted: false, buffer: current.buffer, status: 'ready' })
     take.value = null
     syncSummary()
     notice.value = '트랙을 올렸어요.'
@@ -644,6 +644,7 @@ button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset
 .guide ol { margin:10px 0 2px; padding-left:20px; display:flex; flex-direction:column; gap:6px; line-height:1.6; }
 .legend { list-style:none; margin:12px 0 0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 14px; font-size:.72rem; color:#868e96; }
 .legend li { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.legend .legend-note { color:#adb5bd; }
 .toggle-chip { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:#ff6b6b; color:#fff; font-weight:800; font-size:.65rem; }
 .toggle-chip.solo { background:#fab005; }
 .add-ways { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:100%; }
