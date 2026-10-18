@@ -14,7 +14,7 @@
               <button class="jam-link" :class="{ active: item.id === selectedId }" :aria-pressed="item.id === selectedId" :disabled="recording" @click="selectJam(item.id)">
                 <strong>{{ item.title }}</strong>
                 <span>{{ item.bpm }} BPM · 트랙 {{ item.trackCount }}</span>
-                <small v-if="item.song">셋리스트 · {{ item.song.title }}</small>
+                <small v-if="item.song">🎶 {{ item.song.title }}</small>
               </button>
             </li>
           </ul>
