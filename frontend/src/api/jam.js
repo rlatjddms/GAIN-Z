@@ -6,7 +6,7 @@ const data = async (request) => (await request).data.data
 // 잼 목록 → [{ id, title, bpm, song: { setlistItemId, title } | null, trackCount, creatorName, updatedAt }]
 export const listJams = (bandId) => data(api.get(base(bandId)))
 // 잼 → { id, title, bpm, song, creatorName, canManage,
-//        tracks: [{ id, memberId, nickname, part, name, type, volume, offsetMs, muted, durationMs, canDelete, url, createdAt }] }
+//        tracks: [{ id, userId, nickname, part, name, type, volume, offsetMs, muted, durationMs, canDelete, url, createdAt }] }
 export const getJam = (bandId, id) => data(api.get(`${base(bandId)}/${id}`))
 // jam: { title, bpm, setlistItemId }
 export const createJam = (bandId, jam) => data(api.post(base(bandId), jam))
