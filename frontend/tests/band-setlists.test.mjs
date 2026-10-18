@@ -243,6 +243,12 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
     }
     // 저장된 곡 옆에 작성 중인 곡이 공존하는 화면도 확인한다.
     await addSong('새 합주곡')
+    // 스타일이 빠지면 카드 테두리·멤버 칩·대화상자 모양이 깨지므로 대표 규칙이 적용됐는지 본다.
+    const styles = await page.evaluate(() => {
+      const css = selector => getComputedStyle(document.querySelector(selector))
+      return { card: css('.song-card').borderTopStyle, chip: css('.member-option').borderRadius, dialog: css('.setlist-dialog').borderRadius, head: css('.song-head').display }
+    })
+    assert.deepEqual(styles, { card: 'solid', chip: '20px', dialog: '18px', head: 'flex' })
     await screenshot('setlists-song-edit-desktop')
     for (const width of [375, 760, 1040]) {
       await page.setViewportSize({ width, height: 900 })
