@@ -3,15 +3,9 @@ import clubStage from '../assets/stages/club.png'
 import concertStage from '../assets/stages/concert.png'
 import legendStage from '../assets/stages/legend.png'
 
-export const MAX_LEVEL = 50
-
-// 백엔드 LevelPolicy와 동일한 구간별 필요 경험치
-const EXP_TABLE = [
-  { minLevel: 1, maxLevel: 9, requiredExp: 100 },
-  { minLevel: 10, maxLevel: 29, requiredExp: 300 },
-  { minLevel: 30, maxLevel: 49, requiredExp: 1000 },
-  { minLevel: 50, maxLevel: 50, requiredExp: Infinity },
-]
+// 백엔드 LevelPolicy와 같은 규칙: 최대 Lv.30, 다음 레벨까지 필요 경험치 = 50 × 지금 레벨 + 20
+// 한쪽을 바꾸면 같이 바꾼다
+export const MAX_LEVEL = 30
 
 // 레벨 구간별 무대(배경) 및 캐릭터 연출 에셋
 export const LEVEL_TIERS = [
@@ -34,7 +28,7 @@ export const LEVEL_TIERS = [
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     name: '동네 클럽 신예',
     minLevel: 10,
-    maxLevel: 29,
+    maxLevel: 19,
     background: clubStage,
     accent: '#e8590c',
     accentSoft: '#fff4e6',
@@ -47,8 +41,8 @@ export const LEVEL_TIERS = [
     key: 'PRO',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     name: '투어 뮤지션',
-    minLevel: 30,
-    maxLevel: 49,
+    minLevel: 20,
+    maxLevel: 29,
     background: concertStage,
     accent: '#7c3aed',
     accentSoft: '#f3f0ff',
@@ -61,8 +55,8 @@ export const LEVEL_TIERS = [
     key: 'LEGEND',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     name: '전설의 락스타',
-    minLevel: 50,
-    maxLevel: 50,
+    minLevel: 30,
+    maxLevel: 30,
     background: legendStage,
     accent: '#f59e0b',
     accentSoft: '#fff8e1',
@@ -92,8 +86,7 @@ export function getNextTier(level) {
 
 export function getRequiredExp(level) {
   const safeLevel = clampLevel(level)
-  const row = EXP_TABLE.find((r) => safeLevel >= r.minLevel && safeLevel <= r.maxLevel)
-  return row ? row.requiredExp : 100
+  return safeLevel >= MAX_LEVEL ? Infinity : 50 * safeLevel + 20
 }
 
 export function getExpProgress(level, exp) {
