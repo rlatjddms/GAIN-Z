@@ -25,6 +25,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +36,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -45,6 +50,7 @@ class NotificationServiceTest {
 
     @Mock private NotificationRepository notificationRepository;
     @Mock private CharacterRepository characterRepository;
+    @Mock private PlatformTransactionManager transactionManager;
 
     @InjectMocks private NotificationService notificationService;
 
@@ -83,6 +89,26 @@ class NotificationServiceTest {
             assertThat(n.getRedirectUrl()).isEqualTo("/home");
             assertThat(n.getIsRead()).isFalse();
         });
+    }
+
+    @Test
+    void 트랜잭션_안에서는_커밋된_뒤에_따로_저장하고_실패해도_원래_일을_막지_않는다() {
+        User other = user(2L, "가");
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            notificationService.notify(other, NotificationType.SETLIST_ASSIGN, "밴드", "곡 담당", "/bands/10/setlists");
+            // 커밋 전에는 저장하지 않는다 (원래 일이 롤백되면 알림도 없다)
+            verify(notificationRepository, never()).saveAll(any());
+
+            when(notificationRepository.saveAll(any())).thenThrow(new IllegalStateException("Data truncated for column 'type'"));
+            TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+
+            // 커밋 뒤 새 트랜잭션에서 저장을 시도하고, 실패는 삼킨다
+            verify(transactionManager).getTransaction(argThat(d -> d.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRES_NEW));
+            verify(notificationRepository).saveAll(any());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test
