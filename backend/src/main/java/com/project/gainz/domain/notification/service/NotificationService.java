@@ -4,6 +4,7 @@ import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.notification.dto.response.NotificationResponse;
 import com.project.gainz.domain.notification.entity.Notification;
+import com.project.gainz.domain.notification.enums.NotificationCategory;
 import com.project.gainz.domain.notification.enums.NotificationType;
 import com.project.gainz.domain.notification.repository.NotificationRepository;
 import com.project.gainz.domain.user.entity.User;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -21,6 +23,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,6 +37,7 @@ import java.util.Map;
 public class NotificationService {
 
     public static final int MAX_PAGE_SIZE = 50;
+    public static final int KEEP_READ_DAYS = 30;
 
     private final NotificationRepository notificationRepository;
     private final CharacterRepository characterRepository;
@@ -92,11 +96,12 @@ public class NotificationService {
 
     /* ---------- 조회·읽음·지우기 ---------- */
 
+    // category가 null이면 모든 영역, unreadOnly면 안 읽은 것만
     @Transactional(readOnly = true)
-    public NotificationResponse.Page list(Long userId, int page, int size) {
+    public NotificationResponse.Page list(Long userId, int page, int size, NotificationCategory category, boolean unreadOnly) {
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
-        Slice<Notification> slice = notificationRepository.findAllByReceiverIdOrderByIdDesc(userId,
-                PageRequest.of(Math.max(page, 0), safeSize));
+        Slice<Notification> slice = notificationRepository.findPage(userId, NotificationCategory.typesOf(category),
+                unreadOnly, PageRequest.of(Math.max(page, 0), safeSize));
         return new NotificationResponse.Page(slice.getContent().stream().map(NotificationResponse::from).toList(),
                 slice.hasNext());
     }
@@ -110,6 +115,11 @@ public class NotificationService {
         find(userId, notificationId).markRead();
     }
 
+    // 고른 알림 읽음 (남의 알림 id는 무시)
+    public void markRead(Long userId, Collection<Long> notificationIds) {
+        notificationRepository.findAllByReceiverIdAndIdIn(userId, notificationIds).forEach(Notification::markRead);
+    }
+
     public void markAllRead(Long userId) {
         notificationRepository.markAllRead(userId);
     }
@@ -118,10 +128,28 @@ public class NotificationService {
         notificationRepository.delete(find(userId, notificationId));
     }
 
+    // 고른 알림 지우기 (남의 알림 id는 무시)
+    public void delete(Long userId, Collection<Long> notificationIds) {
+        notificationRepository.deleteAll(notificationRepository.findAllByReceiverIdAndIdIn(userId, notificationIds));
+    }
+
+    // 읽은 알림만 지우기
+    public void deleteRead(Long userId) {
+        notificationRepository.deleteAll(notificationRepository.findAllByReceiverIdAndIsReadTrue(userId));
+    }
+
     // 내 알림 모두 지우기 (회원 탈퇴할 때도)
     public void deleteAll(Long userId) {
         List<Notification> mine = notificationRepository.findAllByReceiverId(userId);
         notificationRepository.deleteAll(mine);
+    }
+
+    // 매일 새벽 4시: 만든 지 30일 지난 읽은 알림을 지운다 (안 읽은 알림은 남긴다)
+    @Scheduled(cron = "0 0 4 * * *", zone = "Asia/Seoul")
+    public void deleteOldReadNotifications() {
+        LocalDateTime now = LocalDateTime.now();
+        int deleted = notificationRepository.deleteReadBefore(now.minusDays(KEEP_READ_DAYS), now);
+        if (deleted > 0) log.info("오래된 읽은 알림 {}개 정리", deleted);
     }
 
     private Notification find(Long userId, Long notificationId) {
