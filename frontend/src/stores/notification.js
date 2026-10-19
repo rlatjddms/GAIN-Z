@@ -77,6 +77,8 @@ export const useNotificationStore = defineStore('notification', {
     receive(notification) {
       this.unreadCount += 1
       this.latest = notification
+      // 레코드는 작은 팝업 대신 획득 연출(RecordAcquiredModal)로
+      if (notification.type === 'RECORD') return
       const key = ++toastSeq
       this.toasts = [...this.toasts, { key, notification }].slice(-MAX_TOASTS)
       setTimeout(() => this.dismiss(key), TOAST_MS)

@@ -6,12 +6,14 @@ export const NOTIFICATION_CATEGORIES = [
   { value: 'BAND', label: '밴드' },
   { value: 'COMMUNITY', label: '커뮤니티' },
   { value: 'JAM', label: '합주' },
+  { value: 'RECORD', label: '레코드' },
 ]
 
 const CATEGORY_OF_TYPE = {
   FRIEND_REQUEST: 'FRIEND', FRIEND_ACCEPT: 'FRIEND',
   NOTICE: 'COMMUNITY', COMMENT: 'COMMUNITY', REPLY: 'COMMUNITY', MENTION: 'COMMUNITY',
   SETLIST_ASSIGN: 'JAM', JAM_NEW: 'JAM', JAM_TRACK: 'JAM',
+  RECORD: 'RECORD',
 }
 
 // 알림 종류 → 영역 (나머지는 밴드)
@@ -84,6 +86,12 @@ export const NOTIFICATION_SETTING_GROUPS = [
       { key: 'SETLIST_ASSIGN', label: '곡 담당 지정', desc: '셋리스트 곡의 담당으로 지정됐을 때' },
       { key: 'JAM_NEW', label: '새 잼', desc: '밴드에 새 잼이 만들어졌을 때' },
       { key: 'JAM_TRACK', label: '내 잼에 트랙', desc: '내가 만든 잼에 트랙이 올라왔을 때' },
+    ],
+  },
+  {
+    category: 'RECORD', label: '레코드',
+    items: [
+      { key: 'RECORD', label: '새 레코드', desc: '업적을 달성해 레코드를 얻었을 때 (획득 연출도 함께 꺼져요)' },
     ],
   },
 ]

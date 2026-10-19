@@ -7,11 +7,12 @@ import axiosInstance from './axios'
 //     | BAND_JOIN | BAND_KICKED | BAND_LEADER | BAND_DISBAND | BAND_LEAVE
 //     | NOTICE | COMMENT | REPLY | MENTION
 //     | SETLIST_ASSIGN | JAM_NEW | JAM_TRACK
+//     | RECORD (레코드 획득)
 //     | BAND_INVITE | BAND_ACCEPT (밴드 매칭에서 사용)
 // 만든 지 30일 지난 읽은 알림은 서버가 매일 새벽 지운다
 
 // 내 알림 (최근 순) → { items: [알림], hasNext }
-// category: FRIEND | BAND | COMMUNITY | JAM (없으면 전체), unread: true면 안 읽은 것만
+// category: FRIEND | BAND | COMMUNITY | JAM | RECORD (없으면 전체), unread: true면 안 읽은 것만
 export async function getNotifications({ page = 0, size = 20, category = null, unread = false } = {}) {
   const params = { page, size }
   if (category) params.category = category

@@ -3,6 +3,7 @@ import { watch } from 'vue'
 import { useAuthStore } from './stores/auth'
 import { useNotificationStore } from './stores/notification'
 import NotificationToasts from './components/NotificationToasts.vue'
+import RecordAcquiredModal from './components/RecordAcquiredModal.vue'
 
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
@@ -17,6 +18,7 @@ watch(() => authStore.isAuthenticated, (loggedIn) => {
 <template>
   <router-view />
   <NotificationToasts v-if="authStore.isAuthenticated" />
+  <RecordAcquiredModal v-if="authStore.isAuthenticated" />
 </template>
 
 
