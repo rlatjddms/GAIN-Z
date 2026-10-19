@@ -1,5 +1,9 @@
 package com.project.gainz.domain.friend.service;
 
+import com.project.gainz.domain.band.entity.Band;
+import com.project.gainz.domain.band.entity.BandMember;
+import com.project.gainz.domain.band.enums.Position;
+import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.enums.Gender;
@@ -7,11 +11,14 @@ import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.friend.dto.request.FriendRequestCreateRequest;
 import com.project.gainz.domain.friend.dto.response.FriendCodeResponse;
+import com.project.gainz.domain.friend.dto.response.FriendProfileResponse;
 import com.project.gainz.domain.friend.dto.response.FriendRequestResponse;
 import com.project.gainz.domain.friend.dto.response.FriendResponse;
 import com.project.gainz.domain.friend.entity.Friendship;
 import com.project.gainz.domain.friend.enums.FriendshipStatus;
 import com.project.gainz.domain.friend.repository.FriendshipRepository;
+import com.project.gainz.domain.practice.dto.response.DailyPracticeResponse;
+import com.project.gainz.domain.practice.repository.PracticeLogRepository;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.SocialProvider;
 import com.project.gainz.domain.user.enums.UserRole;
@@ -27,6 +34,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -51,6 +60,8 @@ class FriendServiceTest {
     @Mock private FriendshipRepository friendshipRepository;
     @Mock private UserRepository userRepository;
     @Mock private CharacterRepository characterRepository;
+    @Mock private PracticeLogRepository practiceLogRepository;
+    @Mock private BandMemberRepository bandMemberRepository;
 
     @InjectMocks private FriendService friendService;
 
@@ -361,6 +372,55 @@ class FriendServiceTest {
         assertThat(friends.get(0).character().nickname()).isEqualTo("보컬왕");
         assertThat(friends.get(1).character()).isNull();
         assertThat(friends).allMatch(f -> f.since() != null);
+    }
+
+    /* ---------- 친구 프로필 ---------- */
+
+    private BandMember bandMember(Long bandId, String bandName, User user, Position position, InstrumentType part) {
+        Band band = Band.builder().name(bandName).leader(user).inviteCode("CODE" + bandId).build();
+        ReflectionTestUtils.setField(band, "id", bandId);
+        return BandMember.builder().band(band).user(user).position(position).part(part).build();
+    }
+
+    @Test
+    void 친구_프로필에는_캐릭터와_최근_연습과_함께하는_밴드가_나온다() {
+        User me = user(ME);
+        User friend = user(OTHER, "드러머");
+        Friendship accepted = friendship(1L, me, friend, true);
+        when(friendshipRepository.findAllBetween(ME, OTHER)).thenReturn(List.of(accepted));
+        when(characterRepository.findByUserId(OTHER)).thenReturn(Optional.of(character(friend, "쿵쿵")));
+        LocalDate today = LocalDate.now();
+        when(practiceLogRepository.findDailyTotals(eq(OTHER), eq(today.minusDays(FriendService.PROFILE_PRACTICE_DAYS - 1)), eq(today)))
+                .thenReturn(List.of(new DailyPracticeResponse(today.minusDays(1), 1800L, 30L),
+                        new DailyPracticeResponse(today, 0L, 0L)));
+        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(ME))
+                .thenReturn(List.of(bandMember(10L, "같이하는 밴드", me, Position.MEMBER, InstrumentType.GUITAR)));
+        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(OTHER))
+                .thenReturn(List.of(bandMember(10L, "같이하는 밴드", friend, Position.LEADER, InstrumentType.DRUM),
+                        bandMember(20L, "다른 밴드", friend, Position.MEMBER, InstrumentType.DRUM)));
+
+        FriendProfileResponse profile = friendService.getFriendProfile(ME, OTHER);
+
+        assertThat(profile.userId()).isEqualTo(OTHER);
+        assertThat(profile.name()).isEqualTo("드러머");
+        assertThat(profile.character().nickname()).isEqualTo("쿵쿵");
+        assertThat(profile.since()).isEqualTo(accepted.getAcceptedAt());
+        // 연습 안 한 날은 빼고, 경험치 없이 시간만
+        assertThat(profile.dailyPractice()).containsExactly(new FriendProfileResponse.PracticeDay(today.minusDays(1), 1800L));
+        assertThat(profile.bands()).extracting(FriendProfileResponse.FriendBand::name).containsExactly("같이하는 밴드", "다른 밴드");
+        assertThat(profile.bands()).extracting(FriendProfileResponse.FriendBand::together).containsExactly(true, false);
+        assertThat(profile.bands().get(0).position()).isEqualTo(Position.LEADER);
+        assertThat(profile.bands().get(0).part()).isEqualTo(InstrumentType.DRUM);
+    }
+
+    @Test
+    void 친구가_아니면_프로필을_볼_수_없다() {
+        when(friendshipRepository.findAllBetween(ME, STRANGER)).thenReturn(List.of(friendship(1L, user(STRANGER), user(ME), false)));
+
+        assertThatThrownBy(() -> friendService.getFriendProfile(ME, STRANGER))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.NOT_FRIEND);
+        verify(practiceLogRepository, never()).findDailyTotals(any(), any(), any());
     }
 
     @Test
