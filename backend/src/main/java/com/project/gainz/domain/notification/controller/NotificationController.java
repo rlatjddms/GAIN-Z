@@ -1,6 +1,7 @@
 package com.project.gainz.domain.notification.controller;
 
 import com.project.gainz.domain.notification.dto.request.NotificationIdsRequest;
+import com.project.gainz.domain.notification.dto.request.NotificationSettingsRequest;
 import com.project.gainz.domain.notification.dto.response.NotificationResponse;
 import com.project.gainz.domain.notification.enums.NotificationCategory;
 import com.project.gainz.domain.notification.service.NotificationService;
@@ -68,6 +69,24 @@ public class NotificationController {
     ) {
         notificationService.deleteRead(principal.getUserId());
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 알림 설정 (종류별 켜짐·꺼짐)
+    @GetMapping("/settings")
+    public ResponseEntity<ApiResponse<NotificationResponse.Settings>> settings(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(notificationService.settings(principal.getUserId())));
+    }
+
+    // 바꿀 항목만 → 바뀐 뒤 전체 설정
+    @PatchMapping("/settings")
+    public ResponseEntity<ApiResponse<NotificationResponse.Settings>> updateSettings(
+            @Valid @RequestBody NotificationSettingsRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                notificationService.updateSettings(principal.getUserId(), request.settings())));
     }
 
     @GetMapping("/unread-count")

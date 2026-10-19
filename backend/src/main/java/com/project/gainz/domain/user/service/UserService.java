@@ -133,7 +133,7 @@ public class UserService {
         characterRepository.findByUserId(userId).ifPresent(Character::delete);
         bandService.leaveAllBands(userId);
         friendService.removeAll(userId);
-        notificationService.deleteAll(userId);
+        notificationService.removeAllOf(userId);
         deleteFileAfterCommit(user.getProfileImage());
         user.withdraw();
     }

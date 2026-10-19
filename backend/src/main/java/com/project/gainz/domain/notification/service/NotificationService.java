@@ -4,10 +4,14 @@ import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.notification.dto.response.NotificationResponse;
 import com.project.gainz.domain.notification.entity.Notification;
+import com.project.gainz.domain.notification.entity.NotificationOff;
 import com.project.gainz.domain.notification.enums.NotificationCategory;
+import com.project.gainz.domain.notification.enums.NotificationSetting;
 import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.repository.NotificationOffRepository;
 import com.project.gainz.domain.notification.repository.NotificationRepository;
 import com.project.gainz.domain.user.entity.User;
+import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -25,9 +29,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 // 알림 만들기·조회·읽음 처리. 만들기는 각 기능의 트랜잭션 안에서 부르고, 저장은 그 트랜잭션이 커밋된 뒤에 한다
 @Slf4j
@@ -40,6 +47,8 @@ public class NotificationService {
     public static final int KEEP_READ_DAYS = 30;
 
     private final NotificationRepository notificationRepository;
+    private final NotificationOffRepository notificationOffRepository;
+    private final UserRepository userRepository;
     private final CharacterRepository characterRepository;
     private final PlatformTransactionManager transactionManager;
 
@@ -48,16 +57,19 @@ public class NotificationService {
     // 한 사람에게
     public void notify(User receiver, NotificationType type, String title, String content, String redirectUrl) {
         if (receiver == null) return;
-        saveAfterCommit(List.of(Notification.builder()
-                .receiver(receiver).type(type).title(title).content(content).redirectUrl(redirectUrl).build()));
+        notifyAll(List.of(receiver), null, type, title, content, redirectUrl);
     }
 
-    // 여러 사람에게. 한 일을 한 사람(actorId)은 빼고, 같은 사람은 한 번만
+    // 여러 사람에게. 한 일을 한 사람(actorId)은 빼고, 같은 사람은 한 번만, 이 종류를 꺼 둔 사람은 빼고
     public void notifyAll(Collection<User> receivers, Long actorId, NotificationType type, String title, String content,
                           String redirectUrl) {
         Map<Long, User> unique = new LinkedHashMap<>();
         for (User receiver : receivers) {
             if (receiver != null && !receiver.getId().equals(actorId)) unique.putIfAbsent(receiver.getId(), receiver);
+        }
+        NotificationSetting setting = NotificationSetting.of(type);
+        if (setting != null && !unique.isEmpty()) {
+            notificationOffRepository.findUserIdsTurnedOff(setting, unique.keySet()).forEach(unique::remove);
         }
         if (unique.isEmpty()) return;
         saveAfterCommit(unique.values().stream()
@@ -142,6 +154,50 @@ public class NotificationService {
     public void deleteAll(Long userId) {
         List<Notification> mine = notificationRepository.findAllByReceiverId(userId);
         notificationRepository.deleteAll(mine);
+    }
+
+    /* ---------- 알림 설정 ---------- */
+
+    // 항목마다 켜짐(true)·꺼짐(false), 설정 순서대로
+    @Transactional(readOnly = true)
+    public NotificationResponse.Settings settings(Long userId) {
+        Set<NotificationSetting> off = notificationOffRepository.findAllByUserId(userId).stream()
+                .map(NotificationOff::getSetting)
+                .collect(Collectors.toSet());
+        Map<NotificationSetting, Boolean> result = new LinkedHashMap<>();
+        for (NotificationSetting setting : NotificationSetting.values()) {
+            result.put(setting, !off.contains(setting));
+        }
+        return new NotificationResponse.Settings(result);
+    }
+
+    // 바꿀 항목만 받는다 (null 값은 그대로 둠)
+    public NotificationResponse.Settings updateSettings(Long userId, Map<NotificationSetting, Boolean> changes) {
+        Set<NotificationSetting> turnOn = new HashSet<>();
+        Set<NotificationSetting> turnOff = new HashSet<>();
+        changes.forEach((setting, on) -> {
+            if (setting == null || on == null) return;
+            (on ? turnOn : turnOff).add(setting);
+        });
+        if (!turnOn.isEmpty()) notificationOffRepository.turnOn(userId, turnOn);
+        if (!turnOff.isEmpty()) {
+            Set<NotificationSetting> already = notificationOffRepository.findAllByUserId(userId).stream()
+                    .map(NotificationOff::getSetting)
+                    .collect(Collectors.toSet());
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+            notificationOffRepository.saveAll(turnOff.stream()
+                    .filter(setting -> !already.contains(setting))
+                    .map(setting -> new NotificationOff(user, setting))
+                    .toList());
+        }
+        return settings(userId);
+    }
+
+    // 회원 탈퇴: 알림과 알림 설정을 모두 지운다
+    public void removeAllOf(Long userId) {
+        deleteAll(userId);
+        notificationOffRepository.deleteAllByUserId(userId);
     }
 
     // 매일 새벽 4시: 만든 지 30일 지난 읽은 알림을 지운다 (안 읽은 알림은 남긴다)

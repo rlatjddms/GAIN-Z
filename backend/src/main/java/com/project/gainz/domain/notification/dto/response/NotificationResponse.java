@@ -1,10 +1,12 @@
 package com.project.gainz.domain.notification.dto.response;
 
 import com.project.gainz.domain.notification.entity.Notification;
+import com.project.gainz.domain.notification.enums.NotificationSetting;
 import com.project.gainz.domain.notification.enums.NotificationType;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public record NotificationResponse(
         Long id,
@@ -25,5 +27,9 @@ public record NotificationResponse(
     }
 
     public record UnreadCount(long count) {
+    }
+
+    // 알림 설정: 항목마다 켜짐(true)·꺼짐(false)
+    public record Settings(Map<NotificationSetting, Boolean> settings) {
     }
 }
