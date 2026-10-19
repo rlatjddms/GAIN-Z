@@ -1,7 +1,9 @@
 package com.project.gainz.domain.notification.repository;
 
 import com.project.gainz.domain.notification.entity.Notification;
+import com.project.gainz.domain.notification.entity.NotificationOff;
 import com.project.gainz.domain.notification.enums.NotificationCategory;
+import com.project.gainz.domain.notification.enums.NotificationSetting;
 import com.project.gainz.domain.notification.enums.NotificationType;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.SocialProvider;
@@ -38,6 +40,7 @@ class NotificationRepositoryTest {
 
     @Autowired TestEntityManager em;
     @Autowired NotificationRepository notifications;
+    @Autowired NotificationOffRepository offs;
 
     @Test void myNotificationsArePagedNewestFirstAndMarkAllReadTouchesOnlyMine() {
         User me = user("me");
@@ -101,6 +104,26 @@ class NotificationRepositoryTest {
         assertThat(notifications.deleteReadBefore(now.plusMinutes(1), now)).isEqualTo(1);
         assertThat(notifications.findAllByReceiverId(me.getId())).extracting(Notification::getId)
                 .containsExactlyInAnyOrder(friend.getId(), jam.getId());
+    }
+
+    @Test void turnedOffSettingsAreFoundPerUserAndTurnedOnByDeleting() {
+        User me = user("me3");
+        User other = user("other3");
+        offs.save(new NotificationOff(me, NotificationSetting.NOTICE));
+        offs.save(new NotificationOff(me, NotificationSetting.JAM_NEW));
+        offs.save(new NotificationOff(other, NotificationSetting.NOTICE));
+        em.flush();
+        em.clear();
+
+        assertThat(offs.findUserIdsTurnedOff(NotificationSetting.NOTICE, List.of(me.getId(), other.getId())))
+                .containsExactlyInAnyOrder(me.getId(), other.getId());
+        assertThat(offs.findUserIdsTurnedOff(NotificationSetting.JAM_NEW, List.of(other.getId()))).isEmpty();
+
+        assertThat(offs.turnOn(me.getId(), Set.of(NotificationSetting.NOTICE))).isEqualTo(1);
+        assertThat(offs.findAllByUserId(me.getId())).extracting(NotificationOff::getSetting)
+                .containsExactly(NotificationSetting.JAM_NEW);
+        assertThat(offs.deleteAllByUserId(me.getId())).isEqualTo(1);
+        assertThat(offs.findAllByUserId(other.getId())).hasSize(1);
     }
 
     private static final Set<NotificationType> ALL = EnumSet.allOf(NotificationType.class);

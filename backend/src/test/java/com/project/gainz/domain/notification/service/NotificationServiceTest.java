@@ -9,7 +9,11 @@ import com.project.gainz.domain.notification.dto.response.NotificationResponse;
 import com.project.gainz.domain.notification.entity.Notification;
 import com.project.gainz.domain.notification.enums.NotificationCategory;
 import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.entity.NotificationOff;
+import com.project.gainz.domain.notification.enums.NotificationSetting;
+import com.project.gainz.domain.notification.repository.NotificationOffRepository;
 import com.project.gainz.domain.notification.repository.NotificationRepository;
+import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.SocialProvider;
 import com.project.gainz.domain.user.enums.UserRole;
@@ -34,12 +38,15 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -52,6 +59,8 @@ class NotificationServiceTest {
     private static final Long ME = 1L;
 
     @Mock private NotificationRepository notificationRepository;
+    @Mock private NotificationOffRepository notificationOffRepository;
+    @Mock private UserRepository userRepository;
     @Mock private CharacterRepository characterRepository;
     @Mock private PlatformTransactionManager transactionManager;
 
@@ -143,6 +152,88 @@ class NotificationServiceTest {
 
         assertThat(notificationService.nicknameOf(withCharacter)).isEqualTo("드럼짱");
         assertThat(notificationService.nicknameOf(without)).isEqualTo("이영희");
+    }
+
+    /* ---------- 알림 설정 ---------- */
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void 이_종류를_꺼_둔_사람에게는_만들지_않는다() {
+        User a = user(2L, "가");
+        User b = user(3L, "나나");
+        when(notificationOffRepository.findUserIdsTurnedOff(eq(NotificationSetting.COMMENT), anyCollection())).thenReturn(List.of(3L));
+
+        // 답글(REPLY)은 '댓글·답글' 설정을 따른다
+        notificationService.notifyAll(List.of(a, b), ME, NotificationType.REPLY, "밴드", "답글", "/home");
+
+        ArgumentCaptor<List<Notification>> saved = ArgumentCaptor.forClass(List.class);
+        verify(notificationRepository).saveAll(saved.capture());
+        assertThat(saved.getValue()).extracting(n -> n.getReceiver().getId()).containsExactly(2L);
+    }
+
+    @Test
+    void 모두_꺼_두었으면_저장하지_않고_설정_항목이_없는_종류는_확인하지_않는다() {
+        when(notificationOffRepository.findUserIdsTurnedOff(eq(NotificationSetting.FRIEND_REQUEST), anyCollection())).thenReturn(List.of(2L));
+        notificationService.notify(user(2L, "가"), NotificationType.FRIEND_REQUEST, "친구", "신청", "/friends");
+        verify(notificationRepository, never()).saveAll(any());
+
+        // 밴드 매칭 초대는 설정 항목이 없어 항상 보낸다
+        notificationService.notify(user(3L, "나나"), NotificationType.BAND_INVITE, "밴드", "초대", "/home");
+        verify(notificationOffRepository, never()).findUserIdsTurnedOff(eq(null), anyCollection());
+        verify(notificationRepository).saveAll(any());
+    }
+
+    @Test
+    void 설정은_처음에_모두_켜져_있고_꺼_둔_항목만_꺼짐() {
+        User me = user(ME, "나");
+        when(notificationOffRepository.findAllByUserId(ME)).thenReturn(List.of(new NotificationOff(me, NotificationSetting.JAM_NEW)));
+
+        Map<NotificationSetting, Boolean> settings = notificationService.settings(ME).settings();
+
+        assertThat(settings.keySet()).containsExactly(NotificationSetting.values());
+        assertThat(settings).containsEntry(NotificationSetting.JAM_NEW, false).containsEntry(NotificationSetting.NOTICE, true);
+        assertThat(settings.values()).filteredOn(on -> !on).hasSize(1);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void 켜면_꺼짐_줄을_지우고_끄면_없는_것만_새로_만든다() {
+        User me = user(ME, "나");
+        when(userRepository.findById(ME)).thenReturn(Optional.of(me));
+        when(notificationOffRepository.findAllByUserId(ME)).thenReturn(List.of(new NotificationOff(me, NotificationSetting.NOTICE)));
+        Map<NotificationSetting, Boolean> changes = new java.util.HashMap<>();
+        changes.put(NotificationSetting.JAM_NEW, true);
+        changes.put(NotificationSetting.NOTICE, false);
+        changes.put(NotificationSetting.MENTION, false);
+        changes.put(NotificationSetting.COMMENT, null);
+
+        notificationService.updateSettings(ME, changes);
+
+        verify(notificationOffRepository).turnOn(ME, Set.of(NotificationSetting.JAM_NEW));
+        ArgumentCaptor<List<NotificationOff>> saved = ArgumentCaptor.forClass(List.class);
+        verify(notificationOffRepository).saveAll(saved.capture());
+        // 공지는 이미 꺼져 있어서 멘션만 새로
+        assertThat(saved.getValue()).extracting(NotificationOff::getSetting).containsExactly(NotificationSetting.MENTION);
+    }
+
+    @Test
+    void 탈퇴하면_알림과_설정을_모두_지운다() {
+        when(notificationRepository.findAllByReceiverId(ME)).thenReturn(List.of());
+
+        notificationService.removeAllOf(ME);
+
+        verify(notificationRepository).deleteAll(List.of());
+        verify(notificationOffRepository).deleteAllByUserId(ME);
+    }
+
+    @Test
+    void 설정_항목이_없는_종류는_밴드_매칭_초대와_수락뿐이다() {
+        for (NotificationType type : NotificationType.values()) {
+            boolean always = type == NotificationType.BAND_INVITE || type == NotificationType.BAND_ACCEPT;
+            assertThat(NotificationSetting.of(type)).as(type.name()).matches(s -> always == (s == null));
+            assertThat(java.util.Arrays.stream(NotificationSetting.values()).filter(s -> s.types().contains(type)))
+                    .as(type.name()).hasSize(always ? 0 : 1);
+        }
     }
 
     /* ---------- 조회·읽음·지우기 ---------- */

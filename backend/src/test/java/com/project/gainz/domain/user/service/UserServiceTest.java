@@ -321,6 +321,7 @@ class UserServiceTest {
         verify(profileImageStorage).delete("uuid.png");
         verify(bandService).leaveAllBands(USER_ID);
         verify(friendService).removeAll(USER_ID);
+        verify(notificationService).removeAllOf(USER_ID);
         assertThat(user.hasProfileImage()).isFalse();
         assertThat(user.getFriendCode()).isNull();
         assertThat(user.hasProfileMusic()).isFalse();
