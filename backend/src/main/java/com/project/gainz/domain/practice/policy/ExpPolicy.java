@@ -10,19 +10,19 @@ public final class ExpPolicy {
 
     public static final int EXP_PER_MINUTE = 1;
     public static final int MAX_MINUTES_PER_DAY = 300;
+    // 직접 입력한 시간은 하루 30분까지만 경험치로 친다 (타이머를 켜는 걸 잊은 날을 위한 여유, 부풀리기 방지)
+    public static final int MANUAL_MINUTES_PER_DAY = 30;
 
     private ExpPolicy() {
     }
 
-    // 하루 총 연습 시간으로 받을 수 있는 경험치
-    public static int dailyExp(long dayTotalSeconds) {
-        long minutes = Math.min(toMinutes(dayTotalSeconds), MAX_MINUTES_PER_DAY);
-        return (int) (minutes * EXP_PER_MINUTE);
-    }
-
-    // 하루 총 시간이 dayTotalSeconds가 됐을 때 새로 지급할 경험치
-    public static int expToGrant(long dayTotalSeconds, long alreadyGrantedExp) {
-        return (int) Math.max(0, dailyExp(dayTotalSeconds) - alreadyGrantedExp);
+    // 하루 경험치 = 타이머 시간 + 직접 입력(하루 30분까지), 하루 최대 300.
+    // 직접 입력 합이 음수면(기록을 줄여 타이머 시간을 깎은 것) 타이머 시간에서 뺀다 → 줄이면 직접 입력분부터 빠진다
+    public static int dailyExp(long timerSeconds, long manualSeconds) {
+        long timer = Math.max(0, timerSeconds + Math.min(manualSeconds, 0));
+        long manual = Math.max(manualSeconds, 0);
+        long minutes = toMinutes(timer) + Math.min(toMinutes(manual), MANUAL_MINUTES_PER_DAY);
+        return (int) (Math.min(minutes, MAX_MINUTES_PER_DAY) * EXP_PER_MINUTE);
     }
 
     public static long toMinutes(long durationSeconds) {

@@ -5,6 +5,7 @@ import com.project.gainz.domain.character.service.CharacterService;
 import com.project.gainz.domain.practice.dto.request.DailyPracticeUpdateRequest;
 import com.project.gainz.domain.practice.dto.request.PracticeLogCreateRequest;
 import com.project.gainz.domain.practice.dto.response.DailyPracticeResponse;
+import com.project.gainz.domain.practice.dto.response.PracticeDaySplit;
 import com.project.gainz.domain.practice.dto.response.PracticeRecordResponse;
 import com.project.gainz.domain.practice.entity.PracticeLog;
 import com.project.gainz.domain.practice.enums.PracticeSource;
@@ -39,7 +40,7 @@ public class PracticeLogService {
     private final CharacterService characterService;
     private final ApplicationEventPublisher eventPublisher;
 
-    // 타이머 구간을 그날 기록에 더하고, 늘어난 하루 합계만큼 경험치 지급
+    // 타이머 구간을 그날 기록에 더하고, 늘어난 하루 경험치만큼 지급
     public PracticeRecordResponse recordSession(Long userId, PracticeLogCreateRequest request) {
         User user = findUser(userId);
         LocalDate date = request.practiceDateOrToday();
@@ -51,7 +52,8 @@ public class PracticeLogService {
         return applyChange(userId, user, date, before, request.durationSeconds(), PracticeSource.TIMER);
     }
 
-    // 하루 총 연습 시간을 직접 고친다. 차이분을 MANUAL 기록으로 남긴다 (줄여도 받은 경험치는 회수하지 않음)
+    // 하루 총 연습 시간을 직접 고친다. 차이분을 MANUAL 기록으로 남기고,
+    // 경험치는 직접 입력을 하루 30분까지만 쳐서 다시 계산한다 (줄이면 직접 입력분부터 빠지고, 줄어든 만큼 회수)
     public PracticeRecordResponse updateDailyTotal(Long userId, LocalDate date, DailyPracticeUpdateRequest request) {
         validateEditable(date);
         User user = findUser(userId);
@@ -76,7 +78,12 @@ public class PracticeLogService {
     private PracticeRecordResponse applyChange(Long userId, User user, LocalDate date, DailyPracticeResponse before,
                                                long diffSeconds, PracticeSource source) {
         long afterSeconds = before.totalSeconds() + diffSeconds;
-        int expGained = ExpPolicy.expToGrant(afterSeconds, before.expGained());
+        PracticeDaySplit split = practiceLogRepository.findDaySplit(userId, date);
+        long timer = split.timer() + (source == PracticeSource.TIMER ? diffSeconds : 0);
+        long manual = split.manual() + (source == PracticeSource.MANUAL ? diffSeconds : 0);
+        int expGained = (int) (ExpPolicy.dailyExp(timer, manual) - split.exp());
+        // 타이머로 더할 때는 회수하지 않는다 (예전 규칙으로 직접 입력분 경험치를 더 받은 날이 있을 수 있음)
+        if (source == PracticeSource.TIMER) expGained = Math.max(expGained, 0);
 
         practiceLogRepository.save(PracticeLog.builder()
                 .user(user)
