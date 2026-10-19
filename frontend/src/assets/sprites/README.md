@@ -9,9 +9,9 @@
 | `hair/` | `BALD.png` … `MOHAWK_SHARP.png` | 백엔드 `HairStyle` 값 |
 | `instrument/` | `GUITAR.png` … `KEYBOARD.png` | 백엔드 `InstrumentType` 값 |
 | `bottom/` | `JOGGERS.png` … `SEQUIN_PANTS.png` | 레벨 보상 하의 (두 성별 공용). 없으면 몸 그림의 기본 청바지 |
-| `shoes/` `neck/` `glasses/` `hat/` | `SNEAKERS.png` … `CROWN.png` | 레벨 보상 소품. 백엔드 `Accessory` 값, 목록은 `src/constants/rewards.js` |
+| `shoes/` `neck/` `earrings/` `glasses/` `hat/` | `SNEAKERS.png` … `CROWN.png` | 레벨 보상 소품. 백엔드 `Accessory` 값, 목록은 `src/constants/rewards.js` |
 
-그리는 순서(아래 → 위): `body` → `bottom` → `shoes` → `outfit` → `neck` → `hair` → `glasses` → `hat` → `instrument`.
+그리는 순서(아래 → 위): `body` → `bottom` → `shoes` → `outfit` → `neck` → `hair` → `earrings` → `glasses` → `hat` → `instrument`.
 
 소품 자리 (두 성별의 머리·발 위치가 같아서 소품은 공용 파일 하나):
 
@@ -20,6 +20,7 @@
 | 모자 | 머리 위 y0~7 (머리카락 위에 그림) |
 | 안경 | 눈 y8~10, 왼눈 x8~9, 오른눈 x14~15 |
 | 목 | 목·가슴 y14~20 |
+| 귀걸이 | 귓불 아래 y11~14, 왼쪽 x3~5와 좌우 대칭 (머리카락 위에 그림) |
 | 하의 | 다리 y24~28, x8~15 (몸 그림의 청바지 자리) |
 | 신발 | 발 y29~31, x7~16 (높은 신발은 y27부터) |
 
