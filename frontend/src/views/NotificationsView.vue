@@ -135,7 +135,6 @@ const loadMore = async () => {
   }
 }
 
-watch(tab, () => { stopSelect(); reload() }, { immediate: true })
 
 /* ---------- 하나씩 ---------- */
 const openItem = (n) => {
@@ -218,6 +217,9 @@ const clearRead = () => run(async () => {
   await deleteReadNotifications()
   await reload()
 }, '알림을 지우지 못했어요.')
+
+// 탭을 바꾸면 고르기를 끝내고 다시 불러온다 (처음 열 때도). 위의 함수들을 쓰므로 맨 아래에 둔다
+watch(tab, () => { stopSelect(); reload() }, { immediate: true })
 </script>
 
 <style scoped>
