@@ -17,7 +17,16 @@ export const HAIR_STYLE_OPTIONS = [
   { value: 'MESSY_ROUGH', label: '헝클어짐', emoji: '🦁' },
   { value: 'DREADLOCKS', label: '드레드락', emoji: '🦱' },
   { value: 'MOHAWK_SHARP', label: '모히칸', emoji: '🐔' },
+  // 레벨 보상 (constants/rewards.js의 REWARD_HAIR_STYLES와 같은 레벨)
+  { value: 'PONYTAIL', label: '포니테일', emoji: '🎀', level: 4 },
+  { value: 'SPIKY', label: '스파이크', emoji: '⚡', level: 11 },
+  { value: 'BUN', label: '번 헤어', emoji: '🍡', level: 17 },
+  { value: 'TWIN_TAILS', label: '트윈테일', emoji: '🎎', level: 23 },
+  { value: 'AFRO', label: '아프로', emoji: '🌳', level: 29 },
 ]
+
+// 처음부터 고를 수 있는 머리 (캐릭터 만들기)
+export const STARTER_HAIR_STYLE_OPTIONS = HAIR_STYLE_OPTIONS.filter((h) => !h.level)
 
 export const SKIN_COLOR_PRESETS = SKIN_PRESETS
 

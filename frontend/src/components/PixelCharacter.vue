@@ -42,6 +42,11 @@ const spec = computed(() => {
   return {
     body,
     outfit,
+    // 소품: 캐릭터 응답의 shoes·neck·glasses·hat (없으면 안 그림)
+    shoes: c.shoes || null,
+    neck: c.neck || null,
+    glasses: c.glasses || null,
+    hat: c.hat || null,
     hair: c.hairStyle === null ? null : (c.hairStyle || 'SHORT_CUT'),
     instrument: c.instrumentType === null ? null : (c.instrumentType || 'GUITAR'),
     colors: {
@@ -81,7 +86,7 @@ function draw() {
 async function rebuild() {
   const token = ++loadToken
   const s = spec.value
-  const names = { body: s.body, outfit: s.outfit, hair: s.hair, instrument: s.instrument }
+  const names = { body: s.body, outfit: s.outfit, hair: s.hair, instrument: s.instrument, shoes: s.shoes, neck: s.neck, glasses: s.glasses, hat: s.hat }
 
   const loaded = await Promise.all(
     LAYER_ORDER.map(async (layer) => {

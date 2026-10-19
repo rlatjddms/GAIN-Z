@@ -53,8 +53,12 @@
             <div class="field">
               <span class="label">헤어 스타일</span>
               <div class="grid">
-                <button v-for="h in HAIR_STYLE_OPTIONS" :key="h.value" class="opt" :class="{ on: draft.hairStyle === h.value }" @click="draft.hairStyle = h.value">
-                  <span class="emoji">{{ h.emoji }}</span>{{ h.label }}
+                <button v-for="h in HAIR_STYLE_OPTIONS" :key="h.value" class="opt"
+                        :class="{ on: draft.hairStyle === h.value, locked: !unlocked(h.level) }"
+                        :disabled="!unlocked(h.level)" :title="unlocked(h.level) ? '' : `Lv.${h.level}에 해금`"
+                        @click="draft.hairStyle = h.value">
+                  <span class="emoji">{{ unlocked(h.level) ? h.emoji : '🔒' }}</span>{{ h.label }}
+                  <small v-if="!unlocked(h.level)" class="lv">Lv.{{ h.level }}</small>
                 </button>
               </div>
             </div>
@@ -81,7 +85,7 @@
 
           <!-- 의상 (상의는 성별마다 다른 그림) -->
           <div v-else-if="tab === 'outfit'" class="tab-body">
-            <p class="hint">레벨이 오르거나 업적을 달성하면 새 옷이 여기에 생겨요.</p>
+            <p class="hint">5레벨마다 새 옷을 얻어요.</p>
             <p v-if="wardrobeError" class="warn">{{ wardrobeError }}</p>
             <div class="items">
               <button
@@ -100,18 +104,29 @@
             </div>
           </div>
 
-          <!-- 악세서리 (추가 예정) -->
+          <!-- 소품: 자리(모자·안경·목·신발)마다 하나씩 -->
           <div v-else-if="tab === 'accessory'" class="tab-body">
-            <div v-if="!accessories.length" class="empty">
-              <span class="empty-icon">🧢</span>
-              <strong>아직 악세서리가 없어요</strong>
-              <p>모자·안경 같은 악세서리가 곧 추가될 예정이에요.</p>
-            </div>
-            <div v-else class="items">
-              <div v-for="o in accessories" :key="o.id" class="item" :class="{ locked: !o.owned }">
-                <span class="item-thumb">{{ o.owned ? '🧢' : '🔒' }}</span>
-                <strong>{{ o.name }}</strong>
-                <small>{{ o.owned ? '곧 착용할 수 있어요' : `Lv.${o.requiredLevel}에 해금` }}</small>
+            <p class="hint">레벨이 오를 때마다 소품이나 헤어스타일을 하나씩 얻어요.</p>
+            <div v-for="slot in ACCESSORY_SLOTS" :key="slot.key" class="field">
+              <span class="label">{{ slot.label }}</span>
+              <div class="items small">
+                <button class="item" :class="{ on: !draft[slot.field] }" @click="draft[slot.field] = null">
+                  <span class="item-thumb none">없음</span>
+                  <small>{{ !draft[slot.field] ? '쓰는 중' : '벗기' }}</small>
+                </button>
+                <button
+                  v-for="a in accessoriesOf(slot.key)" :key="a.key" class="item"
+                  :class="{ on: draft[slot.field] === a.key, locked: !unlocked(a.level) }"
+                  :disabled="!unlocked(a.level)"
+                  @click="draft[slot.field] = a.key"
+                >
+                  <span class="item-thumb">
+                    <PixelCharacter :character="{ ...preview, [slot.field]: a.key }" :scale="2" :animate="false" />
+                    <i v-if="!unlocked(a.level)">🔒</i>
+                  </span>
+                  <strong>{{ a.name }}</strong>
+                  <small>{{ unlocked(a.level) ? (draft[slot.field] === a.key ? '쓰는 중' : '쓰기') : `Lv.${a.level}에 해금` }}</small>
+                </button>
               </div>
             </div>
           </div>
@@ -166,11 +181,12 @@ import {
   INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS, nicknameProblem,
 } from '../constants/characterOptions'
 import { DEFAULT_COLORS } from '../pixel/palette'
+import { ACCESSORY_SLOTS, ACCESSORIES } from '../constants/rewards'
 
 const TABS = [
   { key: 'look', label: '외형' },
   { key: 'outfit', label: '의상' },
-  { key: 'accessory', label: '악세서리' },
+  { key: 'accessory', label: '소품' },
   { key: 'stage', label: '배경' },
 ]
 // 미리보기는 무대(208칸) 중 가운데 96칸만 보여 준다 → 왼쪽 칸에 크게, 한 화면에 들어가게
@@ -186,7 +202,10 @@ const original = ref(null)
 const draft = reactive({
   nickname: '', gender: 'MALE', skinColor: DEFAULT_COLORS.skinColor, hairStyle: 'SHORT_CUT', hairColor: '#111827',
   instrumentType: 'GUITAR', instrumentColor: '#B91C1C', outfitId: null, stageBackground: null,
+  hat: null, glasses: null, neck: null, shoes: null,
 })
+const ACCESSORY_FIELDS = ACCESSORY_SLOTS.map((s) => s.field)
+const WARDROBE_KEYS = ['outfitId', 'stageBackground', ...ACCESSORY_FIELDS]
 
 const outfits = ref([])
 const backgrounds = ref([])
@@ -200,6 +219,7 @@ const snapshot = (c, wardrobe) => ({
   outfitId: wardrobe?.outfits?.find((o) => o.equipped)?.id ?? c.currentOutfitId ?? null,
   // 고른 적 없으면 레벨로 얻은 가장 큰 무대 (서버도 같은 규칙으로 돌려준다)
   stageBackground: wardrobe?.stageBackground ?? c.stageBackground ?? getLevelTier(c.level ?? 1).key,
+  ...Object.fromEntries(ACCESSORY_FIELDS.map((f) => [f, c[f] ?? null])),
 })
 
 onMounted(async () => {
@@ -219,12 +239,16 @@ onMounted(async () => {
 
 const appearanceDirty = computed(() => !!original.value && APPEARANCE_KEYS.some((k) => draft[k] !== original.value[k]))
 const wardrobeDirty = computed(() => !!original.value && wardrobeLoaded.value
-  && (draft.outfitId !== original.value.outfitId || draft.stageBackground !== original.value.stageBackground))
+  && WARDROBE_KEYS.some((k) => draft[k] !== original.value[k]))
 const dirty = computed(() => appearanceDirty.value || wardrobeDirty.value)
 const nicknameError = computed(() => (appearanceDirty.value ? nicknameProblem(draft.nickname) : ''))
 
 const clothes = computed(() => outfits.value.filter((o) => o.category === 'CLOTHES'))
-const accessories = computed(() => outfits.value.filter((o) => o.category === 'ACCESSORY'))
+
+// 레벨 보상: 레벨이 닿으면 가진 것 (레벨은 내려가지 않는다)
+const level = computed(() => authStore.character?.level ?? 1)
+const unlocked = (required) => !required || level.value >= required
+const accessoriesOf = (slot) => ACCESSORIES.filter((a) => a.slot === slot)
 
 // 미리보기 캐릭터 = 저장된 캐릭터 + 고르는 중인 값 (입을 옷의 그림 포함)
 const preview = computed(() => {
@@ -250,7 +274,7 @@ const save = async () => {
       await updateAppearance({ ...body, nickname: draft.nickname.trim() })
     }
     if (wardrobeDirty.value) {
-      await updateWardrobe({ outfitId: draft.outfitId, stageBackground: draft.stageBackground })
+      await updateWardrobe(Object.fromEntries(WARDROBE_KEYS.map((k) => [k, draft[k]])))
     }
     await authStore.fetchCharacter()
     original.value = { ...draft, nickname: draft.nickname.trim() }
@@ -348,7 +372,14 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .item strong { font-size: 0.85rem; font-weight: 800; }
 .item small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 .item.on small { color: #2d5bff; }
-.item.locked, .stage.locked { cursor: not-allowed; background: #f8f9fa; }
+.item.locked, .stage.locked, .opt.locked { cursor: not-allowed; background: #f8f9fa; }
+.opt.locked { color: #adb5bd; }
+.lv { font-size: 0.65rem; font-weight: 800; color: #adb5bd; }
+.items.small { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.items.small .item { padding: 10px 6px; }
+.items.small .item strong { font-size: 0.78rem; }
+.item-thumb.none { align-items: center; font-size: 0.75rem; font-weight: 800; color: #adb5bd; }
+
 .item.locked strong, .stage.locked strong { color: #adb5bd; }
 
 .stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }

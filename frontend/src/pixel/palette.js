@@ -9,8 +9,8 @@ export const SPRITE_HEIGHT = 32
 export const STAGE_WIDTH = 208
 export const STAGE_HEIGHT = 72
 
-// 레이어 그리는 순서 (아래 → 위)
-export const LAYER_ORDER = ['body', 'outfit', 'hair', 'instrument']
+// 레이어 그리는 순서 (아래 → 위). shoes·neck·glasses·hat은 레벨 보상 소품 (constants/rewards.js)
+export const LAYER_ORDER = ['body', 'shoes', 'outfit', 'neck', 'hair', 'glasses', 'hat', 'instrument']
 
 // 기준색: { 키: { color: PNG에 칠하는 색, from: 사용자 색 종류, shade: 밝기 보정 } }
 export const KEY_COLORS = {

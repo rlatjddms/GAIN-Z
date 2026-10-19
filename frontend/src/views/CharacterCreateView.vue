@@ -258,7 +258,7 @@ import axiosInstance from '../api/axios'
 import PixelCharacter from '../components/PixelCharacter.vue'
 import { DEFAULT_COLORS } from '../pixel/palette'
 import {
-  HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS, INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS,
+  STARTER_HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS, INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS,
 } from '../constants/characterOptions'
 
 const router = useRouter()
@@ -305,7 +305,7 @@ onMounted(async () => {
 })
 
 // 선택지는 옷장과 함께 쓰는 constants/characterOptions.js에서 가져온다
-const hairStyleOptions = HAIR_STYLE_OPTIONS
+const hairStyleOptions = STARTER_HAIR_STYLE_OPTIONS
 const skinColorPresets = SKIN_COLOR_PRESETS
 const hairColorPresets = HAIR_COLOR_PRESETS
 const instrumentOptions = INSTRUMENT_OPTIONS

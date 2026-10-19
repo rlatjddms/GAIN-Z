@@ -9,7 +9,7 @@
       <h2>조합 미리보기</h2>
       <div class="playground">
         <div class="stage">
-          <PixelCharacter :character="character" :scale="8" />
+          <PixelCharacter :character="character" :outfit="outfit" :scale="8" />
         </div>
         <div class="controls">
           <label>성별
@@ -26,6 +26,17 @@
           <label>악기
             <select v-model="character.instrumentType">
               <option v-for="i in instruments" :key="i" :value="i">{{ i }}</option>
+            </select>
+          </label>
+          <label>의상
+            <select v-model="outfit">
+              <option v-for="o in outfits" :key="o" :value="o">{{ o }}</option>
+            </select>
+          </label>
+          <label v-for="slot in ACCESSORY_SLOTS" :key="slot.key">{{ slot.label }}
+            <select v-model="character[slot.field]">
+              <option :value="null">없음</option>
+              <option v-for="a in listSprites(slot.folder)" :key="a" :value="a">{{ a }}</option>
             </select>
           </label>
           <label>피부색 <input type="color" v-model="character.skinColor"></label>
@@ -52,6 +63,26 @@
     </section>
 
     <section class="panel">
+      <h2>의상 {{ outfits.length }}종</h2>
+      <div class="grid">
+        <figure v-for="o in outfits" :key="o">
+          <PixelCharacter :character="character" :outfit="o" :scale="4" :animate="false" />
+          <figcaption>{{ o }}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section v-for="slot in ACCESSORY_SLOTS" :key="slot.key" class="panel">
+      <h2>소품 · {{ slot.label }} {{ listSprites(slot.folder).length }}종</h2>
+      <div class="grid">
+        <figure v-for="a in listSprites(slot.folder)" :key="a">
+          <PixelCharacter :character="{ ...character, [slot.field]: a }" :outfit="outfit" :scale="4" :animate="false" />
+          <figcaption>{{ a }}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>악기 {{ instruments.length }}종</h2>
       <div class="grid">
         <figure v-for="i in instruments" :key="i">
@@ -64,13 +95,17 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import PixelCharacter from '../components/PixelCharacter.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import { listSprites } from '../pixel/sprites'
+import { ACCESSORY_SLOTS } from '../constants/rewards'
 
 const hairStyles = listSprites('hair')
 const instruments = listSprites('instrument')
+// 의상 파일은 <이름>_<성별>.png → 이름만
+const outfits = [...new Set(listSprites('outfit').map((n) => n.replace(/_(MALE|FEMALE)$/, '')))]
+const outfit = ref('DEFAULT')
 
 const character = reactive({
   gender: 'FEMALE',
@@ -80,6 +115,7 @@ const character = reactive({
   hairColor: '#EC4899',
   instrumentColor: '#B91C1C',
   outfitColor: '#FFFFFF',
+  hat: null, glasses: null, neck: null, shoes: null,
 })
 </script>
 
