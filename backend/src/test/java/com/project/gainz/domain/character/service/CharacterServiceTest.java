@@ -97,6 +97,20 @@ class CharacterServiceTest {
     }
 
     @Test
+    void 음수_경험치는_되돌리기만_하고_레벨업_판정을_하지_않는다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        characterService.processExperienceAndUnlocks(USER_ID, 40, 40);
+
+        ExperienceResult result = characterService.processExperienceAndUnlocks(USER_ID, -60, -60);
+
+        assertThat(result.isLeveledUp()).isFalse();
+        assertThat(result.currentLevel()).isEqualTo(1);
+        assertThat(result.currentExp()).isEqualTo(-20);
+        assertThat(character.getTotalPracticeTime()).isZero();
+        verify(outfitItemRepository, never()).findUnlockableItems(anyInt(), anyInt());
+    }
+
+    @Test
     void 레벨업하면_새로_해금되는_의상을_지급한다() {
         OutfitItem newItem = mock(OutfitItem.class);
         when(newItem.getId()).thenReturn(10L);

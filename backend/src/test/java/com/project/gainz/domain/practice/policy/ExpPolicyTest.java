@@ -7,43 +7,35 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ExpPolicyTest {
 
     @Test
-    void 하루_연습_1분당_1exp() {
-        assertThat(ExpPolicy.dailyExp(600)).isEqualTo(10);
+    void 타이머로_연습한_1분에_1_경험치() {
+        assertThat(ExpPolicy.dailyExp(600, 0)).isEqualTo(10);
     }
 
     @Test
-    void 일분_미만은_버린다() {
-        assertThat(ExpPolicy.dailyExp(59)).isZero();
-        assertThat(ExpPolicy.dailyExp(119)).isEqualTo(1);
+    void 일분이_안_되는_자투리는_버린다() {
+        assertThat(ExpPolicy.dailyExp(59, 0)).isZero();
+        assertThat(ExpPolicy.dailyExp(119, 0)).isEqualTo(1);
     }
 
     @Test
-    void 하루에_인정되는_연습_시간은_상한이_있다() {
-        long tenHours = 10 * 60 * 60;
-        assertThat(ExpPolicy.dailyExp(tenHours)).isEqualTo(ExpPolicy.MAX_MINUTES_PER_DAY);
+    void 하루_최대_300_경험치() {
+        long tenHours = 10 * 3600;
+        assertThat(ExpPolicy.dailyExp(tenHours, 0)).isEqualTo(ExpPolicy.MAX_MINUTES_PER_DAY);
+        assertThat(ExpPolicy.dailyExp(290 * 60, 30 * 60)).isEqualTo(300);
     }
 
     @Test
-    void 이미_받은_경험치를_빼고_지급한다() {
-        // 하루 30분 → 30exp 중 이미 20exp를 받았으면 10exp
-        assertThat(ExpPolicy.expToGrant(30 * 60, 20)).isEqualTo(10);
+    void 직접_입력은_하루_30분까지만_친다() {
+        assertThat(ExpPolicy.dailyExp(0, 20 * 60)).isEqualTo(20);
+        assertThat(ExpPolicy.dailyExp(0, 2 * 3600)).isEqualTo(ExpPolicy.MANUAL_MINUTES_PER_DAY);
+        assertThat(ExpPolicy.dailyExp(60 * 60, 2 * 3600)).isEqualTo(90);
     }
 
     @Test
-    void 짧게_나눠_기록해도_하루_합계로_계산한다() {
-        // 40초 + 40초: 첫 구간 0exp, 합계 80초가 되면 1exp
-        int first = ExpPolicy.expToGrant(40, 0);
-        int second = ExpPolicy.expToGrant(80, first);
-        assertThat(first + second).isEqualTo(1);
-    }
-
-    @Test
-    void 시간이_줄면_지급하지_않는다() {
-        assertThat(ExpPolicy.expToGrant(10 * 60, 30)).isZero();
-    }
-
-    @Test
-    void 음수_시간은_0분으로_본다() {
-        assertThat(ExpPolicy.toMinutes(-120)).isZero();
+    void 직접_입력_합이_음수면_타이머_시간에서_뺀다() {
+        // 타이머 3시간을 1시간으로 줄임 (직접 입력 -2시간)
+        assertThat(ExpPolicy.dailyExp(3 * 3600, -2 * 3600)).isEqualTo(60);
+        // 타이머보다 더 줄여도 0 아래로는 없다
+        assertThat(ExpPolicy.dailyExp(600, -3600)).isZero();
     }
 }
