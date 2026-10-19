@@ -66,46 +66,15 @@
         </template>
       </WsCard>
 
-      <WsCard title="프로필">
-        <!-- 요즘 듣는 음악 -->
-        <div class="section">
-          <div class="section-head">
-            <span class="section-title">요즘 듣는 음악</span>
-            <div v-if="profile && !editingMusic" class="section-actions">
-              <button class="text-btn" @click="startEditMusic">{{ profile.profileMusic ? '수정' : '설정하기' }}</button>
-              <button v-if="profile.profileMusic" class="text-btn muted" :disabled="musicBusy" @click="removeMusic">지우기</button>
-            </div>
-          </div>
-
-          <form v-if="editingMusic" class="music-form" @submit.prevent="saveMusic">
-            <input v-model="musicDraft.title" type="text" :maxlength="PROFILE_MUSIC_TITLE_MAX" placeholder="곡 제목" aria-label="곡 제목" :disabled="musicBusy">
-            <input v-model="musicDraft.artist" type="text" :maxlength="PROFILE_MUSIC_ARTIST_MAX" placeholder="아티스트" aria-label="아티스트" :disabled="musicBusy">
-            <input v-model="musicDraft.url" type="url" :maxlength="PROFILE_MUSIC_URL_MAX" placeholder="유튜브·스포티파이 링크 (선택)" aria-label="링크" :disabled="musicBusy">
-            <p v-if="musicDraft.url && !musicUrlValid" class="field-error">http:// 또는 https://로 시작하는 링크만 넣을 수 있어요.</p>
-            <div class="form-actions">
-              <button type="button" class="btn small" :disabled="musicBusy" @click="editingMusic = false">취소</button>
-              <button type="submit" class="btn small primary" :disabled="musicBusy || !musicValid">{{ musicBusy ? '저장 중…' : '저장' }}</button>
-            </div>
-          </form>
-          <ProfileMusic v-else-if="profile?.profileMusic" :music="profile.profileMusic" />
-          <p v-else class="muted">좋아하는 곡을 걸어 두면 친구와 밴드 멤버가 내 프로필에서 볼 수 있어요.</p>
-          <p v-if="musicError" class="field-error">{{ musicError }}</p>
+      <WsCard title="프로필 공개 범위">
+        <p class="muted">다른 사람이 내 프로필을 열었을 때 캐릭터·연습 기록·가입한 밴드·요즘 듣는 음악을 보여 줄지 정해요. 이름과 사진은 항상 보여요.</p>
+        <div class="segmented" role="radiogroup" aria-label="프로필 공개 범위">
+          <button v-for="o in PROFILE_VISIBILITY_OPTIONS" :key="o.value" type="button" role="radio"
+                  :aria-checked="currentVisibility === o.value" :class="{ on: currentVisibility === o.value }"
+                  :disabled="!profile || visibilityBusy" @click="changeVisibility(o.value)">{{ o.label }}</button>
         </div>
-
-        <!-- 공개 범위 -->
-        <div class="section">
-          <div class="section-head">
-            <span class="section-title">프로필 공개 범위</span>
-          </div>
-          <div class="segmented" role="radiogroup" aria-label="프로필 공개 범위">
-            <button v-for="o in PROFILE_VISIBILITY_OPTIONS" :key="o.value" type="button" role="radio"
-                    :aria-checked="currentVisibility === o.value" :class="{ on: currentVisibility === o.value }"
-                    :disabled="!profile || visibilityBusy" @click="changeVisibility(o.value)">{{ o.label }}</button>
-          </div>
-          <p class="muted small">{{ visibilityDesc }}</p>
-          <p v-if="visibilityError" class="field-error">{{ visibilityError }}</p>
-        </div>
-        <p v-if="profileStatus" class="saved">{{ profileStatus }}</p>
+        <p class="muted small">{{ visibilityDesc }}</p>
+        <p v-if="visibilityError" class="field-error">{{ visibilityError }}</p>
       </WsCard>
 
       <WsCard title="계정 설정">
@@ -135,15 +104,14 @@ import { useRouter } from 'vue-router'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import WsCard from '../components/workspace/WsCard.vue'
 import ProfileAvatar from '../components/ProfileAvatar.vue'
-import ProfileMusic from '../components/ProfileMusic.vue'
 import PasswordModal from '../components/mypage/PasswordModal.vue'
 import WithdrawModal from '../components/mypage/WithdrawModal.vue'
 import { useAuthStore } from '../stores/auth'
 import {
   updateMyName, uploadProfileImage, deleteProfileImage,
-  updateProfileMusic, deleteProfileMusic, updateProfileVisibility,
+  updateProfileVisibility,
   PROFILE_IMAGE_ACCEPT, PROFILE_IMAGE_TYPES, MAX_PROFILE_IMAGE_MB,
-  PROFILE_MUSIC_TITLE_MAX, PROFILE_MUSIC_ARTIST_MAX, PROFILE_MUSIC_URL_MAX, PROFILE_VISIBILITY_OPTIONS,
+  PROFILE_VISIBILITY_OPTIONS,
 } from '../api/user'
 import { apiErrorMessage } from '../api/practice'
 
@@ -251,58 +219,6 @@ const saveName = async () => {
   }
 }
 
-/* ---------- 프로필 뮤직 ---------- */
-const profileStatus = ref('')
-const editingMusic = ref(false)
-const musicBusy = ref(false)
-const musicError = ref('')
-const musicDraft = ref({ title: '', artist: '', url: '' })
-
-const musicUrlValid = computed(() => /^https?:\/\/\S+$/i.test(musicDraft.value.url.trim()))
-const musicValid = computed(() => {
-  const { title, artist, url } = musicDraft.value
-  return title.trim() && artist.trim() && (!url.trim() || musicUrlValid.value)
-})
-
-const startEditMusic = () => {
-  const m = profile.value?.profileMusic
-  musicDraft.value = { title: m?.title || '', artist: m?.artist || '', url: m?.url || '' }
-  musicError.value = ''
-  profileStatus.value = ''
-  editingMusic.value = true
-}
-
-const saveMusic = async () => {
-  if (!musicValid.value || musicBusy.value) return
-  musicBusy.value = true
-  musicError.value = ''
-  try {
-    const { title, artist, url } = musicDraft.value
-    authStore.profile = await updateProfileMusic({ title: title.trim(), artist: artist.trim(), url: url.trim() || null })
-    editingMusic.value = false
-    profileStatus.value = '요즘 듣는 음악을 저장했어요'
-  } catch (e) {
-    musicError.value = apiErrorMessage(e, '음악을 저장하지 못했어요.')
-  } finally {
-    musicBusy.value = false
-  }
-}
-
-const removeMusic = async () => {
-  if (!window.confirm('요즘 듣는 음악을 지울까요?')) return
-  musicBusy.value = true
-  musicError.value = ''
-  profileStatus.value = ''
-  try {
-    authStore.profile = await deleteProfileMusic()
-    profileStatus.value = '요즘 듣는 음악을 지웠어요'
-  } catch (e) {
-    musicError.value = apiErrorMessage(e, '음악을 지우지 못했어요.')
-  } finally {
-    musicBusy.value = false
-  }
-}
-
 /* ---------- 공개 범위 ---------- */
 const visibilityBusy = ref(false)
 const visibilityError = ref('')
@@ -313,7 +229,6 @@ const changeVisibility = async (value) => {
   if (value === currentVisibility.value || visibilityBusy.value) return
   visibilityBusy.value = true
   visibilityError.value = ''
-  profileStatus.value = ''
   try {
     authStore.profile = await updateProfileVisibility(value)
   } catch (e) {
@@ -407,19 +322,6 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .text-btn { border: none; background: none; padding: 0; color: #2d5bff; font-weight: 800; cursor: pointer; font-family: inherit; font-size: 0.75rem; }
 
-.section + .section { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f3f5; }
-.section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-.section-title { font-size: 0.75rem; font-weight: 800; color: #868e96; }
-.section-actions { display: flex; gap: 12px; }
-.text-btn.muted { color: #adb5bd; }
-.text-btn.muted:hover:not(:disabled) { color: #e03131; }
-.music-form { display: flex; flex-direction: column; gap: 6px; }
-.music-form input {
-  border: 1px solid #e9ecef; border-radius: 10px; padding: 9px 12px; background: #f8f9fa;
-  font-family: inherit; font-size: 0.85rem; font-weight: 700; outline: none;
-}
-.music-form input:focus { border-color: #2d5bff; background: #fff; }
-.form-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
 .segmented { display: inline-flex; background: #f1f3f5; border-radius: 12px; padding: 3px; gap: 2px; }
 .segmented button {
   border: none; background: none; border-radius: 10px; padding: 7px 14px; cursor: pointer;
@@ -427,7 +329,6 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
 }
 .segmented button.on { background: #fff; color: #2d5bff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
 .segmented button:disabled { cursor: not-allowed; }
-.section .muted { margin: 0; }
 .muted.small { margin: 8px 0 0; font-size: 0.72rem; }
 .saved { margin: 10px 0 0; font-size: 0.75rem; font-weight: 800; color: #2f9e44; }
 .error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }

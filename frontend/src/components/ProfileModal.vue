@@ -44,9 +44,9 @@
               <!-- 깃허브 잔디처럼 최근 연습 -->
               <PracticeLogCard :daily="profile.dailyPractice" :total-minutes="profile.character?.totalPracticeTime ?? 0" />
 
-              <!-- 함께하는 밴드 -->
+              <!-- 가입한 밴드 (나도 있는 밴드는 같은 밴드 표시) -->
               <section class="bands-card">
-                <h3>함께하는 밴드 <span class="count">{{ profile.bands.length }}</span></h3>
+                <h3>가입한 밴드 <span class="count">{{ profile.bands.length }}</span></h3>
                 <p v-if="!profile.bands.length" class="empty">아직 들어간 밴드가 없어요</p>
                 <ul v-else class="bands">
                   <li v-for="b in profile.bands" :key="b.bandId" class="band">
