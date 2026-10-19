@@ -96,9 +96,8 @@ class PracticeLogServiceTest {
         assertThat(response.dayTotalSeconds()).isEqualTo(30 * 60L);
         assertThat(response.expGained()).isEqualTo(10);
         assertThat(response.experience()).isSameAs(experience);
-        // 연습 레코드(첫 연습·연속·총 시간) 판정 요청
-        verify(eventPublisher).publishEvent(RecordCheckEvent.of(USER_ID,
-                RecordMetric.PRACTICE_DAYS, RecordMetric.STREAK_DAYS, RecordMetric.PRACTICE_HOURS));
+        // 연습 레코드(연속·총 시간) 판정 요청
+        verify(eventPublisher).publishEvent(RecordCheckEvent.of(USER_ID, RecordMetric.STREAK_DAYS, RecordMetric.PRACTICE_HOURS));
     }
 
     @Test

@@ -37,18 +37,18 @@ class UserRecordRepositoryTest {
     @Test void recordsAreSavedPerUserWithAcquiredTimeAndCannotBeDuplicated() {
         User me = user("me");
         User other = user("other");
-        records.save(new UserRecord(me, RecordType.FIRST_PRACTICE));
-        records.save(new UserRecord(me, RecordType.STREAK_3));
-        records.save(new UserRecord(other, RecordType.FIRST_PRACTICE));
+        records.save(new UserRecord(me, RecordType.STREAK_7));
+        records.save(new UserRecord(me, RecordType.HOURS_10));
+        records.save(new UserRecord(other, RecordType.STREAK_7));
         em.flush();
         em.clear();
 
         assertThat(records.findAllByUserId(me.getId())).extracting(UserRecord::getRecordType)
-                .containsExactlyInAnyOrder(RecordType.FIRST_PRACTICE, RecordType.STREAK_3);
+                .containsExactlyInAnyOrder(RecordType.STREAK_7, RecordType.HOURS_10);
         assertThat(records.findAllByUserId(me.getId())).allSatisfy(r -> assertThat(r.getCreatedAt()).isNotNull());
 
         assertThatThrownBy(() -> {
-            records.save(new UserRecord(me, RecordType.FIRST_PRACTICE));
+            records.save(new UserRecord(me, RecordType.STREAK_7));
             em.flush();
         }).isInstanceOfAny(DataIntegrityViolationException.class, org.hibernate.exception.ConstraintViolationException.class);
     }
@@ -64,6 +64,24 @@ class UserRecordRepositoryTest {
         em.clear();
         assertThat(records.findAllByUserId(me.getId())).isEmpty();
         assertThat(records.findAllByUserId(other.getId())).hasSize(1);
+    }
+
+    @Autowired javax.sql.DataSource dataSource;
+
+    @Test void recordsRemovedFromTheCollectionAreCleanedUpAtStartup() {
+        User me = user("me3");
+        records.save(new UserRecord(me, RecordType.FIRST_BAND));
+        em.flush();
+        // 예전 도감에 있던 레코드 (지금 RecordType에는 없음)
+        em.getEntityManager().createNativeQuery("insert into user_record (user_id, record_type, created_at, is_deleted)"
+                + " values (?, 'FIRST_PRACTICE', current_timestamp, false)").setParameter(1, me.getId()).executeUpdate();
+
+        new com.project.gainz.domain.record.service.RecordSchemaPatcher(
+                new org.springframework.jdbc.core.JdbcTemplate(dataSource)).run(null);
+        em.clear();
+
+        assertThat(records.findAllByUserId(me.getId())).extracting(UserRecord::getRecordType)
+                .containsExactly(RecordType.FIRST_BAND);
     }
 
     private User user(String name) {

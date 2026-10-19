@@ -118,7 +118,7 @@ class RecordServiceTest {
     }
 
     @Test
-    void 연습_기록으로_연습한_날_연속_일수_총_시간을_잰다() {
+    void 연습_기록으로_연속_일수와_총_시간을_잰다() {
         practiced(Map.of(
                 today.minusDays(3), 3600L * 4,
                 today.minusDays(2), 3600L * 3,
@@ -126,10 +126,9 @@ class RecordServiceTest {
                 today, 1800L));
 
         Map<RecordMetric, Long> values = recordService.measure(ME,
-                EnumSet.of(RecordMetric.PRACTICE_DAYS, RecordMetric.STREAK_DAYS, RecordMetric.PRACTICE_HOURS));
+                EnumSet.of(RecordMetric.STREAK_DAYS, RecordMetric.PRACTICE_HOURS));
 
-        assertThat(values).containsEntry(RecordMetric.PRACTICE_DAYS, 3L)
-                .containsEntry(RecordMetric.STREAK_DAYS, 2L)
+        assertThat(values).containsEntry(RecordMetric.STREAK_DAYS, 2L)
                 .containsEntry(RecordMetric.PRACTICE_HOURS, 7L);   // 7.5시간 → 내림
         // 가입 7일 전부터 센다
         verify(practiceLogRepository).findDailyTotals(ME, today.minusDays(27), today);
@@ -153,17 +152,19 @@ class RecordServiceTest {
 
     @Test
     void 달성한_것만_지급하고_알림을_보낸다() {
-        practiced(Map.of(today.minusDays(2), 3600L * 11, today.minusDays(1), 60L, today, 60L));
+        // 오늘까지 7일 연속, 모두 합쳐 11시간
+        Map<LocalDate, Long> week = new java.util.HashMap<>();
+        for (int i = 0; i < 7; i++) week.put(today.minusDays(i), i == 0 ? 3600L * 5 : 3600L);
+        practiced(week);
 
-        List<UserRecord> granted = recordService.check(ME,
-                EnumSet.of(RecordMetric.PRACTICE_DAYS, RecordMetric.STREAK_DAYS, RecordMetric.PRACTICE_HOURS));
+        List<UserRecord> granted = recordService.check(ME, EnumSet.of(RecordMetric.STREAK_DAYS, RecordMetric.PRACTICE_HOURS));
 
-        // 첫 연습(1일), 3일 연속, 10시간 → 일주일 연속·50시간은 아직
+        // 7일 연속(카세트), 10시간 → 30일 연속·50시간은 아직
         assertThat(granted).extracting(UserRecord::getRecordType)
-                .containsExactly(RecordType.FIRST_PRACTICE, RecordType.STREAK_3, RecordType.HOURS_10);
+                .containsExactly(RecordType.STREAK_7, RecordType.HOURS_10);
         verify(notificationService).notify(me, NotificationType.RECORD, "MY RECORDS",
-                "새 레코드를 얻었어요: 첫 소절 (카세트)", RecordService.RECORDS_URL);
-        verify(notificationService, times(3)).notify(eq(me), eq(NotificationType.RECORD), any(), any(), any());
+                "새 레코드를 얻었어요: 일주일 세션 (카세트)", RecordService.RECORDS_URL);
+        verify(notificationService, times(2)).notify(eq(me), eq(NotificationType.RECORD), any(), any(), any());
     }
 
     @Test
@@ -185,6 +186,7 @@ class RecordServiceTest {
 
         recordService.check(ME, EnumSet.of(RecordMetric.FRIENDS, RecordMetric.BANDS, RecordMetric.JAM_TRACKS));
 
+        // 트랙 2개: 첫 합주(1)는 되고 멀티트랙(10)은 아직
         assertThat(grantedTypes()).containsExactly(RecordType.FIRST_FRIEND, RecordType.FIRST_JAM_TRACK);
     }
 
@@ -199,7 +201,7 @@ class RecordServiceTest {
 
     @Test
     void 도감은_순서대로_얻은_것과_진행도를_보여_주고_이미_달성한_것은_이때_지급한다() {
-        own(RecordType.FIRST_PRACTICE);
+        own(RecordType.STREAK_7);
         practiced(Map.of(today.minusDays(1), 3600L * 12, today, 60L));
         when(routineService.getDailySummary(eq(ME), any(), any())).thenReturn(List.of());
         when(bandMemberRepository.countByUserId(ME)).thenReturn(1L);
@@ -211,17 +213,18 @@ class RecordServiceTest {
         assertThat(collection.total()).isEqualTo(RecordType.values().length);
         assertThat(collection.records()).extracting(RecordResponse::key)
                 .containsExactly(java.util.Arrays.stream(RecordType.values()).map(Enum::name).toArray(String[]::new));
-        // 원래 있던 첫 연습 + 이번에 지급된 10시간·첫 무대
+        // 원래 있던 일주일 세션 + 이번에 지급된 10시간·첫 무대
         assertThat(collection.ownedCount()).isEqualTo(3);
         assertThat(collection.records()).filteredOn(RecordResponse::owned).extracting(RecordResponse::key)
-                .containsExactly("FIRST_PRACTICE", "HOURS_10", "FIRST_BAND");
+                .containsExactly("STREAK_7", "HOURS_10", "FIRST_BAND");
         RecordResponse hours50 = collection.records().stream().filter(r -> r.key().equals("HOURS_50")).findFirst().orElseThrow();
         assertThat(hours50.owned()).isFalse();
         assertThat(hours50.acquiredAt()).isNull();
         assertThat(hours50.progress()).isEqualTo(new RecordResponse.Progress(12, 50, RecordMetric.Unit.HOUR));
-        // 진행도는 목표를 넘지 않는다
+        // 이미 얻은 것은 얻은 때가 그대로, 진행도는 목표를 넘지 않는다
         RecordResponse first = collection.records().get(0);
-        assertThat(first.progress().current()).isEqualTo(1);
         assertThat(first.acquiredAt()).isEqualTo(LocalDateTime.of(2026, 10, 1, 12, 0));
+        RecordResponse hours10 = collection.records().stream().filter(r -> r.key().equals("HOURS_10")).findFirst().orElseThrow();
+        assertThat(hours10.progress().current()).isEqualTo(10);
     }
 }
