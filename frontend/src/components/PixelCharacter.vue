@@ -13,7 +13,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { SPRITE_WIDTH, SPRITE_HEIGHT, LAYER_ORDER, DEFAULT_COLORS } from '../pixel/palette'
-import { loadSpriteData, recolorSprite, spriteUrl } from '../pixel/sprites'
+import { loadSpriteData, recolorSprite, spriteUrl, outfitSpriteName } from '../pixel/sprites'
 
 const props = defineProps({
   // 백엔드 CharacterResponse 와 같은 모양. 없으면 기본 캐릭터.
@@ -36,13 +36,12 @@ const spec = computed(() => {
   const body = c.gender === 'MALE' ? 'MALE' : 'FEMALE'
   // 의상은 체형이 달라서 성별별 파일(<이름>_<성별>.png)을 먼저 찾고, 없으면 공용 파일,
   // 그림이 아직 없는 의상이면 기본 의상을 입힌다
-  const outfit = spriteUrl('outfit', `${props.outfit}_${body}`) ? `${props.outfit}_${body}`
-    : spriteUrl('outfit', props.outfit) ? props.outfit
-    : `DEFAULT_${body}`
+  const outfit = outfitSpriteName(props.outfit, body)
   return {
     body,
     outfit,
     // 소품: 캐릭터 응답의 shoes·neck·glasses·hat (없으면 안 그림)
+    bottom: c.bottom || null,
     shoes: c.shoes || null,
     neck: c.neck || null,
     glasses: c.glasses || null,
@@ -86,7 +85,7 @@ function draw() {
 async function rebuild() {
   const token = ++loadToken
   const s = spec.value
-  const names = { body: s.body, outfit: s.outfit, hair: s.hair, instrument: s.instrument, shoes: s.shoes, neck: s.neck, glasses: s.glasses, hat: s.hat }
+  const names = { body: s.body, outfit: s.outfit, hair: s.hair, instrument: s.instrument, bottom: s.bottom, shoes: s.shoes, neck: s.neck, glasses: s.glasses, hat: s.hat }
 
   const loaded = await Promise.all(
     LAYER_ORDER.map(async (layer) => {

@@ -20,6 +20,15 @@ export function spriteUrl(layer, name) {
   return registry[layer]?.[name] || null
 }
 
+// 상의 스프라이트 파일 이름: 성별 그림(<키>_<성별>) → 공용(<키>) → 기본 의상
+export function outfitSpriteName(key, gender) {
+  const body = gender === 'MALE' ? 'MALE' : 'FEMALE'
+  const k = key || 'DEFAULT'
+  if (spriteUrl('outfit', `${k}_${body}`)) return `${k}_${body}`
+  if (spriteUrl('outfit', k)) return k
+  return `DEFAULT_${body}`
+}
+
 const imageDataCache = new Map()
 
 function loadImage(url) {

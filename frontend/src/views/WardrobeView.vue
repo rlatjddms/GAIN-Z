@@ -19,7 +19,7 @@
         <div class="preview">
           <!-- 무대 가운데(캐릭터 쪽)만 카메라처럼 잘라 보여 준다. 배율은 무대 전체와 같다 -->
           <CharacterStage v-if="preview" :character="preview" bare :view-width="PREVIEW_VIEW_WIDTH" />
-          <p class="preview-caption">{{ STAGE_NAMES[draft.stageBackground] }} 무대 · {{ clothes.find((o) => o.id === draft.outfitId)?.name || '기본 의상' }}</p>
+          <p class="preview-caption">{{ STAGE_NAMES[draft.stageBackground] }} 무대 · {{ clothes.find((o) => o.id === draft.outfitId)?.name || '기본 의상' }} · {{ BOTTOMS.find((b) => b.key === draft.bottom)?.name || '기본 청바지' }}</p>
         </div>
 
         <section class="panel">
@@ -88,24 +88,52 @@
             </div>
           </div>
 
-          <!-- 의상 (상의는 성별마다 다른 그림) -->
+          <!-- 의상: 상의(성별마다 다른 그림)와 하의를 따로 고른다. 썸네일은 옷만 -->
           <div v-else-if="tab === 'outfit'" class="tab-body">
-            <p class="hint">5레벨마다 새 옷을 얻어요.</p>
+            <p class="hint">5레벨마다 상의와 하의를 한 벌씩 얻어요.</p>
             <p v-if="wardrobeError" class="warn">{{ wardrobeError }}</p>
-            <div class="items">
-              <button
-                v-for="o in clothes" :key="o.id" class="item"
-                :class="{ on: draft.outfitId === o.id, locked: !o.owned }"
-                :disabled="!o.owned"
-                @click="draft.outfitId = o.id"
-              >
-                <span class="item-thumb">
-                  <PixelCharacter :character="{ ...preview, currentOutfitSpriteKey: o.spriteKey }" :outfit="o.spriteKey || 'DEFAULT'" :scale="2" :animate="false" />
-                  <i v-if="!o.owned">🔒</i>
-                </span>
-                <strong>{{ o.name }}</strong>
-                <small>{{ o.owned ? (draft.outfitId === o.id ? '입는 중' : '입기') : `Lv.${o.requiredLevel}에 해금` }}</small>
-              </button>
+            <div class="field">
+              <span class="label">상의</span>
+              <div class="items small">
+                <button
+                  v-for="o in clothes" :key="o.id" class="item"
+                  :class="{ on: draft.outfitId === o.id, locked: !o.owned }"
+                  :disabled="!o.owned"
+                  @click="draft.outfitId = o.id"
+                >
+                  <span class="item-thumb sprite">
+                    <PixelSprite :parts="[['outfit', outfitSpriteName(o.spriteKey, draft.gender)]]" :box="44" :label="o.name" />
+                    <i v-if="!o.owned">🔒</i>
+                  </span>
+                  <strong>{{ o.name }}</strong>
+                  <small>{{ o.owned ? (draft.outfitId === o.id ? '입는 중' : '입기') : `Lv.${o.requiredLevel}에 해금` }}</small>
+                </button>
+              </div>
+            </div>
+            <div class="field">
+              <span class="label">하의</span>
+              <div class="items small">
+                <button class="item" :class="{ on: !draft.bottom }" @click="draft.bottom = null">
+                  <span class="item-thumb sprite">
+                    <PixelSprite :parts="[['body', draft.gender === 'MALE' ? 'MALE' : 'FEMALE']]" :region="LEGS_REGION" :box="44" label="기본 청바지" />
+                  </span>
+                  <strong>기본 청바지</strong>
+                  <small>{{ !draft.bottom ? '입는 중' : '입기' }}</small>
+                </button>
+                <button
+                  v-for="b in BOTTOMS" :key="b.key" class="item"
+                  :class="{ on: draft.bottom === b.key, locked: !unlocked(b.level) }"
+                  :disabled="!unlocked(b.level)"
+                  @click="draft.bottom = b.key"
+                >
+                  <span class="item-thumb sprite">
+                    <PixelSprite :parts="[['bottom', b.key]]" :box="44" :label="b.name" />
+                    <i v-if="!unlocked(b.level)">🔒</i>
+                  </span>
+                  <strong>{{ b.name }}</strong>
+                  <small>{{ unlocked(b.level) ? (draft.bottom === b.key ? '입는 중' : '입기') : `Lv.${b.level}에 해금` }}</small>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -186,8 +214,9 @@ import {
   GENDER_OPTIONS, HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS,
   INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS, nicknameProblem,
 } from '../constants/characterOptions'
-import { DEFAULT_COLORS, HEAD_REGION } from '../pixel/palette'
-import { ACCESSORY_SLOTS, ACCESSORIES } from '../constants/rewards'
+import { DEFAULT_COLORS, HEAD_REGION, LEGS_REGION } from '../pixel/palette'
+import { outfitSpriteName } from '../pixel/sprites'
+import { ACCESSORY_SLOTS, ACCESSORIES, BOTTOMS, BOTTOM_SLOT } from '../constants/rewards'
 
 const TABS = [
   { key: 'look', label: '외형' },
@@ -208,9 +237,9 @@ const original = ref(null)
 const draft = reactive({
   nickname: '', gender: 'MALE', skinColor: DEFAULT_COLORS.skinColor, hairStyle: 'SHORT_CUT', hairColor: '#111827',
   instrumentType: 'GUITAR', instrumentColor: '#B91C1C', outfitId: null, stageBackground: null,
-  hat: null, glasses: null, neck: null, shoes: null,
+  bottom: null, hat: null, glasses: null, neck: null, shoes: null,
 })
-const ACCESSORY_FIELDS = ACCESSORY_SLOTS.map((s) => s.field)
+const ACCESSORY_FIELDS = [BOTTOM_SLOT, ...ACCESSORY_SLOTS].map((s) => s.field)
 const WARDROBE_KEYS = ['outfitId', 'stageBackground', ...ACCESSORY_FIELDS]
 
 const outfits = ref([])

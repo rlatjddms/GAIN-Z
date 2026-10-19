@@ -14,9 +14,9 @@
             <ul>
               <li v-for="r in rewards" :key="`${r.type}-${r.key}`">
                 <span class="thumb">
-                  <PixelCharacter v-if="r.type === 'OUTFIT'" :character="me" :outfit="r.key" :scale="2" :animate="false" />
+                  <PixelSprite v-if="r.type === 'OUTFIT'" :parts="[['outfit', outfitSpriteName(r.key, me?.gender)]]" :box="40" />
                   <PixelSprite v-else-if="r.type === 'HAIR'" :parts="[['body', me?.gender === 'MALE' ? 'MALE' : 'FEMALE'], ['hair', r.key]]" :colors="me || {}" :region="HEAD_REGION" :box="48" />
-                  <PixelSprite v-else-if="r.type === 'ACCESSORY'" :parts="[[slotOf(r.slot).folder, r.key]]" :box="40" />
+                  <PixelSprite v-else-if="r.type === 'ACCESSORY' || r.type === 'BOTTOM'" :parts="[[slotOf(r.slot).folder, r.key]]" :box="40" />
                   <span v-else class="stage-icon">🎪</span>
                 </span>
                 <span class="what">
@@ -43,9 +43,9 @@
 // result: { previousLevel, currentLevel, expGained }
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import PixelCharacter from '../PixelCharacter.vue'
 import PixelSprite from '../PixelSprite.vue'
 import { HEAD_REGION } from '../../pixel/palette'
+import { outfitSpriteName } from '../../pixel/sprites'
 import { useAuthStore } from '../../stores/auth'
 import { getLevelTier } from '../../constants/levelTier'
 import { rewardsBetween, nextReward, rewardLabel, slotOf } from '../../constants/rewards'
@@ -95,7 +95,6 @@ const goWardrobe = () => {
 .rewards ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
 .rewards li { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 10px; padding: 4px 10px 4px 4px; }
 .thumb { width: 48px; height: 56px; border-radius: 8px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-.thumb > .pixel-character { align-self: flex-end; }
 .stage-icon { font-size: 1.5rem; }
 .what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .what small { font-size: 0.68rem; font-weight: 800; color: #adb5bd; }

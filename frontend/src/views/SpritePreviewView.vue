@@ -121,7 +121,10 @@ import CharacterStage from '../components/CharacterStage.vue'
 import PixelSprite from '../components/PixelSprite.vue'
 import { HEAD_REGION } from '../pixel/palette'
 import { listSprites } from '../pixel/sprites'
-import { ACCESSORY_SLOTS } from '../constants/rewards'
+import { ACCESSORY_SLOTS as WEAR_SLOTS, BOTTOM_SLOT } from '../constants/rewards'
+
+// 하의도 소품처럼 자리 하나로 보여 준다
+const ACCESSORY_SLOTS = [BOTTOM_SLOT, ...WEAR_SLOTS]
 
 const hairStyles = listSprites('hair')
 const instruments = listSprites('instrument')
@@ -137,7 +140,7 @@ const character = reactive({
   hairColor: '#EC4899',
   instrumentColor: '#B91C1C',
   outfitColor: '#FFFFFF',
-  hat: null, glasses: null, neck: null, shoes: null,
+  bottom: null, hat: null, glasses: null, neck: null, shoes: null,
 })
 </script>
 

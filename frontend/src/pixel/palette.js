@@ -7,13 +7,15 @@ export const SPRITE_HEIGHT = 32
 
 // 헤어스타일 썸네일: 캐릭터에서 머리 부분만 (y0~15)
 export const HEAD_REGION = { x: 0, y: 0, w: 24, h: 16 }
+// 기본 하의 썸네일: 몸 그림의 청바지 부분 (y24~28)
+export const LEGS_REGION = { x: 8, y: 24, w: 8, h: 5 }
 
 // 무대 배경 원본 크기 (assets/stages/<tier>.png). 캐릭터와 같은 도트 격자에 놓는다
 export const STAGE_WIDTH = 208
 export const STAGE_HEIGHT = 72
 
-// 레이어 그리는 순서 (아래 → 위). shoes·neck·glasses·hat은 레벨 보상 소품 (constants/rewards.js)
-export const LAYER_ORDER = ['body', 'shoes', 'outfit', 'neck', 'hair', 'glasses', 'hat', 'instrument']
+// 레이어 그리는 순서 (아래 → 위). bottom은 레벨 보상 하의, shoes·neck·glasses·hat은 소품 (constants/rewards.js)
+export const LAYER_ORDER = ['body', 'bottom', 'shoes', 'outfit', 'neck', 'hair', 'glasses', 'hat', 'instrument']
 
 // 기준색: { 키: { color: PNG에 칠하는 색, from: 사용자 색 종류, shade: 밝기 보정 } }
 export const KEY_COLORS = {

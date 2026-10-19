@@ -31,6 +31,17 @@ export const ACCESSORIES = [
   { key: 'CROWN', slot: 'HAT', name: '왕관', level: 28 },
 ]
 
+// 하의: 5레벨마다 상의와 한 벌로 받는다. 안 입으면 몸 그림의 기본 청바지
+export const BOTTOM_SLOT = { key: 'BOTTOM', label: '하의', folder: 'bottom', field: 'bottom' }
+export const BOTTOMS = [
+  { key: 'JOGGERS', slot: 'BOTTOM', name: '조거 팬츠', level: 5 },
+  { key: 'RIPPED_JEANS', slot: 'BOTTOM', name: '찢어진 청바지', level: 10 },
+  { key: 'CARGO_PANTS', slot: 'BOTTOM', name: '카고 바지', level: 15 },
+  { key: 'LEATHER_PANTS', slot: 'BOTTOM', name: '가죽 바지', level: 20 },
+  { key: 'SUIT_PANTS', slot: 'BOTTOM', name: '정장 바지', level: 25 },
+  { key: 'SEQUIN_PANTS', slot: 'BOTTOM', name: '반짝이 바지', level: 30 },
+]
+
 // 레벨로 얻는 헤어스타일 (처음부터 고를 수 있는 머리는 characterOptions.js에 level 1)
 export const REWARD_HAIR_STYLES = [
   { key: 'PONYTAIL', name: '포니테일', level: 4 },
@@ -40,7 +51,7 @@ export const REWARD_HAIR_STYLES = [
   { key: 'AFRO', name: '아프로', level: 29 },
 ]
 
-// 5레벨마다 의상 (spriteKey = 의상 스프라이트 이름)
+// 5레벨마다 상의 (spriteKey = 의상 스프라이트 이름)
 export const REWARD_OUTFITS = [
   { key: 'HOODIE', name: '후드티', level: 5 },
   { key: 'BAND_TEE', name: '밴드 티셔츠', level: 10 },
@@ -56,13 +67,13 @@ export const STAGE_REWARDS = [
   { key: 'LEGEND', name: '전설의 무대', level: 30 },
 ]
 
-export const slotOf = (key) => ACCESSORY_SLOTS.find((s) => s.key === key)
-export const accessoryOf = (key) => ACCESSORIES.find((a) => a.key === key)
+export const slotOf = (key) => (key === BOTTOM_SLOT.key ? BOTTOM_SLOT : ACCESSORY_SLOTS.find((s) => s.key === key))
 
-// 그 레벨에 받는 보상 목록: [{ type: 'OUTFIT'|'ACCESSORY'|'HAIR'|'STAGE', key, name, slot? }]
+// 그 레벨에 받는 보상 목록: [{ type: 'OUTFIT'|'BOTTOM'|'ACCESSORY'|'HAIR'|'STAGE', key, name, slot? }]
 export function rewardsAt(level) {
   const out = []
   for (const o of REWARD_OUTFITS) if (o.level === level) out.push({ type: 'OUTFIT', key: o.key, name: o.name })
+  for (const b of BOTTOMS) if (b.level === level) out.push({ type: 'BOTTOM', key: b.key, name: b.name, slot: 'BOTTOM' })
   for (const s of STAGE_REWARDS) if (s.level === level) out.push({ type: 'STAGE', key: s.key, name: s.name })
   for (const a of ACCESSORIES) if (a.level === level) out.push({ type: 'ACCESSORY', key: a.key, name: a.name, slot: a.slot })
   for (const h of REWARD_HAIR_STYLES) if (h.level === level) out.push({ type: 'HAIR', key: h.key, name: h.name })
@@ -85,5 +96,5 @@ export function nextReward(level) {
   return null
 }
 
-export const REWARD_TYPE_LABELS = { OUTFIT: '의상', STAGE: '무대', HAIR: '헤어', ACCESSORY: '소품' }
+export const REWARD_TYPE_LABELS = { OUTFIT: '상의', BOTTOM: '하의', STAGE: '무대', HAIR: '헤어', ACCESSORY: '소품' }
 export const rewardLabel = (r) => (r.type === 'ACCESSORY' ? slotOf(r.slot)?.label : REWARD_TYPE_LABELS[r.type])

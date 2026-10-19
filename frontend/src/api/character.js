@@ -8,9 +8,9 @@ export async function getWardrobe() {
 }
 
 // 옷장 저장: 입을 의상(보유한 것만), 무대 배경(해금한 것만, null이면 레벨에 맞춰 자동),
-// 소품(자리마다 하나, null이면 안 씀. 레벨이 닿은 것만) → 갱신된 캐릭터
-export async function updateWardrobe({ outfitId, stageBackground, hat, glasses, neck, shoes }) {
-  const response = await axiosInstance.put('/api/v1/characters/me/wardrobe', { outfitId, stageBackground, hat, glasses, neck, shoes })
+// 하의·소품(자리마다 하나, null이면 안 씀. 레벨이 닿은 것만) → 갱신된 캐릭터
+export async function updateWardrobe({ outfitId, stageBackground, bottom, hat, glasses, neck, shoes }) {
+  const response = await axiosInstance.put('/api/v1/characters/me/wardrobe', { outfitId, stageBackground, bottom, hat, glasses, neck, shoes })
   return response.data.data
 }
 
