@@ -57,3 +57,17 @@ export async function deleteReadNotifications() {
 export async function deleteAllNotifications() {
   await axiosInstance.delete('/api/v1/notifications')
 }
+
+/* ---------- 알림 설정 (종류별 켜기·끄기, 꺼 둔 종류는 알림을 만들지 않는다) ---------- */
+
+// → { settings: { FRIEND_REQUEST: true, BAND_JOIN: false, … } }  (키는 constants/notification.js NOTIFICATION_SETTING_GROUPS)
+export async function getNotificationSettings() {
+  const response = await axiosInstance.get('/api/v1/notifications/settings')
+  return response.data.data
+}
+
+// 바꿀 것만 { KEY: true|false } → 바뀐 뒤 전체 설정
+export async function updateNotificationSettings(changes) {
+  const response = await axiosInstance.patch('/api/v1/notifications/settings', { settings: changes })
+  return response.data.data
+}

@@ -4,6 +4,10 @@
       <div class="page-head">
         <h2>알림</h2>
         <p>읽은 알림은 30일이 지나면 자동으로 지워져요</p>
+        <router-link to="/mypage#notification-settings" class="settings-link" title="알림 설정">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          알림 설정
+        </router-link>
       </div>
 
       <section class="card">
@@ -227,6 +231,12 @@ watch(tab, () => { stopSelect(); reload() }, { immediate: true })
 .page-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
 .page-head h2 { margin: 0; font-size: 1.3rem; font-weight: 900; }
 .page-head p { margin: 0; font-size: 0.85rem; font-weight: 700; color: #adb5bd; }
+.settings-link {
+  margin-left: auto; align-self: center; display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 11px; border: 1px solid #e9ecef; border-radius: 10px; background: #fff;
+  font-size: 0.75rem; font-weight: 800; color: #495057; text-decoration: none;
+}
+.settings-link:hover { border-color: #2d5bff; color: #2d5bff; }
 
 .card { background: #fff; border: 1px solid #e9ecef; border-radius: 20px; padding: 18px 20px 20px; }
 

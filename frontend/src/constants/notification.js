@@ -52,3 +52,38 @@ export function groupByDate(items) {
   }
   return groups
 }
+
+// 알림 설정 항목 (영역별). key는 백엔드 NotificationSetting과 같다
+export const NOTIFICATION_SETTING_GROUPS = [
+  {
+    category: 'FRIEND', label: '친구',
+    items: [
+      { key: 'FRIEND_REQUEST', label: '친구 신청', desc: '누가 나에게 친구 신청을 보냈을 때' },
+      { key: 'FRIEND_ACCEPT', label: '친구 수락', desc: '내가 보낸 신청을 상대가 수락했을 때' },
+    ],
+  },
+  {
+    category: 'BAND', label: '밴드',
+    items: [
+      { key: 'BAND_JOIN', label: '새 멤버', desc: '내 밴드에 새 멤버가 들어왔을 때' },
+      { key: 'BAND_ROLE', label: '내보내짐·리더 변경', desc: '밴드에서 내보내졌거나 리더를 넘겨받았을 때' },
+      { key: 'BAND_LEAVE', label: '해체·멤버 탈퇴', desc: '밴드가 없어졌거나, 내가 리더인 밴드에서 멤버가 나갔을 때' },
+    ],
+  },
+  {
+    category: 'COMMUNITY', label: '커뮤니티',
+    items: [
+      { key: 'NOTICE', label: '공지', desc: '밴드에 새 공지가 올라왔을 때' },
+      { key: 'COMMENT', label: '댓글·답글', desc: '내 글에 댓글, 내 댓글에 답글이 달렸을 때' },
+      { key: 'MENTION', label: '멘션', desc: '글이나 댓글에서 @로 나를 불렀을 때' },
+    ],
+  },
+  {
+    category: 'JAM', label: '합주',
+    items: [
+      { key: 'SETLIST_ASSIGN', label: '곡 담당 지정', desc: '셋리스트 곡의 담당으로 지정됐을 때' },
+      { key: 'JAM_NEW', label: '새 잼', desc: '밴드에 새 잼이 만들어졌을 때' },
+      { key: 'JAM_TRACK', label: '내 잼에 트랙', desc: '내가 만든 잼에 트랙이 올라왔을 때' },
+    ],
+  },
+]
