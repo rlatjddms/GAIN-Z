@@ -6,6 +6,7 @@ import com.project.gainz.domain.character.dto.response.CharacterResponse;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.friend.dto.request.FriendRequestCreateRequest;
+import com.project.gainz.domain.friend.dto.response.BandMateResponse;
 import com.project.gainz.domain.friend.dto.response.FriendCodeResponse;
 import com.project.gainz.domain.friend.dto.response.FriendProfileResponse;
 import com.project.gainz.domain.friend.dto.response.FriendRequestResponse;
@@ -28,6 +29,8 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -85,6 +88,39 @@ public class FriendService {
         String code = request.code().trim().toUpperCase(Locale.ROOT);
         User target = userRepository.findByFriendCode(code)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_FRIEND_CODE));
+        return createRequest(me, target);
+    }
+
+    // 같은 밴드 멤버에게는 코드 없이 바로 신청한다
+    @Transactional
+    public FriendRequestResponse sendRequestToBandMate(Long userId, Long targetUserId) {
+        User me = findUser(userId);
+        User target = findUser(targetUserId);
+        if (!target.getId().equals(userId) && !bandMateIds(userId).contains(targetUserId)) {
+            throw new BusinessException(ErrorCode.NOT_BAND_MATE);
+        }
+        return createRequest(me, target);
+    }
+
+    // 같은 밴드 멤버 (나 빼고, 이름 순)
+    public List<BandMateResponse> getBandMates(Long userId) {
+        Map<Long, User> users = new LinkedHashMap<>();
+        Map<Long, Set<String>> bandNames = new LinkedHashMap<>();
+        for (BandMember member : membersOfMyBands(userId)) {
+            User user = member.getUser();
+            if (user.getId().equals(userId)) continue;
+            users.putIfAbsent(user.getId(), user);
+            bandNames.computeIfAbsent(user.getId(), id -> new LinkedHashSet<>()).add(member.getBand().getName());
+        }
+        Map<Long, Character> characters = charactersOf(users.keySet());
+        return users.values().stream()
+                .map(u -> BandMateResponse.of(u, characters.get(u.getId()), List.copyOf(bandNames.get(u.getId()))))
+                .sorted(Comparator.comparing(BandMateResponse::name).thenComparing(BandMateResponse::userId))
+                .toList();
+    }
+
+    private FriendRequestResponse createRequest(User me, User target) {
+        Long userId = me.getId();
         if (target.getId().equals(userId)) {
             throw new BusinessException(ErrorCode.CANNOT_FRIEND_SELF);
         }
@@ -101,6 +137,22 @@ public class FriendService {
 
         Friendship saved = friendshipRepository.save(Friendship.builder().requester(me).receiver(target).build());
         return toRequestResponse(saved, target, charactersOf(List.of(target.getId())));
+    }
+
+    // 내가 들어간 밴드들의 멤버 전부 (나 포함)
+    private List<BandMember> membersOfMyBands(Long userId) {
+        List<Long> myBandIds = bandMemberRepository.findAllByUserIdOrderByIdAsc(userId).stream()
+                .map(m -> m.getBand().getId())
+                .distinct()
+                .toList();
+        if (myBandIds.isEmpty()) {
+            return List.of();
+        }
+        return bandMemberRepository.findAllByBandIdInOrderByIdAsc(myBandIds);
+    }
+
+    private Set<Long> bandMateIds(Long userId) {
+        return membersOfMyBands(userId).stream().map(m -> m.getUser().getId()).collect(Collectors.toSet());
     }
 
     // 받은 신청 (보낸 사람이 보인다)

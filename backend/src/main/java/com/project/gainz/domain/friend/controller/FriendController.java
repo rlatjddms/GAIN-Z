@@ -1,6 +1,7 @@
 package com.project.gainz.domain.friend.controller;
 
 import com.project.gainz.domain.friend.dto.request.FriendRequestCreateRequest;
+import com.project.gainz.domain.friend.dto.response.BandMateResponse;
 import com.project.gainz.domain.friend.dto.response.FriendCodeResponse;
 import com.project.gainz.domain.friend.dto.response.FriendProfileResponse;
 import com.project.gainz.domain.friend.dto.response.FriendRequestResponse;
@@ -52,6 +53,23 @@ public class FriendController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(ApiResponse.success(friendService.sendRequest(principal.getUserId(), request)));
+    }
+
+    // 같은 밴드 멤버에게 코드 없이 신청
+    @PostMapping("/requests/users/{targetUserId}")
+    public ResponseEntity<ApiResponse<FriendRequestResponse>> sendRequestToBandMate(
+            @PathVariable Long targetUserId,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(friendService.sendRequestToBandMate(principal.getUserId(), targetUserId)));
+    }
+
+    // 같은 밴드 멤버 (친구 화면의 바로 신청 목록)
+    @GetMapping("/band-mates")
+    public ResponseEntity<ApiResponse<List<BandMateResponse>>> getBandMates(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(friendService.getBandMates(principal.getUserId())));
     }
 
     @GetMapping("/requests/received")
