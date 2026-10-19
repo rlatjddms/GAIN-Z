@@ -14,6 +14,7 @@ import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.LevelRewards;
 import com.project.gainz.domain.character.enums.OutfitCategory;
 import com.project.gainz.domain.character.enums.StageBackground;
+import com.project.gainz.domain.character.enums.StageEffect;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.character.repository.OutfitItemRepository;
 import com.project.gainz.domain.character.repository.UserOutfitRepository;
@@ -315,6 +316,35 @@ class CharacterServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESSORY_LOCKED);
 
         assertThat(characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.ROOKIE)).bottom()).isNull();
+    }
+
+    @Test
+    void 귀걸이와_무대_효과를_고르고_null이면_끈다() {
+        ReflectionTestUtils.setField(character, "level", 16);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+
+        CharacterResponse on = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
+                1L, StageBackground.RISING, null, null, null, null, null, Accessory.STUD_EARRINGS, StageEffect.SPOTLIGHT));
+        assertThat(on.earrings()).isEqualTo(Accessory.STUD_EARRINGS);
+        assertThat(on.stageEffect()).isEqualTo(StageEffect.SPOTLIGHT);
+
+        CharacterResponse off = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.RISING));
+        assertThat(off.earrings()).isNull();
+        assertThat(off.stageEffect()).isNull();
+    }
+
+    @Test
+    void 레벨이_닿지_않은_무대_효과는_고를_수_없다() {
+        ReflectionTestUtils.setField(character, "level", 24);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
+                1L, StageBackground.ROOKIE, null, null, null, null, null, null, StageEffect.SMOKE)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.STAGE_EFFECT_LOCKED);
+        assertThat(character.getStageEffect()).isNull();
     }
 
     @Test
