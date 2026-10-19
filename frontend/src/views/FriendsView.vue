@@ -67,7 +67,16 @@
                 <span>{{ levelText(f) }}</span>
               </div>
             </button>
-            <button class="btn small ghost" :disabled="removingId === f.userId" @click="unfriend(f)">삭제</button>
+            <!-- 더보기: 친구 삭제 -->
+            <div class="more" :class="{ open: moreId === f.userId }">
+              <button class="more-btn" title="더보기" aria-haspopup="menu" :aria-expanded="moreId === f.userId"
+                      :disabled="removingId === f.userId" @click.stop="moreId = moreId === f.userId ? null : f.userId">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>
+              </button>
+              <div v-if="moreId === f.userId" class="more-menu" role="menu">
+                <button class="more-item danger" role="menuitem" @click="moreId = null; unfriend(f)">친구 삭제</button>
+              </div>
+            </div>
           </li>
         </ul>
       </WsCard>
@@ -95,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import WsCard from '../components/workspace/WsCard.vue'
 import ProfileAvatar from '../components/ProfileAvatar.vue'
@@ -116,6 +125,11 @@ const loadError = ref('')
 const actionError = ref('')
 const busyId = ref(null)
 const selectedId = ref(null)
+// 더보기 메뉴가 열린 친구 (밖을 누르면 닫힘)
+const moreId = ref(null)
+const closeMore = () => { moreId.value = null }
+onMounted(() => document.addEventListener('click', closeMore))
+onBeforeUnmount(() => document.removeEventListener('click', closeMore))
 
 const levelText = (user) => (user.character ? `${user.character.nickname} · Lv.${user.character.level ?? 1}` : '캐릭터 없음')
 
@@ -280,7 +294,25 @@ const unfriend = async (friend) => {
 .people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .people > li + li { border-top: 1px solid #f1f3f5; }
 .person { display: flex; align-items: center; gap: 12px; padding: 10px 2px; }
-.friend-row { display: flex; align-items: center; gap: 6px; }
+.friend-row { display: flex; align-items: center; gap: 4px; }
+.more { position: relative; flex: none; }
+.more-btn {
+  display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+  border: none; background: none; border-radius: 8px; cursor: pointer; color: #ced4da; transition: 0.15s;
+}
+.friend-row:hover .more-btn, .more.open .more-btn { color: #868e96; }
+.more-btn:hover, .more.open .more-btn { background: #f1f3f5; }
+.more-menu {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 10; min-width: 112px;
+  background: #fff; border: 1px solid #e9ecef; border-radius: 12px; padding: 4px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+.more-item {
+  display: block; width: 100%; padding: 8px 10px; border: none; background: none; border-radius: 8px; cursor: pointer;
+  font-family: inherit; font-size: 0.8rem; font-weight: 700; color: #495057; text-align: left; white-space: nowrap;
+}
+.more-item.danger { color: #e03131; }
+.more-item:hover { background: #fff5f5; }
 .person.clickable {
   flex: 1; min-width: 0; border: none; background: none; cursor: pointer; text-align: left; font-family: inherit;
   border-radius: 12px; transition: background 0.15s;

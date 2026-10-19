@@ -17,7 +17,9 @@
                 <p v-if="profile.character">{{ profile.character.nickname }} · Lv.{{ profile.character.level ?? 1 }}</p>
                 <p v-else>아직 캐릭터가 없어요</p>
               </div>
+              <button class="unfriend" :disabled="removing" @click="unfriend">{{ removing ? '삭제하는 중…' : '친구 삭제' }}</button>
             </header>
+            <p v-if="actionError" class="error">{{ actionError }}</p>
 
             <!-- 꾸민 캐릭터와 무대 배경 그대로 -->
             <CharacterStage v-if="profile.character" :character="profile.character" />
@@ -40,8 +42,6 @@
               </ul>
             </section>
 
-            <p v-if="actionError" class="error">{{ actionError }}</p>
-            <button class="unfriend" :disabled="removing" @click="unfriend">{{ removing ? '삭제하는 중…' : '친구 삭제' }}</button>
           </template>
         </section>
       </div>
@@ -121,7 +121,7 @@ defineExpose({
 .close:hover:not(:disabled) { color: #495057; }
 
 .head { display: flex; align-items: center; gap: 14px; padding-right: 28px; }
-.who { min-width: 0; }
+.who { flex: 1; min-width: 0; }
 .who h2 { margin: 0; font-size: 1.15rem; font-weight: 900; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .who p { margin: 3px 0 0; font-size: 0.82rem; font-weight: 700; color: #495057; }
 
@@ -136,10 +136,11 @@ h3 { margin: 0 0 12px; font-size: 0.85rem; font-weight: 800; color: #495057; }
 .badge { font-size: 0.68rem; font-weight: 800; color: #2f9e44; background: #ebfbee; padding: 3px 8px; border-radius: 999px; }
 
 .unfriend {
-  align-self: flex-start; border: none; background: none; padding: 0; cursor: pointer;
-  font-family: inherit; font-size: 0.75rem; font-weight: 700; color: #adb5bd; text-decoration: underline;
+  flex: none; border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 7px 11px; cursor: pointer;
+  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #868e96; white-space: nowrap;
 }
-.unfriend:hover:not(:disabled) { color: #e03131; }
+.unfriend:hover:not(:disabled) { color: #e03131; border-color: #ffc9c9; background: #fff5f5; }
+.unfriend:disabled { opacity: 0.5; }
 .unfriend:disabled { cursor: not-allowed; }
 
 .error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
