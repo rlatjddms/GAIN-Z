@@ -7,6 +7,7 @@ import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.notification.dto.response.NotificationResponse;
 import com.project.gainz.domain.notification.entity.Notification;
+import com.project.gainz.domain.notification.enums.NotificationCategory;
 import com.project.gainz.domain.notification.enums.NotificationType;
 import com.project.gainz.domain.notification.repository.NotificationRepository;
 import com.project.gainz.domain.user.entity.User;
@@ -30,6 +31,8 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -147,16 +150,69 @@ class NotificationServiceTest {
     @Test
     void 목록은_최근_순이고_페이지_크기는_1에서_50_사이로_맞춘다() {
         User me = user(ME, "나");
-        when(notificationRepository.findAllByReceiverIdOrderByIdDesc(eq(ME), any(Pageable.class)))
-                .thenAnswer(inv -> new SliceImpl<>(List.of(notification(9L, me)), inv.getArgument(1), true));
+        when(notificationRepository.findPage(eq(ME), any(), eq(false), any(Pageable.class)))
+                .thenAnswer(inv -> new SliceImpl<>(List.of(notification(9L, me)), inv.getArgument(3), true));
 
-        NotificationResponse.Page page = notificationService.list(ME, -1, 500);
+        NotificationResponse.Page page = notificationService.list(ME, -1, 500, null, false);
 
-        verify(notificationRepository).findAllByReceiverIdOrderByIdDesc(ME, PageRequest.of(0, NotificationService.MAX_PAGE_SIZE));
+        // 영역을 안 고르면 모든 종류
+        verify(notificationRepository).findPage(ME, EnumSet.allOf(NotificationType.class), false,
+                PageRequest.of(0, NotificationService.MAX_PAGE_SIZE));
         assertThat(page.hasNext()).isTrue();
         assertThat(page.items()).extracting(NotificationResponse::id).containsExactly(9L);
         assertThat(page.items().get(0).read()).isFalse();
         assertThat(page.items().get(0).redirectUrl()).isEqualTo("/home?band=10&post=20");
+    }
+
+    @Test
+    void 영역과_안_읽음으로_걸러_본다() {
+        when(notificationRepository.findPage(eq(ME), any(), eq(true), any(Pageable.class)))
+                .thenAnswer(inv -> new SliceImpl<>(List.of(), inv.getArgument(3), false));
+
+        notificationService.list(ME, 0, 20, NotificationCategory.JAM, true);
+
+        verify(notificationRepository).findPage(ME, EnumSet.of(NotificationType.SETLIST_ASSIGN, NotificationType.JAM_NEW,
+                NotificationType.JAM_TRACK), true, PageRequest.of(0, 20));
+    }
+
+    @Test
+    void 모든_알림_종류는_어느_한_영역에만_속한다() {
+        for (NotificationType type : NotificationType.values()) {
+            assertThat(java.util.Arrays.stream(NotificationCategory.values()).filter(c -> c.types().contains(type)))
+                    .as(type.name()).hasSize(1);
+        }
+    }
+
+    @Test
+    void 고른_알림은_내_것만_읽음으로_바꾸거나_지운다() {
+        List<Notification> mine = List.of(notification(9L, user(ME, "나")), notification(10L, user(ME, "나")));
+        when(notificationRepository.findAllByReceiverIdAndIdIn(ME, List.of(9L, 10L, 99L))).thenReturn(mine);
+
+        notificationService.markRead(ME, List.of(9L, 10L, 99L));
+        notificationService.delete(ME, List.of(9L, 10L, 99L));
+
+        assertThat(mine).allMatch(Notification::getIsRead);
+        verify(notificationRepository).deleteAll(mine);
+    }
+
+    @Test
+    void 읽은_알림만_지운다() {
+        List<Notification> read = List.of(notification(9L, user(ME, "나")));
+        when(notificationRepository.findAllByReceiverIdAndIsReadTrue(ME)).thenReturn(read);
+
+        notificationService.deleteRead(ME);
+
+        verify(notificationRepository).deleteAll(read);
+    }
+
+    @Test
+    void 매일_30일_지난_읽은_알림을_정리한다() {
+        notificationService.deleteOldReadNotifications();
+
+        ArgumentCaptor<LocalDateTime> before = ArgumentCaptor.forClass(LocalDateTime.class);
+        ArgumentCaptor<LocalDateTime> now = ArgumentCaptor.forClass(LocalDateTime.class);
+        verify(notificationRepository).deleteReadBefore(before.capture(), now.capture());
+        assertThat(before.getValue()).isEqualTo(now.getValue().minusDays(NotificationService.KEEP_READ_DAYS));
     }
 
     @Test
