@@ -142,8 +142,7 @@ public class RecordService {
         LocalDate today = LocalDate.now();
         LocalDate from = startDate(userId, today);
 
-        if (metrics.contains(RecordMetric.PRACTICE_DAYS) || metrics.contains(RecordMetric.STREAK_DAYS)
-                || metrics.contains(RecordMetric.PRACTICE_HOURS)) {
+        if (metrics.contains(RecordMetric.STREAK_DAYS) || metrics.contains(RecordMetric.PRACTICE_HOURS)) {
             List<LocalDate> practiced = new ArrayList<>();
             long seconds = 0;
             for (DailyPracticeResponse day : practiceLogRepository.findDailyTotals(userId, from, today)) {
@@ -151,7 +150,6 @@ public class RecordService {
                 practiced.add(day.date());
                 seconds += day.totalSeconds();
             }
-            values.put(RecordMetric.PRACTICE_DAYS, (long) practiced.size());
             values.put(RecordMetric.STREAK_DAYS, longestStreak(practiced));
             values.put(RecordMetric.PRACTICE_HOURS, seconds / 3600);
         }

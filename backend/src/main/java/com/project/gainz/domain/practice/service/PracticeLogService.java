@@ -88,8 +88,7 @@ public class PracticeLogService {
 
         long minutesDiff = ExpPolicy.toMinutes(afterSeconds) - ExpPolicy.toMinutes(before.totalSeconds());
         ExperienceResult experience = characterService.processExperienceAndUnlocks(userId, expGained, minutesDiff);
-        eventPublisher.publishEvent(RecordCheckEvent.of(userId,
-                RecordMetric.PRACTICE_DAYS, RecordMetric.STREAK_DAYS, RecordMetric.PRACTICE_HOURS));
+        eventPublisher.publishEvent(RecordCheckEvent.of(userId, RecordMetric.STREAK_DAYS, RecordMetric.PRACTICE_HOURS));
 
         return new PracticeRecordResponse(date, afterSeconds, expGained, experience);
     }

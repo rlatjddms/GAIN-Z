@@ -3,7 +3,6 @@ package com.project.gainz.domain.record.enums;
 // 업적 판정에 쓰는 수치. unit은 화면의 진행도 글자 (DAY: '일', HOUR: '시간', COUNT: 단위 없음)
 public enum RecordMetric {
 
-    PRACTICE_DAYS(Unit.DAY),    // 연습한 날 수
     STREAK_DAYS(Unit.DAY),      // 가장 길게 이어 간 연속 연습 일수
     PRACTICE_HOURS(Unit.HOUR),  // 총 연습 시간 (시간, 내림)
     ROUTINE_DAYS(Unit.DAY),     // 그날 루틴을 모두 완료한 날 수
