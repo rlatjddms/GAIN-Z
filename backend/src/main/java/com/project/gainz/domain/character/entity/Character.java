@@ -116,6 +116,11 @@ public class Character extends BaseEntity {
     @Convert(converter = AccessoryConverter.class)
     private Accessory shoes;
 
+    // 입고 있는 레벨 보상 하의 (null이면 몸 그림의 기본 청바지)
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory bottom;
+
     @Version
     private Long version;
 
@@ -170,13 +175,14 @@ public class Character extends BaseEntity {
         this.stageBackground = background;
     }
 
-    // 옷장: 자리마다 소품 쓰기·벗기 (자리·해금 여부는 서비스에서 확인)
+    // 옷장: 자리마다 소품·하의 쓰기·벗기 (자리·해금 여부는 서비스에서 확인)
     public void wear(AccessorySlot slot, Accessory accessory) {
         switch (slot) {
             case HAT -> this.hat = accessory;
             case GLASSES -> this.glasses = accessory;
             case NECK -> this.neck = accessory;
             case SHOES -> this.shoes = accessory;
+            case BOTTOM -> this.bottom = accessory;
         }
     }
 

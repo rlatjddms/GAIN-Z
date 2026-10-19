@@ -1,6 +1,6 @@
 package com.project.gainz.domain.character.enums;
 
-// 5레벨마다 받는 의상. 서버가 뜰 때 OutfitItem으로 맞춰 둔다 (스프라이트 키 = 이름)
+// 5레벨마다 받는 상의 (하의는 Accessory의 BOTTOM 자리). 서버가 뜰 때 OutfitItem으로 맞춰 둔다 (스프라이트 키 = 이름)
 // 프론트 constants/rewards.js의 REWARD_OUTFITS와 같은 값
 public enum LevelOutfit {
 

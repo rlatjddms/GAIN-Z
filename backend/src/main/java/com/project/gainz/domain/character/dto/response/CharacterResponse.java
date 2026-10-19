@@ -28,7 +28,8 @@ public record CharacterResponse(
         Accessory hat,                    // 쓰고 있는 소품 (없으면 null)
         Accessory glasses,
         Accessory neck,
-        Accessory shoes
+        Accessory shoes,
+        Accessory bottom                  // 입고 있는 하의 (null이면 기본 청바지)
 ) {
     public static CharacterResponse from(Character character) {
         return new CharacterResponse(
@@ -51,7 +52,8 @@ public record CharacterResponse(
                 character.getHat(),
                 character.getGlasses(),
                 character.getNeck(),
-                character.getShoes()
+                character.getShoes(),
+                character.getBottom()
         );
     }
 }

@@ -1,7 +1,7 @@
 package com.project.gainz.domain.character.enums;
 
-// 레벨 보상 소품. 필요 레벨에 닿으면 가진 것으로 친다 (레벨은 내려가지 않음)
-// 프론트 constants/rewards.js의 ACCESSORIES와 같은 값. 스프라이트는 assets/sprites/<자리>/<이름>.png
+// 레벨 보상 착용 아이템(소품·하의). 필요 레벨에 닿으면 가진 것으로 친다 (레벨은 내려가지 않음)
+// 프론트 constants/rewards.js의 ACCESSORIES·BOTTOMS와 같은 값. 스프라이트는 assets/sprites/<자리>/<이름>.png
 public enum Accessory {
 
     SNEAKERS(AccessorySlot.SHOES, "운동화", 2),
@@ -21,7 +21,15 @@ public enum Accessory {
     CHAIN(AccessorySlot.NECK, "체인 목걸이", 24),
     HEART_GLASSES(AccessorySlot.GLASSES, "하트 선글라스", 26),
     GOLD_SNEAKERS(AccessorySlot.SHOES, "골드 운동화", 27),
-    CROWN(AccessorySlot.HAT, "왕관", 28);
+    CROWN(AccessorySlot.HAT, "왕관", 28),
+
+    // 하의: 5레벨마다 상의(LevelOutfit)와 한 벌
+    JOGGERS(AccessorySlot.BOTTOM, "조거 팬츠", 5),
+    RIPPED_JEANS(AccessorySlot.BOTTOM, "찢어진 청바지", 10),
+    CARGO_PANTS(AccessorySlot.BOTTOM, "카고 바지", 15),
+    LEATHER_PANTS(AccessorySlot.BOTTOM, "가죽 바지", 20),
+    SUIT_PANTS(AccessorySlot.BOTTOM, "정장 바지", 25),
+    SEQUIN_PANTS(AccessorySlot.BOTTOM, "반짝이 바지", 30);
 
     private final AccessorySlot slot;
     private final String label;

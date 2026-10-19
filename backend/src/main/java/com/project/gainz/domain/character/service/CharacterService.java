@@ -161,6 +161,7 @@ public class CharacterService {
         accessories.put(AccessorySlot.GLASSES, request.glasses());
         accessories.put(AccessorySlot.NECK, request.neck());
         accessories.put(AccessorySlot.SHOES, request.shoes());
+        accessories.put(AccessorySlot.BOTTOM, request.bottom());
         accessories.forEach((slot, accessory) -> {
             if (accessory == null) return;
             if (accessory.getSlot() != slot) throw new BusinessException(ErrorCode.ACCESSORY_SLOT_MISMATCH);
