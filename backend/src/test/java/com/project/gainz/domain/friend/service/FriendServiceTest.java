@@ -10,6 +10,7 @@ import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.friend.dto.request.FriendRequestCreateRequest;
+import com.project.gainz.domain.friend.dto.response.BandMateResponse;
 import com.project.gainz.domain.friend.dto.response.FriendCodeResponse;
 import com.project.gainz.domain.friend.dto.response.FriendProfileResponse;
 import com.project.gainz.domain.friend.dto.response.FriendRequestResponse;
@@ -421,6 +422,98 @@ class FriendServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.NOT_FRIEND);
         verify(practiceLogRepository, never()).findDailyTotals(any(), any(), any());
+    }
+
+    /* ---------- 같은 밴드 멤버 ---------- */
+
+    @Test
+    void 같은_밴드_멤버는_나를_빼고_이름_순으로_같이_있는_밴드와_함께_나온다() {
+        User me = user(ME);
+        User drummer = user(OTHER, "하드러머");
+        User singer = user(STRANGER, "가보컬");
+        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(ME)).thenReturn(List.of(
+                bandMember(10L, "첫 밴드", me, Position.LEADER, InstrumentType.GUITAR),
+                bandMember(20L, "둘째 밴드", me, Position.MEMBER, InstrumentType.GUITAR)));
+        when(bandMemberRepository.findAllByBandIdInOrderByIdAsc(List.of(10L, 20L))).thenReturn(List.of(
+                bandMember(10L, "첫 밴드", me, Position.LEADER, InstrumentType.GUITAR),
+                bandMember(10L, "첫 밴드", drummer, Position.MEMBER, InstrumentType.DRUM),
+                bandMember(20L, "둘째 밴드", me, Position.MEMBER, InstrumentType.GUITAR),
+                bandMember(20L, "둘째 밴드", drummer, Position.MEMBER, InstrumentType.DRUM),
+                bandMember(20L, "둘째 밴드", singer, Position.LEADER, InstrumentType.VOCAL)));
+        when(characterRepository.findAllByUserIdIn(anyCollection())).thenReturn(List.of(character(drummer, "쿵쿵")));
+
+        List<BandMateResponse> mates = friendService.getBandMates(ME);
+
+        assertThat(mates).extracting(BandMateResponse::name).containsExactly("가보컬", "하드러머");
+        assertThat(mates.get(0).bandNames()).containsExactly("둘째 밴드");
+        assertThat(mates.get(1).bandNames()).containsExactly("첫 밴드", "둘째 밴드");
+        assertThat(mates.get(1).character().nickname()).isEqualTo("쿵쿵");
+        assertThat(mates.get(0).character()).isNull();
+    }
+
+    @Test
+    void 밴드가_없으면_같은_밴드_멤버도_없다() {
+        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(ME)).thenReturn(List.of());
+
+        assertThat(friendService.getBandMates(ME)).isEmpty();
+        verify(bandMemberRepository, never()).findAllByBandIdInOrderByIdAsc(anyCollection());
+    }
+
+    @Test
+    void 같은_밴드_멤버에게는_코드_없이_신청한다() {
+        User me = user(ME);
+        User mate = user(OTHER, "드러머");
+        found(me);
+        found(mate);
+        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(ME))
+                .thenReturn(List.of(bandMember(10L, "밴드", me, Position.LEADER, InstrumentType.GUITAR)));
+        when(bandMemberRepository.findAllByBandIdInOrderByIdAsc(List.of(10L))).thenReturn(List.of(
+                bandMember(10L, "밴드", me, Position.LEADER, InstrumentType.GUITAR),
+                bandMember(10L, "밴드", mate, Position.MEMBER, InstrumentType.DRUM)));
+        when(friendshipRepository.findAllBetween(ME, OTHER)).thenReturn(List.of());
+        when(friendshipRepository.save(any(Friendship.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(characterRepository.findAllByUserIdIn(anyCollection())).thenReturn(List.of());
+
+        FriendRequestResponse response = friendService.sendRequestToBandMate(ME, OTHER);
+
+        ArgumentCaptor<Friendship> captor = ArgumentCaptor.forClass(Friendship.class);
+        verify(friendshipRepository).save(captor.capture());
+        assertThat(captor.getValue().getRequester()).isSameAs(me);
+        assertThat(captor.getValue().getReceiver()).isSameAs(mate);
+        assertThat(response.user().name()).isEqualTo("드러머");
+    }
+
+    @Test
+    void 같은_밴드가_아니면_코드_없이_신청할_수_없다() {
+        User me = user(ME);
+        found(me);
+        found(user(STRANGER));
+        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(ME))
+                .thenReturn(List.of(bandMember(10L, "밴드", me, Position.LEADER, InstrumentType.GUITAR)));
+        when(bandMemberRepository.findAllByBandIdInOrderByIdAsc(List.of(10L)))
+                .thenReturn(List.of(bandMember(10L, "밴드", me, Position.LEADER, InstrumentType.GUITAR)));
+
+        assertThatThrownBy(() -> friendService.sendRequestToBandMate(ME, STRANGER))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.NOT_BAND_MATE);
+        verify(friendshipRepository, never()).save(any());
+    }
+
+    @Test
+    void 같은_밴드여도_이미_친구면_다시_신청할_수_없다() {
+        User me = user(ME);
+        User mate = user(OTHER);
+        found(me);
+        found(mate);
+        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(ME))
+                .thenReturn(List.of(bandMember(10L, "밴드", me, Position.LEADER, InstrumentType.GUITAR)));
+        when(bandMemberRepository.findAllByBandIdInOrderByIdAsc(List.of(10L)))
+                .thenReturn(List.of(bandMember(10L, "밴드", mate, Position.MEMBER, InstrumentType.DRUM)));
+        when(friendshipRepository.findAllBetween(ME, OTHER)).thenReturn(List.of(friendship(1L, me, mate, true)));
+
+        assertThatThrownBy(() -> friendService.sendRequestToBandMate(ME, OTHER))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.ALREADY_FRIENDS);
     }
 
     @Test
