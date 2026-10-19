@@ -45,6 +45,7 @@ public enum ErrorCode {
     HAIR_STYLE_LOCKED(400, "C007", "아직 해금하지 않은 헤어스타일입니다."),
     ACCESSORY_LOCKED(400, "C008", "아직 해금하지 않은 소품입니다."),
     ACCESSORY_SLOT_MISMATCH(400, "C009", "그 자리에 쓸 수 없는 소품입니다."),
+    STAGE_EFFECT_LOCKED(400, "C010", "아직 해금하지 않은 무대 효과입니다."),
 
     /* Practice (연습) */
     PRACTICE_DAY_LIMIT_EXCEEDED(400, "P001", "하루 연습 시간은 24시간을 넘을 수 없습니다."),

@@ -4,6 +4,7 @@ import com.project.gainz.domain.character.enums.Accessory;
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.StageBackground;
+import com.project.gainz.domain.character.enums.StageEffect;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.character.entity.Character;
 
@@ -25,8 +26,10 @@ public record CharacterResponse(
         Long currentOutfitId,
         String currentOutfitSpriteKey,    // 입은 의상 스프라이트 키 (성별에 맞는 그림은 프론트에서 고름)
         StageBackground stageBackground,
+        StageEffect stageEffect,          // 고른 무대 효과 (없으면 null)
         Accessory hat,                    // 쓰고 있는 소품 (없으면 null)
         Accessory glasses,
+        Accessory earrings,
         Accessory neck,
         Accessory shoes,
         Accessory bottom                  // 입고 있는 하의 (null이면 기본 청바지)
@@ -49,8 +52,10 @@ public record CharacterResponse(
                 character.getCurrentOutfit() != null ? character.getCurrentOutfit().getId() : null,
                 character.getCurrentOutfit() != null ? character.getCurrentOutfit().getSpriteKey() : null,
                 character.getCurrentStageBackground(),
+                character.getStageEffect(),
                 character.getHat(),
                 character.getGlasses(),
+                character.getEarrings(),
                 character.getNeck(),
                 character.getShoes(),
                 character.getBottom()

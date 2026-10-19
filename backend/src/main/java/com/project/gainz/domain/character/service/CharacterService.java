@@ -5,6 +5,7 @@ import com.project.gainz.domain.character.dto.response.WardrobeResponse;
 import com.project.gainz.domain.character.enums.Accessory;
 import com.project.gainz.domain.character.enums.AccessorySlot;
 import com.project.gainz.domain.character.enums.StageBackground;
+import com.project.gainz.domain.character.enums.StageEffect;
 import com.project.gainz.domain.character.dto.request.CharacterCreateRequest;
 import com.project.gainz.domain.character.dto.request.CharacterUpdateRequest;
 import com.project.gainz.domain.character.dto.response.CharacterResponse;
@@ -139,7 +140,7 @@ public class CharacterService {
         return new WardrobeResponse(outfits, backgrounds, character.getCurrentStageBackground());
     }
 
-    // 옷장 저장: 보유한 의상으로 갈아입고, 얻은 무대 배경 중 하나를 고르고, 자리마다 소품을 쓴다
+    // 옷장 저장: 보유한 의상으로 갈아입고, 얻은 무대 배경·효과를 고르고, 자리마다 하의·소품을 쓴다
     public CharacterResponse updateWardrobe(Long userId, WardrobeUpdateRequest request) {
         Character character = characterRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
@@ -159,6 +160,7 @@ public class CharacterService {
         Map<AccessorySlot, Accessory> accessories = new EnumMap<>(AccessorySlot.class);
         accessories.put(AccessorySlot.HAT, request.hat());
         accessories.put(AccessorySlot.GLASSES, request.glasses());
+        accessories.put(AccessorySlot.EARRINGS, request.earrings());
         accessories.put(AccessorySlot.NECK, request.neck());
         accessories.put(AccessorySlot.SHOES, request.shoes());
         accessories.put(AccessorySlot.BOTTOM, request.bottom());
@@ -168,8 +170,14 @@ public class CharacterService {
             if (!accessory.isUnlockedAt(character.getLevel())) throw new BusinessException(ErrorCode.ACCESSORY_LOCKED);
         });
 
+        StageEffect effect = request.stageEffect();
+        if (effect != null && !effect.isUnlockedAt(character.getLevel())) {
+            throw new BusinessException(ErrorCode.STAGE_EFFECT_LOCKED);
+        }
+
         character.changeOutfit(outfit);
         character.changeStageBackground(background);
+        character.changeStageEffect(effect);
         accessories.forEach(character::wear);
         return CharacterResponse.from(character);
     }

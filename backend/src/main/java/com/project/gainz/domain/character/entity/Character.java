@@ -6,6 +6,7 @@ import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.LevelPolicy;
 import com.project.gainz.domain.character.enums.StageBackground;
+import com.project.gainz.domain.character.enums.StageEffect;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
@@ -110,11 +111,20 @@ public class Character extends BaseEntity {
 
     @Column(length = 30)
     @Convert(converter = AccessoryConverter.class)
+    private Accessory earrings;
+
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
     private Accessory neck;
 
     @Column(length = 30)
     @Convert(converter = AccessoryConverter.class)
     private Accessory shoes;
+
+    // 고른 무대 효과 (레벨 보상, 없으면 null)
+    @Column(length = 30)
+    @Convert(converter = StageEffectConverter.class)
+    private StageEffect stageEffect;
 
     // 입고 있는 레벨 보상 하의 (null이면 몸 그림의 기본 청바지)
     @Column(length = 30)
@@ -180,10 +190,16 @@ public class Character extends BaseEntity {
         switch (slot) {
             case HAT -> this.hat = accessory;
             case GLASSES -> this.glasses = accessory;
+            case EARRINGS -> this.earrings = accessory;
             case NECK -> this.neck = accessory;
             case SHOES -> this.shoes = accessory;
             case BOTTOM -> this.bottom = accessory;
         }
+    }
+
+    // 옷장: 무대 효과 고르기 (null이면 끄기, 해금 여부는 서비스에서 확인)
+    public void changeStageEffect(StageEffect effect) {
+        this.stageEffect = effect;
     }
 
     // 지금 무대 배경. 아직 고른 적 없으면 레벨로 얻은 가장 큰 무대

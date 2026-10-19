@@ -5,6 +5,7 @@ public enum AccessorySlot {
 
     HAT,      // 모자
     GLASSES,  // 안경
+    EARRINGS, // 귀걸이
     NECK,     // 목
     SHOES,    // 신발
     BOTTOM    // 하의 (안 입으면 몸 그림의 기본 청바지)
