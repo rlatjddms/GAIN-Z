@@ -55,7 +55,7 @@
                 <div v-for="(row, ri) in shelfRows" :key="ri" class="shelf-row">
                   <div class="shelf-items">
                     <RecordIcon v-for="item in row" :key="item.key" :type="item.type" :color="item.color"
-                                :locked="item.locked" :size="40" :title="item.title" />
+                                :locked="item.locked" :size="56" :title="item.title" />
                   </div>
                   <div class="shelf-board"></div>
                 </div>
@@ -173,7 +173,7 @@ import RecordsModal from '../components/workspace/RecordsModal.vue'
 import ProfileMusicModal from '../components/ProfileMusicModal.vue'
 import PracticeLogCard from '../components/workspace/PracticeLogCard.vue'
 import RecordIcon from '../components/workspace/RecordIcon.vue'
-import { rarityOf } from '../constants/records'
+import { RECORD_RARITIES, rarityOf, progressRatio } from '../constants/records'
 import { useRecordsStore } from '../stores/records'
 import BandStageScene from '../components/band/BandStageScene.vue'
 import BandStartModal from '../components/band/BandStartModal.vue'
@@ -209,26 +209,31 @@ const isBandMode = computed({
 const recordsStore = useRecordsStore()
 const isRecordsOpen = ref(false)
 const recordFocus = ref(null)
-// 선반 두 줄에 12장을 정해진 자리로: 위 칸 카세트 6, 아래 칸 CD 4 + LP 2 (얻으면 그 자리에 색이 채워진다)
-const SHELF_FALLBACK = [
-  Array(6).fill('CASSETTE'),
-  [...Array(4).fill('CD'), 'LP', 'LP'],
+// 선반 자리 모양은 고정 (위: 카세트·카세트·카세트·CD, 아래: 카세트·CD·LP·LP).
+// 자리마다 그 모양의 레코드 중 얻은 것(최근 순)을 먼저, 남은 자리는 못 얻은 것 중 진행도가 높은 것을 놓는다
+const SHELF_LAYOUT = [
+  ['COMMON', 'COMMON', 'COMMON', 'RARE'],
+  ['COMMON', 'RARE', 'LEGENDARY', 'LEGENDARY'],
 ]
 
 onMounted(() => { recordsStore.load().catch(() => {}) })
 
 const shelfRows = computed(() => {
-  if (!recordsStore.loaded) {
-    return SHELF_FALLBACK.map((row, ri) => row.map((type, i) => ({ key: `empty-${ri}-${i}`, type, color: undefined, locked: true, title: '' })))
+  const queues = {}
+  if (recordsStore.loaded) {
+    for (const { key } of RECORD_RARITIES) {
+      const same = recordsStore.records.filter((r) => r.rarity === key)
+      queues[key] = [
+        ...recordsStore.owned.filter((r) => r.rarity === key),
+        ...same.filter((r) => !r.owned).sort((x, y) => progressRatio(y.progress) - progressRatio(x.progress)),
+      ]
+    }
   }
-  const toItem = (r) => ({
-    key: r.key, type: rarityOf(r.rarity).type, color: r.color, locked: !r.owned,
-    title: r.owned ? r.name : r.condition,
-  })
-  return [
-    recordsStore.records.filter((r) => r.rarity === 'COMMON').map(toItem),
-    recordsStore.records.filter((r) => r.rarity !== 'COMMON').map(toItem),
-  ]
+  return SHELF_LAYOUT.map((row, ri) => row.map((rarity, i) => {
+    const r = queues[rarity]?.shift()
+    if (!r) return { key: `empty-${ri}-${i}`, type: rarityOf(rarity).type, color: undefined, locked: true, title: '' }
+    return { key: r.key, type: rarityOf(r.rarity).type, color: r.color, locked: !r.owned, title: r.owned ? r.name : r.condition }
+  }))
 })
 
 // 알림·획득 연출에서 오면 도감을 연다 (?records=open 또는 ?records=레코드 키)
@@ -469,7 +474,7 @@ button::-moz-focus-inner { border: 0 !important; }
 .card-title.link:hover { color: #2d5bff; }
 .record-count { font-size: 0.75rem; color: #adb5bd; }
 .shelf { cursor: pointer; display: flex; flex-direction: column; gap: 14px; }
-.shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 4px; }
+.shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
 .shelf-board {
   height: 8px; border-radius: 3px; margin-top: 2px;
   background: #c08a52; box-shadow: inset 0 -3px 0 #8e6035;
