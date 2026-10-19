@@ -50,11 +50,11 @@
                 <p v-if="!profile.bands.length" class="empty">아직 들어간 밴드가 없어요</p>
                 <ul v-else class="bands">
                   <li v-for="b in profile.bands" :key="b.bandId" class="band">
-                    <span class="band-name">
-                      <span v-if="b.position === 'LEADER'" title="리더">👑 </span>{{ b.name }}
+                    <span class="band-title">
+                      <span class="band-name"><span v-if="b.position === 'LEADER'" title="리더">👑 </span>{{ b.name }}</span>
+                      <span v-if="b.together" class="badge">같은 밴드</span>
                     </span>
                     <span class="part">{{ partLabel(b.part) }}</span>
-                    <span v-if="b.together" class="badge">같은 밴드</span>
                   </li>
                 </ul>
               </section>
@@ -190,9 +190,10 @@ h3 { margin: 0 0 12px; font-size: 0.85rem; font-weight: 800; color: #495057; }
 .bands { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .band { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-top: 1px solid #f1f3f5; }
 .band:first-child { border-top: none; padding-top: 0; }
-.band-name { flex: 1; min-width: 0; font-size: 0.88rem; font-weight: 900; color: #343a40; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.band-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+.band-name { min-width: 0; font-size: 0.88rem; font-weight: 900; color: #343a40; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .part { font-size: 0.75rem; font-weight: 700; color: #868e96; }
-.badge { font-size: 0.68rem; font-weight: 800; color: #2f9e44; background: #ebfbee; padding: 3px 8px; border-radius: 999px; }
+.badge { flex: none; font-size: 0.68rem; font-weight: 800; color: #2f9e44; background: #ebfbee; padding: 3px 8px; border-radius: 999px; }
 
 .error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
 .loading, .empty { margin: 0; padding: 8px 0; font-size: 0.85rem; color: #adb5bd; font-weight: 700; }
