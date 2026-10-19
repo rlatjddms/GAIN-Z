@@ -7,8 +7,11 @@ import com.project.gainz.domain.notification.enums.NotificationCategory;
 import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.global.common.dto.ApiResponse;
 import com.project.gainz.global.security.principal.UserPrincipal;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -69,6 +72,18 @@ public class NotificationController {
     ) {
         notificationService.deleteRead(principal.getUserId());
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 실시간 알림 연결 (SSE). 이벤트: unread {count} (붙자마자), notification {알림} (새 알림마다)
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter stream(
+            @AuthenticationPrincipal UserPrincipal principal,
+            HttpServletResponse response
+    ) {
+        // 프록시(nginx)가 이벤트를 모아 두지 않게
+        response.setHeader("X-Accel-Buffering", "no");
+        response.setHeader("Cache-Control", "no-cache");
+        return notificationService.subscribe(principal.getUserId());
     }
 
     // 알림 설정 (종류별 켜짐·꺼짐)

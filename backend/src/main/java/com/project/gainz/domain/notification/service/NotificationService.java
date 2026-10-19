@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -51,6 +52,7 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final CharacterRepository characterRepository;
     private final PlatformTransactionManager transactionManager;
+    private final NotificationStream notificationStream;
 
     /* ---------- 만들기 ---------- */
 
@@ -78,26 +80,43 @@ public class NotificationService {
                 .toList());
     }
 
-    // 알림은 원래 일(곡 저장·친구 신청 등)이 커밋된 뒤 따로 저장한다.
+    // 알림은 원래 일(곡 저장·친구 신청 등)이 커밋된 뒤 따로 저장하고, 저장되면 실시간 연결로 바로 보낸다.
     // 원래 일이 롤백되면 알림도 남지 않고, 알림 저장이 실패해도 원래 일은 그대로 성공한다
     private void saveAfterCommit(List<Notification> notifications) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            notificationRepository.saveAll(notifications);
+            push(notificationRepository.saveAll(notifications));
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
+                List<Notification> saved;
                 try {
                     TransactionTemplate template = new TransactionTemplate(transactionManager);
                     template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-                    template.executeWithoutResult(status -> notificationRepository.saveAll(notifications));
+                    saved = template.execute(status -> notificationRepository.saveAll(notifications));
                 } catch (RuntimeException e) {
                     log.warn("알림 저장 실패: {}개, 종류 {} ({})", notifications.size(),
                             notifications.get(0).getType(), e.getMessage());
+                    return;
                 }
+                push(saved);
             }
         });
+    }
+
+    // 저장(커밋)된 알림만 받는 사람의 열린 화면으로
+    private void push(List<Notification> saved) {
+        if (saved == null) return;
+        for (Notification n : saved) {
+            notificationStream.send(n.getReceiver().getId(), NotificationResponse.from(n));
+        }
+    }
+
+    // 실시간 연결 열기 (붙자마자 안 읽은 개수를 보낸다)
+    @Transactional(readOnly = true)
+    public SseEmitter subscribe(Long userId) {
+        return notificationStream.subscribe(userId, notificationRepository.countByReceiverIdAndIsReadFalse(userId));
     }
 
     // 밴드 알림에 쓰는 이름 (밴드 화면처럼 캐릭터 닉네임, 없으면 계정 이름)
