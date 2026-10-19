@@ -12,7 +12,8 @@ public enum NotificationCategory {
             NotificationType.BAND_ACCEPT)),
     COMMUNITY(EnumSet.of(NotificationType.NOTICE, NotificationType.COMMENT, NotificationType.REPLY,
             NotificationType.MENTION)),
-    JAM(EnumSet.of(NotificationType.SETLIST_ASSIGN, NotificationType.JAM_NEW, NotificationType.JAM_TRACK));
+    JAM(EnumSet.of(NotificationType.SETLIST_ASSIGN, NotificationType.JAM_NEW, NotificationType.JAM_TRACK)),
+    RECORD(EnumSet.of(NotificationType.RECORD));
 
     private final Set<NotificationType> types;
 

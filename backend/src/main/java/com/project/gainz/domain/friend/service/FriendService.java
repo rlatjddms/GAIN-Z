@@ -20,9 +20,12 @@ import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.record.event.RecordCheckEvent;
+import com.project.gainz.domain.record.enums.RecordMetric;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.security.SecureRandom;
 import java.util.Collection;
@@ -55,6 +58,7 @@ public class FriendService {
     private final CharacterRepository characterRepository;
     private final BandMemberRepository bandMemberRepository;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /* ---------- 친구 코드 ---------- */
 
@@ -179,6 +183,8 @@ public class FriendService {
         friendship.accept();
         notificationService.notify(requester, NotificationType.FRIEND_ACCEPT, "친구",
                 friendship.getReceiver().getName() + " 님이 친구 신청을 수락했어요", FRIENDS_URL);
+        eventPublisher.publishEvent(RecordCheckEvent.of(userId, RecordMetric.FRIENDS));
+        eventPublisher.publishEvent(RecordCheckEvent.of(requester.getId(), RecordMetric.FRIENDS));
         Character character = charactersOf(List.of(requester.getId())).get(requester.getId());
         return FriendResponse.of(requester, character, friendship.getAcceptedAt());
     }

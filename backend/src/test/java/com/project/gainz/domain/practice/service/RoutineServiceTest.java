@@ -13,6 +13,8 @@ import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.record.enums.RecordMetric;
+import com.project.gainz.domain.record.event.RecordCheckEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -20,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -46,6 +49,7 @@ class RoutineServiceTest {
     @Mock private RoutineCheckRepository routineCheckRepository;
     @Mock private UserRepository userRepository;
 
+    @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private RoutineService routineService;
 
     private Routine routine(Long id, String content, int target) {
@@ -171,6 +175,7 @@ class RoutineServiceTest {
 
         assertThat(result.count()).isEqualTo(3);
         assertThat(result.completed()).isFalse();
+        verify(eventPublisher).publishEvent(RecordCheckEvent.of(USER_ID, RecordMetric.ROUTINE_DAYS));
     }
 
     @Test

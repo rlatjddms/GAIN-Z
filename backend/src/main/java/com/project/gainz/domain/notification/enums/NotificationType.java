@@ -24,6 +24,9 @@ public enum NotificationType {
     JAM_NEW,          // 새 잼
     JAM_TRACK,        // 내 잼에 트랙 추가
 
+    /* 레코드 */
+    RECORD,           // 새 레코드 획득
+
     /* 밴드 매칭 (#87에서 사용) */
     BAND_INVITE,      // 밴드 초대
     BAND_ACCEPT       // 밴드 가입 요청 수락

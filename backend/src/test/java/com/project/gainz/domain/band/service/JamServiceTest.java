@@ -22,6 +22,8 @@ import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.record.enums.RecordMetric;
+import com.project.gainz.domain.record.event.RecordCheckEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +56,7 @@ class JamServiceTest {
     @Mock CharacterRepository characters;
     @Mock BandAttachmentStorage storage;
     @Mock NotificationService notificationService;
+    @Mock ApplicationEventPublisher eventPublisher;
     @InjectMocks JamService service;
 
     Band band;
@@ -168,6 +172,7 @@ class JamServiceTest {
         assertThat(result.canDelete()).isTrue();
         assertThat(result.url()).isEqualTo("/api/v1/bands/10/jams/50/tracks/" + result.id() + "/file");
         assertThat(jam.getTracks()).hasSize(1);
+        verify(eventPublisher).publishEvent(RecordCheckEvent.of(1L, RecordMetric.JAM_TRACKS));
         // 잼 만든 사람에게 트랙 알림
         verify(notificationService).notifyAll(eq(List.of(drummer.getUser())), eq(1L), eq(NotificationType.JAM_TRACK),
                 eq("밴드"), anyString(), eq("/bands/10/jams?jam=50"));

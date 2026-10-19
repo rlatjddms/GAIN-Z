@@ -17,7 +17,8 @@ public enum NotificationSetting {
     MENTION(EnumSet.of(NotificationType.MENTION)),
     SETLIST_ASSIGN(EnumSet.of(NotificationType.SETLIST_ASSIGN)),
     JAM_NEW(EnumSet.of(NotificationType.JAM_NEW)),
-    JAM_TRACK(EnumSet.of(NotificationType.JAM_TRACK));
+    JAM_TRACK(EnumSet.of(NotificationType.JAM_TRACK)),
+    RECORD(EnumSet.of(NotificationType.RECORD));
 
     private final Set<NotificationType> types;
 

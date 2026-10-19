@@ -13,9 +13,12 @@ import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.record.event.RecordCheckEvent;
+import com.project.gainz.domain.record.enums.RecordMetric;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -40,6 +43,7 @@ public class RoutineService {
     private final RoutineRepository routineRepository;
     private final RoutineCheckRepository routineCheckRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 그날 일정에 해당하는 루틴 + 그날 체크 현황
     @Transactional(readOnly = true)
@@ -148,6 +152,7 @@ public class RoutineService {
         RoutineCheck check = routineCheckRepository.findByRoutineIdAndPracticeDate(routineId, date)
                 .orElseGet(() -> routineCheckRepository.save(RoutineCheck.builder().routine(routine).practiceDate(date).build()));
         check.updateCount(request.count());
+        eventPublisher.publishEvent(RecordCheckEvent.of(userId, RecordMetric.ROUTINE_DAYS));
         return RoutineResponse.of(routine, date, check);
     }
 

@@ -13,12 +13,15 @@ import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.record.enums.RecordMetric;
+import com.project.gainz.domain.record.event.RecordCheckEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -44,6 +47,7 @@ class PracticeLogServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private CharacterService characterService;
 
+    @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private PracticeLogService practiceLogService;
 
     private void givenUser() {
@@ -92,6 +96,8 @@ class PracticeLogServiceTest {
         assertThat(response.dayTotalSeconds()).isEqualTo(30 * 60L);
         assertThat(response.expGained()).isEqualTo(10);
         assertThat(response.experience()).isSameAs(experience);
+        // 연습 레코드(연속·총 시간) 판정 요청
+        verify(eventPublisher).publishEvent(RecordCheckEvent.of(USER_ID, RecordMetric.STREAK_DAYS, RecordMetric.PRACTICE_HOURS));
     }
 
     @Test
