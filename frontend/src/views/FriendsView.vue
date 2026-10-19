@@ -59,15 +59,15 @@
         <div v-else-if="!loaded" class="loading">불러오는 중…</div>
         <p v-else-if="!friends.length" class="empty">아직 친구가 없어요. 친구 코드로 신청해 보세요!</p>
         <ul v-else class="people">
-          <li v-for="f in friends" :key="f.userId">
-            <router-link class="person clickable" :to="`/friends/${f.userId}`">
+          <li v-for="f in friends" :key="f.userId" class="friend-row">
+            <button class="person clickable" title="프로필 보기" @click="selectedId = f.userId">
               <ProfileAvatar :src="f.profileImageUrl" :size="44" :alt="`${f.name} 프로필 사진`" />
               <div class="who">
                 <strong>{{ f.name }}</strong>
                 <span>{{ levelText(f) }}</span>
               </div>
-              <span class="chev">›</span>
-            </router-link>
+            </button>
+            <button class="btn small ghost" :disabled="removingId === f.userId" @click="unfriend(f)">삭제</button>
           </li>
         </ul>
       </WsCard>
@@ -89,6 +89,8 @@
       </WsCard>
       <p v-if="actionError" class="error">{{ actionError }}</p>
     </div>
+
+    <FriendProfileModal ref="profileModal" :user-id="selectedId" @close="selectedId = null" @remove="unfriend" />
   </SubPageLayout>
 </template>
 
@@ -97,10 +99,11 @@ import { ref, onMounted } from 'vue'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import WsCard from '../components/workspace/WsCard.vue'
 import ProfileAvatar from '../components/ProfileAvatar.vue'
+import FriendProfileModal from '../components/friend/FriendProfileModal.vue'
 import {
   getMyFriendCode, regenerateFriendCode, sendFriendRequest,
   getReceivedRequests, getSentRequests, acceptFriendRequest, deleteFriendRequest,
-  getFriends, FRIEND_CODE_LENGTH,
+  getFriends, removeFriend, FRIEND_CODE_LENGTH,
 } from '../api/friend'
 import { apiErrorMessage } from '../api/practice'
 
@@ -112,6 +115,7 @@ const loaded = ref(false)
 const loadError = ref('')
 const actionError = ref('')
 const busyId = ref(null)
+const selectedId = ref(null)
 
 const levelText = (user) => (user.character ? `${user.character.nickname} · Lv.${user.character.level ?? 1}` : '캐릭터 없음')
 
@@ -225,6 +229,30 @@ const cancel = (r) => runAction(r.requestId, async () => {
   await deleteFriendRequest(r.requestId)
   sent.value = sent.value.filter((x) => x.requestId !== r.requestId)
 }, '신청을 취소하지 못했어요.')
+
+/* ---------- 친구 삭제 (목록·프로필 팝업 공통) ---------- */
+const profileModal = ref(null)
+const removingId = ref(null)
+
+const unfriend = async (friend) => {
+  if (removingId.value) return
+  if (!window.confirm(`${friend.name} 님을 친구에서 삭제할까요?`)) return
+  removingId.value = friend.userId
+  actionError.value = ''
+  profileModal.value?.setRemoving(true)
+  try {
+    await removeFriend(friend.userId)
+    friends.value = friends.value.filter((f) => f.userId !== friend.userId)
+    if (selectedId.value === friend.userId) selectedId.value = null
+  } catch (e) {
+    const message = apiErrorMessage(e, '친구를 삭제하지 못했어요.')
+    if (selectedId.value === friend.userId) profileModal.value?.setError(message)
+    else actionError.value = message
+  } finally {
+    removingId.value = null
+    profileModal.value?.setRemoving(false)
+  }
+}
 </script>
 
 <style scoped>
@@ -252,13 +280,16 @@ const cancel = (r) => runAction(r.requestId, async () => {
 .people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .people > li + li { border-top: 1px solid #f1f3f5; }
 .person { display: flex; align-items: center; gap: 12px; padding: 10px 2px; }
-.person.clickable { text-decoration: none; border-radius: 12px; transition: background 0.15s; }
+.friend-row { display: flex; align-items: center; gap: 6px; }
+.person.clickable {
+  flex: 1; min-width: 0; border: none; background: none; cursor: pointer; text-align: left; font-family: inherit;
+  border-radius: 12px; transition: background 0.15s;
+}
 .person.clickable:hover { background: #f8f9fa; }
 .who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .who strong { font-size: 0.9rem; font-weight: 900; color: #343a40; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .who span { font-size: 0.75rem; font-weight: 700; color: #868e96; }
 .actions { display: flex; gap: 4px; }
-.chev { color: #ced4da; font-size: 1.1rem; }
 
 .btn {
   border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit; cursor: pointer;

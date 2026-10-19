@@ -19,8 +19,8 @@
         <strong :class="{ empty: !monthSeconds }">{{ monthSeconds ? durationText(monthSeconds) : '—' }}</strong>
       </div>
       <div class="log-stat">
-        <span>{{ month }}월 연습한 날</span>
-        <strong :class="{ empty: !monthDays }">{{ monthDays ? `${monthDays}일` : '—' }}</strong>
+        <span>총 연습 시간</span>
+        <strong :class="{ empty: !totalSeconds }">{{ totalSeconds ? durationText(totalSeconds) : '—' }}</strong>
       </div>
     </div>
 
@@ -50,6 +50,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { usePracticeStore } from '../../stores/practice'
+import { useAuthStore } from '../../stores/auth'
 import { apiErrorMessage } from '../../api/practice'
 import { getRoutineSummary } from '../../api/routine'
 import { addDays, dateKey, dateLabel, durationText, practiceLevel, startOfDay } from '../../constants/practice'
@@ -67,7 +68,12 @@ const firstDay = addDays(thisMonday, -(WEEKS - 1) * 7)
 const props = defineProps({
   // 다른 사람(친구) 기록: [{ date, totalSeconds }]. 주면 내 기록 대신 이걸 그린다 (루틴 말풍선 없음)
   daily: { type: Array, default: null },
+  // 총 연습 시간(분). 안 주면 내 캐릭터 기록
+  totalMinutes: { type: Number, default: null },
 })
+
+const authStore = useAuthStore()
+const totalSeconds = computed(() => (props.totalMinutes ?? authStore.character?.totalPracticeTime ?? 0) * 60)
 
 // 날짜별 연습 시간: 친구 기록이면 받은 값, 아니면 내 연습 기록
 const dailyMap = computed(() => (props.daily ? Object.fromEntries(props.daily.map((d) => [d.date, d.totalSeconds])) : null))
@@ -128,7 +134,6 @@ const streak = computed(() => {
 
 const monthKeys = computed(() => cells.value.filter((c) => !c.future && Number(c.key.slice(5, 7)) === month && Number(c.key.slice(0, 4)) === today.getFullYear()))
 const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.seconds, 0))
-const monthDays = computed(() => monthKeys.value.filter((c) => c.seconds > 0).length)
 </script>
 
 <style scoped>
