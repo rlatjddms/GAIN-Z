@@ -40,9 +40,7 @@
       <WsCard v-if="received.length" :title="`받은 신청 ${received.length}`">
         <ul class="people">
           <li v-for="r in received" :key="r.requestId" class="person">
-            <div class="avatar">
-              <PixelCharacter :character="r.user.character" :outfit="r.user.character?.currentOutfitSpriteKey || 'DEFAULT'" :scale="2" :animate="false" />
-            </div>
+            <ProfileAvatar :src="r.user.profileImageUrl" :size="44" :alt="`${r.user.name} 프로필 사진`" />
             <div class="who">
               <strong>{{ r.user.name }}</strong>
               <span>{{ levelText(r.user) }} · {{ agoText(r.createdAt) }}</span>
@@ -62,16 +60,14 @@
         <p v-else-if="!friends.length" class="empty">아직 친구가 없어요. 친구 코드로 신청해 보세요!</p>
         <ul v-else class="people">
           <li v-for="f in friends" :key="f.userId">
-            <button class="person clickable" @click="selected = f">
-              <div class="avatar">
-                <PixelCharacter :character="f.character" :outfit="f.character?.currentOutfitSpriteKey || 'DEFAULT'" :scale="2" :animate="false" />
-              </div>
+            <router-link class="person clickable" :to="`/friends/${f.userId}`">
+              <ProfileAvatar :src="f.profileImageUrl" :size="44" :alt="`${f.name} 프로필 사진`" />
               <div class="who">
                 <strong>{{ f.name }}</strong>
                 <span>{{ levelText(f) }}</span>
               </div>
               <span class="chev">›</span>
-            </button>
+            </router-link>
           </li>
         </ul>
       </WsCard>
@@ -80,9 +76,7 @@
       <WsCard v-if="sent.length" :title="`보낸 신청 ${sent.length}`">
         <ul class="people">
           <li v-for="r in sent" :key="r.requestId" class="person">
-            <div class="avatar">
-              <PixelCharacter :character="r.user.character" :outfit="r.user.character?.currentOutfitSpriteKey || 'DEFAULT'" :scale="2" :animate="false" />
-            </div>
+            <ProfileAvatar :src="r.user.profileImageUrl" :size="44" :alt="`${r.user.name} 프로필 사진`" />
             <div class="who">
               <strong>{{ r.user.name }}</strong>
               <span>수락을 기다리는 중 · {{ agoText(r.createdAt) }}</span>
@@ -95,8 +89,6 @@
       </WsCard>
       <p v-if="actionError" class="error">{{ actionError }}</p>
     </div>
-
-    <FriendDetailModal :friend="selected" @close="selected = null" @removed="onRemoved" />
   </SubPageLayout>
 </template>
 
@@ -104,8 +96,7 @@
 import { ref, onMounted } from 'vue'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import WsCard from '../components/workspace/WsCard.vue'
-import PixelCharacter from '../components/PixelCharacter.vue'
-import FriendDetailModal from '../components/friend/FriendDetailModal.vue'
+import ProfileAvatar from '../components/ProfileAvatar.vue'
 import {
   getMyFriendCode, regenerateFriendCode, sendFriendRequest,
   getReceivedRequests, getSentRequests, acceptFriendRequest, deleteFriendRequest,
@@ -121,7 +112,6 @@ const loaded = ref(false)
 const loadError = ref('')
 const actionError = ref('')
 const busyId = ref(null)
-const selected = ref(null)
 
 const levelText = (user) => (user.character ? `${user.character.nickname} · Lv.${user.character.level ?? 1}` : '캐릭터 없음')
 
@@ -235,12 +225,6 @@ const cancel = (r) => runAction(r.requestId, async () => {
   await deleteFriendRequest(r.requestId)
   sent.value = sent.value.filter((x) => x.requestId !== r.requestId)
 }, '신청을 취소하지 못했어요.')
-
-/* ---------- 친구 끊기 ---------- */
-const onRemoved = (userId) => {
-  friends.value = friends.value.filter((f) => f.userId !== userId)
-  selected.value = null
-}
 </script>
 
 <style scoped>
@@ -268,15 +252,8 @@ const onRemoved = (userId) => {
 .people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .people > li + li { border-top: 1px solid #f1f3f5; }
 .person { display: flex; align-items: center; gap: 12px; padding: 10px 2px; }
-.person.clickable {
-  width: 100%; border: none; background: none; cursor: pointer; text-align: left; font-family: inherit;
-  border-radius: 12px; transition: background 0.15s;
-}
+.person.clickable { text-decoration: none; border-radius: 12px; transition: background 0.15s; }
 .person.clickable:hover { background: #f8f9fa; }
-.avatar {
-  flex: none; width: 52px; height: 58px; display: flex; align-items: flex-end; justify-content: center;
-  border-radius: 12px; background: #f1f3f5; overflow: hidden;
-}
 .who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .who strong { font-size: 0.9rem; font-weight: 900; color: #343a40; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .who span { font-size: 0.75rem; font-weight: 700; color: #868e96; }

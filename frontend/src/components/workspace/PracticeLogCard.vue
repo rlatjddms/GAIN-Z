@@ -64,11 +64,21 @@ const month = today.getMonth() + 1
 const thisMonday = addDays(today, -((today.getDay() + 6) % 7))
 const firstDay = addDays(thisMonday, -(WEEKS - 1) * 7)
 
-const loaded = ref(false)
+const props = defineProps({
+  // 다른 사람(친구) 기록: [{ date, totalSeconds }]. 주면 내 기록 대신 이걸 그린다 (루틴 말풍선 없음)
+  daily: { type: Array, default: null },
+})
+
+// 날짜별 연습 시간: 친구 기록이면 받은 값, 아니면 내 연습 기록
+const dailyMap = computed(() => (props.daily ? Object.fromEntries(props.daily.map((d) => [d.date, d.totalSeconds])) : null))
+const totalOf = (key) => (dailyMap.value ? dailyMap.value[key] ?? 0 : practice.totalOf(key))
+
+const loaded = ref(!!props.daily)
 const error = ref('')
 // 날짜별 루틴 달성 { 'YYYY-MM-DD': { total, completed } } (말풍선용, 못 불러와도 잔디는 보인다)
 const routineSummary = ref({})
 onMounted(async () => {
+  if (props.daily) return
   getRoutineSummary(dateKey(firstDay), todayKey)
     .then((rows) => { routineSummary.value = Object.fromEntries((rows || []).map((r) => [r.date, r])) })
     .catch(() => {})
@@ -101,15 +111,15 @@ const tipStyle = computed(() => {
 
 const cells = computed(() => Array.from({ length: WEEKS * 7 }, (_, i) => {
   const key = dateKey(addDays(firstDay, i))
-  const seconds = practice.totalOf(key)
+  const seconds = totalOf(key)
   return { key, seconds, level: practiceLevel(seconds), future: key > todayKey }
 }))
 
 // 연속 연습: 오늘부터 거꾸로 연습한 날을 센다. 오늘 아직 안 했으면 어제부터 (오늘 하면 이어짐)
 const streak = computed(() => {
-  let d = practice.totalOf(todayKey) > 0 ? today : addDays(today, -1)
+  let d = totalOf(todayKey) > 0 ? today : addDays(today, -1)
   let count = 0
-  while (d >= firstDay && practice.totalOf(dateKey(d)) > 0) {
+  while (d >= firstDay && totalOf(dateKey(d)) > 0) {
     count++
     d = addDays(d, -1)
   }

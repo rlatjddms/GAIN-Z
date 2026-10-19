@@ -70,3 +70,12 @@ export async function getFriends() {
 export async function removeFriend(userId) {
   await axiosInstance.delete(`/api/v1/friends/${userId}`)
 }
+
+// 친구 프로필 (친구만 볼 수 있다)
+// → { userId, name, profileImageUrl, character, since, joinedAt,
+//     dailyPractice: [{ date, totalSeconds }] (최근 30주, 연습한 날만),
+//     bands: [{ bandId, name, part, position: LEADER|MEMBER, together: 나도 들어간 밴드인지 }] }
+export async function getFriendProfile(userId) {
+  const response = await axiosInstance.get(`/api/v1/friends/${userId}/profile`)
+  return response.data.data
+}
