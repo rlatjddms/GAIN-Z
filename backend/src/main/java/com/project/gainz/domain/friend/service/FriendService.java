@@ -14,6 +14,8 @@ import com.project.gainz.domain.friend.entity.Friendship;
 import com.project.gainz.domain.friend.enums.FriendRelation;
 import com.project.gainz.domain.friend.enums.FriendshipStatus;
 import com.project.gainz.domain.friend.repository.FriendshipRepository;
+import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
@@ -46,11 +48,13 @@ public class FriendService {
     static final String FRIEND_CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     private static final int FRIEND_CODE_ATTEMPTS = 10;
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final String FRIENDS_URL = "/friends";
 
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final CharacterRepository characterRepository;
     private final BandMemberRepository bandMemberRepository;
+    private final NotificationService notificationService;
 
     /* ---------- 친구 코드 ---------- */
 
@@ -128,6 +132,8 @@ public class FriendService {
         checkFriendLimit(userId);
 
         Friendship saved = friendshipRepository.save(Friendship.builder().requester(me).receiver(target).build());
+        notificationService.notify(target, NotificationType.FRIEND_REQUEST, "친구",
+                me.getName() + " 님이 친구 신청을 보냈어요", FRIENDS_URL);
         return toRequestResponse(saved, target, charactersOf(List.of(target.getId())));
     }
 
@@ -171,6 +177,8 @@ public class FriendService {
         checkFriendLimit(requester.getId());
 
         friendship.accept();
+        notificationService.notify(requester, NotificationType.FRIEND_ACCEPT, "친구",
+                friendship.getReceiver().getName() + " 님이 친구 신청을 수락했어요", FRIENDS_URL);
         Character character = charactersOf(List.of(requester.getId())).get(requester.getId());
         return FriendResponse.of(requester, character, friendship.getAcceptedAt());
     }

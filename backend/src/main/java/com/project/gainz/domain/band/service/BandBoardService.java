@@ -9,7 +9,10 @@ import com.project.gainz.domain.band.entity.BandPostFile;
 import com.project.gainz.domain.band.repository.BandCommentRepository;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.BandPostRepository;
+import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.repository.CharacterRepository;
+import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.error.BusinessException;
@@ -26,6 +29,10 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.time.Instant;
 
 @Service
@@ -38,6 +45,7 @@ public class BandBoardService {
     private final BandCommentRepository comments;
     private final CharacterRepository characters;
     private final BandAttachmentStorage storage;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public PostPage list(Long userId, Long bandId, int page, int size) {
@@ -67,6 +75,7 @@ public class BandBoardService {
     public Post create(Long userId, Long bandId, BandBoardRequest.Post request) {
         BandMember me = requireMember(userId, bandId);
         BandPost post = posts.save(new BandPost(me.getBand(), me.getUser(), request.title(), request.content()));
+        notifyPost(post, me, false, null);
         return response(post, userId);
     }
 
@@ -82,6 +91,8 @@ public class BandBoardService {
             throw new BusinessException(ErrorCode.BAND_LEADER_ONLY);
         }
         if (request.notice() != null) validateNoticeExpiry(request.notice(), request.noticeExpiresAt());
+        boolean wasNotice = postId != null && post.isNoticeActive(Instant.now());
+        String oldContent = postId == null ? null : post.getContent();
         List<String> keep = request.keepAttachmentIds() == null ? List.of() : request.keepAttachmentIds();
         List<MultipartFile> added = uploads == null ? List.of() : uploads;
         var existing = new HashSet<String>();
@@ -109,12 +120,15 @@ public class BandBoardService {
         post.update(request.title(), request.content());
         if (request.notice() != null) post.changeNotice(request.notice(), request.noticeExpiresAt());
         if (postId == null) post = posts.save(post);
+        notifyPost(post, me, wasNotice, oldContent);
         return response(post, userId);
     }
 
     public Post update(Long userId, Long bandId, Long postId, BandBoardRequest.Post request) {
         BandPost post = ownPost(userId, bandId, postId);
+        String oldContent = post.getContent();
         post.update(request.title(), request.content());
+        notifyPost(post, requireMember(userId, bandId), true, oldContent);
         return response(post, userId);
     }
 
@@ -133,7 +147,11 @@ public class BandBoardService {
         if (!requireMember(userId, bandId).isLeader()) throw new BusinessException(ErrorCode.BAND_LEADER_ONLY);
         BandPost post = lockedPost(bandId, postId);
         validateNoticeExpiry(notice, expiresAt);
+        boolean wasNotice = post.isNoticeActive(Instant.now());
         post.changeNotice(notice, expiresAt);
+        if (!wasNotice && post.isNoticeActive(Instant.now())) {
+            notifyNotice(post, userId, Set.of());
+        }
         return response(post, userId);
     }
 
@@ -202,7 +220,9 @@ public class BandBoardService {
         BandPost post = lockedPost(bandId, postId);
         BandComment parent = request.parentId() == null ? null : findComment(postId, request.parentId());
         if (parent != null && parent.getParent() != null) throw new BusinessException(ErrorCode.BAND_REPLY_DEPTH);
-        return response(comments.save(new BandComment(post, me.getUser(), request.content(), parent)), userId);
+        BandComment saved = comments.save(new BandComment(post, me.getUser(), request.content(), parent));
+        notifyComment(post, parent, me, request.content());
+        return response(saved, userId);
     }
 
     public Comment updateComment(Long userId, Long bandId, Long postId, Long commentId, BandBoardRequest.Comment request) {
@@ -215,6 +235,90 @@ public class BandBoardService {
         BandComment comment = ownComment(userId, bandId, postId, commentId);
         if (comments.existsByParentId(commentId)) comment.eraseContent();
         else comment.delete();
+    }
+
+    /* ---------- 알림 ---------- */
+
+    // 새로 불린 멤버에게 멘션, 공지가 새로 켜졌으면 나머지 멤버에게 공지 (한 사람에게 하나만)
+    private void notifyPost(BandPost post, BandMember author, boolean wasNotice, String oldContent) {
+        Map<Long, String> nicknames = nicknamesOf(activeUsers(post.getBand().getId()));
+        Set<Long> mentioned = BandMentions.mentionedUserIds(post.getContent(), nicknames);
+        mentioned.removeAll(BandMentions.mentionedUserIds(oldContent, nicknames));
+        mentioned.remove(author.getUser().getId());
+        String who = nicknames.getOrDefault(author.getUser().getId(), author.getUser().getName());
+        notificationService.notifyAll(usersWithIds(post.getBand().getId(), mentioned), author.getUser().getId(),
+                NotificationType.MENTION, post.getBand().getName(),
+                who + " 님이 글에서 나를 불렀어요: " + post.getTitle(), postUrl(post));
+        if (!wasNotice && post.isNoticeActive(Instant.now())) {
+            notifyNotice(post, author.getUser().getId(), mentioned);
+        }
+    }
+
+    private void notifyNotice(BandPost post, Long actorId, Set<Long> except) {
+        List<User> receivers = activeUsers(post.getBand().getId()).stream()
+                .filter(u -> !except.contains(u.getId()))
+                .toList();
+        notificationService.notifyAll(receivers, actorId, NotificationType.NOTICE, post.getBand().getName(),
+                "새 공지: " + post.getTitle(), postUrl(post));
+    }
+
+    // 멘션 > 내 댓글에 답글 > 내 글에 댓글 순으로 한 사람에게 하나만
+    private void notifyComment(BandPost post, BandComment parent, BandMember me, String content) {
+        Long actorId = me.getUser().getId();
+        Long bandId = post.getBand().getId();
+        Map<Long, String> nicknames = nicknamesOf(activeUsers(bandId));
+        String who = nicknames.getOrDefault(actorId, me.getUser().getName());
+        String excerpt = excerpt(content);
+        String bandName = post.getBand().getName();
+        String url = postUrl(post);
+
+        Set<Long> mentioned = BandMentions.mentionedUserIds(content, nicknames);
+        mentioned.remove(actorId);
+        notificationService.notifyAll(usersWithIds(bandId, mentioned), actorId, NotificationType.MENTION, bandName,
+                who + " 님이 댓글에서 나를 불렀어요: " + excerpt, url);
+
+        User parentAuthor = parent == null ? null : parent.getAuthor();
+        if (parentAuthor != null && !mentioned.contains(parentAuthor.getId())) {
+            notificationService.notifyAll(List.of(parentAuthor), actorId, NotificationType.REPLY, bandName,
+                    who + " 님이 내 댓글에 답글을 남겼어요: " + excerpt, url);
+        }
+        User postAuthor = post.getAuthor();
+        boolean alreadyTold = mentioned.contains(postAuthor.getId())
+                || (parentAuthor != null && parentAuthor.getId().equals(postAuthor.getId()));
+        if (!alreadyTold) {
+            notificationService.notifyAll(List.of(postAuthor), actorId, NotificationType.COMMENT, bandName,
+                    who + " 님이 내 글에 댓글을 남겼어요: " + excerpt, url);
+        }
+    }
+
+    private List<User> activeUsers(Long bandId) {
+        return members.findAllByBandIdOrderByIdAsc(bandId).stream()
+                .filter(m -> !Boolean.TRUE.equals(m.getIsDeleted()))
+                .map(BandMember::getUser)
+                .toList();
+    }
+
+    private List<User> usersWithIds(Long bandId, Set<Long> userIds) {
+        if (userIds.isEmpty()) return List.of();
+        return activeUsers(bandId).stream().filter(u -> userIds.contains(u.getId())).toList();
+    }
+
+    private Map<Long, String> nicknamesOf(List<User> users) {
+        if (users.isEmpty()) return Map.of();
+        Map<Long, String> byUser = characters.findAllByUserIdIn(users.stream().map(User::getId).toList()).stream()
+                .collect(Collectors.toMap(c -> c.getUser().getId(), Character::getNickname, (a, b) -> a));
+        Map<Long, String> result = new LinkedHashMap<>();
+        users.forEach(u -> result.put(u.getId(), byUser.getOrDefault(u.getId(), u.getName())));
+        return result;
+    }
+
+    private static String postUrl(BandPost post) {
+        return "/home?band=" + post.getBand().getId() + "&post=" + post.getId();
+    }
+
+    private static String excerpt(String content) {
+        String oneLine = content == null ? "" : content.replaceAll("\\s+", " ").trim();
+        return oneLine.length() > 40 ? oneLine.substring(0, 40) + "…" : oneLine;
     }
 
     private BandMember requireMember(Long userId, Long bandId) {

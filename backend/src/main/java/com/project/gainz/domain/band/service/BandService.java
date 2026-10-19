@@ -1,5 +1,7 @@
 package com.project.gainz.domain.band.service;
 
+import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.band.dto.request.BandCreateRequest;
 import com.project.gainz.domain.band.dto.request.BandJoinRequest;
 import com.project.gainz.domain.band.dto.request.BandLeaderRequest;
@@ -39,6 +41,8 @@ import java.util.stream.Collectors;
 @Transactional
 public class BandService {
 
+    private static final String HOME_URL = "/home";
+
     public static final int MAX_MEMBERS = 8;
     public static final int MAX_JOINED_BANDS = 5;
     public static final int INVITE_CODE_LENGTH = 8;
@@ -55,6 +59,7 @@ public class BandService {
     private final BandMemberRepository bandMemberRepository;
     private final UserRepository userRepository;
     private final CharacterRepository characterRepository;
+    private final NotificationService notificationService;
 
     /* ---------- 조회 ---------- */
 
@@ -133,7 +138,11 @@ public class BandService {
     // 모든 멤버를 빼고 밴드를 소프트 삭제
     public void deleteBand(Long userId, Long bandId) {
         BandMember me = requireLeader(userId, bandId);
-        disband(me.getBand());
+        Band band = me.getBand();
+        List<User> others = usersOf(activeMembers(bandMemberRepository.findAllByBandIdOrderByIdAsc(bandId)));
+        disband(band);
+        notificationService.notifyAll(others, userId, NotificationType.BAND_DISBAND, band.getName(),
+                "리더가 밴드를 없앴어요", HOME_URL);
     }
 
     /* ---------- 초대 코드 ---------- */
@@ -173,6 +182,8 @@ public class BandService {
                 .part(request.part())
                 .stageOrder(nextOrder)
                 .build());
+        notificationService.notifyAll(usersOf(members), userId, NotificationType.BAND_JOIN, band.getName(),
+                notificationService.nicknameOf(user) + " 님이 밴드에 들어왔어요", settingsUrl(band));
         return respond(band, me, userId);
     }
 
@@ -196,6 +207,8 @@ public class BandService {
             throw new BusinessException(ErrorCode.CANNOT_REMOVE_SELF);
         }
         target.delete();
+        notificationService.notify(target.getUser(), NotificationType.BAND_KICKED, me.getBand().getName(),
+                "밴드에서 내보내졌어요", HOME_URL);
         return respond(me.getBand(), me, userId);
     }
 
@@ -206,6 +219,9 @@ public class BandService {
             throw new BusinessException(ErrorCode.BAND_LEADER_CANNOT_LEAVE);
         }
         me.delete();
+        Band band = me.getBand();
+        notificationService.notify(band.getLeader(), NotificationType.BAND_LEAVE, band.getName(),
+                notificationService.nicknameOf(me.getUser()) + " 님이 밴드를 나갔어요", settingsUrl(band));
     }
 
     public BandResponse transferLeader(Long userId, Long bandId, BandLeaderRequest request) {
@@ -217,6 +233,9 @@ public class BandService {
         me.changePosition(Position.MEMBER);
         target.changePosition(Position.LEADER);
         me.getBand().changeLeader(target.getUser());
+        notificationService.notify(target.getUser(), NotificationType.BAND_LEADER, me.getBand().getName(),
+                notificationService.nicknameOf(me.getUser()) + " 님이 리더를 넘겨줬어요. 이제 내가 리더예요",
+                settingsUrl(me.getBand()));
         return respond(me.getBand(), me, userId);
     }
 
@@ -291,6 +310,14 @@ public class BandService {
     }
 
     // 같은 트랜잭션에서 방금 뺀 멤버는 아직 목록에 남아 있을 수 있어서 한 번 더 거른다
+    private static List<User> usersOf(List<BandMember> members) {
+        return members.stream().map(BandMember::getUser).toList();
+    }
+
+    private static String settingsUrl(Band band) {
+        return "/bands/" + band.getId() + "/settings";
+    }
+
     private static List<BandMember> activeMembers(List<BandMember> members) {
         return members.stream().filter(m -> !Boolean.TRUE.equals(m.getIsDeleted())).toList();
     }
