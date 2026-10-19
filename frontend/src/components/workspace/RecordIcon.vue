@@ -73,6 +73,8 @@ const pixels = computed(() => {
 
   if (props.type === 'CD') {
     // 은색 원판 + 가운데 라벨 + 구멍, 대각선 반사광
+    // 라벨은 위아래 두 톤으로 나눈 인쇄 라벨 (위: 재킷 색, 아래: 밝게), 바깥 테두리는 조금 진하게
+    const cdLabel = (y, d) => (y < 8 ? (d > 3.4 ? shade(base, -30) : base) : (d > 3.4 ? shade(base, -10) : shade(base, 55)))
     const disc = (x, y) => dist(x, y, 8, 8) <= 7.4
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const d = dist(x, y, 8, 8)
@@ -80,7 +82,7 @@ const pixels = computed(() => {
       if (isEdge(x, y, disc)) put(x, y, pal.o)
       else if (d <= 1.3) continue                     // 구멍
       else if (d <= 2.1) put(x, y, pal.o)
-      else if (d <= 4.1) put(x, y, props.locked ? pal.s : pal.j)
+      else if (d <= 4.1) put(x, y, props.locked ? pal.s : cdLabel(y, d))
       else put(x, y, x - y >= 2 && x - y <= 4 ? pal.sh : pal.s)
     }
     return out
