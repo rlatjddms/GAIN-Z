@@ -8,6 +8,20 @@
 | `outfit/` | `DEFAULT_FEMALE.png`, `DEFAULT_MALE.png` | 의상. 체형이 달라 `<이름>_<성별>.png`로 두고, 없으면 `<이름>.png`를 씀. 추후 `OutfitItem`과 연결 |
 | `hair/` | `BALD.png` … `MOHAWK_SHARP.png` | 백엔드 `HairStyle` 값 |
 | `instrument/` | `GUITAR.png` … `KEYBOARD.png` | 백엔드 `InstrumentType` 값 |
+| `shoes/` `neck/` `glasses/` `hat/` | `SNEAKERS.png` … `CROWN.png` | 레벨 보상 소품. 백엔드 `Accessory` 값, 목록은 `src/constants/rewards.js` |
+
+그리는 순서(아래 → 위): `body` → `shoes` → `outfit` → `neck` → `hair` → `glasses` → `hat` → `instrument`.
+
+소품 자리 (두 성별의 머리·발 위치가 같아서 소품은 공용 파일 하나):
+
+| 자리 | 위치 |
+|---|---|
+| 모자 | 머리 위 y0~7 (머리카락 위에 그림) |
+| 안경 | 눈 y8~10, 왼눈 x8~9, 오른눈 x14~15 |
+| 목 | 목·가슴 y14~20 |
+| 신발 | 발 y29~31, x7~16 (높은 신발은 y27부터) |
+
+레벨 보상 의상(`HOODIE` 등)은 사용자가 색을 고르지 않으므로 고정색으로 칠합니다. 레벨 보상 헤어는 다른 머리처럼 머리 기준색으로 칠합니다.
 
 파일명이 백엔드 enum 값과 같으면 코드 수정 없이 자동으로 인식됩니다 (`src/pixel/sprites.js`).
 
