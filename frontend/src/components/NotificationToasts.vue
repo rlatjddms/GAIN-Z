@@ -44,9 +44,11 @@ const open = (t) => {
   font-family: 'Pretendard', sans-serif;
 }
 .toast {
-  pointer-events: auto; display: flex; align-items: flex-start; background: #fff; border: 1px solid #e9ecef;
-  border-left: 4px solid #2d5bff; border-radius: 14px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16); overflow: hidden;
+  pointer-events: auto; display: flex; align-items: flex-start; background: #fff; border: 1px solid #f1f3f5;
+  border-radius: 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10), 0 1px 3px rgba(15, 23, 42, 0.06);
+  overflow: hidden; transition: box-shadow 0.15s, transform 0.15s;
 }
+.toast:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14), 0 1px 3px rgba(15, 23, 42, 0.06); }
 .toast-main {
   flex: 1; min-width: 0; display: flex; gap: 12px; padding: 12px 6px 12px 12px; border: none; background: none;
   cursor: pointer; text-align: left; font-family: inherit;
