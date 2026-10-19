@@ -117,6 +117,30 @@ class CharacterTest {
     }
 
     @Test
+    void 경험치를_되돌려도_레벨은_그대로이고_부족분은_다음에_채운다() {
+        character.gainExperience(70 + 20);          // Lv.2, 20
+        character.loseExperience(50);
+
+        assertThat(character.getLevel()).isEqualTo(2);
+        assertThat(character.getExp()).isEqualTo(-30);
+
+        // 부족분 30을 채우고 Lv.2 → 3에 필요한 120을 더 모아야 레벨업
+        assertThat(character.gainExperience(149)).isFalse();
+        assertThat(character.gainExperience(1)).isTrue();
+        assertThat(character.getLevel()).isEqualTo(3);
+        assertThat(character.getExp()).isZero();
+    }
+
+    @Test
+    void 최대_레벨이면_경험치를_되돌리지_않는다() {
+        character.gainExperience(Integer.MAX_VALUE / 2);
+        character.loseExperience(500);
+
+        assertThat(character.getLevel()).isEqualTo(30);
+        assertThat(character.getExp()).isZero();
+    }
+
+    @Test
     void 연습_시간은_누적된다() {
         character.addPracticeTime(30);
         character.addPracticeTime(15);

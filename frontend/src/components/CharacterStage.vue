@@ -57,7 +57,9 @@ const showSpeech = ref(false)
 const toggleSpeech = () => { showSpeech.value = !showSpeech.value }
 
 const level = computed(() => clampLevel(props.character?.level ?? 1))
-const exp = computed(() => Math.max(0, Number(props.character?.exp) || 0))
+// 기록을 줄여 경험치를 되돌리면 음수(부족분)일 수 있다. 막대는 0부터, 문구로 부족분을 알려 준다
+const rawExp = computed(() => Number(props.character?.exp) || 0)
+const exp = computed(() => Math.max(0, rawExp.value))
 const nickname = computed(() => props.character?.nickname || '방구석 락스타')
 
 const tier = computed(() => getLevelTier(level.value))
@@ -67,6 +69,7 @@ const progress = computed(() => getExpProgress(level.value, exp.value))
 const expLabel = computed(() => {
   if (level.value >= MAX_LEVEL) return 'MAX LEVEL 🎉 모든 무대를 정복했어요'
   const required = getRequiredExp(level.value)
+  if (rawExp.value < 0) return `EXP 0 / ${required} · 줄인 기록만큼 ${-rawExp.value} EXP를 더 채워야 해요`
   const base = `EXP ${exp.value} / ${required}`
   if (!nextTier.value) return base
   return `${base} · 다음 무대 「${nextTier.value.name}」까지 Lv.${nextTier.value.minLevel}`

@@ -20,7 +20,8 @@
             <button v-for="q in QUICK" :key="q" class="chip" :disabled="saving" @click="addMinutes(q)">+{{ q }}분</button>
           </div>
 
-          <p class="note">지금 기록: {{ durationText(currentSeconds) }} · 시간을 줄여도 이미 받은 경험치는 그대로예요.</p>
+          <p class="note">지금 기록: {{ durationText(currentSeconds) }}</p>
+          <p class="note">직접 입력한 시간은 하루 30분까지만 경험치로 쳐요. 줄이면 직접 입력분부터 빠지고, 줄어든 만큼 경험치가 빠져요 (레벨은 그대로예요).</p>
           <p v-if="error" class="error">{{ error }}</p>
 
           <div class="actions">

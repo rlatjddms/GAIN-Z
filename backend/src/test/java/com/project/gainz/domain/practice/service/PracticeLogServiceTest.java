@@ -5,6 +5,7 @@ import com.project.gainz.domain.character.service.CharacterService;
 import com.project.gainz.domain.practice.dto.request.DailyPracticeUpdateRequest;
 import com.project.gainz.domain.practice.dto.request.PracticeLogCreateRequest;
 import com.project.gainz.domain.practice.dto.response.DailyPracticeResponse;
+import com.project.gainz.domain.practice.dto.response.PracticeDaySplit;
 import com.project.gainz.domain.practice.dto.response.PracticeRecordResponse;
 import com.project.gainz.domain.practice.entity.PracticeLog;
 import com.project.gainz.domain.practice.enums.PracticeSource;
@@ -61,6 +62,11 @@ class PracticeLogServiceTest {
         when(practiceLogRepository.findDailyTotals(USER_ID, date, date)).thenReturn(rows);
     }
 
+    // 그날 타이머 시간·직접 입력 합(음수 가능)·지금까지 받은 경험치
+    private void givenSplit(LocalDate date, long timerSeconds, long manualSeconds, long expGained) {
+        when(practiceLogRepository.findDaySplit(USER_ID, date)).thenReturn(new PracticeDaySplit(timerSeconds, manualSeconds, expGained));
+    }
+
     private PracticeLog savedLog() {
         ArgumentCaptor<PracticeLog> captor = ArgumentCaptor.forClass(PracticeLog.class);
         verify(practiceLogRepository).save(captor.capture());
@@ -82,6 +88,7 @@ class PracticeLogServiceTest {
         givenUser();
         // 이미 20분 연습해서 20exp를 받은 날에 10분을 더하면 10exp
         givenDaily(TODAY, 20 * 60, 20);
+        givenSplit(TODAY, 20 * 60, 0, 20);
         ExperienceResult experience = new ExperienceResult(1, 1, 30, false, List.of());
         when(characterService.processExperienceAndUnlocks(USER_ID, 10, 10)).thenReturn(experience);
 
@@ -105,6 +112,7 @@ class PracticeLogServiceTest {
         givenUser();
         LocalDate yesterday = TODAY.minusDays(1);
         givenDaily(yesterday, 0, 0);
+        givenSplit(yesterday, 0, 0, 0);
         when(characterService.processExperienceAndUnlocks(USER_ID, 1, 1))
                 .thenReturn(new ExperienceResult(1, 1, 1, false, List.of()));
 
@@ -126,45 +134,77 @@ class PracticeLogServiceTest {
     }
 
     @Test
-    void 하루_총_시간을_늘리면_차이만큼_수동_기록하고_경험치를_지급한다() {
+    void 직접_입력은_하루_30분까지만_경험치로_친다() {
         givenUser();
+        // 타이머 10분(10exp) 날에 직접 50분을 더하면 30분만 쳐서 +30exp
         givenDaily(TODAY, 10 * 60, 10);
-        when(characterService.processExperienceAndUnlocks(USER_ID, 50, 50))
-                .thenReturn(new ExperienceResult(1, 1, 60, false, List.of()));
+        givenSplit(TODAY, 10 * 60, 0, 10);
+        when(characterService.processExperienceAndUnlocks(USER_ID, 30, 50))
+                .thenReturn(new ExperienceResult(1, 1, 40, false, List.of()));
 
         PracticeRecordResponse response = practiceLogService.updateDailyTotal(USER_ID, TODAY, new DailyPracticeUpdateRequest(60 * 60L));
 
         PracticeLog saved = savedLog();
         assertThat(saved.getDurationSeconds()).isEqualTo(50 * 60L);
-        assertThat(saved.getExpGained()).isEqualTo(50);
+        assertThat(saved.getExpGained()).isEqualTo(30);
         assertThat(saved.getSource()).isEqualTo(PracticeSource.MANUAL);
         assertThat(response.dayTotalSeconds()).isEqualTo(60 * 60L);
+        assertThat(response.expGained()).isEqualTo(30);
     }
 
     @Test
-    void 하루_총_시간을_줄이면_경험치는_회수하지_않는다() {
+    void 줄이면_직접_입력분부터_빼고_줄어든_만큼_경험치를_되돌린다() {
         givenUser();
-        givenDaily(TODAY, 60 * 60, 60);
-        when(characterService.processExperienceAndUnlocks(USER_ID, 0, -30))
-                .thenReturn(new ExperienceResult(1, 1, 60, false, List.of()));
+        // 타이머 60분 + 직접 30분 = 90exp 날을 70분으로 → 직접 입력 10분만 남아 70exp, -20
+        givenDaily(TODAY, 90 * 60, 90);
+        givenSplit(TODAY, 60 * 60, 30 * 60, 90);
+        when(characterService.processExperienceAndUnlocks(USER_ID, -20, -20))
+                .thenReturn(new ExperienceResult(3, 3, -5, false, List.of()));
 
-        PracticeRecordResponse response = practiceLogService.updateDailyTotal(USER_ID, TODAY, new DailyPracticeUpdateRequest(30 * 60L));
+        PracticeRecordResponse response = practiceLogService.updateDailyTotal(USER_ID, TODAY, new DailyPracticeUpdateRequest(70 * 60L));
 
-        PracticeLog saved = savedLog();
-        assertThat(saved.getDurationSeconds()).isEqualTo(-30 * 60L);
-        assertThat(saved.getExpGained()).isZero();
-        assertThat(response.dayTotalSeconds()).isEqualTo(30 * 60L);
+        assertThat(savedLog().getExpGained()).isEqualTo(-20);
+        assertThat(response.expGained()).isEqualTo(-20);
     }
 
     @Test
-    void 줄였다가_다시_늘려도_경험치를_중복_지급하지_않는다() {
+    void 직접_입력분보다_많이_줄이면_타이머_기록에서_빼고_되돌린다() {
         givenUser();
-        // 하루에 60exp를 이미 받았고 시간은 30분으로 줄여 둔 상태 → 60분으로 되돌려도 추가 지급 없음
-        givenDaily(TODAY, 30 * 60, 60);
-        when(characterService.processExperienceAndUnlocks(USER_ID, 0, 30))
+        // 타이머를 끄는 걸 잊어 3시간(180exp)이 된 날을 1시간으로 → 120 되돌림
+        givenDaily(TODAY, 180 * 60, 180);
+        givenSplit(TODAY, 180 * 60, 0, 180);
+        when(characterService.processExperienceAndUnlocks(USER_ID, -120, -120))
+                .thenReturn(new ExperienceResult(4, 4, -40, false, List.of()));
+
+        practiceLogService.updateDailyTotal(USER_ID, TODAY, new DailyPracticeUpdateRequest(60 * 60L));
+
+        assertThat(savedLog().getExpGained()).isEqualTo(-120);
+    }
+
+    @Test
+    void 줄였다가_되돌리면_되돌린_만큼_다시_받는다() {
+        givenUser();
+        // 타이머 60분을 30분으로 줄여 30exp만 남은 날을 다시 60분으로 → +30 (두 번 받는 것은 아님)
+        givenDaily(TODAY, 30 * 60, 30);
+        givenSplit(TODAY, 60 * 60, -30 * 60, 30);
+        when(characterService.processExperienceAndUnlocks(USER_ID, 30, 30))
                 .thenReturn(new ExperienceResult(1, 1, 60, false, List.of()));
 
         practiceLogService.updateDailyTotal(USER_ID, TODAY, new DailyPracticeUpdateRequest(60 * 60L));
+
+        assertThat(savedLog().getExpGained()).isEqualTo(30);
+    }
+
+    @Test
+    void 타이머로_더할_때는_예전_규칙으로_더_받은_경험치를_되돌리지_않는다() {
+        givenUser();
+        // 예전 규칙으로 직접 입력 2시간에 120exp를 받은 날에 타이머 10분 → 새 규칙으론 40exp지만 회수하지 않음
+        givenDaily(TODAY, 120 * 60, 120);
+        givenSplit(TODAY, 0, 120 * 60, 120);
+        when(characterService.processExperienceAndUnlocks(USER_ID, 0, 10))
+                .thenReturn(new ExperienceResult(2, 2, 10, false, List.of()));
+
+        practiceLogService.recordSession(USER_ID, new PracticeLogCreateRequest(10 * 60L, null));
 
         assertThat(savedLog().getExpGained()).isZero();
     }

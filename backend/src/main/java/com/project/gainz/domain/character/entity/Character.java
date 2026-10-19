@@ -174,6 +174,13 @@ public class Character extends BaseEntity {
         return leveledUp;
     }
 
+    // 연습 기록을 줄여 경험치를 되돌린다. 레벨은 내리지 않고, 모자라면 경험치가 음수(부족분)가 되어
+    // 다음 레벨업까지 그만큼 더 채워야 한다. 최대 레벨이면 그대로 둔다
+    public void loseExperience(int amount) {
+        if (amount <= 0 || this.level >= LevelPolicy.MAX_LEVEL) return;
+        this.exp -= amount;
+    }
+
     // 연습 기록을 직접 줄이면 음수가 들어올 수 있다 (0 아래로는 내려가지 않음)
     public void addPracticeTime(long minutes) {
         this.totalPracticeTime = Math.max(0, this.totalPracticeTime + minutes);

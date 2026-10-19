@@ -146,7 +146,7 @@ public class CharacterService {
         return CharacterResponse.from(character);
     }
 
-    // 경험치 추가 후 레벨업 및 아이템 해금
+    // 경험치 추가 후 레벨업 및 아이템 해금 (expAmount가 음수면 경험치를 되돌리고 레벨은 그대로)
     public ExperienceResult processExperienceAndUnlocks(Long userId, int expAmount, long practiceTimeMinutes) {
 
         Character character = characterRepository.findByUserId(userId)
@@ -155,7 +155,9 @@ public class CharacterService {
         int prevLevel = character.getLevel();
         character.addPracticeTime(practiceTimeMinutes);
 
-        boolean isLeveledUp = character.gainExperience(expAmount);
+        boolean isLeveledUp = false;
+        if (expAmount >= 0) isLeveledUp = character.gainExperience(expAmount);
+        else character.loseExperience(-expAmount);
         int currentLevel = character.getLevel();
 
         List<ExperienceResult.NewUnlockedOutfit> unlockedOutfits = new ArrayList<>();
