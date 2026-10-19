@@ -63,6 +63,7 @@ class NotificationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private CharacterRepository characterRepository;
     @Mock private PlatformTransactionManager transactionManager;
+    @Mock private NotificationStream notificationStream;
 
     @InjectMocks private NotificationService notificationService;
 
@@ -118,6 +119,35 @@ class NotificationServiceTest {
             // 커밋 뒤 새 트랜잭션에서 저장을 시도하고, 실패는 삼킨다
             verify(transactionManager).getTransaction(argThat(d -> d.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRES_NEW));
             verify(notificationRepository).saveAll(any());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void 저장된_알림은_받는_사람의_열린_화면으로_바로_보낸다() {
+        User a = user(2L, "가");
+        when(notificationRepository.saveAll(any())).thenAnswer(inv -> {
+            List<Notification> list = inv.getArgument(0);
+            list.forEach(n -> ReflectionTestUtils.setField(n, "id", 77L));
+            return list;
+        });
+
+        notificationService.notify(a, NotificationType.FRIEND_ACCEPT, "친구", "수락", "/friends");
+
+        verify(notificationStream).send(eq(2L), argThat(r -> r.id() == 77L && r.type() == NotificationType.FRIEND_ACCEPT && !r.read()));
+    }
+
+    @Test
+    void 커밋_전에는_보내지_않고_저장이_실패하면_보내지_않는다() {
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            notificationService.notify(user(2L, "가"), NotificationType.NOTICE, "밴드", "공지", "/home");
+            verify(notificationStream, never()).send(any(), any());
+
+            when(notificationRepository.saveAll(any())).thenThrow(new IllegalStateException("저장 실패"));
+            TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+            verify(notificationStream, never()).send(any(), any());
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }

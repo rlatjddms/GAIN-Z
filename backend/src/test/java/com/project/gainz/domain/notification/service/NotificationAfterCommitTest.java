@@ -36,7 +36,7 @@ class NotificationAfterCommitTest {
             "com.project.gainz.domain.notification.repository",
             "com.project.gainz.domain.user.repository",
             "com.project.gainz.domain.character.repository"})
-    @Import(NotificationService.class)
+    @Import({NotificationService.class, NotificationStream.class})
     static class Config {}
 
     @Autowired NotificationService notificationService;
