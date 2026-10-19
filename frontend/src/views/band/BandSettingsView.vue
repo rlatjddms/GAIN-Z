@@ -66,6 +66,16 @@
                     @change="changePart(m, $event.target.value)">
               <option v-for="o in INSTRUMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.emoji }} {{ o.label }}</option>
             </select>
+            <!-- 같은 밴드 멤버에게 코드 없이 친구 신청 -->
+            <template v-if="!m.me && friendState">
+              <span v-if="friendState.friendIds.has(m.userId)" class="friend-tag">친구</span>
+              <button v-else-if="friendState.received[m.userId]" class="mini primary" :disabled="friendBusyId === m.userId"
+                      @click="acceptMate(m)">친구 수락</button>
+              <span v-else-if="friendState.sentIds.has(m.userId)" class="friend-tag muted">신청함</span>
+              <button v-else class="mini primary" :disabled="friendBusyId === m.userId" @click="requestMate(m)">
+                {{ friendBusyId === m.userId ? '보내는 중…' : '친구 신청' }}
+              </button>
+            </template>
             <div v-if="isLeader && !m.me" class="member-actions">
               <button class="mini" :disabled="busy" @click="makeLeader(m)">리더 넘기기</button>
               <button class="mini danger" :disabled="busy" @click="kick(m)">내보내기</button>
@@ -122,6 +132,7 @@ import {
   BAND_NAME_MAX, BAND_DESCRIPTION_MAX, MAX_BAND_MEMBERS,
 } from '../../api/band'
 import { apiErrorMessage } from '../../api/practice'
+import { getFriends, getSentRequests, getReceivedRequests, sendFriendRequestToBandMate, acceptFriendRequest } from '../../api/friend'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { useBandStore } from '../../stores/band'
 import { BAND_STAGES, DEFAULT_BAND_STAGE } from '../../constants/bandStage'
@@ -153,6 +164,46 @@ const apply = (b) => {
   description.value = b.description || ''
   bandStore.upsertBand(b)
 }
+
+/* ---------- 멤버와 친구 맺기 ---------- */
+// { friendIds, sentIds, received: { userId: 받은 신청 } } (못 불러오면 버튼을 숨긴다)
+const friendState = ref(null)
+const friendBusyId = ref(null)
+
+const loadFriendState = async () => {
+  try {
+    const [friends, sent, received] = await Promise.all([getFriends(), getSentRequests(), getReceivedRequests()])
+    friendState.value = {
+      friendIds: new Set(friends.map((f) => f.userId)),
+      sentIds: new Set(sent.map((r) => r.user.userId)),
+      received: Object.fromEntries(received.map((r) => [r.user.userId, r])),
+    }
+  } catch {
+    friendState.value = null
+  }
+}
+
+const friendAction = async (m, action, done, fallback) => {
+  friendBusyId.value = m.userId
+  say('')
+  try {
+    await action()
+    say(done)
+  } catch (e) {
+    say(apiErrorMessage(e, fallback), true)
+  } finally {
+    friendBusyId.value = null
+    await loadFriendState()
+  }
+}
+
+const memberName = (m) => m.character?.nickname || '멤버'
+const requestMate = (m) => friendAction(m, () => sendFriendRequestToBandMate(m.userId),
+  `${memberName(m)} 님에게 친구 신청을 보냈어요`, '친구 신청을 보내지 못했어요.')
+const acceptMate = (m) => friendAction(m, () => acceptFriendRequest(friendState.value.received[m.userId].requestId),
+  `${memberName(m)} 님과 친구가 됐어요`, '친구 신청을 수락하지 못했어요.')
+
+onMounted(loadFriendState)
 
 onMounted(async () => {
   try {
@@ -330,7 +381,13 @@ const joinedLabel = (iso) => {
   font-family: inherit; font-size: 0.72rem; font-weight: 800; color: #495057;
 }
 .mini:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.mini.primary { color: #2d5bff; border-color: #d0dcff; background: #f0f4ff; }
 .mini.danger { color: #e03131; }
+.friend-tag {
+  flex: none; font-size: 0.7rem; font-weight: 800; color: #2f9e44; background: #ebfbee;
+  padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+}
+.friend-tag.muted { color: #868e96; background: #f1f3f5; }
 .mini.danger:hover:not(:disabled) { border-color: #e03131; color: #e03131; }
 .mini:disabled { opacity: 0.5; cursor: not-allowed; }
 

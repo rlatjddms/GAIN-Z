@@ -3,8 +3,9 @@
     <div class="page">
       <div class="page-head">
         <h2>친구</h2>
-        <p>친구 코드를 주고받아 친구를 맺어요</p>
+        <p>밴드 멤버에게 바로, 또는 친구 코드로 친구를 맺어요</p>
       </div>
+      <p v-if="actionError" class="error">{{ actionError }}</p>
 
       <!-- 내 친구 코드 + 코드로 신청 -->
       <WsCard title="친구 추가">
@@ -34,6 +35,26 @@
         </form>
         <p v-if="requestError" class="field-error">{{ requestError }}</p>
         <p v-if="requestStatus" class="saved">{{ requestStatus }}</p>
+      </WsCard>
+
+      <!-- 같은 밴드 멤버: 코드 없이 바로 신청 -->
+      <WsCard v-if="mateRows.length" :title="`같은 밴드 멤버 ${mateRows.length}`">
+        <ul class="people">
+          <li v-for="m in mateRows" :key="m.userId" class="person">
+            <ProfileAvatar :src="m.profileImageUrl" :size="44" :alt="`${m.name} 프로필 사진`" />
+            <div class="who">
+              <strong>{{ m.name }}</strong>
+              <span>{{ m.bandNames.join(', ') }} · {{ levelText(m) }}</span>
+            </div>
+            <div class="actions">
+              <button v-if="m.received" class="btn small primary" :disabled="busyId === m.received.requestId" @click="accept(m.received)">수락</button>
+              <button v-else-if="m.sent" class="btn small ghost" disabled>신청함</button>
+              <button v-else class="btn small primary" :disabled="mateBusyId === m.userId" @click="requestMate(m)">
+                {{ mateBusyId === m.userId ? '보내는 중…' : '친구 신청' }}
+              </button>
+            </div>
+          </li>
+        </ul>
       </WsCard>
 
       <!-- 받은 신청 -->
@@ -87,7 +108,6 @@
           </li>
         </ul>
       </WsCard>
-      <p v-if="actionError" class="error">{{ actionError }}</p>
     </div>
 
     <FriendProfileModal ref="profileModal" :user-id="selectedId" @close="selectedId = null" @remove="unfriend" />
@@ -95,7 +115,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import WsCard from '../components/workspace/WsCard.vue'
 import ProfileAvatar from '../components/ProfileAvatar.vue'
@@ -103,7 +123,7 @@ import FriendProfileModal from '../components/friend/FriendProfileModal.vue'
 import {
   getMyFriendCode, regenerateFriendCode, sendFriendRequest,
   getReceivedRequests, getSentRequests, acceptFriendRequest, deleteFriendRequest,
-  getFriends, removeFriend, FRIEND_CODE_LENGTH,
+  getFriends, removeFriend, getBandMates, sendFriendRequestToBandMate, FRIEND_CODE_LENGTH,
 } from '../api/friend'
 import { apiErrorMessage } from '../api/practice'
 
@@ -111,6 +131,7 @@ const myCode = ref('')
 const friends = ref([])
 const received = ref([])
 const sent = ref([])
+const bandMates = ref([])
 const loaded = ref(false)
 const loadError = ref('')
 const actionError = ref('')
@@ -132,10 +153,11 @@ const agoText = (at) => {
 const loadAll = async () => {
   loadError.value = ''
   try {
-    const [code, friendList, receivedList, sentList] = await Promise.all([
-      getMyFriendCode(), getFriends(), getReceivedRequests(), getSentRequests(),
+    const [code, friendList, receivedList, sentList, mates] = await Promise.all([
+      getMyFriendCode(), getFriends(), getReceivedRequests(), getSentRequests(), getBandMates(),
     ])
     myCode.value = code.code
+    bandMates.value = mates
     friends.value = friendList
     received.value = receivedList
     sent.value = sentList
@@ -172,6 +194,35 @@ const renewCode = async () => {
     actionError.value = apiErrorMessage(e, '새 코드를 받지 못했어요.')
   } finally {
     codeBusy.value = false
+  }
+}
+
+/* ---------- 같은 밴드 멤버 ---------- */
+// 이미 친구인 멤버는 빼고, 신청 상태를 붙인다
+const mateRows = computed(() => {
+  const friendIds = new Set(friends.value.map((f) => f.userId))
+  return bandMates.value
+    .filter((m) => !friendIds.has(m.userId))
+    .map((m) => ({
+      ...m,
+      sent: sent.value.find((r) => r.user.userId === m.userId) || null,
+      received: received.value.find((r) => r.user.userId === m.userId) || null,
+    }))
+})
+
+const mateBusyId = ref(null)
+const requestMate = async (mate) => {
+  if (mateBusyId.value) return
+  mateBusyId.value = mate.userId
+  actionError.value = ''
+  try {
+    const request = await sendFriendRequestToBandMate(mate.userId)
+    sent.value = [request, ...sent.value]
+  } catch (e) {
+    actionError.value = apiErrorMessage(e, '친구 신청을 보내지 못했어요.')
+    await loadAll()
+  } finally {
+    mateBusyId.value = null
   }
 }
 

@@ -33,6 +33,12 @@ export async function sendFriendRequest(code) {
   return response.data.data
 }
 
+// 같은 밴드 멤버에게 바로 신청 (코드 없이) → 보낸 신청
+export async function sendFriendRequestToBandMate(userId) {
+  const response = await axiosInstance.post(`/api/v1/friends/requests/users/${userId}`)
+  return response.data.data
+}
+
 // 받은 신청 (최근 순) → [신청]
 export async function getReceivedRequests() {
   const response = await axiosInstance.get('/api/v1/friends/requests/received')
@@ -63,6 +69,13 @@ export async function deleteFriendRequest(requestId) {
 // 내 친구 목록 (이름 순) → [친구]
 export async function getFriends() {
   const response = await axiosInstance.get('/api/v1/friends')
+  return response.data.data
+}
+
+// 같은 밴드 멤버 (나 빼고, 이름 순) → [{ userId, name, profileImageUrl, character, bandNames: [같이 있는 밴드 이름] }]
+// 친구인지·신청했는지는 친구 목록·신청 목록과 맞춰 본다
+export async function getBandMates() {
+  const response = await axiosInstance.get('/api/v1/friends/band-mates')
   return response.data.data
 }
 
