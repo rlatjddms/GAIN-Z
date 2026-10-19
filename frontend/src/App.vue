@@ -1,8 +1,22 @@
 <script setup>
+import { watch } from 'vue'
+import { useAuthStore } from './stores/auth'
+import { useNotificationStore } from './stores/notification'
+import NotificationToasts from './components/NotificationToasts.vue'
+
+const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
+
+// 로그인한 동안 실시간 알림 연결을 하나만 열어 둔다 (화면을 옮겨도 끊지 않는다)
+watch(() => authStore.isAuthenticated, (loggedIn) => {
+  if (loggedIn) notificationStore.connect()
+  else notificationStore.disconnect()
+}, { immediate: true })
 </script>
 
 <template>
   <router-view />
+  <NotificationToasts v-if="authStore.isAuthenticated" />
 </template>
 
 

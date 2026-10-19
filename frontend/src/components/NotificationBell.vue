@@ -59,7 +59,8 @@ import { agoText, groupByDate } from '../constants/notification'
 
 // 미리보기는 최근 몇 개만 (나머지는 알림 페이지)
 const PREVIEW_SIZE = 8
-const POLL_MS = 30000
+// 실시간 연결이 끊긴 동안만 쓰는 예비 확인 간격
+const POLL_MS = 60000
 
 const router = useRouter()
 const route = useRoute()
@@ -130,13 +131,19 @@ const readAll = async () => {
 const onDocClick = (e) => { if (open.value && !root.value?.contains(e.target)) open.value = false }
 const onKey = (e) => { if (e.key === 'Escape') open.value = false }
 
-// 화면을 옮길 때, 그리고 탭이 보이는 동안 30초마다 안 읽은 개수를 다시 센다
+// 새 알림은 실시간 연결(App.vue)로 바로 온다. 알림함이 열려 있으면 맨 위에 붙인다
+watch(() => store.latest, (n) => {
+  if (!n || !open.value || items.value.some((x) => x.id === n.id)) return
+  items.value = [n, ...items.value].slice(0, PREVIEW_SIZE)
+})
+
+// 연결이 끊긴 동안에는 화면을 옮길 때와 탭이 보이는 동안 1분마다 개수를 다시 센다
 let timer = null
-const poll = () => { if (document.visibilityState === 'visible') store.refreshUnread() }
-watch(() => route.fullPath, () => { open.value = false; store.refreshUnread() })
+const poll = () => { if (!store.connected && document.visibilityState === 'visible') store.refreshUnread() }
+watch(() => route.fullPath, () => { open.value = false; if (!store.connected) store.refreshUnread() })
 
 onMounted(() => {
-  store.refreshUnread()
+  if (!store.connected) store.refreshUnread()
   timer = setInterval(poll, POLL_MS)
   document.addEventListener('visibilitychange', poll)
   document.addEventListener('click', onDocClick)

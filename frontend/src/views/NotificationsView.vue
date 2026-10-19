@@ -80,7 +80,7 @@ import {
   deleteNotification, deleteNotifications, deleteReadNotifications,
 } from '../api/notification'
 import { apiErrorMessage } from '../api/practice'
-import { NOTIFICATION_CATEGORIES, agoText, groupByDate } from '../constants/notification'
+import { NOTIFICATION_CATEGORIES, agoText, categoryOf, groupByDate } from '../constants/notification'
 
 const PAGE_SIZE = 30
 const TABS = [{ key: 'ALL', label: '전체' }, { key: 'UNREAD', label: '안 읽음' },
@@ -221,6 +221,14 @@ const clearRead = () => run(async () => {
   await deleteReadNotifications()
   await reload()
 }, '알림을 지우지 못했어요.')
+
+// 실시간으로 온 새 알림이 지금 탭에 맞으면 맨 위에 붙인다
+watch(() => store.latest, (n) => {
+  if (!n || items.value.some((x) => x.id === n.id)) return
+  const { category } = filter()
+  if (category && categoryOf(n.type) !== category) return
+  items.value = [n, ...items.value]
+})
 
 // 탭을 바꾸면 고르기를 끝내고 다시 불러온다 (처음 열 때도). 위의 함수들을 쓰므로 맨 아래에 둔다
 watch(tab, () => { stopSelect(); reload() }, { immediate: true })
