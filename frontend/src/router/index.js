@@ -74,6 +74,12 @@ const routes = [
       meta: { requiresCharacter: true }
     },
     {
+      path: '/notifications',
+      name: 'notifications',
+      component: () => import('../views/NotificationsView.vue'),
+      meta: { requiresCharacter: true }
+    },
+    {
       path: '/friends',
       name: 'friends',
       component: () => import('../views/FriendsView.vue'),

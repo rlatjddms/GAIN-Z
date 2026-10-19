@@ -10,12 +10,7 @@
       </div>
 
       <div class="header-right">
-        <button class="noti-btn" title="알림">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-          </svg>
-        </button>
+        <NotificationBell v-if="authStore.isAuthenticated" />
         <!-- 내 프로필: 누르면 마이페이지·친구·로그아웃 메뉴 -->
         <div ref="menuRoot" class="profile-menu">
           <button class="user-info" :class="{ on: menuOpen || onMyPages }" :aria-expanded="menuOpen" aria-haspopup="menu" @click="menuOpen = !menuOpen">
@@ -51,6 +46,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import ProfileAvatar from './ProfileAvatar.vue'
+import NotificationBell from './NotificationBell.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -137,13 +133,6 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 .menu-enter-active, .menu-leave-active { transition: opacity 0.12s, transform 0.12s; }
 .menu-enter-from, .menu-leave-to { opacity: 0; transform: translateY(-4px); }
 .name { font-weight: 700; font-size: 0.9rem; color: #495057; }
-.noti-btn {
-  background: none; border: none; color: #adb5bd; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  padding: 6px; border-radius: 8px; transition: 0.2s;
-}
-.noti-btn:hover { color: #2d5bff; background: #f0f4ff; }
-
 @media (max-width: 640px) {
   .header-inner { padding: 0 16px; }
   .user-info { padding-right: 6px; }

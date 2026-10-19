@@ -77,6 +77,10 @@
         <p v-if="visibilityError" class="field-error">{{ visibilityError }}</p>
       </WsCard>
 
+      <div id="notification-settings" ref="notificationSettingsRef">
+        <NotificationSettingsCard @loaded="scrollToHash" />
+      </div>
+
       <WsCard title="계정 설정">
         <div class="settings">
           <button v-if="isLocal" class="setting" @click="passwordOpen = true">
@@ -100,12 +104,13 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import WsCard from '../components/workspace/WsCard.vue'
 import ProfileAvatar from '../components/ProfileAvatar.vue'
 import PasswordModal from '../components/mypage/PasswordModal.vue'
 import WithdrawModal from '../components/mypage/WithdrawModal.vue'
+import NotificationSettingsCard from '../components/mypage/NotificationSettingsCard.vue'
 import { useAuthStore } from '../stores/auth'
 import {
   updateMyName, uploadProfileImage, deleteProfileImage,
@@ -116,6 +121,15 @@ import {
 import { apiErrorMessage } from '../api/practice'
 
 const router = useRouter()
+const route = useRoute()
+
+// 알림 페이지의 ⚙에서 오면(#notification-settings) 알림 설정으로 내려 준다
+const notificationSettingsRef = ref(null)
+const scrollToHash = async () => {
+  if (route.hash !== '#notification-settings') return
+  await nextTick()
+  notificationSettingsRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 const authStore = useAuthStore()
 
 const profile = computed(() => authStore.profile)
@@ -262,6 +276,8 @@ const onWithdrawn = async () => {
 </script>
 
 <style scoped>
+/* 헤더(64px)에 가리지 않게 */
+#notification-settings { scroll-margin-top: 80px; }
 .page { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 .page-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
 .page-head h2 { margin: 0; font-size: 1.3rem; font-weight: 900; }
