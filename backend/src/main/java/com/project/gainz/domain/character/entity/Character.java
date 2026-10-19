@@ -1,5 +1,7 @@
 package com.project.gainz.domain.character.entity;
 
+import com.project.gainz.domain.character.enums.Accessory;
+import com.project.gainz.domain.character.enums.AccessorySlot;
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.LevelPolicy;
@@ -8,6 +10,7 @@ import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -57,8 +60,9 @@ public class Character extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
+    // 레벨 보상 머리가 늘어서 값 목록 제약 없는 varchar로 둔다 (EnumNameConverter, CharacterSchemaPatcher)
+    @Column(nullable = false, length = 30)
+    @Convert(converter = HairStyleConverter.class)
     private HairStyle hairStyle;
 
     @Column(nullable = false, length = 7)
@@ -94,6 +98,23 @@ public class Character extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
     private StageBackground stageBackground;
+
+    // 쓰고 있는 레벨 보상 소품 (자리마다 하나, 없으면 null)
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory hat;
+
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory glasses;
+
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory neck;
+
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory shoes;
 
     @Version
     private Long version;
@@ -147,6 +168,16 @@ public class Character extends BaseEntity {
 
     public void changeStageBackground(StageBackground background) {
         this.stageBackground = background;
+    }
+
+    // 옷장: 자리마다 소품 쓰기·벗기 (자리·해금 여부는 서비스에서 확인)
+    public void wear(AccessorySlot slot, Accessory accessory) {
+        switch (slot) {
+            case HAT -> this.hat = accessory;
+            case GLASSES -> this.glasses = accessory;
+            case NECK -> this.neck = accessory;
+            case SHOES -> this.shoes = accessory;
+        }
     }
 
     // 지금 무대 배경. 아직 고른 적 없으면 레벨로 얻은 가장 큰 무대

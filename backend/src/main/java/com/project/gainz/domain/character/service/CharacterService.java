@@ -2,6 +2,8 @@ package com.project.gainz.domain.character.service;
 
 import com.project.gainz.domain.character.dto.request.WardrobeUpdateRequest;
 import com.project.gainz.domain.character.dto.response.WardrobeResponse;
+import com.project.gainz.domain.character.enums.Accessory;
+import com.project.gainz.domain.character.enums.AccessorySlot;
 import com.project.gainz.domain.character.enums.StageBackground;
 import com.project.gainz.domain.character.dto.request.CharacterCreateRequest;
 import com.project.gainz.domain.character.dto.request.CharacterUpdateRequest;
@@ -24,8 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -49,6 +53,10 @@ public class CharacterService {
         }
         if (characterRepository.existsByNickname(request.nickname())) {
             throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+        }
+        // 레벨 보상 머리는 처음엔 고를 수 없다
+        if (!request.hairStyle().isUnlockedAt(1)) {
+            throw new BusinessException(ErrorCode.HAIR_STYLE_LOCKED);
         }
 
         OutfitItem defaultOutfit = outfitItemRepository
@@ -97,6 +105,11 @@ public class CharacterService {
             throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
         }
 
+        // 레벨이 닿지 않은 머리로는 바꿀 수 없다 (지금 머리는 그대로 둘 수 있음)
+        if (request.hairStyle() != character.getHairStyle() && !request.hairStyle().isUnlockedAt(character.getLevel())) {
+            throw new BusinessException(ErrorCode.HAIR_STYLE_LOCKED);
+        }
+
         character.update(
                 request.nickname(),
                 request.instrumentType(),
@@ -118,7 +131,7 @@ public class CharacterService {
 
         List<WardrobeResponse.OutfitView> outfits = outfitItemRepository.findAllByOrderByRequiredLevelAscIdAsc().stream()
                 .filter(item -> item.getCategory() != OutfitCategory.BACKGROUND)
-                .map(item -> WardrobeResponse.OutfitView.of(item, owned.contains(item.getId()), item.getId().equals(equippedId)))
+                .map(item -> WardrobeResponse.OutfitView.of(item, owns(character, owned, item), item.getId().equals(equippedId)))
                 .toList();
         List<WardrobeResponse.BackgroundView> backgrounds = Arrays.stream(StageBackground.values())
                 .map(bg -> new WardrobeResponse.BackgroundView(bg, bg.getRequiredLevel(), bg.isUnlockedAt(character.getLevel())))
@@ -126,12 +139,16 @@ public class CharacterService {
         return new WardrobeResponse(outfits, backgrounds, character.getCurrentStageBackground());
     }
 
-    // 옷장 저장: 보유한 의상으로 갈아입고, 얻은 무대 배경 중 하나를 고른다
+    // 옷장 저장: 보유한 의상으로 갈아입고, 얻은 무대 배경 중 하나를 고르고, 자리마다 소품을 쓴다
     public CharacterResponse updateWardrobe(Long userId, WardrobeUpdateRequest request) {
         Character character = characterRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
 
-        if (!userOutfitRepository.existsByUserIdAndOutfitItemId(userId, request.outfitId())) {
+        OutfitItem outfit = outfitItemRepository.findById(request.outfitId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.OUTFIT_NOT_OWNED));
+        boolean ownsOutfit = character.getLevel() >= outfit.getRequiredLevel()
+                || userOutfitRepository.existsByUserIdAndOutfitItemId(userId, request.outfitId());
+        if (!ownsOutfit) {
             throw new BusinessException(ErrorCode.OUTFIT_NOT_OWNED);
         }
         StageBackground background = request.stageBackground();
@@ -139,11 +156,26 @@ public class CharacterService {
             throw new BusinessException(ErrorCode.STAGE_BACKGROUND_LOCKED);
         }
 
-        OutfitItem outfit = outfitItemRepository.findById(request.outfitId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.OUTFIT_NOT_OWNED));
+        Map<AccessorySlot, Accessory> accessories = new EnumMap<>(AccessorySlot.class);
+        accessories.put(AccessorySlot.HAT, request.hat());
+        accessories.put(AccessorySlot.GLASSES, request.glasses());
+        accessories.put(AccessorySlot.NECK, request.neck());
+        accessories.put(AccessorySlot.SHOES, request.shoes());
+        accessories.forEach((slot, accessory) -> {
+            if (accessory == null) return;
+            if (accessory.getSlot() != slot) throw new BusinessException(ErrorCode.ACCESSORY_SLOT_MISMATCH);
+            if (!accessory.isUnlockedAt(character.getLevel())) throw new BusinessException(ErrorCode.ACCESSORY_LOCKED);
+        });
+
         character.changeOutfit(outfit);
         character.changeStageBackground(background);
+        accessories.forEach(character::wear);
         return CharacterResponse.from(character);
+    }
+
+    // 레벨 보상 의상은 레벨이 닿으면 가진 것 (예전에 레벨이 오른 사람도). 그 밖에는 받은 기록으로
+    private boolean owns(Character character, Set<Long> ownedIds, OutfitItem item) {
+        return ownedIds.contains(item.getId()) || character.getLevel() >= item.getRequiredLevel();
     }
 
     // 경험치 추가 후 레벨업 및 아이템 해금 (expAmount가 음수면 경험치를 되돌리고 레벨은 그대로)

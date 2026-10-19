@@ -42,6 +42,9 @@ public enum ErrorCode {
     CHARACTER_NOT_FOUND(404, "C004", "존재하지 않는 캐릭터입니다."),
     OUTFIT_NOT_OWNED(400, "C005", "가지고 있지 않은 의상입니다."),
     STAGE_BACKGROUND_LOCKED(400, "C006", "아직 해금하지 않은 무대 배경입니다."),
+    HAIR_STYLE_LOCKED(400, "C007", "아직 해금하지 않은 헤어스타일입니다."),
+    ACCESSORY_LOCKED(400, "C008", "아직 해금하지 않은 소품입니다."),
+    ACCESSORY_SLOT_MISMATCH(400, "C009", "그 자리에 쓸 수 없는 소품입니다."),
 
     /* Practice (연습) */
     PRACTICE_DAY_LIMIT_EXCEEDED(400, "P001", "하루 연습 시간은 24시간을 넘을 수 없습니다."),
