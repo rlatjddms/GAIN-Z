@@ -48,13 +48,14 @@
           <section class="footer-grid grid-2">
             <div class="data-card">
               <button class="card-title link" @click="isRecordsOpen = true">
-                MY RECORDS <span class="record-count">0 / {{ PLACEHOLDER_RECORDS.length }} ›</span>
+                MY RECORDS <span class="record-count">{{ recordsStore.ownedCount }} / {{ recordsStore.total || 12 }} ›</span>
               </button>
-              <!-- 레코드 선반: 실제 보유 레코드는 #47·#48에서 연결 -->
+              <!-- 레코드 선반: 얻은 레코드(최근 순)를 먼저, 남은 칸은 아직 못 얻은 레코드 실루엣 -->
               <div class="shelf" @click="isRecordsOpen = true">
-                <div v-for="(row, ri) in SHELF_ROWS" :key="ri" class="shelf-row">
+                <div v-for="(row, ri) in shelfRows" :key="ri" class="shelf-row">
                   <div class="shelf-items">
-                    <RecordIcon v-for="(type, i) in row" :key="i" :type="type" locked :size="56" />
+                    <RecordIcon v-for="item in row" :key="item.key" :type="item.type" :color="item.color"
+                                :locked="item.locked" :size="56" :title="item.title" />
                   </div>
                   <div class="shelf-board"></div>
                 </div>
@@ -63,7 +64,7 @@
             <PracticeLogCard />
           </section>
 
-          <RecordsModal :open="isRecordsOpen" @close="isRecordsOpen = false" />
+          <RecordsModal :open="isRecordsOpen" :focus-key="recordFocus" @close="closeRecords" />
           <ProfileMusicModal :open="isMusicOpen" @close="isMusicOpen = false" />
         </template>
 
@@ -163,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppHeader from '../components/AppHeader.vue'
@@ -172,7 +173,8 @@ import RecordsModal from '../components/workspace/RecordsModal.vue'
 import ProfileMusicModal from '../components/ProfileMusicModal.vue'
 import PracticeLogCard from '../components/workspace/PracticeLogCard.vue'
 import RecordIcon from '../components/workspace/RecordIcon.vue'
-import { PLACEHOLDER_RECORDS } from '../constants/records'
+import { RECORD_RARITIES, rarityOf, progressRatio } from '../constants/records'
+import { useRecordsStore } from '../stores/records'
 import BandStageScene from '../components/band/BandStageScene.vue'
 import BandStartModal from '../components/band/BandStartModal.vue'
 import BandCommunityPanel from '../components/band/BandCommunityPanel.vue'
@@ -203,12 +205,49 @@ const isBandMode = computed({
   set: (v) => { bandStore.isBandMode = v },
 })
 
+/* ---------- MY RECORDS ---------- */
+const recordsStore = useRecordsStore()
 const isRecordsOpen = ref(false)
-// 홈 선반에 보여 줄 음반 (위: 카세트·CD, 아래: CD·LP)
-const SHELF_ROWS = [
-  ['CASSETTE', 'CASSETTE', 'CASSETTE', 'CD'],
-  ['CASSETTE', 'CD', 'LP', 'LP'],
+const recordFocus = ref(null)
+// 선반 자리 모양은 고정 (위: 카세트 4, 아래: CD 2 · LP 2).
+// 자리마다 그 모양의 레코드 중 얻은 것(최근 순)을 먼저, 남은 자리는 못 얻은 것 중 진행도가 높은 것을 놓는다
+const SHELF_LAYOUT = [
+  ['COMMON', 'COMMON', 'COMMON', 'COMMON'],
+  ['RARE', 'RARE', 'LEGENDARY', 'LEGENDARY'],
 ]
+
+onMounted(() => { recordsStore.load().catch(() => {}) })
+
+const shelfRows = computed(() => {
+  const queues = {}
+  if (recordsStore.loaded) {
+    for (const { key } of RECORD_RARITIES) {
+      const same = recordsStore.records.filter((r) => r.rarity === key)
+      queues[key] = [
+        ...recordsStore.owned.filter((r) => r.rarity === key),
+        ...same.filter((r) => !r.owned).sort((x, y) => progressRatio(y.progress) - progressRatio(x.progress)),
+      ]
+    }
+  }
+  return SHELF_LAYOUT.map((row, ri) => row.map((rarity, i) => {
+    const r = queues[rarity]?.shift()
+    if (!r) return { key: `empty-${ri}-${i}`, type: rarityOf(rarity).type, color: undefined, locked: true, title: '' }
+    return { key: r.key, type: rarityOf(r.rarity).type, color: r.color, locked: !r.owned, title: r.owned ? r.name : r.condition }
+  }))
+})
+
+// 알림·획득 연출에서 오면 도감을 연다 (?records=open 또는 ?records=레코드 키)
+watch(() => route.query.records, (value) => {
+  if (!value) return
+  recordFocus.value = value === 'open' ? null : String(value)
+  isRecordsOpen.value = true
+}, { immediate: true })
+
+const closeRecords = () => {
+  isRecordsOpen.value = false
+  recordFocus.value = null
+  if (route.query.records) router.replace({ query: { ...route.query, records: undefined } })
+}
 /* ---------- BAND ---------- */
 
 const activeBand = computed(() => bandStore.selectedBand)

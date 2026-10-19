@@ -50,7 +50,7 @@ const error = ref('')
 const busy = ref(false)
 
 // 영역 아이콘을 그리려고 그 영역의 대표 종류 하나
-const SAMPLE = { FRIEND: 'FRIEND_REQUEST', BAND: 'BAND_JOIN', COMMUNITY: 'NOTICE', JAM: 'JAM_NEW' }
+const SAMPLE = { FRIEND: 'FRIEND_REQUEST', BAND: 'BAND_JOIN', COMMUNITY: 'NOTICE', JAM: 'JAM_NEW', RECORD: 'RECORD' }
 const sampleType = (category) => SAMPLE[category]
 
 const groupAllOn = (g) => g.items.every((item) => settings.value[item.key])
