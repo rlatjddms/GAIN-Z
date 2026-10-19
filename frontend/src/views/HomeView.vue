@@ -209,11 +209,11 @@ const isBandMode = computed({
 const recordsStore = useRecordsStore()
 const isRecordsOpen = ref(false)
 const recordFocus = ref(null)
-// 선반 자리 모양은 고정 (위: 카세트·카세트·카세트·CD, 아래: 카세트·CD·LP·LP).
+// 선반 자리 모양은 고정 (위: 카세트 4, 아래: CD 2 · LP 2).
 // 자리마다 그 모양의 레코드 중 얻은 것(최근 순)을 먼저, 남은 자리는 못 얻은 것 중 진행도가 높은 것을 놓는다
 const SHELF_LAYOUT = [
-  ['COMMON', 'COMMON', 'COMMON', 'RARE'],
-  ['COMMON', 'RARE', 'LEGENDARY', 'LEGENDARY'],
+  ['COMMON', 'COMMON', 'COMMON', 'COMMON'],
+  ['RARE', 'RARE', 'LEGENDARY', 'LEGENDARY'],
 ]
 
 onMounted(() => { recordsStore.load().catch(() => {}) })
