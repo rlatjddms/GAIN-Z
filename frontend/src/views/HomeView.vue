@@ -55,7 +55,7 @@
                 <div v-for="(row, ri) in shelfRows" :key="ri" class="shelf-row">
                   <div class="shelf-items">
                     <RecordIcon v-for="item in row" :key="item.key" :type="item.type" :color="item.color"
-                                :locked="item.locked" :size="56" :title="item.title" />
+                                :locked="item.locked" :size="40" :title="item.title" />
                   </div>
                   <div class="shelf-board"></div>
                 </div>
@@ -209,21 +209,26 @@ const isBandMode = computed({
 const recordsStore = useRecordsStore()
 const isRecordsOpen = ref(false)
 const recordFocus = ref(null)
-// 선반 두 줄 × 4칸
-const SHELF_SLOTS = 8
-const SHELF_FALLBACK = ['CASSETTE', 'CASSETTE', 'CASSETTE', 'CD', 'CASSETTE', 'CD', 'LP', 'LP']
+// 선반 두 줄에 12장을 정해진 자리로: 위 칸 카세트 6, 아래 칸 CD 4 + LP 2 (얻으면 그 자리에 색이 채워진다)
+const SHELF_FALLBACK = [
+  Array(6).fill('CASSETTE'),
+  [...Array(4).fill('CD'), 'LP', 'LP'],
+]
 
 onMounted(() => { recordsStore.load().catch(() => {}) })
 
 const shelfRows = computed(() => {
+  if (!recordsStore.loaded) {
+    return SHELF_FALLBACK.map((row, ri) => row.map((type, i) => ({ key: `empty-${ri}-${i}`, type, color: undefined, locked: true, title: '' })))
+  }
   const toItem = (r) => ({
     key: r.key, type: rarityOf(r.rarity).type, color: r.color, locked: !r.owned,
     title: r.owned ? r.name : r.condition,
   })
-  const items = recordsStore.loaded
-    ? [...recordsStore.owned, ...recordsStore.records.filter((r) => !r.owned)].slice(0, SHELF_SLOTS).map(toItem)
-    : SHELF_FALLBACK.map((type, i) => ({ key: `empty-${i}`, type, color: undefined, locked: true, title: '' }))
-  return [items.slice(0, 4), items.slice(4, 8)]
+  return [
+    recordsStore.records.filter((r) => r.rarity === 'COMMON').map(toItem),
+    recordsStore.records.filter((r) => r.rarity !== 'COMMON').map(toItem),
+  ]
 })
 
 // 알림·획득 연출에서 오면 도감을 연다 (?records=open 또는 ?records=레코드 키)
@@ -464,7 +469,7 @@ button::-moz-focus-inner { border: 0 !important; }
 .card-title.link:hover { color: #2d5bff; }
 .record-count { font-size: 0.75rem; color: #adb5bd; }
 .shelf { cursor: pointer; display: flex; flex-direction: column; gap: 14px; }
-.shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
+.shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 4px; }
 .shelf-board {
   height: 8px; border-radius: 3px; margin-top: 2px;
   background: #c08a52; box-shadow: inset 0 -3px 0 #8e6035;
