@@ -88,6 +88,10 @@ const editable = computed(() => isEditable(props.date) && !(isToday.value && tim
 // 하루 시간 직접 고치기
 const editing = ref(null)
 const onEdited = (result) => {
+  const gained = result?.expGained || 0
+  savedMessage.value = `고쳤어요 · ${durationText(result?.dayTotalSeconds || 0)}${gained > 0 ? ` · +${gained} EXP` : gained < 0 ? ` · 경험치 ${gained}` : ''}`
+  clearTimeout(savedTimer)
+  savedTimer = setTimeout(() => { savedMessage.value = '' }, 6000)
   const exp = result?.experience
   if (exp && ((exp.isLeveledUp ?? exp.leveledUp) || exp.unlockedOutfits?.length)) {
     levelUp.value = { ...exp, expGained: result.expGained }

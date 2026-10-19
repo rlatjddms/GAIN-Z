@@ -9,6 +9,7 @@ const storageKey = () => `practiceTimer_${useAuthStore().userEmail || 'guest'}`
 export const usePracticeTimerStore = defineStore('practiceTimer', {
   state: () => ({
     startedAt: null,   // 켜져 있으면 이번 구간 시작 시각(ms)
+    confirmedAt: null, // 마지막으로 '아직 연습 중'을 확인한 시각(ms). 2시간마다 다시 묻는다 (PracticeTimerGuard)
     pending: [],       // 저장 실패한 구간 [{ date, seconds }]
     loadedKey: null,
   }),
@@ -23,11 +24,13 @@ export const usePracticeTimerStore = defineStore('practiceTimer', {
       if (this.loadedKey === key) return
       this.loadedKey = key
       this.startedAt = null
+      this.confirmedAt = null
       this.pending = []
       try {
         const saved = JSON.parse(localStorage.getItem(key) || 'null')
         if (saved) {
           this.startedAt = Number.isFinite(saved.startedAt) ? saved.startedAt : null
+          this.confirmedAt = Number.isFinite(saved.confirmedAt) ? saved.confirmedAt : this.startedAt
           this.pending = Array.isArray(saved.pending) ? saved.pending : []
         }
       } catch {
@@ -37,23 +40,32 @@ export const usePracticeTimerStore = defineStore('practiceTimer', {
     save() {
       const key = storageKey()
       if (!this.running && !this.pending.length) localStorage.removeItem(key)
-      else localStorage.setItem(key, JSON.stringify({ startedAt: this.startedAt, pending: this.pending }))
+      else localStorage.setItem(key, JSON.stringify({ startedAt: this.startedAt, confirmedAt: this.confirmedAt, pending: this.pending }))
     },
     start() {
       if (this.running) return
       this.startedAt = Date.now()
+      this.confirmedAt = this.startedAt
+      this.save()
+    },
+    // '아직 연습 중이에요' → 다음 확인까지 다시 2시간
+    confirm(now = Date.now()) {
+      if (!this.running) return
+      this.confirmedAt = now
       this.save()
     },
     // 정지: 이번 구간을 날짜별로 나눠 돌려준다 (저장은 호출한 쪽에서)
     stop(now = Date.now()) {
       if (!this.running) return []
-      const parts = splitByDay(this.startedAt, now)
+      const parts = splitByDay(this.startedAt, Math.max(now, this.startedAt))
       this.startedAt = null
+      this.confirmedAt = null
       this.save()
       return parts
     },
     discard() {
       this.startedAt = null
+      this.confirmedAt = null
       this.save()
     },
     setPending(parts) {
