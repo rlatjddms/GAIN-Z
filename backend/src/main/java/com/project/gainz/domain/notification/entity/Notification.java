@@ -4,9 +4,8 @@ import com.project.gainz.domain.notification.enums.NotificationType;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -47,8 +46,8 @@ public class Notification extends BaseEntity {
     @Column(nullable = false, length = CONTENT_MAX)
     private String content;
 
-    // MariaDB enum 타입으로 만들면 알림 종류를 추가할 때마다 컬럼을 고쳐야 해서 varchar로 둔다
-    @Enumerated(EnumType.STRING)
+    // 종류가 자주 늘어서 값 목록 제약 없는 varchar로 둔다 (EnumNameConverter)
+    @Convert(converter = NotificationTypeConverter.class)
     @Column(nullable = false, length = 30, columnDefinition = "varchar(30)")
     private NotificationType type;
 

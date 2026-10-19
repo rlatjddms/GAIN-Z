@@ -3,9 +3,8 @@ package com.project.gainz.domain.notification.entity;
 import com.project.gainz.domain.notification.enums.NotificationSetting;
 import com.project.gainz.domain.user.entity.User;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -33,8 +32,8 @@ public class NotificationOff {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    // MariaDB enum 타입으로 만들면 항목을 추가할 때마다 컬럼을 고쳐야 해서 varchar로 둔다
-    @Enumerated(EnumType.STRING)
+    // 항목이 자주 늘어서 값 목록 제약 없는 varchar로 둔다 (EnumNameConverter)
+    @Convert(converter = NotificationSettingConverter.class)
     @Column(nullable = false, length = 30, columnDefinition = "varchar(30)")
     private NotificationSetting setting;
 
