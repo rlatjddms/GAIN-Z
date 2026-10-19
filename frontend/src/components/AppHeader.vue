@@ -10,6 +10,14 @@
       </div>
 
       <div class="header-right">
+        <router-link to="/friends" class="friend-btn" active-class="on" title="친구">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </router-link>
         <button class="noti-btn" title="알림">
           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -75,12 +83,12 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 .user-info:hover, .user-info.on { background: #f0f4ff; }
 .user-info.on .name { color: #2d5bff; }
 .name { font-weight: 700; font-size: 0.9rem; color: #495057; }
-.noti-btn, .logout-icon-btn {
+.friend-btn, .noti-btn, .logout-icon-btn {
   background: none; border: none; color: #adb5bd; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   padding: 6px; border-radius: 8px; transition: 0.2s;
 }
-.noti-btn:hover { color: #2d5bff; background: #f0f4ff; }
+.friend-btn:hover, .friend-btn.on, .noti-btn:hover { color: #2d5bff; background: #f0f4ff; }
 .logout-icon-btn:hover { color: #fa5252; background: #fff5f5; }
 
 @media (max-width: 640px) {
