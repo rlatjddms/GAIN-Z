@@ -57,7 +57,10 @@
                         :class="{ on: draft.hairStyle === h.value, locked: !unlocked(h.level) }"
                         :disabled="!unlocked(h.level)" :title="unlocked(h.level) ? '' : `Lv.${h.level}에 해금`"
                         @click="draft.hairStyle = h.value">
-                  <span class="emoji">{{ unlocked(h.level) ? h.emoji : '🔒' }}</span>{{ h.label }}
+                  <span class="opt-thumb">
+                    <PixelSprite :parts="[['body', draft.gender === 'MALE' ? 'MALE' : 'FEMALE'], ['hair', h.value]]" :colors="looks" :region="HEAD_REGION" :box="48" :label="h.label" />
+                    <i v-if="!unlocked(h.level)">🔒</i>
+                  </span>{{ h.label }}
                   <small v-if="!unlocked(h.level)" class="lv">Lv.{{ h.level }}</small>
                 </button>
               </div>
@@ -72,7 +75,9 @@
               <span class="label">악기</span>
               <div class="grid">
                 <button v-for="i in INSTRUMENT_OPTIONS" :key="i.value" class="opt" :class="{ on: draft.instrumentType === i.value }" @click="draft.instrumentType = i.value">
-                  <span class="emoji">{{ i.emoji }}</span>{{ i.label }}
+                  <span class="opt-thumb">
+                    <PixelSprite :parts="[['instrument', i.value]]" :colors="looks" :box="40" :label="i.label" />
+                  </span>{{ i.label }}
                 </button>
               </div>
             </div>
@@ -120,8 +125,8 @@
                   :disabled="!unlocked(a.level)"
                   @click="draft[slot.field] = a.key"
                 >
-                  <span class="item-thumb">
-                    <PixelCharacter :character="{ ...preview, [slot.field]: a.key }" :scale="2" :animate="false" />
+                  <span class="item-thumb sprite">
+                    <PixelSprite :parts="[[slot.folder, a.key]]" :box="44" :label="a.name" />
                     <i v-if="!unlocked(a.level)">🔒</i>
                   </span>
                   <strong>{{ a.name }}</strong>
@@ -171,6 +176,7 @@ import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import ColorSwatches from '../components/ColorSwatches.vue'
 import PixelCharacter from '../components/PixelCharacter.vue'
+import PixelSprite from '../components/PixelSprite.vue'
 import StageScene from '../components/StageScene.vue'
 import { useAuthStore } from '../stores/auth'
 import { getWardrobe, updateWardrobe, updateAppearance } from '../api/character'
@@ -180,7 +186,7 @@ import {
   GENDER_OPTIONS, HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS,
   INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS, nicknameProblem,
 } from '../constants/characterOptions'
-import { DEFAULT_COLORS } from '../pixel/palette'
+import { DEFAULT_COLORS, HEAD_REGION } from '../pixel/palette'
 import { ACCESSORY_SLOTS, ACCESSORIES } from '../constants/rewards'
 
 const TABS = [
@@ -249,6 +255,8 @@ const clothes = computed(() => outfits.value.filter((o) => o.category === 'CLOTH
 const level = computed(() => authStore.character?.level ?? 1)
 const unlocked = (required) => !required || level.value >= required
 const accessoriesOf = (slot) => ACCESSORIES.filter((a) => a.slot === slot)
+// 썸네일 색: 지금 고르는 피부·머리·악기 색
+const looks = computed(() => ({ skinColor: draft.skinColor, hairColor: draft.hairColor, instrumentColor: draft.instrumentColor }))
 
 // 미리보기 캐릭터 = 저장된 캐릭터 + 고르는 중인 값 (입을 옷의 그림 포함)
 const preview = computed(() => {
@@ -352,7 +360,14 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
   display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 12px;
   font-size: 0.75rem; font-weight: 800;
 }
-.emoji { font-size: 1.3rem; }
+.opt-thumb {
+  position: relative; width: 52px; height: 40px; border-radius: 10px; background: #f8f9fa;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.opt.on .opt-thumb { background: #fff; }
+.opt-thumb i, .item-thumb.sprite i { font-style: normal; }
+.opt-thumb i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(248, 249, 250, 0.75); font-size: 0.9rem; }
+.item-thumb.sprite { align-items: center; }
 
 .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .item {

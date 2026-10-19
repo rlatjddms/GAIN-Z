@@ -131,7 +131,9 @@
                     :class="{ active: hairStyle === style.value }"
                     @click="hairStyle = style.value"
                   >
-                    <span class="style-thumb">{{ style.emoji }}</span>
+                    <span class="style-thumb">
+                      <PixelSprite :parts="[['body', gender === 'MALE' ? 'MALE' : 'FEMALE'], ['hair', style.value]]" :colors="{ skinColor, hairColor }" :region="HEAD_REGION" :box="48" :label="style.label" />
+                    </span>
                     <span class="style-label">{{ style.label }}</span>
                   </button>
                 </div>
@@ -173,7 +175,9 @@
                     :class="{ active: instrumentType === inst.value }"
                     @click="instrumentType = inst.value"
                   >
-                    <span class="inst-grid-icon">{{ inst.emoji }}</span>
+                    <span class="inst-grid-icon">
+                      <PixelSprite :parts="[['instrument', inst.value]]" :colors="{ instrumentColor }" :box="40" :label="inst.label" />
+                    </span>
                     <span class="inst-grid-label">{{ inst.label }}</span>
                   </button>
                 </div>
@@ -256,6 +260,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import axiosInstance from '../api/axios'
 import PixelCharacter from '../components/PixelCharacter.vue'
+import PixelSprite from '../components/PixelSprite.vue'
+import { HEAD_REGION } from '../pixel/palette'
 import { DEFAULT_COLORS } from '../pixel/palette'
 import {
   STARTER_HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS, INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS,
@@ -852,7 +858,7 @@ const handleSubmit = async () => {
 }
 
 .style-thumb {
-  font-size: 1.2rem;
+  display: flex; align-items: center; justify-content: center; height: 34px;
 }
 
 .style-label {
@@ -962,8 +968,7 @@ const handleSubmit = async () => {
 }
 
 .inst-grid-icon {
-  font-size: 1.6rem;
-  line-height: 1;
+  display: flex; align-items: center; justify-content: center; height: 40px;
 }
 
 .inst-grid-label {

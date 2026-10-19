@@ -48,6 +48,26 @@
     </section>
 
     <section class="panel">
+      <h2>썸네일 (옷장·캐릭터 만들기)</h2>
+      <div class="grid thumbs">
+        <figure v-for="h in hairStyles" :key="`h-${h}`">
+          <PixelSprite :parts="[['body', character.gender], ['hair', h]]" :colors="character" :region="HEAD_REGION" :box="48" />
+          <figcaption>{{ h }}</figcaption>
+        </figure>
+        <figure v-for="i in instruments" :key="`i-${i}`">
+          <PixelSprite :parts="[['instrument', i]]" :colors="character" :box="40" />
+          <figcaption>{{ i }}</figcaption>
+        </figure>
+        <template v-for="slot in ACCESSORY_SLOTS" :key="`s-${slot.key}`">
+          <figure v-for="a in listSprites(slot.folder)" :key="`a-${a}`">
+            <PixelSprite :parts="[[slot.folder, a]]" :box="44" />
+            <figcaption>{{ a }}</figcaption>
+          </figure>
+        </template>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>레벨 구간별 무대</h2>
       <CharacterStage v-for="lv in [3, 14, 35, 50]" :key="lv" :character="{ ...character, nickname: '미리보기', level: lv, exp: 40 }" />
     </section>
@@ -98,6 +118,8 @@
 import { reactive, ref } from 'vue'
 import PixelCharacter from '../components/PixelCharacter.vue'
 import CharacterStage from '../components/CharacterStage.vue'
+import PixelSprite from '../components/PixelSprite.vue'
+import { HEAD_REGION } from '../pixel/palette'
 import { listSprites } from '../pixel/sprites'
 import { ACCESSORY_SLOTS } from '../constants/rewards'
 
@@ -134,5 +156,6 @@ select, input[type=color] { font: inherit; padding: 6px 8px; border: 1px solid #
 input[type=color] { width: 60px; height: 34px; padding: 2px; }
 .grid { display: flex; flex-wrap: wrap; gap: 14px; }
 figure { margin: 0; background: #f8f9fa; border-radius: 12px; padding: 12px 10px 8px; text-align: center; }
+.thumbs figure { min-width: 64px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
 figcaption { font-size: 0.7rem; font-weight: 700; color: #495057; margin-top: 6px; }
 </style>

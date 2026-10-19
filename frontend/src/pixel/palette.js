@@ -5,6 +5,9 @@
 export const SPRITE_WIDTH = 24
 export const SPRITE_HEIGHT = 32
 
+// 헤어스타일 썸네일: 캐릭터에서 머리 부분만 (y0~15)
+export const HEAD_REGION = { x: 0, y: 0, w: 24, h: 16 }
+
 // 무대 배경 원본 크기 (assets/stages/<tier>.png). 캐릭터와 같은 도트 격자에 놓는다
 export const STAGE_WIDTH = 208
 export const STAGE_HEIGHT = 72
