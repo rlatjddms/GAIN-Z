@@ -37,26 +37,6 @@
         <p v-if="requestStatus" class="saved">{{ requestStatus }}</p>
       </WsCard>
 
-      <!-- 같은 밴드 멤버: 코드 없이 바로 신청 -->
-      <WsCard v-if="mateRows.length" :title="`같은 밴드 멤버 ${mateRows.length}`">
-        <ul class="people">
-          <li v-for="m in mateRows" :key="m.userId" class="person">
-            <ProfileAvatar :src="m.profileImageUrl" :size="44" :alt="`${m.name} 프로필 사진`" />
-            <div class="who">
-              <strong>{{ m.name }}</strong>
-              <span>{{ m.bandNames.join(', ') }} · {{ levelText(m) }}</span>
-            </div>
-            <div class="actions">
-              <button v-if="m.received" class="btn small primary" :disabled="busyId === m.received.requestId" @click="accept(m.received)">수락</button>
-              <button v-else-if="m.sent" class="btn small ghost" disabled>신청함</button>
-              <button v-else class="btn small primary" :disabled="mateBusyId === m.userId" @click="requestMate(m)">
-                {{ mateBusyId === m.userId ? '보내는 중…' : '친구 신청' }}
-              </button>
-            </div>
-          </li>
-        </ul>
-      </WsCard>
-
       <!-- 받은 신청 -->
       <WsCard v-if="received.length" :title="`받은 신청 ${received.length}`">
         <ul class="people">
@@ -93,8 +73,29 @@
         </ul>
       </WsCard>
 
-      <!-- 보낸 신청 -->
-      <WsCard v-if="sent.length" :title="`보낸 신청 ${sent.length}`">
+
+      <!-- 같은 밴드 멤버 (추천): 코드 없이 바로 신청 -->
+      <WsCard v-if="mateRows.length" :title="`같은 밴드 멤버 ${mateRows.length}`">
+        <ul class="people">
+          <li v-for="m in mateRows" :key="m.userId" class="person">
+            <ProfileAvatar :src="m.profileImageUrl" :size="44" :alt="`${m.name} 프로필 사진`" />
+            <div class="who">
+              <strong>{{ m.name }}</strong>
+              <span>{{ m.bandNames.join(', ') }} · {{ levelText(m) }}</span>
+            </div>
+            <div class="actions">
+              <button v-if="m.received" class="btn small primary" :disabled="busyId === m.received.requestId" @click="accept(m.received)">수락</button>
+              <button v-else-if="m.sent" class="btn small ghost" disabled>신청함</button>
+              <button v-else class="btn small primary" :disabled="mateBusyId === m.userId" @click="requestMate(m)">
+                {{ mateBusyId === m.userId ? '보내는 중…' : '친구 신청' }}
+              </button>
+            </div>
+          </li>
+        </ul>
+      </WsCard>
+
+      <!-- 보낸 신청 (수락 대기) -->
+      <WsCard v-if="sent.length" :title="`수락 대기 ${sent.length}`">
         <ul class="people">
           <li v-for="r in sent" :key="r.requestId" class="person">
             <ProfileAvatar :src="r.user.profileImageUrl" :size="44" :alt="`${r.user.name} 프로필 사진`" />
