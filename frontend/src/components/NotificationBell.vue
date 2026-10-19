@@ -1,5 +1,5 @@
 <template>
-  <!-- 헤더 알림 종: 안 읽은 개수 배지, 누르면 알림함 -->
+  <!-- 헤더 알림 종: 안 읽은 개수 배지, 누르면 최근 알림 미리보기 (정리는 알림 페이지에서) -->
   <div ref="root" class="noti">
     <button class="noti-btn" :class="{ on: open }" :title="unread ? `안 읽은 알림 ${unread}개` : '알림'"
             aria-haspopup="dialog" :aria-expanded="open" @click="toggle">
@@ -13,37 +13,36 @@
     <transition name="panel">
       <section v-if="open" class="panel" role="dialog" aria-label="알림">
         <header class="panel-head">
-          <strong>알림</strong>
-          <div class="head-actions">
-            <button class="text-btn" :disabled="!unread || busy" @click="readAll">모두 읽음</button>
-            <button class="text-btn muted" :disabled="!items.length || busy" @click="clearAll">모두 지우기</button>
-          </div>
+          <strong>알림<span v-if="unread" class="head-count">{{ unread }}</span></strong>
+          <button class="text-btn" :disabled="!unread || busy" @click="readAll">모두 읽음</button>
         </header>
 
-        <div class="list" @scroll="onScroll">
+        <div class="list">
           <p v-if="error" class="state error">{{ error }}</p>
           <p v-else-if="!loaded" class="state">불러오는 중…</p>
           <p v-else-if="!items.length" class="state">새 알림이 없어요</p>
-          <ul v-else>
-            <li v-for="n in items" :key="n.id" class="item" :class="{ unread: !n.read }">
-              <button class="item-main" @click="openItem(n)">
-                <span class="icon" :class="categoryOf(n.type)" aria-hidden="true">
-                  <svg v-if="categoryOf(n.type) === 'friend'" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
-                  <svg v-else-if="categoryOf(n.type) === 'community'" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                  <svg v-else-if="categoryOf(n.type) === 'jam'" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-                  <svg v-else viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                </span>
-                <span class="text">
-                  <span class="title">{{ n.title }}</span>
-                  <span class="content">{{ n.content }}</span>
-                  <span class="time">{{ agoText(n.createdAt) }}</span>
-                </span>
-              </button>
-              <button class="remove" title="알림 지우기" aria-label="알림 지우기" @click="remove(n)">×</button>
-            </li>
-          </ul>
-          <p v-if="loadingMore" class="state">불러오는 중…</p>
+          <section v-for="g in groups" v-else :key="g.label" class="group">
+            <h3>{{ g.label }}</h3>
+            <ul>
+              <li v-for="n in g.items" :key="n.id" class="item" :class="{ unread: !n.read }">
+                <button class="item-main" @click="openItem(n)">
+                  <NotificationIcon :type="n.type" :size="30" />
+                  <span class="text">
+                    <span class="title">{{ n.title }}</span>
+                    <span class="content">{{ n.content }}</span>
+                    <span class="time">{{ agoText(n.createdAt) }}</span>
+                  </span>
+                </button>
+                <button class="remove" title="알림 지우기" aria-label="알림 지우기" @click="remove(n)">×</button>
+              </li>
+            </ul>
+          </section>
         </div>
+
+        <router-link to="/notifications" class="see-all">
+          전체 보기{{ hasMore ? ' · 더 있어요' : '' }}
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </router-link>
       </section>
     </transition>
   </div>
@@ -52,13 +51,14 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import NotificationIcon from './NotificationIcon.vue'
 import { useNotificationStore } from '../stores/notification'
-import {
-  getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications,
-} from '../api/notification'
+import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification } from '../api/notification'
 import { apiErrorMessage } from '../api/practice'
+import { agoText, groupByDate } from '../constants/notification'
 
-const PAGE_SIZE = 20
+// 미리보기는 최근 몇 개만 (나머지는 알림 페이지)
+const PREVIEW_SIZE = 8
 const POLL_MS = 30000
 
 const router = useRouter()
@@ -69,38 +69,12 @@ const unread = computed(() => store.unreadCount)
 const root = ref(null)
 const open = ref(false)
 const items = ref([])
-const page = ref(0)
-const hasNext = ref(false)
+const hasMore = ref(false)
 const loaded = ref(false)
-const loadingMore = ref(false)
 const busy = ref(false)
 const error = ref('')
 
-const CATEGORY = {
-  FRIEND_REQUEST: 'friend', FRIEND_ACCEPT: 'friend',
-  NOTICE: 'community', COMMENT: 'community', REPLY: 'community', MENTION: 'community',
-  SETLIST_ASSIGN: 'jam', JAM_NEW: 'jam', JAM_TRACK: 'jam',
-}
-const categoryOf = (type) => CATEGORY[type] || 'band'
-
-const agoText = (at) => {
-  const d = new Date(at)
-  if (Number.isNaN(d.getTime())) return ''
-  const minutes = Math.floor((Date.now() - d.getTime()) / 60000)
-  if (minutes < 1) return '방금'
-  if (minutes < 60) return `${minutes}분 전`
-  if (minutes < 60 * 24) return `${Math.floor(minutes / 60)}시간 전`
-  if (minutes < 60 * 24 * 7) return `${Math.floor(minutes / (60 * 24))}일 전`
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`
-}
-
-/* ---------- 목록 ---------- */
-const loadPage = async (next) => {
-  const result = await getNotifications({ page: next, size: PAGE_SIZE })
-  items.value = next === 0 ? result.items : [...items.value, ...result.items]
-  page.value = next
-  hasNext.value = result.hasNext
-}
+const groups = computed(() => groupByDate(items.value))
 
 const toggle = async () => {
   open.value = !open.value
@@ -108,7 +82,9 @@ const toggle = async () => {
   loaded.value = false
   error.value = ''
   try {
-    await loadPage(0)
+    const result = await getNotifications({ page: 0, size: PREVIEW_SIZE })
+    items.value = result.items
+    hasMore.value = result.hasNext
   } catch (e) {
     error.value = apiErrorMessage(e, '알림을 불러오지 못했어요.')
   } finally {
@@ -117,22 +93,7 @@ const toggle = async () => {
   store.refreshUnread()
 }
 
-// 끝까지 내리면 다음 페이지
-const onScroll = async (e) => {
-  const el = e.target
-  if (!hasNext.value || loadingMore.value || el.scrollTop + el.clientHeight < el.scrollHeight - 40) return
-  loadingMore.value = true
-  try {
-    await loadPage(page.value + 1)
-  } catch {
-    hasNext.value = false
-  } finally {
-    loadingMore.value = false
-  }
-}
-
-/* ---------- 읽기·지우기 ---------- */
-const openItem = async (n) => {
+const openItem = (n) => {
   if (!n.read) {
     n.read = true
     store.setUnread(store.unreadCount - 1)
@@ -160,21 +121,6 @@ const readAll = async () => {
     store.setUnread(0)
   } catch (e) {
     error.value = apiErrorMessage(e, '알림을 읽음으로 바꾸지 못했어요.')
-  } finally {
-    busy.value = false
-  }
-}
-
-const clearAll = async () => {
-  if (!window.confirm('알림을 모두 지울까요?')) return
-  busy.value = true
-  try {
-    await deleteAllNotifications()
-    items.value = []
-    hasNext.value = false
-    store.setUnread(0)
-  } catch (e) {
-    error.value = apiErrorMessage(e, '알림을 지우지 못했어요.')
   } finally {
     busy.value = false
   }
@@ -220,39 +166,33 @@ onBeforeUnmount(() => {
 }
 
 .panel {
-  position: absolute; top: calc(100% + 8px); right: -8px; z-index: 1100; width: 340px; max-width: calc(100vw - 24px);
-  background: #fff; border: 1px solid #e9ecef; border-radius: 16px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+  position: absolute; top: calc(100% + 8px); right: -8px; z-index: 1100; width: 360px; max-width: calc(100vw - 24px);
+  background: #fff; border: 1px solid #e9ecef; border-radius: 18px; box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
   overflow: hidden; font-family: 'Pretendard', sans-serif;
 }
-.panel-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid #f1f3f5; }
-.panel-head strong { font-size: 0.9rem; font-weight: 900; color: #343a40; }
-.head-actions { display: flex; gap: 10px; }
-.text-btn { border: none; background: none; padding: 0; cursor: pointer; font-family: inherit; font-size: 0.72rem; font-weight: 800; color: #2d5bff; }
-.text-btn.muted { color: #adb5bd; }
-.text-btn.muted:hover:not(:disabled) { color: #e03131; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; }
+.panel-head strong { display: inline-flex; align-items: center; gap: 6px; font-size: 0.95rem; font-weight: 900; color: #1a1a1a; }
+.head-count { min-width: 18px; padding: 0 6px; border-radius: 999px; background: #fa5252; color: #fff; font-size: 0.65rem; line-height: 18px; text-align: center; }
+.text-btn { border: none; background: none; padding: 0; cursor: pointer; font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #2d5bff; }
 .text-btn:disabled { opacity: 0.4; cursor: default; }
 
-.list { max-height: 420px; overflow-y: auto; }
-ul { list-style: none; margin: 0; padding: 4px; }
-.item { position: relative; display: flex; align-items: flex-start; border-radius: 12px; }
+.list { max-height: 420px; overflow-y: auto; padding: 0 6px 6px; }
+.group h3 { margin: 6px 0 2px; padding: 0 10px; font-size: 0.68rem; font-weight: 800; color: #adb5bd; }
+ul { list-style: none; margin: 0; padding: 0; }
+.item { display: flex; align-items: flex-start; border-radius: 12px; }
 .item:hover { background: #f8f9fa; }
 .item.unread { background: #f5f8ff; }
 .item.unread:hover { background: #edf2ff; }
 .item-main {
-  flex: 1; min-width: 0; display: flex; gap: 10px; padding: 10px 6px 10px 10px; border: none; background: none;
+  flex: 1; min-width: 0; display: flex; gap: 10px; padding: 10px 4px 10px 10px; border: none; background: none;
   cursor: pointer; text-align: left; font-family: inherit;
 }
-.icon {
-  flex: none; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: #f1f3f5; color: #868e96;
-}
-.icon.friend { background: #ebfbee; color: #2f9e44; }
-.icon.band { background: #f0f4ff; color: #2d5bff; }
-.icon.community { background: #fff4e6; color: #e8590c; }
-.icon.jam { background: #f3f0ff; color: #7048e8; }
 .text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .title { font-size: 0.7rem; font-weight: 800; color: #868e96; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.content { font-size: 0.82rem; font-weight: 700; color: #343a40; line-height: 1.4; word-break: keep-all; overflow-wrap: anywhere; }
+.content {
+  font-size: 0.82rem; font-weight: 700; color: #343a40; line-height: 1.4; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .item.unread .content { font-weight: 800; color: #1a1a1a; }
 .time { font-size: 0.68rem; font-weight: 700; color: #adb5bd; }
 .item.unread .time::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2d5bff; margin-right: 5px; vertical-align: 1px; }
@@ -262,6 +202,12 @@ ul { list-style: none; margin: 0; padding: 4px; }
 }
 .item:hover .remove, .remove:focus-visible { opacity: 1; }
 .remove:hover { color: #495057; background: #e9ecef; }
+
+.see-all {
+  display: flex; align-items: center; justify-content: center; gap: 4px; padding: 12px; border-top: 1px solid #f1f3f5;
+  font-size: 0.8rem; font-weight: 800; color: #495057; text-decoration: none;
+}
+.see-all:hover { background: #f8f9fa; color: #2d5bff; }
 
 .state { margin: 0; padding: 28px 16px; text-align: center; font-size: 0.8rem; font-weight: 700; color: #adb5bd; }
 .state.error { color: #e03131; }
