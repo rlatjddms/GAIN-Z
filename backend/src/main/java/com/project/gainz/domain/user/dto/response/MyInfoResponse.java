@@ -20,7 +20,7 @@ public record MyInfoResponse(
     }
 
     // 사진을 바꾸면 주소도 바뀌게 파일 이름(UUID)을 붙인다 (브라우저 캐시 무효화)
-    private static String profileImageUrl(User user) {
+    public static String profileImageUrl(User user) {
         if (!user.hasProfileImage()) return null;
         String version = user.getProfileImage().replaceFirst("\\.[^.]+$", "");
         return "/api/v1/users/" + user.getId() + "/profile-image?v=" + version;

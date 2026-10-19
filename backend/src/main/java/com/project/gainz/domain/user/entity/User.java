@@ -56,6 +56,10 @@ public class User extends BaseEntity {
     @Column(length = 20)
     private String profileImageType;
 
+    // 친구 코드 (처음 친구 화면을 열 때 만든다)
+    @Column(unique = true, length = 8)
+    private String friendCode;
+
     @Builder
     public User(String email, String password, String name, SocialProvider provider, UserRole role) {
         this.email = email;
@@ -83,6 +87,10 @@ public class User extends BaseEntity {
         this.profileImageType = contentType;
     }
 
+    public void changeFriendCode(String friendCode) {
+        this.friendCode = friendCode;
+    }
+
     public boolean hasProfileImage() {
         return profileImage != null;
     }
@@ -94,6 +102,7 @@ public class User extends BaseEntity {
         this.name = "탈퇴한 사용자";
         this.profileImage = null;
         this.profileImageType = null;
+        this.friendCode = null;
         delete();
     }
 }

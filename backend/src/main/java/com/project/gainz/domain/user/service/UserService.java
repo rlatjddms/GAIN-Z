@@ -3,6 +3,7 @@ package com.project.gainz.domain.user.service;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.band.service.BandService;
 import com.project.gainz.domain.character.repository.CharacterRepository;
+import com.project.gainz.domain.friend.service.FriendService;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
 import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
 import com.project.gainz.domain.user.dto.request.WithdrawRequest;
@@ -33,6 +34,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final ProfileImageStorage profileImageStorage;
     private final BandService bandService;
+    private final FriendService friendService;
 
     public record ProfileImageFile(Resource resource, String contentType) {
     }
@@ -106,6 +108,7 @@ public class UserService {
         refreshTokenRepository.deleteById(user.getEmail());
         characterRepository.findByUserId(userId).ifPresent(Character::delete);
         bandService.leaveAllBands(userId);
+        friendService.removeAll(userId);
         deleteFileAfterCommit(user.getProfileImage());
         user.withdraw();
     }
