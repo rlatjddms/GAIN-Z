@@ -7,6 +7,7 @@ import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.repository.CharacterRepository;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
 import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
 import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
@@ -58,6 +59,7 @@ class UserServiceTest {
     @Mock private BandService bandService;
     @Mock private FriendService friendService;
 
+    @Mock private NotificationService notificationService;
     @InjectMocks private UserService userService;
 
     private User localUser() {

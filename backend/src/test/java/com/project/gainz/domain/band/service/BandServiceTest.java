@@ -20,6 +20,7 @@ import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.repository.CharacterRepository;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.SocialProvider;
 import com.project.gainz.domain.user.enums.UserRole;
@@ -27,6 +28,7 @@ import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.notification.enums.NotificationType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -49,6 +51,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 class BandServiceTest {
@@ -63,6 +66,7 @@ class BandServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private CharacterRepository characterRepository;
 
+    @Mock private NotificationService notificationService;
     @InjectMocks private BandService bandService;
 
     /* ---------- 준비 ---------- */
@@ -269,6 +273,9 @@ class BandServiceTest {
         // 새 멤버는 무대 맨 오른쪽
         assertThat(saved.getValue().getStageOrder()).isEqualTo(4);
         assertThat(response.myPosition()).isEqualTo(Position.MEMBER);
+        // 기존 멤버에게 새 멤버 알림
+        verify(notificationService).notifyAll(eq(List.of(band.getLeader())), eq(OTHER_ID), eq(NotificationType.BAND_JOIN),
+                eq("락앤롤 베이비"), anyString(), eq("/bands/" + BAND_ID + "/settings"));
     }
 
     @Test
@@ -391,6 +398,8 @@ class BandServiceTest {
         BandResponse response = bandService.removeMember(LEADER_ID, BAND_ID, 200L);
 
         assertThat(f.member().getIsDeleted()).isTrue();
+        verify(notificationService).notify(f.member().getUser(), NotificationType.BAND_KICKED, "락앤롤 베이비",
+                "밴드에서 내보내졌어요", "/home");
         assertThat(response.members()).extracting(BandMemberResponse::memberId).containsExactly(100L);
     }
 
@@ -416,6 +425,9 @@ class BandServiceTest {
         bandService.leaveBand(MEMBER_ID, BAND_ID);
 
         assertThat(f.member().getIsDeleted()).isTrue();
+        // 리더에게 탈퇴 알림
+        verify(notificationService).notify(eq(f.band().getLeader()), eq(NotificationType.BAND_LEAVE), eq("락앤롤 베이비"),
+                anyString(), eq("/bands/" + BAND_ID + "/settings"));
     }
 
     @Test
@@ -440,6 +452,9 @@ class BandServiceTest {
         assertThat(f.member().getPosition()).isEqualTo(Position.LEADER);
         assertThat(f.band().getLeader().getId()).isEqualTo(MEMBER_ID);
         assertThat(response.myPosition()).isEqualTo(Position.MEMBER);
+        // 새 리더에게 알림
+        verify(notificationService).notify(eq(f.member().getUser()), eq(NotificationType.BAND_LEADER), eq("락앤롤 베이비"),
+                anyString(), eq("/bands/" + BAND_ID + "/settings"));
         assertThat(response.members()).extracting(BandMemberResponse::position)
                 .containsExactly(Position.MEMBER, Position.LEADER);
     }
@@ -538,6 +553,9 @@ class BandServiceTest {
         assertThat(f.all()).allMatch(BandMember::getIsDeleted);
         assertThat(f.band().getIsDeleted()).isTrue();
         assertThat(f.band().getInviteCode()).isEqualTo("disbanded_" + BAND_ID);
+        // 해체 알림은 남은 멤버에게 (리더 본인은 notifyAll에서 빠진다)
+        verify(notificationService).notifyAll(eq(List.of(f.leader().getUser(), f.member().getUser())), eq(LEADER_ID),
+                eq(NotificationType.BAND_DISBAND), eq("락앤롤 베이비"), eq("리더가 밴드를 없앴어요"), eq("/home"));
     }
 
     @Test

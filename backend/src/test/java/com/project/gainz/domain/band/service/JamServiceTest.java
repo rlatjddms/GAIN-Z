@@ -16,10 +16,12 @@ import com.project.gainz.domain.band.repository.JamTrackRepository;
 import com.project.gainz.domain.band.repository.SetlistItemRepository;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.repository.CharacterRepository;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.notification.enums.NotificationType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
 class JamServiceTest {
@@ -48,6 +52,7 @@ class JamServiceTest {
     @Mock SetlistItemRepository setlistItems;
     @Mock CharacterRepository characters;
     @Mock BandAttachmentStorage storage;
+    @Mock NotificationService notificationService;
     @InjectMocks JamService service;
 
     Band band;
@@ -84,6 +89,7 @@ class JamServiceTest {
         SetlistItem song = song(31L, band, "Hysteria");
         when(setlistItems.findById(31L)).thenReturn(Optional.of(song));
         when(jams.save(any(Jam.class))).thenAnswer(i -> { Jam saved = i.getArgument(0); ReflectionTestUtils.setField(saved, "id", 50L); return saved; });
+        when(members.findAllByBandIdOrderByIdAsc(10L)).thenReturn(List.of(me, drummer, leader));
 
         JamResponse.Jam result = service.create(1L, 10L, new JamRequest.Save("  합주 ", 120, 31L));
 
@@ -94,6 +100,9 @@ class JamServiceTest {
         assertThat(result.creatorName()).isEqualTo("기타");
         assertThat(result.canManage()).isTrue();
         assertThat(result.tracks()).isEmpty();
+        // 멤버 모두에게 새 잼 알림 (만든 사람은 notifyAll에서 빠진다)
+        verify(notificationService).notifyAll(eq(List.of(me.getUser(), drummer.getUser(), leader.getUser())), eq(1L),
+                eq(NotificationType.JAM_NEW), eq("밴드"), anyString(), eq("/bands/10/jams?jam=50"));
     }
 
     @Test void rejectsSongOfOtherBandAndTooManyJams() {
@@ -159,6 +168,9 @@ class JamServiceTest {
         assertThat(result.canDelete()).isTrue();
         assertThat(result.url()).isEqualTo("/api/v1/bands/10/jams/50/tracks/" + result.id() + "/file");
         assertThat(jam.getTracks()).hasSize(1);
+        // 잼 만든 사람에게 트랙 알림
+        verify(notificationService).notifyAll(eq(List.of(drummer.getUser())), eq(1L), eq(NotificationType.JAM_TRACK),
+                eq("밴드"), anyString(), eq("/bands/10/jams?jam=50"));
 
         // DB 저장이 롤백되면 올린 파일을 지운다
         TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));

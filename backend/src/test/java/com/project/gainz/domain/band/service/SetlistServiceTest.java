@@ -9,6 +9,7 @@ import com.project.gainz.domain.band.entity.SetlistItem;
 import com.project.gainz.domain.band.enums.Position;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.SetlistRepository;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.sheet.entity.SheetMusic;
 import com.project.gainz.domain.sheet.entity.UserWorkspace;
 import com.project.gainz.domain.sheet.repository.SheetMusicRepository;
@@ -16,6 +17,7 @@ import com.project.gainz.domain.sheet.repository.UserWorkspaceRepository;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.notification.enums.NotificationType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.startsWith;
 
 @ExtendWith(MockitoExtension.class)
 class SetlistServiceTest {
@@ -42,6 +47,7 @@ class SetlistServiceTest {
     @Mock SheetMusicRepository sheets;
     @Mock UserWorkspaceRepository workspaces;
     @Mock BandAttachmentStorage storage;
+    @Mock NotificationService notificationService;
     @InjectMocks SetlistService service;
 
     Band band;
@@ -114,6 +120,18 @@ class SetlistServiceTest {
         assertThat(item.sheet().sheetId()).isEqualTo(7L);
         assertThat(item.sheet().workspaceItemId()).isEqualTo(70L);
         assertThat(setlist.getItems().get(0).getPlayOrder()).isZero();
+        // 새로 담당이 된 멤버에게 (지정한 본인은 notifyAll에서 빠진다)
+        verify(notificationService).notifyAll(eq(List.of(drummer.getUser(), me.getUser())), eq(1L),
+                eq(NotificationType.SETLIST_ASSIGN), eq("밴드"), anyString(), startsWith("/bands/10/setlists?item="));
+    }
+
+    @Test void alreadyAssignedMembersAreNotNotifiedAgain() {
+        Setlist setlist = setlist(30);
+        SetlistItem existing = item(setlist, 40, 0);
+        existing.replaceAssignees(List.of(drummer));
+        service.saveItem(1L, 10L, 30L, 40L, item(null, List.of(200L)), null);
+        verify(notificationService).notifyAll(eq(List.of()), eq(1L), eq(NotificationType.SETLIST_ASSIGN), eq("밴드"),
+                anyString(), eq("/bands/10/setlists?item=40"));
     }
 
     @Test void cannotLinkSheetTheEditorCannotSee() {
