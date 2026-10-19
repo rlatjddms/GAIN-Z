@@ -2,6 +2,7 @@ package com.project.gainz.domain.friend.controller;
 
 import com.project.gainz.domain.friend.dto.request.FriendRequestCreateRequest;
 import com.project.gainz.domain.friend.dto.response.FriendCodeResponse;
+import com.project.gainz.domain.friend.dto.response.FriendProfileResponse;
 import com.project.gainz.domain.friend.dto.response.FriendRequestResponse;
 import com.project.gainz.domain.friend.dto.response.FriendResponse;
 import com.project.gainz.domain.friend.service.FriendService;
@@ -91,6 +92,15 @@ public class FriendController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(ApiResponse.success(friendService.getFriends(principal.getUserId())));
+    }
+
+    // 친구 프로필 (캐릭터·무대, 최근 연습, 함께하는 밴드)
+    @GetMapping("/{friendUserId}/profile")
+    public ResponseEntity<ApiResponse<FriendProfileResponse>> getFriendProfile(
+            @PathVariable Long friendUserId,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(friendService.getFriendProfile(principal.getUserId(), friendUserId)));
     }
 
     // 친구 끊기
