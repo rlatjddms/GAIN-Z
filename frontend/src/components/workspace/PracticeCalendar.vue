@@ -97,7 +97,7 @@ const select = (key) => {
 
 <style scoped>
 .calendar {
-  position: absolute; top: calc(100% + 8px); left: 0; z-index: 50; width: 296px; box-sizing: border-box;
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 50; width: 296px; box-sizing: border-box;
   background: #fff; border: 1px solid #e9ecef; border-radius: 18px; padding: 14px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
 }
@@ -130,4 +130,8 @@ const select = (key) => {
 
 .cal-foot { display: flex; justify-content: flex-end; margin-top: 10px; }
 .link { border: none; background: none; padding: 0; font: inherit; font-size: 0.75rem; font-weight: 800; color: #2d5bff; cursor: pointer; }
+/* 날짜 고르기는 넓은 화면에선 오른쪽 끝, 좁은 화면에선 제목 아래 왼쪽에 있다 */
+@media (max-width: 640px) {
+  .calendar { right: auto; left: 0; }
+}
 </style>

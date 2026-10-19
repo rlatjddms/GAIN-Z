@@ -2,6 +2,9 @@
   <SubPageLayout>
   <div class="page">
     <div class="page-head">
+      <h2>연습 기록장</h2>
+      <div class="head-actions">
+      <button v-if="!isToday" class="today-btn" @click="selected = todayKey">오늘로</button>
       <div ref="pickerRef" class="date-picker">
         <button class="arrow" aria-label="전날" @click="move(-1)">‹</button>
         <button class="date-title" :aria-expanded="calendarOpen" @click="calendarOpen = !calendarOpen">
@@ -10,7 +13,7 @@
         <button class="arrow" :disabled="isToday" aria-label="다음 날" @click="move(1)">›</button>
         <PracticeCalendar v-model="selected" :open="calendarOpen" @close="calendarOpen = false" />
       </div>
-      <button v-if="!isToday" class="today-btn" @click="selected = todayKey">오늘로</button>
+      </div>
     </div>
 
     <p v-if="loadError" class="load-error">{{ loadError }}</p>
@@ -20,7 +23,7 @@
       <RoutineCard :date="selected" />
     </div>
 
-    <WeekPracticeCard :date="selected" @select="selected = $event" />
+    <PracticeRecordCard v-model:mode="viewMode" :date="selected" @select="selected = $event" />
   </div>
   </SubPageLayout>
 </template>
@@ -30,7 +33,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import PracticeTimerCard from '../../components/workspace/PracticeTimerCard.vue'
-import WeekPracticeCard from '../../components/workspace/WeekPracticeCard.vue'
+import PracticeRecordCard from '../../components/workspace/PracticeRecordCard.vue'
 import RoutineCard from '../../components/workspace/RoutineCard.vue'
 import PracticeCalendar from '../../components/workspace/PracticeCalendar.vue'
 import { usePracticeStore } from '../../stores/practice'
@@ -46,6 +49,8 @@ const todayKey = dateKey()
 const validDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && v <= todayKey
 const selected = ref(validDate(route.query.date) ? route.query.date : todayKey)
 const isToday = computed(() => selected.value === todayKey)
+// 기록 보기: 주(WEEK) / 월(MONTH). 주소(?view=month)에 담아 새로고침해도 유지
+const viewMode = ref(route.query.view === 'month' ? 'MONTH' : 'WEEK')
 
 const move = (diff) => {
   const next = dateKey(addDays(parseKey(selected.value), diff))
@@ -65,10 +70,19 @@ const loadWeek = async (key) => {
   }
 }
 
+const syncQuery = () => {
+  const query = {}
+  if (selected.value !== todayKey) query.date = selected.value
+  if (viewMode.value === 'MONTH') query.view = 'month'
+  router.replace({ query })
+}
+
+// 기록 카드는 보고 있는 주·달을 스스로 불러온다. 여기서는 타이머가 쓰는 오늘과 고른 날짜의 주를 챙긴다
 watch(selected, (key) => {
-  router.replace({ query: key === todayKey ? {} : { date: key } })
+  syncQuery()
   loadWeek(key)
 })
+watch(viewMode, syncQuery)
 
 // 달력 바깥을 누르면 닫기
 const calendarOpen = ref(false)
@@ -87,7 +101,9 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 16px; }
-.page-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; flex-wrap: wrap; }
+.page-head h2 { margin: 0; font-size: 1.3rem; font-weight: 900; }
+.head-actions { display: flex; align-items: center; gap: 8px; }
 
 .date-picker { position: relative; display: flex; align-items: center; gap: 4px; }
 .arrow {
@@ -98,7 +114,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 .arrow:disabled { opacity: 0.35; cursor: default; }
 .date-title {
   display: flex; align-items: center; gap: 6px; border: none; background: none; cursor: pointer;
-  padding: 4px 8px; border-radius: 10px; font-family: inherit; font-size: 1.3rem; font-weight: 900; color: #1a1a1a;
+  padding: 4px 8px; border-radius: 10px; font-family: inherit; font-size: 1rem; font-weight: 900; color: #1a1a1a;
 }
 .date-title:hover { background: #f1f3f5; }
 .today-btn {
@@ -112,6 +128,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 
 @media (max-width: 760px) {
   .today-grid { grid-template-columns: minmax(0, 1fr); }
-  .date-title { font-size: 1.1rem; }
+  .date-title { font-size: 0.95rem; }
 }
 </style>
