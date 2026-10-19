@@ -73,6 +73,10 @@ public class Character extends BaseEntity {
     @Column(nullable = false)
     private Integer exp;
 
+    // 이 캐릭터의 레벨이 어느 레벨 규칙 기준인지 (null = 예전 Lv.50 규칙, LevelPolicy.RULE_VERSION = 지금 규칙)
+    @Column(name = "level_rule")
+    private Integer levelRule;
+
     @Column(nullable = false)
     private Integer currentStreak;
 
@@ -111,6 +115,7 @@ public class Character extends BaseEntity {
         this.stageBackground = StageBackground.ROOKIE;
         this.level = 1;
         this.exp = 0;
+        this.levelRule = LevelPolicy.RULE_VERSION;
         this.currentStreak = 0;
         this.maxStreak = 0;
         this.totalPracticeTime = 0L;
@@ -133,6 +138,13 @@ public class Character extends BaseEntity {
     }
 
     // 옷장: 얻은 무대 배경 중 하나 고르기 (해금 여부는 서비스에서 확인)
+    // 레벨 규칙이 바뀌었을 때 새 규칙의 레벨·경험치로 옮긴다 (CharacterLevelMigration)
+    public void migrateLevel(int level, int exp, int ruleVersion) {
+        this.level = level;
+        this.exp = exp;
+        this.levelRule = ruleVersion;
+    }
+
     public void changeStageBackground(StageBackground background) {
         this.stageBackground = background;
     }
@@ -144,7 +156,7 @@ public class Character extends BaseEntity {
 
     public boolean gainExperience(int amount) {
 
-        if (this.level >= 50) return false;
+        if (this.level >= LevelPolicy.MAX_LEVEL) return false;
 
         this.exp += amount;
         boolean leveledUp = false;
@@ -154,7 +166,7 @@ public class Character extends BaseEntity {
             this.level++;
             leveledUp = true;
 
-            if (this.level >= 50) {
+            if (this.level >= LevelPolicy.MAX_LEVEL) {
                 this.exp = 0;
                 break;
             }

@@ -6,8 +6,8 @@ public enum StageBackground {
 
     ROOKIE(1),    // 방구석
     RISING(10),   // 동네 클럽
-    PRO(30),      // 투어 공연장
-    LEGEND(50);   // 전설의 무대
+    PRO(20),      // 투어 공연장
+    LEGEND(30);   // 전설의 무대 (최대 레벨)
 
     private final int requiredLevel;
 
