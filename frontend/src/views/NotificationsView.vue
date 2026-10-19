@@ -3,7 +3,7 @@
     <div class="page">
       <div class="page-head">
         <h2>알림</h2>
-        <p>읽은 지 30일 지난 알림은 자동으로 지워져요</p>
+        <p>읽은 알림은 30일이 지나면 자동으로 지워져요</p>
       </div>
 
       <section class="card">
