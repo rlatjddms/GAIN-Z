@@ -2,21 +2,18 @@ package com.project.gainz.domain.friend.service;
 
 import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
-import com.project.gainz.domain.character.dto.response.CharacterResponse;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.friend.dto.request.FriendRequestCreateRequest;
 import com.project.gainz.domain.friend.dto.response.BandMateResponse;
 import com.project.gainz.domain.friend.dto.response.FriendCodeResponse;
-import com.project.gainz.domain.friend.dto.response.FriendProfileResponse;
 import com.project.gainz.domain.friend.dto.response.FriendRequestResponse;
 import com.project.gainz.domain.friend.dto.response.FriendResponse;
 import com.project.gainz.domain.friend.dto.response.FriendUserResponse;
 import com.project.gainz.domain.friend.entity.Friendship;
+import com.project.gainz.domain.friend.enums.FriendRelation;
 import com.project.gainz.domain.friend.enums.FriendshipStatus;
 import com.project.gainz.domain.friend.repository.FriendshipRepository;
-import com.project.gainz.domain.practice.repository.PracticeLogRepository;
-import com.project.gainz.domain.user.dto.response.MyInfoResponse;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
@@ -26,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -51,13 +47,9 @@ public class FriendService {
     private static final int FRIEND_CODE_ATTEMPTS = 10;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    // 친구 프로필 연습 잔디 기간 (화면은 30주, 이번 주 월요일 기준이라 한 주 더)
-    static final int PROFILE_PRACTICE_DAYS = 7 * 31;
-
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final CharacterRepository characterRepository;
-    private final PracticeLogRepository practiceLogRepository;
     private final BandMemberRepository bandMemberRepository;
 
     /* ---------- 친구 코드 ---------- */
@@ -208,31 +200,6 @@ public class FriendService {
                 .toList();
     }
 
-    // 친구 프로필 (친구만 볼 수 있다)
-    public FriendProfileResponse getFriendProfile(Long userId, Long friendUserId) {
-        Friendship friendship = findFriendship(userId, friendUserId);
-        User friend = friendship.other(userId);
-        Character character = characterRepository.findByUserId(friendUserId).orElse(null);
-
-        LocalDate today = LocalDate.now();
-        List<FriendProfileResponse.PracticeDay> daily = practiceLogRepository
-                .findDailyTotals(friendUserId, today.minusDays(PROFILE_PRACTICE_DAYS - 1), today).stream()
-                .filter(d -> d.totalSeconds() != null && d.totalSeconds() > 0)
-                .map(d -> new FriendProfileResponse.PracticeDay(d.date(), d.totalSeconds()))
-                .toList();
-
-        Set<Long> myBandIds = bandMemberRepository.findAllByUserIdOrderByIdAsc(userId).stream()
-                .map(m -> m.getBand().getId())
-                .collect(Collectors.toSet());
-        List<FriendProfileResponse.FriendBand> bands = bandMemberRepository.findAllByUserIdOrderByIdAsc(friendUserId).stream()
-                .map(m -> FriendProfileResponse.FriendBand.of(m, myBandIds.contains(m.getBand().getId())))
-                .toList();
-
-        return new FriendProfileResponse(friend.getId(), friend.getName(), MyInfoResponse.profileImageUrl(friend),
-                character != null ? CharacterResponse.from(character) : null,
-                friendship.getAcceptedAt(), friend.getCreatedAt(), daily, bands);
-    }
-
     // 친구 끊기 (어느 쪽이든)
     @Transactional
     public void removeFriend(Long userId, Long friendUserId) {
@@ -242,6 +209,18 @@ public class FriendService {
     // 두 사람이 친구인지 (공개 범위 '친구에게만' 판단용)
     public boolean areFriends(Long userId, Long otherUserId) {
         return friendshipRepository.findAllBetween(userId, otherUserId).stream().anyMatch(Friendship::isAccepted);
+    }
+
+    // 나(userId)와 그 사람의 관계 (프로필 팝업의 친구 버튼용)
+    public FriendRelation relationOf(Long userId, Long otherUserId) {
+        if (userId.equals(otherUserId)) {
+            return FriendRelation.ME;
+        }
+        return friendshipRepository.findAllBetween(userId, otherUserId).stream()
+                .findFirst()
+                .map(f -> f.isAccepted() ? FriendRelation.FRIEND
+                        : f.getRequester().getId().equals(userId) ? FriendRelation.SENT : FriendRelation.RECEIVED)
+                .orElse(FriendRelation.NONE);
     }
 
     // 회원 탈퇴: 친구·신청을 모두 지운다

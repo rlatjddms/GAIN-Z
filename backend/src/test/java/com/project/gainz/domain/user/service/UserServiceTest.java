@@ -8,6 +8,10 @@ import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
+import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
+import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
+import com.project.gainz.domain.user.dto.response.ProfileMusicResponse;
+import com.project.gainz.domain.user.enums.ProfileVisibility;
 import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
 import com.project.gainz.domain.user.dto.request.WithdrawRequest;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
@@ -116,6 +120,44 @@ class UserServiceTest {
 
         assertThat(user.getName()).isEqualTo("새이름");
         assertThat(response.name()).isEqualTo("새이름");
+    }
+
+    /* ---------- 프로필 뮤직·공개 범위 ---------- */
+
+    @Test
+    void 요즘_듣는_음악을_앞뒤_공백_없이_저장하고_빈_링크는_비운다() {
+        User user = localUser();
+
+        MyInfoResponse response = userService.updateProfileMusic(USER_ID, new ProfileMusicRequest(" Hysteria ", " Muse ", "  "));
+
+        assertThat(user.getProfileMusicTitle()).isEqualTo("Hysteria");
+        assertThat(user.getProfileMusicArtist()).isEqualTo("Muse");
+        assertThat(user.getProfileMusicUrl()).isNull();
+        assertThat(response.profileMusic()).isEqualTo(new ProfileMusicResponse("Hysteria", "Muse", null));
+    }
+
+    @Test
+    void 링크가_있으면_함께_저장하고_지우면_음악이_없어진다() {
+        User user = localUser();
+        userService.updateProfileMusic(USER_ID, new ProfileMusicRequest("Hysteria", "Muse", " https://youtu.be/abc "));
+        assertThat(user.getProfileMusicUrl()).isEqualTo("https://youtu.be/abc");
+
+        MyInfoResponse response = userService.deleteProfileMusic(USER_ID);
+
+        assertThat(user.hasProfileMusic()).isFalse();
+        assertThat(user.getProfileMusicUrl()).isNull();
+        assertThat(response.profileMusic()).isNull();
+    }
+
+    @Test
+    void 공개_범위는_처음엔_전체_공개고_바꿀_수_있다() {
+        User user = localUser();
+        assertThat(userService.getMyInfo(USER_ID).profileVisibility()).isEqualTo(ProfileVisibility.PUBLIC);
+
+        MyInfoResponse response = userService.changeProfileVisibility(USER_ID, new ProfileVisibilityRequest(ProfileVisibility.FRIENDS));
+
+        assertThat(user.getProfileVisibility()).isEqualTo(ProfileVisibility.FRIENDS);
+        assertThat(response.profileVisibility()).isEqualTo(ProfileVisibility.FRIENDS);
     }
 
     /* ---------- 프로필 사진 ---------- */
@@ -262,10 +304,11 @@ class UserServiceTest {
     }
 
     @Test
-    void 탈퇴하면_토큰과_사진을_지우고_밴드에서_빠지고_친구를_정리하고_유저와_캐릭터를_삭제하고_이메일을_비운다() {
+    void 탈퇴하면_토큰과_사진을_지우고_밴드에서_빠지고_친구와_음악을_정리하고_유저와_캐릭터를_삭제하고_이메일을_비운다() {
         User user = localUser();
         user.changeProfileImage("uuid.png", "image/png");
         user.changeFriendCode("ABCD2345");
+        user.changeProfileMusic("Hysteria", "Muse", "https://youtu.be/abc");
         Character character = character(user);
         when(passwordEncoder.matches("Pass1234!", ENCODED)).thenReturn(true);
         when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
@@ -278,6 +321,7 @@ class UserServiceTest {
         verify(friendService).removeAll(USER_ID);
         assertThat(user.hasProfileImage()).isFalse();
         assertThat(user.getFriendCode()).isNull();
+        assertThat(user.hasProfileMusic()).isFalse();
         assertThat(user.getIsDeleted()).isTrue();
         assertThat(user.getEmail()).isNotEqualTo(EMAIL).endsWith("@gainz.invalid");
         assertThat(user.getPassword()).isNull();
