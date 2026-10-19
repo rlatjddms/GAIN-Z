@@ -1,6 +1,7 @@
 package com.project.gainz.domain.user.service;
 
 import com.project.gainz.domain.band.service.BandService;
+import com.project.gainz.domain.friend.service.FriendService;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.enums.Gender;
@@ -51,6 +52,7 @@ class UserServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private ProfileImageStorage profileImageStorage;
     @Mock private BandService bandService;
+    @Mock private FriendService friendService;
 
     @InjectMocks private UserService userService;
 
@@ -260,9 +262,10 @@ class UserServiceTest {
     }
 
     @Test
-    void 탈퇴하면_토큰과_사진을_지우고_밴드에서_빠지고_유저와_캐릭터를_삭제하고_이메일을_비운다() {
+    void 탈퇴하면_토큰과_사진을_지우고_밴드에서_빠지고_친구를_정리하고_유저와_캐릭터를_삭제하고_이메일을_비운다() {
         User user = localUser();
         user.changeProfileImage("uuid.png", "image/png");
+        user.changeFriendCode("ABCD2345");
         Character character = character(user);
         when(passwordEncoder.matches("Pass1234!", ENCODED)).thenReturn(true);
         when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
@@ -272,7 +275,9 @@ class UserServiceTest {
         verify(refreshTokenRepository).deleteById(EMAIL);
         verify(profileImageStorage).delete("uuid.png");
         verify(bandService).leaveAllBands(USER_ID);
+        verify(friendService).removeAll(USER_ID);
         assertThat(user.hasProfileImage()).isFalse();
+        assertThat(user.getFriendCode()).isNull();
         assertThat(user.getIsDeleted()).isTrue();
         assertThat(user.getEmail()).isNotEqualTo(EMAIL).endsWith("@gainz.invalid");
         assertThat(user.getPassword()).isNull();
