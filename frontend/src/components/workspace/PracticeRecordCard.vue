@@ -10,6 +10,28 @@
     </div>
 
     <div class="body">
+      <!-- 기간 요약 -->
+      <div class="stats">
+        <div class="stat">
+          <span>총 연습</span>
+          <strong>{{ durationText(summary.total) }}</strong>
+          <em v-if="compareText" :class="{ up: summary.total > summary.prevTotal, down: summary.total < summary.prevTotal }">{{ compareText }}</em>
+        </div>
+        <div class="stat">
+          <span>연습한 날</span>
+          <strong>{{ summary.practicedDays }}<small> / {{ summary.elapsedDays }}일</small></strong>
+        </div>
+        <div class="stat">
+          <span>하루 평균</span>
+          <strong :class="{ empty: !summary.practicedDays }">{{ summary.practicedDays ? durationText(summary.total / summary.practicedDays) : '—' }}</strong>
+          <em>연습한 날 기준</em>
+        </div>
+        <div class="stat">
+          <span>루틴 모두 완료</span>
+          <strong :class="{ empty: !summary.routineDays }">{{ summary.routineDays ? summary.routineDone : '—' }}<small v-if="summary.routineDays"> / {{ summary.routineDays }}일</small></strong>
+          <em v-if="summary.routineDays">루틴이 있던 날 기준</em>
+        </div>
+      </div>
       <!-- 주: 7칸 -->
       <div v-if="mode === 'WEEK'" class="grid week">
         <span v-for="w in WEEKDAYS" :key="w" class="wd">{{ w }}</span>
@@ -34,28 +56,6 @@
         </template>
       </div>
 
-      <!-- 기간 요약 -->
-      <div class="stats">
-        <div class="stat">
-          <span>총 연습</span>
-          <strong>{{ durationText(summary.total) }}</strong>
-          <em v-if="compareText" :class="{ up: summary.total > summary.prevTotal, down: summary.total < summary.prevTotal }">{{ compareText }}</em>
-        </div>
-        <div class="stat">
-          <span>연습한 날</span>
-          <strong>{{ summary.practicedDays }}<small> / {{ summary.elapsedDays }}일</small></strong>
-        </div>
-        <div class="stat">
-          <span>하루 평균</span>
-          <strong :class="{ empty: !summary.practicedDays }">{{ summary.practicedDays ? durationText(summary.total / summary.practicedDays) : '—' }}</strong>
-          <em>연습한 날 기준</em>
-        </div>
-        <div class="stat">
-          <span>루틴 모두 완료</span>
-          <strong :class="{ empty: !summary.routineDays }">{{ summary.routineDays ? summary.routineDone : '—' }}<small v-if="summary.routineDays"> / {{ summary.routineDays }}일</small></strong>
-          <em v-if="summary.routineDays">루틴이 있던 날 기준</em>
-        </div>
-      </div>
     </div>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -186,8 +186,8 @@ const compareText = computed(() => {
 }
 .mode button.on { background: #fff; color: #2d5bff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
 
-/* 왼쪽 칸, 오른쪽 요약 */
-.body { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 28px; align-items: start; }
+/* 위 요약 한 줄, 아래 칸 */
+.body { display: flex; flex-direction: column; gap: 16px; }
 
 .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .wd { text-align: center; font-size: 0.68rem; font-weight: 800; color: #adb5bd; }
@@ -216,25 +216,22 @@ const compareText = computed(() => {
 }
 @keyframes blink { 50% { opacity: 0.2; } }
 
-/* 요약은 곁들이는 정보: 칸 옆 가벼운 목록 */
-.stats { display: flex; flex-direction: column; border-left: 1px solid #f1f3f5; padding-left: 20px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .stat {
-  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 10px;
-  padding: 8px 0; border-bottom: 1px dashed #f1f3f5; min-width: 0;
+  background: #f8f9fa; border-radius: 12px; padding: 9px 12px;
+  display: flex; flex-direction: column; gap: 1px; min-width: 0;
 }
-.stat:last-child { border-bottom: none; }
-.stat span { font-size: 0.72rem; font-weight: 800; color: #868e96; }
-.stat strong { text-align: right; font-size: 0.85rem; font-weight: 900; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat span { font-size: 0.68rem; font-weight: 800; color: #868e96; }
+.stat strong { font-size: 0.95rem; font-weight: 900; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat strong.empty { color: #ced4da; }
-.stat small { font-size: 0.7rem; font-weight: 800; color: #adb5bd; }
-.stat em { grid-column: 1 / -1; text-align: right; font-style: normal; font-size: 0.68rem; font-weight: 700; color: #adb5bd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat small { font-size: 0.72rem; font-weight: 800; color: #adb5bd; }
+.stat em { font-style: normal; font-size: 0.68rem; font-weight: 700; color: #adb5bd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat em.up { color: #2f9e44; }
 .stat em.down { color: #e8590c; }
 
 .error { margin: 12px 0 0; font-size: 0.78rem; font-weight: 700; color: #e03131; }
 
 @media (max-width: 640px) {
-  .body { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  .stats { border-left: none; padding-left: 0; border-top: 1px solid #f1f3f5; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 </style>

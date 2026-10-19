@@ -4,7 +4,6 @@
     <div class="page-head">
       <h2>연습 기록장</h2>
       <div class="head-actions">
-      <button v-if="!isToday" class="today-btn" @click="selected = todayKey">오늘로</button>
       <div ref="pickerRef" class="date-picker">
         <button class="arrow" aria-label="전날" @click="move(-1)">‹</button>
         <button class="date-title" :aria-expanded="calendarOpen" @click="calendarOpen = !calendarOpen">
@@ -13,6 +12,7 @@
         <button class="arrow" :disabled="isToday" aria-label="다음 날" @click="move(1)">›</button>
         <PracticeCalendar v-model="selected" :open="calendarOpen" @close="calendarOpen = false" />
       </div>
+      <button v-if="!isToday" class="today-btn" @click="selected = todayKey">오늘로</button>
       </div>
     </div>
 
@@ -101,9 +101,10 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 16px; }
-.page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; flex-wrap: wrap; }
+/* 제목 아래에 날짜 고르기 */
+.page-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
 .page-head h2 { margin: 0; font-size: 1.3rem; font-weight: 900; }
-.head-actions { display: flex; align-items: center; gap: 8px; }
+.head-actions { display: flex; align-items: center; gap: 10px; margin-left: -4px; }
 
 .date-picker { position: relative; display: flex; align-items: center; gap: 4px; }
 .arrow {
@@ -114,7 +115,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 .arrow:disabled { opacity: 0.35; cursor: default; }
 .date-title {
   display: flex; align-items: center; gap: 6px; border: none; background: none; cursor: pointer;
-  padding: 4px 8px; border-radius: 10px; font-family: inherit; font-size: 1rem; font-weight: 900; color: #1a1a1a;
+  padding: 4px 8px; border-radius: 10px; font-family: inherit; font-size: 1.1rem; font-weight: 900; color: #1a1a1a;
 }
 .date-title:hover { background: #f1f3f5; }
 .today-btn {
@@ -128,6 +129,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 
 @media (max-width: 760px) {
   .today-grid { grid-template-columns: minmax(0, 1fr); }
-  .date-title { font-size: 0.95rem; }
+  .date-title { font-size: 1rem; }
 }
 </style>
