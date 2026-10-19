@@ -20,6 +20,17 @@ public enum ErrorCode {
     PROFILE_IMAGE_NOT_FOUND(404, "U010", "프로필 사진이 없습니다."),
     PROFILE_IMAGE_STORAGE_FAILED(500, "U011", "프로필 사진을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."),
 
+    /* Friend (친구) */
+    INVALID_FRIEND_CODE(404, "F001", "친구 코드가 올바르지 않습니다. 친구에게 코드를 다시 확인해 주세요."),
+    CANNOT_FRIEND_SELF(400, "F002", "나 자신에게는 친구 신청을 할 수 없습니다."),
+    ALREADY_FRIENDS(409, "F003", "이미 친구입니다."),
+    FRIEND_REQUEST_ALREADY_SENT(409, "F004", "이미 친구 신청을 보냈습니다. 상대가 수락할 때까지 기다려 주세요."),
+    FRIEND_REQUEST_ALREADY_RECEIVED(409, "F005", "상대가 먼저 친구 신청을 보냈습니다. 받은 신청에서 수락해 주세요."),
+    FRIEND_REQUEST_NOT_FOUND(404, "F006", "친구 신청이 없습니다. 이미 처리되었을 수 있습니다."),
+    FRIEND_LIMIT_EXCEEDED(400, "F007", "친구는 최대 100명까지 맺을 수 있습니다."),
+    NOT_FRIEND(404, "F008", "친구가 아닙니다."),
+    FRIEND_CODE_GENERATION_FAILED(500, "F009", "친구 코드를 만들지 못했습니다. 잠시 후 다시 시도해 주세요."),
+
     /* Character (캐릭터) */
     CHARACTER_ALREADY_EXISTS(409, "C001", "이미 캐릭터를 보유하고 있는 유저입니다."),
     DUPLICATE_NICKNAME(409, "C002", "이미 사용 중인 캐릭터 닉네임입니다."),
