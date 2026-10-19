@@ -64,7 +64,7 @@ export async function deleteFriendRequest(requestId) {
 
 /* ---------- 친구 목록 ---------- */
 
-// 친구 → { userId, name, profileImageUrl, character, since: 친구가 된 때 }
+// 친구 → { userId, name, profileImageUrl, character, since: 친구가 된 때, profileMusic: { title, artist, url } | null }
 
 // 내 친구 목록 (이름 순) → [친구]
 export async function getFriends() {
@@ -82,13 +82,4 @@ export async function getBandMates() {
 // 친구 끊기
 export async function removeFriend(userId) {
   await axiosInstance.delete(`/api/v1/friends/${userId}`)
-}
-
-// 친구 프로필 (친구만 볼 수 있다)
-// → { userId, name, profileImageUrl, character, since, joinedAt,
-//     dailyPractice: [{ date, totalSeconds }] (최근 30주, 연습한 날만),
-//     bands: [{ bandId, name, part, position: LEADER|MEMBER, together: 나도 들어간 밴드인지 }] }
-export async function getFriendProfile(userId) {
-  const response = await axiosInstance.get(`/api/v1/friends/${userId}/profile`)
-  return response.data.data
 }

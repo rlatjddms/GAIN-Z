@@ -12,6 +12,13 @@
 
         <template v-if="!isBandMode">
           <CharacterStage :character="authStore.character">
+            <!-- 요즘 듣는 음악: 링크가 있으면 새 탭, 없거나 아직 안 정했으면 마이페이지에서 설정 -->
+            <a v-if="myMusicUrl" class="music-chip" :href="myMusicUrl" target="_blank" rel="noopener noreferrer" title="새 탭에서 듣기">
+              <span class="note">♪</span><span class="music-text">{{ myMusic.title }} · {{ myMusic.artist }}</span>
+            </a>
+            <button v-else class="music-chip" :class="{ empty: !myMusic }" title="마이페이지에서 요즘 듣는 음악 설정" @click="router.push('/mypage')">
+              <span class="note">♪</span><span class="music-text">{{ myMusic ? `${myMusic.title} · ${myMusic.artist}` : '요즘 듣는 음악' }}</span>
+            </button>
             <button class="edit-char-btn" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
               <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 3l3 2 3-2 5 3-2 4-2-1v12H8V9L6 10 4 6z"></path>
@@ -170,6 +177,10 @@ import { apiErrorMessage } from '../api/practice'
 import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
 
 const router = useRouter()
+
+// 요즘 듣는 음악 (마이페이지에서 설정)
+const myMusic = computed(() => authStore.profile?.profileMusic || null)
+const myMusicUrl = computed(() => (/^https?:\/\//i.test(myMusic.value?.url || '') ? myMusic.value.url : null))
 const route = useRoute()
 const authStore = useAuthStore()
 const bandStore = useBandStore()
@@ -492,6 +503,22 @@ button::-moz-focus-inner { border: 0 !important; }
   transition: all 0.2s;
   box-shadow: 0 2px 5px rgba(0,0,0,0.02);
 }
+
+.music-chip {
+  position: absolute; top: 16px; left: 20px; z-index: 4; max-width: min(260px, 32%);
+  display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.92); border: 1px solid #e9ecef; border-radius: 999px; padding: 5px 12px 5px 6px;
+  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #495057; text-decoration: none; cursor: pointer;
+  transition: 0.15s;
+}
+.music-chip:hover { border-color: #2d5bff; color: #2d5bff; }
+.music-chip .note {
+  flex: none; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: #2d5bff; color: #fff; font-size: 0.7rem;
+}
+.music-chip.empty { color: #adb5bd; }
+.music-chip.empty .note { background: #ced4da; }
+.music-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .edit-char-btn:hover {
   background: #f1f3f5;
