@@ -1,6 +1,7 @@
 package com.project.gainz.domain.character.service;
 
 import com.project.gainz.domain.character.entity.OutfitItem;
+import com.project.gainz.domain.character.enums.LevelOutfit;
 import com.project.gainz.domain.character.enums.OutfitCategory;
 import com.project.gainz.domain.character.repository.OutfitItemRepository;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +48,25 @@ class DefaultOutfitInitializerTest {
 
         assertThat(old.getName()).isEqualTo(OutfitItem.DEFAULT_NAME);
         assertThat(old.getSpriteKey()).isEqualTo(OutfitItem.DEFAULT_SPRITE_KEY);
-        verify(outfitItemRepository, never()).save(any());
+        verify(outfitItemRepository).save(old);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void 레벨_보상_의상은_없는_것만_만든다() {
+        OutfitItem hoodie = OutfitItem.builder().name("후드티").category(OutfitCategory.CLOTHES).requiredLevel(5).spriteKey("HOODIE").build();
+        when(outfitItemRepository.findFirstBySpriteKey(any())).thenReturn(Optional.empty());
+        when(outfitItemRepository.findFirstBySpriteKey(OutfitItem.DEFAULT_SPRITE_KEY)).thenReturn(Optional.of(hoodie));
+        when(outfitItemRepository.findFirstBySpriteKey("HOODIE")).thenReturn(Optional.of(hoodie));
+
+        initializer.run(null);
+
+        ArgumentCaptor<List<OutfitItem>> captor = ArgumentCaptor.forClass(List.class);
+        verify(outfitItemRepository).saveAll(captor.capture());
+        assertThat(captor.getValue()).extracting(OutfitItem::getSpriteKey)
+                .containsExactly("BAND_TEE", "DENIM_JACKET", "LEATHER_JACKET", "STAGE_SUIT", "SEQUIN_JACKET");
+        assertThat(captor.getValue()).extracting(OutfitItem::getRequiredLevel).containsExactly(10, 15, 20, 25, 30);
+        assertThat(LevelOutfit.values()).hasSize(6);
     }
 
     @Test
