@@ -1,8 +1,12 @@
 <template>
   <WsCard>
-    <!-- 머리: 기간 이름(위 날짜를 따라감)과 주·월 전환 -->
+    <!-- 머리: 기간 이름과 이동(위 날짜도 같이 바뀜), 주·월 전환 -->
     <div class="head">
-      <h3>{{ title }}</h3>
+      <div class="period">
+        <button class="arrow" :aria-label="mode === 'WEEK' ? '지난주' : '지난달'" @click="shift(-1)">‹</button>
+        <h3>{{ title }}</h3>
+        <button class="arrow" :disabled="!canNext" :aria-label="mode === 'WEEK' ? '다음 주' : '다음 달'" @click="shift(1)">›</button>
+      </div>
       <div class="mode" role="tablist" aria-label="보기">
         <button role="tab" :aria-selected="mode === 'WEEK'" :class="{ on: mode === 'WEEK' }" @click="emit('update:mode', 'WEEK')">주</button>
         <button role="tab" :aria-selected="mode === 'MONTH'" :class="{ on: mode === 'MONTH' }" @click="emit('update:mode', 'MONTH')">월</button>
@@ -32,30 +36,28 @@
           <em v-if="summary.routineDays">루틴이 있던 날 기준</em>
         </div>
       </div>
-      <!-- 주: 7칸 -->
-      <div v-if="mode === 'WEEK'" class="grid week">
+      <!-- 주 7칸 / 월 달력. 칸마다 연습 시간과 루틴 체크 -->
+      <div class="grid" :class="mode === 'WEEK' ? 'week' : 'month'">
         <span v-for="w in WEEKDAYS" :key="w" class="wd">{{ w }}</span>
-        <button v-for="d in cells" :key="d.key" class="cell" :class="[`lv${d.level}`, { selected: d.key === date, today: d.key === todayKey }]"
-                :disabled="d.future" :title="d.future ? '' : `${dateLabel(d.key)} · ${durationText(d.seconds)}`" @click="emit('select', d.key)">
-          <span class="num">{{ d.day }}</span>
-          <i v-if="d.key === todayKey && timer.running" class="rec"></i>
-        </button>
-        <span v-for="d in cells" :key="`t-${d.key}`" class="time" :class="{ zero: !d.seconds }">{{ d.future ? '' : shortDuration(d.seconds) }}</span>
-      </div>
-
-      <!-- 월: 달력 -->
-      <div v-else class="grid">
-        <span v-for="w in WEEKDAYS" :key="w" class="wd">{{ w }}</span>
-        <template v-for="d in monthCells" :key="d.key">
+        <template v-for="d in gridCells" :key="d.key">
           <span v-if="d.blank" class="blank"></span>
           <button v-else class="cell" :class="[`lv${d.level}`, { selected: d.key === date, today: d.key === todayKey }]"
-                  :disabled="d.future" :title="d.future ? '' : `${dateLabel(d.key)} · ${durationText(d.seconds)}`" @click="emit('select', d.key)">
+                  :disabled="d.future" :title="cellTitle(d)" @click="emit('select', d.key)">
             <span class="num">{{ d.day }}</span>
             <i v-if="d.key === todayKey && timer.running" class="rec"></i>
+            <span v-if="!d.future" class="time" :class="{ zero: !d.seconds }">{{ shortDuration(d.seconds) }}</span>
+            <span v-if="d.routine" class="routine" :class="{ done: d.routine.done }">{{ d.routine.done ? '✓' : `${d.routine.completed}/${d.routine.total}` }}</span>
           </button>
         </template>
       </div>
 
+      <!-- 색 기준 -->
+      <div class="legend">
+        <span class="scale">
+          <template v-for="l in LEGEND" :key="l.level"><i :class="`lv${l.level}`"></i><small>{{ l.label }}</small></template>
+        </span>
+        <span class="rt"><b>2/3</b> 루틴 체크 <b class="done">✓</b> 모두 완료</span>
+      </div>
     </div>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -108,11 +110,27 @@ const title = computed(() => {
     : `${s.getMonth() + 1}월 ${s.getDate()}일 ~ ${e.getMonth() + 1}월 ${e.getDate()}일`
 })
 
+const canNext = computed(() => dateKey(end.value) < todayKey)
+// 지난·다음 주(7일) 또는 지난·다음 달(같은 날, 그 달에 없으면 마지막 날). 오늘을 넘지 않는다
+const shift = (dir) => {
+  let next
+  if (props.mode === 'WEEK') next = addDays(selectedDate.value, dir * 7)
+  else {
+    const d = selectedDate.value
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + dir + 1, 0).getDate()
+    next = new Date(d.getFullYear(), d.getMonth() + dir, Math.min(d.getDate(), lastDay))
+  }
+  const key = dateKey(next)
+  emit('select', key > todayKey ? todayKey : key)
+}
+
 /* ---------- 칸 ---------- */
 const cellOf = (d) => {
   const key = dateKey(d)
   const seconds = practice.totalOf(key)
-  return { key, day: d.getDate(), seconds, level: practiceLevel(seconds), future: key > todayKey }
+  const r = routineRows.value[key]
+  const routine = r && r.total > 0 ? { completed: r.completed, total: r.total, done: r.completed >= r.total } : null
+  return { key, day: d.getDate(), seconds, level: practiceLevel(seconds), future: key > todayKey, routine }
 }
 const cells = computed(() => Array.from({ length: 7 }, (_, i) => cellOf(addDays(start.value, i))))
 const monthCells = computed(() => {
@@ -121,6 +139,22 @@ const monthCells = computed(() => {
   for (let d = new Date(start.value); d <= end.value; d = addDays(d, 1)) out.push(cellOf(d))
   return out
 })
+const gridCells = computed(() => (props.mode === 'WEEK' ? cells.value : monthCells.value))
+const cellTitle = (d) => {
+  if (d.future) return ''
+  const parts = [dateLabel(d.key), durationText(d.seconds)]
+  if (d.routine) parts.push(`루틴 ${d.routine.completed}/${d.routine.total}`)
+  return parts.join(' · ')
+}
+
+// 색 단계: 연습 안 함 / 30분 미만 / 1시간 미만 / 2시간 미만 / 2시간 이상 (practiceLevel과 같은 기준)
+const LEGEND = [
+  { level: 0, label: '0' },
+  { level: 1, label: '~30분' },
+  { level: 2, label: '~1시간' },
+  { level: 3, label: '~2시간' },
+  { level: 4, label: '2시간+' },
+]
 
 /* ---------- 불러오기 (이번 기간 + 비교할 지난 기간) ---------- */
 const prevStart = computed(() => (props.mode === 'WEEK'
@@ -178,7 +212,14 @@ const compareText = computed(() => {
 
 <style scoped>
 .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.head h3 { margin: 0; font-size: 0.9rem; font-weight: 800; color: #343a40; }
+.period { display: flex; align-items: center; gap: 6px; }
+.period h3 { margin: 0 4px; font-size: 0.95rem; font-weight: 900; color: #343a40; min-width: 64px; text-align: center; }
+.arrow {
+  width: 28px; height: 28px; border: none; border-radius: 9px; background: #fff; color: #495057;
+  font-size: 1rem; font-weight: 900; cursor: pointer; box-shadow: inset 0 0 0 1px #e9ecef;
+}
+.arrow:hover:not(:disabled) { color: #2d5bff; box-shadow: inset 0 0 0 1px #c9d6ff; }
+.arrow:disabled { opacity: 0.35; cursor: default; }
 .mode { display: inline-flex; background: #f1f3f5; border-radius: 10px; padding: 3px; gap: 2px; }
 .mode button {
   border: none; background: none; border-radius: 8px; padding: 4px 14px; cursor: pointer;
@@ -192,26 +233,40 @@ const compareText = computed(() => {
 .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .wd { text-align: center; font-size: 0.68rem; font-weight: 800; color: #adb5bd; }
 .cell {
-  position: relative; width: 100%; height: 40px; border: none; border-radius: 8px; background: #f1f3f5; cursor: pointer;
-  font-family: inherit; display: flex; align-items: center; justify-content: center; padding: 0;
-  transition: box-shadow 0.15s;
+  position: relative; width: 100%; height: 54px; border: none; border-radius: 9px; background: #f1f3f5; cursor: pointer;
+  font-family: inherit; padding: 5px 6px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+  transition: box-shadow 0.15s; min-width: 0;
 }
+.week .cell { height: 64px; padding: 7px 8px; }
 .cell:hover:not(:disabled) { box-shadow: 0 0 0 2px #c9d6ff; }
 .cell:disabled { cursor: default; opacity: 0.4; }
 .cell.selected { box-shadow: 0 0 0 2px #2d5bff; }
-.week .cell { height: 48px; }
-.num { font-size: 0.75rem; font-weight: 800; color: #495057; }
+.num { font-size: 0.72rem; font-weight: 800; color: #495057; line-height: 1; }
 .cell.today .num { color: #2d5bff; text-decoration: underline; text-underline-offset: 2px; }
-.cell.lv1 { background: #c9d6ff; }
-.cell.lv2 { background: #8ea8ff; }
-.cell.lv3 { background: #5a7dff; }
-.cell.lv4 { background: #2d5bff; }
-.cell.lv3 .num, .cell.lv4 .num { color: #fff; }
-.time { text-align: center; font-size: 0.7rem; font-weight: 800; color: #495057; font-variant-numeric: tabular-nums; }
+.time { align-self: stretch; text-align: right; font-size: 0.68rem; font-weight: 800; color: #343a40; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; overflow: hidden; }
+.week .time { font-size: 0.78rem; }
 .time.zero { color: #ced4da; }
+.routine {
+  position: absolute; top: 5px; right: 6px; font-size: 0.6rem; font-weight: 900; line-height: 1;
+  color: #868e96; font-variant-numeric: tabular-nums;
+}
+.routine.done { color: #2f9e44; font-size: 0.7rem; }
+.cell.lv1, .legend i.lv1 { background: #c9d6ff; }
+.cell.lv2, .legend i.lv2 { background: #8ea8ff; }
+.cell.lv3, .legend i.lv3 { background: #5a7dff; }
+.cell.lv4, .legend i.lv4 { background: #2d5bff; }
+.cell.lv3 .num, .cell.lv4 .num, .cell.lv3 .time, .cell.lv4 .time, .cell.lv3 .routine, .cell.lv4 .routine { color: #fff; }
+.cell.lv3 .routine.done, .cell.lv4 .routine.done { color: #b2f2bb; }
+
+.legend { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.66rem; font-weight: 800; color: #adb5bd; }
+.scale { display: flex; align-items: center; gap: 4px; }
+.scale i { width: 10px; height: 10px; border-radius: 3px; background: #f1f3f5; }
+.scale small { font-size: inherit; margin-right: 6px; }
+.rt b { color: #868e96; margin-right: 2px; }
+.rt b.done { color: #2f9e44; margin-left: 6px; }
 
 .rec {
-  position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%;
+  position: absolute; bottom: 7px; left: 7px; width: 6px; height: 6px; border-radius: 50%;
   background: #e03131; animation: blink 1s infinite;
 }
 @keyframes blink { 50% { opacity: 0.2; } }
