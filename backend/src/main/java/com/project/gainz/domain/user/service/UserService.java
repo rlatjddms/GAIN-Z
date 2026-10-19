@@ -16,6 +16,7 @@ import com.project.gainz.domain.user.repository.RefreshTokenRepository;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.record.service.RecordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,6 +40,7 @@ public class UserService {
     private final BandService bandService;
     private final FriendService friendService;
     private final NotificationService notificationService;
+    private final RecordService recordService;
 
     public record ProfileImageFile(Resource resource, String contentType) {
     }
@@ -134,6 +136,7 @@ public class UserService {
         bandService.leaveAllBands(userId);
         friendService.removeAll(userId);
         notificationService.removeAllOf(userId);
+        recordService.removeAllOf(userId);
         deleteFileAfterCommit(user.getProfileImage());
         user.withdraw();
     }

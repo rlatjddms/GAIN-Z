@@ -21,12 +21,15 @@ import com.project.gainz.domain.notification.enums.NotificationType;
 import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.record.event.RecordCheckEvent;
+import com.project.gainz.domain.record.enums.RecordMetric;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,6 +54,7 @@ public class JamService {
     private final CharacterRepository characters;
     private final BandAttachmentStorage storage;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /* ---------- 잼 ---------- */
 
@@ -123,6 +127,7 @@ public class JamService {
                 .durationMs(request.durationMs())
                 .build());
         jam.getTracks().add(track);
+        eventPublisher.publishEvent(RecordCheckEvent.of(userId, RecordMetric.JAM_TRACKS));
         notificationService.notifyAll(List.of(jam.getCreator()), userId, NotificationType.JAM_TRACK, me.getBand().getName(),
                 notificationService.nicknameOf(me.getUser()) + " 님이 내 잼 '" + jam.getTitle() + "'에 트랙을 올렸어요", jamUrl(jam));
         return track(track, me, nicknames(List.of(userId)));

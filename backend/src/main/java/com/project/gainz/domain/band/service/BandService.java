@@ -22,9 +22,12 @@ import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.record.event.RecordCheckEvent;
+import com.project.gainz.domain.record.enums.RecordMetric;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.security.SecureRandom;
 import java.util.Comparator;
@@ -60,6 +63,7 @@ public class BandService {
     private final UserRepository userRepository;
     private final CharacterRepository characterRepository;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /* ---------- 조회 ---------- */
 
@@ -104,6 +108,7 @@ public class BandService {
                 .part(request.part())
                 .stageOrder(0)
                 .build());
+        eventPublisher.publishEvent(RecordCheckEvent.of(userId, RecordMetric.BANDS));
         return toResponse(band, leader, List.of(leader), charactersOf(List.of(leader)), userId);
     }
 
@@ -184,6 +189,7 @@ public class BandService {
                 .build());
         notificationService.notifyAll(usersOf(members), userId, NotificationType.BAND_JOIN, band.getName(),
                 notificationService.nicknameOf(user) + " 님이 밴드에 들어왔어요", settingsUrl(band));
+        eventPublisher.publishEvent(RecordCheckEvent.of(userId, RecordMetric.BANDS));
         return respond(band, me, userId);
     }
 

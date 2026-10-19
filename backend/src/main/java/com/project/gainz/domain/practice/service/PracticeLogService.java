@@ -14,9 +14,12 @@ import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.record.event.RecordCheckEvent;
+import com.project.gainz.domain.record.enums.RecordMetric;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -34,6 +37,7 @@ public class PracticeLogService {
     private final PracticeLogRepository practiceLogRepository;
     private final UserRepository userRepository;
     private final CharacterService characterService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 타이머 구간을 그날 기록에 더하고, 늘어난 하루 합계만큼 경험치 지급
     public PracticeRecordResponse recordSession(Long userId, PracticeLogCreateRequest request) {
@@ -84,6 +88,8 @@ public class PracticeLogService {
 
         long minutesDiff = ExpPolicy.toMinutes(afterSeconds) - ExpPolicy.toMinutes(before.totalSeconds());
         ExperienceResult experience = characterService.processExperienceAndUnlocks(userId, expGained, minutesDiff);
+        eventPublisher.publishEvent(RecordCheckEvent.of(userId,
+                RecordMetric.PRACTICE_DAYS, RecordMetric.STREAK_DAYS, RecordMetric.PRACTICE_HOURS));
 
         return new PracticeRecordResponse(date, afterSeconds, expGained, experience);
     }
