@@ -21,8 +21,8 @@ code { background: #eef0f3; padding: 1px 5px; border-radius: 5px; font-size: 12p
 .brand { font-weight: 900; font-size: 16px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
 .brand small { font-weight: 600; color: var(--muted); font-size: 12px; margin-left: 2px; }
 .brand .dot { width: 12px; height: 12px; background: var(--accent); border-radius: 3px; box-shadow: 3px 3px 0 #f4a5a0, -3px -3px 0 #a5d8f4; }
-.layer-tabs { display: flex; gap: 4px; background: #f1f3f5; padding: 4px; border-radius: 12px; }
-.layer-tabs button { border: 0; background: transparent; padding: 7px 14px; border-radius: 9px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.layer-tabs { display: flex; flex-wrap: wrap; gap: 2px; background: #f1f3f5; padding: 4px; border-radius: 12px; }
+.layer-tabs button { border: 0; background: transparent; padding: 7px 10px; border-radius: 9px; font-weight: 700; color: var(--muted); cursor: pointer; }
 .layer-tabs button.on { background: #fff; color: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
 .top-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 .status { font-size: 12px; color: var(--muted); font-weight: 600; }
@@ -103,6 +103,7 @@ code { background: #eef0f3; padding: 1px 5px; border-radius: 5px; font-size: 12p
 #pvCanvas { display: block; margin: 8px auto; image-rendering: pixelated; background: linear-gradient(#dcebc9, #b9d39a); border-radius: 12px; }
 .pv-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 11px; font-weight: 700; color: var(--muted); }
 .pv-controls label { display: flex; flex-direction: column; gap: 3px; }
+.pv-layers { display: contents; }
 .pv-controls select, .pv-controls input { font: inherit; border: 1px solid var(--line); border-radius: 7px; padding: 4px 6px; background: #fff; }
 .pv-controls input[type=color] { height: 28px; padding: 2px; }
 
