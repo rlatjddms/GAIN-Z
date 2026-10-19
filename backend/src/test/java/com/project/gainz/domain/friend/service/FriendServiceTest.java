@@ -12,14 +12,12 @@ import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.friend.dto.request.FriendRequestCreateRequest;
 import com.project.gainz.domain.friend.dto.response.BandMateResponse;
 import com.project.gainz.domain.friend.dto.response.FriendCodeResponse;
-import com.project.gainz.domain.friend.dto.response.FriendProfileResponse;
 import com.project.gainz.domain.friend.dto.response.FriendRequestResponse;
 import com.project.gainz.domain.friend.dto.response.FriendResponse;
 import com.project.gainz.domain.friend.entity.Friendship;
+import com.project.gainz.domain.friend.enums.FriendRelation;
 import com.project.gainz.domain.friend.enums.FriendshipStatus;
 import com.project.gainz.domain.friend.repository.FriendshipRepository;
-import com.project.gainz.domain.practice.dto.response.DailyPracticeResponse;
-import com.project.gainz.domain.practice.repository.PracticeLogRepository;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.SocialProvider;
 import com.project.gainz.domain.user.enums.UserRole;
@@ -35,7 +33,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,7 +41,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -61,7 +57,6 @@ class FriendServiceTest {
     @Mock private FriendshipRepository friendshipRepository;
     @Mock private UserRepository userRepository;
     @Mock private CharacterRepository characterRepository;
-    @Mock private PracticeLogRepository practiceLogRepository;
     @Mock private BandMemberRepository bandMemberRepository;
 
     @InjectMocks private FriendService friendService;
@@ -383,45 +378,23 @@ class FriendServiceTest {
         return BandMember.builder().band(band).user(user).position(position).part(part).build();
     }
 
+    /* ---------- 관계 ---------- */
+
     @Test
-    void 친구_프로필에는_캐릭터와_최근_연습과_함께하는_밴드가_나온다() {
+    void 관계는_나_친구_보낸_신청_받은_신청_없음으로_나뉜다() {
         User me = user(ME);
-        User friend = user(OTHER, "드러머");
-        Friendship accepted = friendship(1L, me, friend, true);
-        when(friendshipRepository.findAllBetween(ME, OTHER)).thenReturn(List.of(accepted));
-        when(characterRepository.findByUserId(OTHER)).thenReturn(Optional.of(character(friend, "쿵쿵")));
-        LocalDate today = LocalDate.now();
-        when(practiceLogRepository.findDailyTotals(eq(OTHER), eq(today.minusDays(FriendService.PROFILE_PRACTICE_DAYS - 1)), eq(today)))
-                .thenReturn(List.of(new DailyPracticeResponse(today.minusDays(1), 1800L, 30L),
-                        new DailyPracticeResponse(today, 0L, 0L)));
-        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(ME))
-                .thenReturn(List.of(bandMember(10L, "같이하는 밴드", me, Position.MEMBER, InstrumentType.GUITAR)));
-        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(OTHER))
-                .thenReturn(List.of(bandMember(10L, "같이하는 밴드", friend, Position.LEADER, InstrumentType.DRUM),
-                        bandMember(20L, "다른 밴드", friend, Position.MEMBER, InstrumentType.DRUM)));
+        User other = user(OTHER);
+        User stranger = user(STRANGER);
+        when(friendshipRepository.findAllBetween(ME, OTHER)).thenReturn(List.of(friendship(1L, other, me, true)));
+        when(friendshipRepository.findAllBetween(ME, STRANGER)).thenReturn(List.of(friendship(2L, me, stranger, false)));
+        when(friendshipRepository.findAllBetween(OTHER, STRANGER)).thenReturn(List.of(friendship(3L, stranger, other, false)));
+        when(friendshipRepository.findAllBetween(STRANGER, 9L)).thenReturn(List.of());
 
-        FriendProfileResponse profile = friendService.getFriendProfile(ME, OTHER);
-
-        assertThat(profile.userId()).isEqualTo(OTHER);
-        assertThat(profile.name()).isEqualTo("드러머");
-        assertThat(profile.character().nickname()).isEqualTo("쿵쿵");
-        assertThat(profile.since()).isEqualTo(accepted.getAcceptedAt());
-        // 연습 안 한 날은 빼고, 경험치 없이 시간만
-        assertThat(profile.dailyPractice()).containsExactly(new FriendProfileResponse.PracticeDay(today.minusDays(1), 1800L));
-        assertThat(profile.bands()).extracting(FriendProfileResponse.FriendBand::name).containsExactly("같이하는 밴드", "다른 밴드");
-        assertThat(profile.bands()).extracting(FriendProfileResponse.FriendBand::together).containsExactly(true, false);
-        assertThat(profile.bands().get(0).position()).isEqualTo(Position.LEADER);
-        assertThat(profile.bands().get(0).part()).isEqualTo(InstrumentType.DRUM);
-    }
-
-    @Test
-    void 친구가_아니면_프로필을_볼_수_없다() {
-        when(friendshipRepository.findAllBetween(ME, STRANGER)).thenReturn(List.of(friendship(1L, user(STRANGER), user(ME), false)));
-
-        assertThatThrownBy(() -> friendService.getFriendProfile(ME, STRANGER))
-                .isInstanceOf(BusinessException.class)
-                .extracting("errorCode").isEqualTo(ErrorCode.NOT_FRIEND);
-        verify(practiceLogRepository, never()).findDailyTotals(any(), any(), any());
+        assertThat(friendService.relationOf(ME, ME)).isEqualTo(FriendRelation.ME);
+        assertThat(friendService.relationOf(ME, OTHER)).isEqualTo(FriendRelation.FRIEND);
+        assertThat(friendService.relationOf(ME, STRANGER)).isEqualTo(FriendRelation.SENT);
+        assertThat(friendService.relationOf(OTHER, STRANGER)).isEqualTo(FriendRelation.RECEIVED);
+        assertThat(friendService.relationOf(STRANGER, 9L)).isEqualTo(FriendRelation.NONE);
     }
 
     /* ---------- 같은 밴드 멤버 ---------- */
