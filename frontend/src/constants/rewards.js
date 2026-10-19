@@ -6,6 +6,7 @@ import { MAX_LEVEL } from './levelTier'
 export const ACCESSORY_SLOTS = [
   { key: 'HAT', label: '모자', folder: 'hat', field: 'hat' },
   { key: 'GLASSES', label: '안경', folder: 'glasses', field: 'glasses' },
+  { key: 'EARRINGS', label: '귀걸이', folder: 'earrings', field: 'earrings' },
   { key: 'NECK', label: '목', folder: 'neck', field: 'neck' },
   { key: 'SHOES', label: '신발', folder: 'shoes', field: 'shoes' },
 ]
@@ -19,12 +20,12 @@ export const ACCESSORIES = [
   { key: 'CAP', slot: 'HAT', name: '볼캡', level: 9 },
   { key: 'SUNGLASSES', slot: 'GLASSES', name: '선글라스', level: 12 },
   { key: 'PICK_NECKLACE', slot: 'NECK', name: '피크 목걸이', level: 13 },
-  { key: 'CHELSEA_BOOTS', slot: 'SHOES', name: '첼시 부츠', level: 14 },
+  { key: 'STUD_EARRINGS', slot: 'EARRINGS', name: '스터드 귀걸이', level: 14 },
   { key: 'BUCKET_HAT', slot: 'HAT', name: '버킷햇', level: 16 },
-  { key: 'SCARF', slot: 'NECK', name: '스카프', level: 18 },
+  { key: 'HOOP_EARRINGS', slot: 'EARRINGS', name: '링 귀걸이', level: 18 },
   { key: 'STAR_GLASSES', slot: 'GLASSES', name: '별 선글라스', level: 19 },
   { key: 'COMBAT_BOOTS', slot: 'SHOES', name: '워커', level: 21 },
-  { key: 'BERET', slot: 'HAT', name: '베레모', level: 22 },
+  { key: 'STAR_EARRINGS', slot: 'EARRINGS', name: '별 귀걸이', level: 22 },
   { key: 'CHAIN', slot: 'NECK', name: '체인 목걸이', level: 24 },
   { key: 'HEART_GLASSES', slot: 'GLASSES', name: '하트 선글라스', level: 26 },
   { key: 'GOLD_SNEAKERS', slot: 'SHOES', name: '골드 운동화', level: 27 },
@@ -61,6 +62,14 @@ export const REWARD_OUTFITS = [
   { key: 'SEQUIN_JACKET', name: '반짝이 재킷', level: 30 },
 ]
 
+// 무대 꾸미기 효과: 5레벨 보상 중 배경이 없는 Lv.5·15·25와 마지막 Lv.30 (components/StageEffect.vue)
+export const STAGE_EFFECTS = [
+  { key: 'SPARKLE', name: '반짝이', icon: '✨', level: 5 },
+  { key: 'SPOTLIGHT', name: '스포트라이트', icon: '🔦', level: 15 },
+  { key: 'SMOKE', name: '스모크', icon: '🌫️', level: 25 },
+  { key: 'FIREWORKS', name: '불꽃놀이', icon: '🎆', level: 30 },
+]
+
 export const STAGE_REWARDS = [
   { key: 'RISING', name: '동네 클럽', level: 10 },
   { key: 'PRO', name: '투어 공연장', level: 20 },
@@ -69,12 +78,13 @@ export const STAGE_REWARDS = [
 
 export const slotOf = (key) => (key === BOTTOM_SLOT.key ? BOTTOM_SLOT : ACCESSORY_SLOTS.find((s) => s.key === key))
 
-// 그 레벨에 받는 보상 목록: [{ type: 'OUTFIT'|'BOTTOM'|'ACCESSORY'|'HAIR'|'STAGE', key, name, slot? }]
+// 그 레벨에 받는 보상 목록: [{ type: 'OUTFIT'|'BOTTOM'|'STAGE'|'EFFECT'|'ACCESSORY'|'HAIR', key, name, slot? }]
 export function rewardsAt(level) {
   const out = []
   for (const o of REWARD_OUTFITS) if (o.level === level) out.push({ type: 'OUTFIT', key: o.key, name: o.name })
   for (const b of BOTTOMS) if (b.level === level) out.push({ type: 'BOTTOM', key: b.key, name: b.name, slot: 'BOTTOM' })
   for (const s of STAGE_REWARDS) if (s.level === level) out.push({ type: 'STAGE', key: s.key, name: s.name })
+  for (const e of STAGE_EFFECTS) if (e.level === level) out.push({ type: 'EFFECT', key: e.key, name: e.name, icon: e.icon })
   for (const a of ACCESSORIES) if (a.level === level) out.push({ type: 'ACCESSORY', key: a.key, name: a.name, slot: a.slot })
   for (const h of REWARD_HAIR_STYLES) if (h.level === level) out.push({ type: 'HAIR', key: h.key, name: h.name })
   return out
@@ -96,5 +106,5 @@ export function nextReward(level) {
   return null
 }
 
-export const REWARD_TYPE_LABELS = { OUTFIT: '상의', BOTTOM: '하의', STAGE: '무대', HAIR: '헤어', ACCESSORY: '소품' }
+export const REWARD_TYPE_LABELS = { OUTFIT: '상의', BOTTOM: '하의', STAGE: '무대', EFFECT: '무대 효과', HAIR: '헤어', ACCESSORY: '소품' }
 export const rewardLabel = (r) => (r.type === 'ACCESSORY' ? slotOf(r.slot)?.label : REWARD_TYPE_LABELS[r.type])

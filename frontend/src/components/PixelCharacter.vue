@@ -44,6 +44,7 @@ const spec = computed(() => {
     bottom: c.bottom || null,
     shoes: c.shoes || null,
     neck: c.neck || null,
+    earrings: c.earrings || null,
     glasses: c.glasses || null,
     hat: c.hat || null,
     hair: c.hairStyle === null ? null : (c.hairStyle || 'SHORT_CUT'),
@@ -85,7 +86,7 @@ function draw() {
 async function rebuild() {
   const token = ++loadToken
   const s = spec.value
-  const names = { body: s.body, outfit: s.outfit, hair: s.hair, instrument: s.instrument, bottom: s.bottom, shoes: s.shoes, neck: s.neck, glasses: s.glasses, hat: s.hat }
+  const names = { body: s.body, outfit: s.outfit, hair: s.hair, instrument: s.instrument, bottom: s.bottom, shoes: s.shoes, neck: s.neck, earrings: s.earrings, glasses: s.glasses, hat: s.hat }
 
   const loaded = await Promise.all(
     LAYER_ORDER.map(async (layer) => {

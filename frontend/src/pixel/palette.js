@@ -14,8 +14,9 @@ export const LEGS_REGION = { x: 8, y: 24, w: 8, h: 5 }
 export const STAGE_WIDTH = 208
 export const STAGE_HEIGHT = 72
 
-// 레이어 그리는 순서 (아래 → 위). bottom은 레벨 보상 하의, shoes·neck·glasses·hat은 소품 (constants/rewards.js)
-export const LAYER_ORDER = ['body', 'bottom', 'shoes', 'outfit', 'neck', 'hair', 'glasses', 'hat', 'instrument']
+// 레이어 그리는 순서 (아래 → 위). bottom은 레벨 보상 하의, shoes·neck·earrings·glasses·hat은 소품 (constants/rewards.js)
+// 귀걸이는 긴 머리에도 보이게 머리카락 위에 그린다
+export const LAYER_ORDER = ['body', 'bottom', 'shoes', 'outfit', 'neck', 'hair', 'earrings', 'glasses', 'hat', 'instrument']
 
 // 기준색: { 키: { color: PNG에 칠하는 색, from: 사용자 색 종류, shade: 밝기 보정 } }
 export const KEY_COLORS = {

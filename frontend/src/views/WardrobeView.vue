@@ -166,7 +166,7 @@
 
           <!-- 배경: 레벨로 얻은 무대는 계속 간직하고 그중 하나를 고른다 -->
           <div v-else class="tab-body">
-            <p class="hint">레벨이 오르면 새 무대를 얻어요. 얻은 무대는 언제든 다시 고를 수 있어요.</p>
+            <p class="hint">Lv.10·20·30에 새 무대를 얻어요. 얻은 무대는 언제든 다시 고를 수 있어요.</p>
             <p v-if="wardrobeError" class="warn">{{ wardrobeError }}</p>
             <div class="stages">
               <button
@@ -176,7 +176,7 @@
                 @click="draft.stageBackground = b.key"
               >
                 <span class="thumb">
-                  <StageScene :character="preview" :stage-key="b.key" :animate="false" />
+                  <StageScene :character="preview" :stage-key="b.key" :effect="null" :animate="false" />
                   <i v-if="!b.unlocked">🔒</i>
                 </span>
                 <strong>{{ STAGE_NAMES[b.key] }}</strong>
@@ -185,9 +185,27 @@
             </div>
 
             <div class="sub-section">
-              <span class="label">꾸미기 효과</span>
-              <div class="empty small">
-                <strong>✨ 반짝이 같은 무대 효과가 곧 추가될 예정이에요</strong>
+              <span class="label">무대 효과</span>
+              <p class="hint">5레벨마다 의상과 함께 무대 배경이나 효과를 얻어요.</p>
+              <div class="stages">
+                <button class="stage" :class="{ on: !draft.stageEffect }" @click="draft.stageEffect = null">
+                  <span class="thumb"><StageScene :character="preview" :stage-key="draft.stageBackground" :effect="null" :animate="false" /></span>
+                  <strong>효과 없음</strong>
+                  <small>{{ !draft.stageEffect ? '사용 중' : '고르기' }}</small>
+                </button>
+                <button
+                  v-for="e in STAGE_EFFECTS" :key="e.key" class="stage"
+                  :class="{ on: draft.stageEffect === e.key, locked: !unlocked(e.level) }"
+                  :disabled="!unlocked(e.level)"
+                  @click="draft.stageEffect = e.key"
+                >
+                  <span class="thumb">
+                    <StageScene :character="preview" :stage-key="draft.stageBackground" :effect="e.key" :animate="false" />
+                    <i v-if="!unlocked(e.level)">🔒</i>
+                  </span>
+                  <strong>{{ e.icon }} {{ e.name }}</strong>
+                  <small>{{ unlocked(e.level) ? (draft.stageEffect === e.key ? '사용 중' : '고르기') : `Lv.${e.level}에 해금` }}</small>
+                </button>
               </div>
             </div>
           </div>
@@ -216,7 +234,7 @@ import {
 } from '../constants/characterOptions'
 import { DEFAULT_COLORS, HEAD_REGION, LEGS_REGION } from '../pixel/palette'
 import { outfitSpriteName } from '../pixel/sprites'
-import { ACCESSORY_SLOTS, ACCESSORIES, BOTTOMS, BOTTOM_SLOT } from '../constants/rewards'
+import { ACCESSORY_SLOTS, ACCESSORIES, BOTTOMS, BOTTOM_SLOT, STAGE_EFFECTS } from '../constants/rewards'
 
 const TABS = [
   { key: 'look', label: '외형' },
@@ -237,10 +255,10 @@ const original = ref(null)
 const draft = reactive({
   nickname: '', gender: 'MALE', skinColor: DEFAULT_COLORS.skinColor, hairStyle: 'SHORT_CUT', hairColor: '#111827',
   instrumentType: 'GUITAR', instrumentColor: '#B91C1C', outfitId: null, stageBackground: null,
-  bottom: null, hat: null, glasses: null, neck: null, shoes: null,
+  stageEffect: null, bottom: null, hat: null, glasses: null, earrings: null, neck: null, shoes: null,
 })
 const ACCESSORY_FIELDS = [BOTTOM_SLOT, ...ACCESSORY_SLOTS].map((s) => s.field)
-const WARDROBE_KEYS = ['outfitId', 'stageBackground', ...ACCESSORY_FIELDS]
+const WARDROBE_KEYS = ['outfitId', 'stageBackground', 'stageEffect', ...ACCESSORY_FIELDS]
 
 const outfits = ref([])
 const backgrounds = ref([])
@@ -254,6 +272,7 @@ const snapshot = (c, wardrobe) => ({
   outfitId: wardrobe?.outfits?.find((o) => o.equipped)?.id ?? c.currentOutfitId ?? null,
   // 고른 적 없으면 레벨로 얻은 가장 큰 무대 (서버도 같은 규칙으로 돌려준다)
   stageBackground: wardrobe?.stageBackground ?? c.stageBackground ?? getLevelTier(c.level ?? 1).key,
+  stageEffect: c.stageEffect ?? null,
   ...Object.fromEntries(ACCESSORY_FIELDS.map((f) => [f, c[f] ?? null])),
 })
 

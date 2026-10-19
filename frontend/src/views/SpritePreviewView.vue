@@ -68,6 +68,16 @@
     </section>
 
     <section class="panel">
+      <h2>무대 효과 {{ STAGE_EFFECTS.length }}종</h2>
+      <div class="fx-grid">
+        <figure v-for="e in STAGE_EFFECTS" :key="e.key">
+          <StageScene :character="character" stage-key="RISING" :effect="e.key" />
+          <figcaption>{{ e.icon }} {{ e.key }}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>레벨 구간별 무대</h2>
       <CharacterStage v-for="lv in [3, 14, 35, 50]" :key="lv" :character="{ ...character, nickname: '미리보기', level: lv, exp: 40 }" />
     </section>
@@ -119,9 +129,10 @@ import { reactive, ref } from 'vue'
 import PixelCharacter from '../components/PixelCharacter.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import PixelSprite from '../components/PixelSprite.vue'
+import StageScene from '../components/StageScene.vue'
 import { HEAD_REGION } from '../pixel/palette'
 import { listSprites } from '../pixel/sprites'
-import { ACCESSORY_SLOTS as WEAR_SLOTS, BOTTOM_SLOT } from '../constants/rewards'
+import { ACCESSORY_SLOTS as WEAR_SLOTS, BOTTOM_SLOT, STAGE_EFFECTS } from '../constants/rewards'
 
 // 하의도 소품처럼 자리 하나로 보여 준다
 const ACCESSORY_SLOTS = [BOTTOM_SLOT, ...WEAR_SLOTS]
@@ -140,7 +151,7 @@ const character = reactive({
   hairColor: '#EC4899',
   instrumentColor: '#B91C1C',
   outfitColor: '#FFFFFF',
-  bottom: null, hat: null, glasses: null, neck: null, shoes: null,
+  bottom: null, hat: null, glasses: null, earrings: null, neck: null, shoes: null,
 })
 </script>
 
@@ -159,6 +170,8 @@ select, input[type=color] { font: inherit; padding: 6px 8px; border: 1px solid #
 input[type=color] { width: 60px; height: 34px; padding: 2px; }
 .grid { display: flex; flex-wrap: wrap; gap: 14px; }
 figure { margin: 0; background: #f8f9fa; border-radius: 12px; padding: 12px 10px 8px; text-align: center; }
+.fx-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fx-grid figure { padding: 0 0 8px; overflow: hidden; }
 .thumbs figure { min-width: 64px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
 figcaption { font-size: 0.7rem; font-weight: 700; color: #495057; margin-top: 6px; }
 </style>

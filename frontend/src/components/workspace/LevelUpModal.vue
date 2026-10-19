@@ -17,7 +17,7 @@
                   <PixelSprite v-if="r.type === 'OUTFIT'" :parts="[['outfit', outfitSpriteName(r.key, me?.gender)]]" :box="40" />
                   <PixelSprite v-else-if="r.type === 'HAIR'" :parts="[['body', me?.gender === 'MALE' ? 'MALE' : 'FEMALE'], ['hair', r.key]]" :colors="me || {}" :region="HEAD_REGION" :box="48" />
                   <PixelSprite v-else-if="r.type === 'ACCESSORY' || r.type === 'BOTTOM'" :parts="[[slotOf(r.slot).folder, r.key]]" :box="40" />
-                  <span v-else class="stage-icon">🎪</span>
+                  <span v-else class="stage-icon">{{ r.type === 'EFFECT' ? r.icon : '🎪' }}</span>
                 </span>
                 <span class="what">
                   <small>Lv.{{ r.level }} · {{ rewardLabel(r) }}</small>
