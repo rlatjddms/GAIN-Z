@@ -74,6 +74,22 @@
       </WsCard>
 
 
+      <!-- 보낸 신청 (수락 대기) -->
+      <WsCard v-if="sent.length" :title="`수락 대기 ${sent.length}`">
+        <ul class="people">
+          <li v-for="r in sent" :key="r.requestId" class="person">
+            <ProfileAvatar :src="r.user.profileImageUrl" :size="44" :alt="`${r.user.name} 프로필 사진`" />
+            <div class="who">
+              <strong>{{ r.user.name }}</strong>
+              <span>수락을 기다리는 중 · {{ agoText(r.createdAt) }}</span>
+            </div>
+            <div class="actions">
+              <button class="btn small ghost" :disabled="busyId === r.requestId" @click="cancel(r)">취소</button>
+            </div>
+          </li>
+        </ul>
+      </WsCard>
+
       <!-- 같은 밴드 멤버 (추천): 코드 없이 바로 신청 -->
       <WsCard v-if="mateRows.length" :title="`같은 밴드 멤버 ${mateRows.length}`">
         <ul class="people">
@@ -89,22 +105,6 @@
               <button v-else class="btn small primary" :disabled="mateBusyId === m.userId" @click="requestMate(m)">
                 {{ mateBusyId === m.userId ? '보내는 중…' : '친구 신청' }}
               </button>
-            </div>
-          </li>
-        </ul>
-      </WsCard>
-
-      <!-- 보낸 신청 (수락 대기) -->
-      <WsCard v-if="sent.length" :title="`수락 대기 ${sent.length}`">
-        <ul class="people">
-          <li v-for="r in sent" :key="r.requestId" class="person">
-            <ProfileAvatar :src="r.user.profileImageUrl" :size="44" :alt="`${r.user.name} 프로필 사진`" />
-            <div class="who">
-              <strong>{{ r.user.name }}</strong>
-              <span>수락을 기다리는 중 · {{ agoText(r.createdAt) }}</span>
-            </div>
-            <div class="actions">
-              <button class="btn small ghost" :disabled="busyId === r.requestId" @click="cancel(r)">취소</button>
             </div>
           </li>
         </ul>
