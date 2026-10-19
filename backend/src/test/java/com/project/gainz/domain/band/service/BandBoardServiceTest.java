@@ -11,6 +11,7 @@ import com.project.gainz.domain.band.repository.BandCommentRepository;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.BandPostRepository;
 import com.project.gainz.domain.character.repository.CharacterRepository;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
@@ -39,6 +40,7 @@ class BandBoardServiceTest {
     @Mock BandCommentRepository comments;
     @Mock CharacterRepository characters;
     @Mock BandAttachmentStorage storage;
+    @Mock NotificationService notificationService;
     @InjectMocks BandBoardService service;
 
     @Test void noticeExpiryBoundaryIsExclusiveAndClearedWhenUnpinned() {

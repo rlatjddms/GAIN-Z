@@ -17,6 +17,8 @@ import com.project.gainz.domain.band.service.BandBoardService.AttachmentFile;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.user.entity.User;
+import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +50,7 @@ public class JamService {
     private final SetlistItemRepository setlistItems;
     private final CharacterRepository characters;
     private final BandAttachmentStorage storage;
+    private final NotificationService notificationService;
 
     /* ---------- 잼 ---------- */
 
@@ -71,7 +74,18 @@ public class JamService {
         if (jams.countByBandId(bandId) >= MAX_JAMS) throw new BusinessException(ErrorCode.JAM_LIMIT_EXCEEDED);
         Jam jam = new Jam(me.getBand(), me.getUser(), request.title().trim(), request.bpm());
         linkSong(jam, bandId, request.setlistItemId());
-        return response(jams.save(jam), me);
+        Jam saved = jams.save(jam);
+        List<User> others = members.findAllByBandIdOrderByIdAsc(bandId).stream()
+                .filter(m -> !Boolean.TRUE.equals(m.getIsDeleted()))
+                .map(BandMember::getUser)
+                .toList();
+        notificationService.notifyAll(others, userId, NotificationType.JAM_NEW, me.getBand().getName(),
+                notificationService.nicknameOf(me.getUser()) + " 님이 새 잼을 만들었어요: " + saved.getTitle(), jamUrl(saved));
+        return response(saved, me);
+    }
+
+    private static String jamUrl(Jam jam) {
+        return "/bands/" + jam.getBand().getId() + "/jams?jam=" + jam.getId();
     }
 
     public JamResponse.Jam update(Long userId, Long bandId, Long jamId, JamRequest.Save request) {
@@ -109,6 +123,8 @@ public class JamService {
                 .durationMs(request.durationMs())
                 .build());
         jam.getTracks().add(track);
+        notificationService.notifyAll(List.of(jam.getCreator()), userId, NotificationType.JAM_TRACK, me.getBand().getName(),
+                notificationService.nicknameOf(me.getUser()) + " 님이 내 잼 '" + jam.getTitle() + "'에 트랙을 올렸어요", jamUrl(jam));
         return track(track, me, nicknames(List.of(userId)));
     }
 

@@ -32,6 +32,9 @@ public enum ErrorCode {
     FRIEND_CODE_GENERATION_FAILED(500, "F009", "친구 코드를 만들지 못했습니다. 잠시 후 다시 시도해 주세요."),
     NOT_BAND_MATE(403, "F010", "같은 밴드 멤버에게만 코드 없이 신청할 수 있습니다. 친구 코드로 신청해 주세요."),
 
+    /* Notification (알림) */
+    NOTIFICATION_NOT_FOUND(404, "N001", "알림이 없습니다. 이미 지워졌을 수 있습니다."),
+
     /* Character (캐릭터) */
     CHARACTER_ALREADY_EXISTS(409, "C001", "이미 캐릭터를 보유하고 있는 유저입니다."),
     DUPLICATE_NICKNAME(409, "C002", "이미 사용 중인 캐릭터 닉네임입니다."),

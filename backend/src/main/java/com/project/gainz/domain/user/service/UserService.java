@@ -4,6 +4,7 @@ import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.band.service.BandService;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.friend.service.FriendService;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
 import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
 import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
@@ -37,6 +38,7 @@ public class UserService {
     private final ProfileImageStorage profileImageStorage;
     private final BandService bandService;
     private final FriendService friendService;
+    private final NotificationService notificationService;
 
     public record ProfileImageFile(Resource resource, String contentType) {
     }
@@ -131,6 +133,7 @@ public class UserService {
         characterRepository.findByUserId(userId).ifPresent(Character::delete);
         bandService.leaveAllBands(userId);
         friendService.removeAll(userId);
+        notificationService.removeAllOf(userId);
         deleteFileAfterCommit(user.getProfileImage());
         user.withdraw();
     }

@@ -4,6 +4,7 @@ import com.project.gainz.global.security.jwt.JwtAuthenticationFilter;
 import com.project.gainz.global.security.jwt.JwtTokenProvider;
 import com.project.gainz.global.security.oauth2.CustomOAuth2UserService;
 import com.project.gainz.global.security.oauth2.OAuth2SuccessHandler;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -45,6 +46,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 실시간 알림(SSE)은 처음 요청에서 인증한 뒤 비동기로 이어 보낸다. 이어 보내는 단계는 다시 막지 않는다
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         .requestMatchers("/api/v1/auth/logout").authenticated()
                         .requestMatchers(
                                 "/api/v1/auth/**",

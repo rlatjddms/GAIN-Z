@@ -18,6 +18,7 @@ import com.project.gainz.domain.friend.entity.Friendship;
 import com.project.gainz.domain.friend.enums.FriendRelation;
 import com.project.gainz.domain.friend.enums.FriendshipStatus;
 import com.project.gainz.domain.friend.repository.FriendshipRepository;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.SocialProvider;
 import com.project.gainz.domain.user.enums.UserRole;
@@ -25,6 +26,7 @@ import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.notification.enums.NotificationType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -46,6 +48,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class FriendServiceTest {
@@ -59,6 +62,7 @@ class FriendServiceTest {
     @Mock private CharacterRepository characterRepository;
     @Mock private BandMemberRepository bandMemberRepository;
 
+    @Mock private NotificationService notificationService;
     @InjectMocks private FriendService friendService;
 
     /* ---------- 준비 ---------- */
@@ -180,6 +184,7 @@ class FriendServiceTest {
         assertThat(response.user().userId()).isEqualTo(OTHER);
         assertThat(response.user().name()).isEqualTo("드러머");
         assertThat(response.user().character().nickname()).isEqualTo("쿵쿵");
+        verify(notificationService).notify(other, NotificationType.FRIEND_REQUEST, "친구", "유저1 님이 친구 신청을 보냈어요", "/friends");
     }
 
     @Test
@@ -228,6 +233,7 @@ class FriendServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.FRIEND_REQUEST_ALREADY_SENT);
         verify(friendshipRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
     }
 
     @Test
@@ -292,6 +298,7 @@ class FriendServiceTest {
         assertThat(request.getAcceptedAt()).isNotNull();
         assertThat(response.userId()).isEqualTo(OTHER);
         assertThat(response.since()).isEqualTo(request.getAcceptedAt());
+        verify(notificationService).notify(sender, NotificationType.FRIEND_ACCEPT, "친구", "유저1 님이 친구 신청을 수락했어요", "/friends");
     }
 
     @Test

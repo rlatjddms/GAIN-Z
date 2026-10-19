@@ -16,8 +16,11 @@ import com.project.gainz.domain.sheet.entity.SheetMusic;
 import com.project.gainz.domain.sheet.entity.UserWorkspace;
 import com.project.gainz.domain.sheet.repository.SheetMusicRepository;
 import com.project.gainz.domain.sheet.repository.UserWorkspaceRepository;
+import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +50,7 @@ public class SetlistService {
     private final SheetMusicRepository sheets;
     private final UserWorkspaceRepository workspaces;
     private final BandAttachmentStorage storage;
+    private final NotificationService notificationService;
 
     /* ---------- 셋리스트 ---------- */
 
@@ -100,7 +104,7 @@ public class SetlistService {
 
     public SetlistResponse.Setlist saveItem(Long userId, Long bandId, Long setlistId, Long itemId,
                                             SetlistRequest.Item request, List<MultipartFile> uploads) {
-        requireMember(userId, bandId);
+        BandMember me = requireMember(userId, bandId);
         Setlist setlist = findSetlist(bandId, setlistId);
         SetlistItem item;
         if (itemId == null) {
@@ -113,6 +117,9 @@ public class SetlistService {
 
         SheetMusic sheet = linkableSheet(userId, item, request.sheetId());
         List<BandMember> assignees = assignees(bandId, request.memberIds());
+        Set<Long> assignedBefore = item.getAssignees().stream()
+                .map(m -> m.getUser().getId())
+                .collect(Collectors.toSet());
         List<BandPostFile> files = files(item, request.keepAttachmentIds(), uploads);
 
         item.update(request.title().trim(), blankToNull(request.artist()), blankToNull(request.memo()), sheet);
@@ -120,6 +127,14 @@ public class SetlistService {
         item.replaceFiles(files);
         if (itemId == null) setlist.getItems().add(item);
         setlists.saveAndFlush(setlist);
+        List<User> newlyAssigned = assignees.stream()
+                .map(BandMember::getUser)
+                .filter(u -> !assignedBefore.contains(u.getId()))
+                .toList();
+        notificationService.notifyAll(newlyAssigned, userId, NotificationType.SETLIST_ASSIGN, me.getBand().getName(),
+                notificationService.nicknameOf(me.getUser()) + " 님이 '" + item.getCustomTitle() + "' 곡 담당으로 나를 지정했어요 ("
+                        + setlist.getTitle() + ")",
+                "/bands/" + bandId + "/setlists?item=" + item.getId());
         return response(setlist, workspaceIds(userId, List.of(setlist)));
     }
 
