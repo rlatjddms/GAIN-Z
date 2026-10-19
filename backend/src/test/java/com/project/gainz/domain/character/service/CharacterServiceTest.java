@@ -301,6 +301,23 @@ class CharacterServiceTest {
     }
 
     @Test
+    void 레벨이_닿은_하의를_입고_null이면_기본_청바지로() {
+        ReflectionTestUtils.setField(character, "level", 15);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+
+        CharacterResponse worn = characterService.updateWardrobe(USER_ID,
+                new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, Accessory.CARGO_PANTS));
+        assertThat(worn.bottom()).isEqualTo(Accessory.CARGO_PANTS);
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID,
+                new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, Accessory.LEATHER_PANTS)))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESSORY_LOCKED);
+
+        assertThat(characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.ROOKIE)).bottom()).isNull();
+    }
+
+    @Test
     void 레벨이_닿지_않은_소품은_쓸_수_없다() {
         ReflectionTestUtils.setField(character, "level", 27);
         when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
