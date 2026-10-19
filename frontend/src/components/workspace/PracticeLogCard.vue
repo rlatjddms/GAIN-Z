@@ -19,8 +19,8 @@
         <strong :class="{ empty: !monthSeconds }">{{ monthSeconds ? durationText(monthSeconds) : '—' }}</strong>
       </div>
       <div class="log-stat">
-        <span>{{ month }}월 연습한 날</span>
-        <strong :class="{ empty: !monthDays }">{{ monthDays ? `${monthDays}일` : '—' }}</strong>
+        <span>총 연습 시간</span>
+        <strong :class="{ empty: !totalSeconds }">{{ totalSeconds ? durationText(totalSeconds) : '—' }}</strong>
       </div>
     </div>
 
@@ -50,6 +50,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { usePracticeStore } from '../../stores/practice'
+import { useAuthStore } from '../../stores/auth'
 import { apiErrorMessage } from '../../api/practice'
 import { getRoutineSummary } from '../../api/routine'
 import { addDays, dateKey, dateLabel, durationText, practiceLevel, startOfDay } from '../../constants/practice'
@@ -64,11 +65,26 @@ const month = today.getMonth() + 1
 const thisMonday = addDays(today, -((today.getDay() + 6) % 7))
 const firstDay = addDays(thisMonday, -(WEEKS - 1) * 7)
 
-const loaded = ref(false)
+const props = defineProps({
+  // 다른 사람(친구) 기록: [{ date, totalSeconds }]. 주면 내 기록 대신 이걸 그린다 (루틴 말풍선 없음)
+  daily: { type: Array, default: null },
+  // 총 연습 시간(분). 안 주면 내 캐릭터 기록
+  totalMinutes: { type: Number, default: null },
+})
+
+const authStore = useAuthStore()
+const totalSeconds = computed(() => (props.totalMinutes ?? authStore.character?.totalPracticeTime ?? 0) * 60)
+
+// 날짜별 연습 시간: 친구 기록이면 받은 값, 아니면 내 연습 기록
+const dailyMap = computed(() => (props.daily ? Object.fromEntries(props.daily.map((d) => [d.date, d.totalSeconds])) : null))
+const totalOf = (key) => (dailyMap.value ? dailyMap.value[key] ?? 0 : practice.totalOf(key))
+
+const loaded = ref(!!props.daily)
 const error = ref('')
 // 날짜별 루틴 달성 { 'YYYY-MM-DD': { total, completed } } (말풍선용, 못 불러와도 잔디는 보인다)
 const routineSummary = ref({})
 onMounted(async () => {
+  if (props.daily) return
   getRoutineSummary(dateKey(firstDay), todayKey)
     .then((rows) => { routineSummary.value = Object.fromEntries((rows || []).map((r) => [r.date, r])) })
     .catch(() => {})
@@ -101,15 +117,15 @@ const tipStyle = computed(() => {
 
 const cells = computed(() => Array.from({ length: WEEKS * 7 }, (_, i) => {
   const key = dateKey(addDays(firstDay, i))
-  const seconds = practice.totalOf(key)
+  const seconds = totalOf(key)
   return { key, seconds, level: practiceLevel(seconds), future: key > todayKey }
 }))
 
 // 연속 연습: 오늘부터 거꾸로 연습한 날을 센다. 오늘 아직 안 했으면 어제부터 (오늘 하면 이어짐)
 const streak = computed(() => {
-  let d = practice.totalOf(todayKey) > 0 ? today : addDays(today, -1)
+  let d = totalOf(todayKey) > 0 ? today : addDays(today, -1)
   let count = 0
-  while (d >= firstDay && practice.totalOf(dateKey(d)) > 0) {
+  while (d >= firstDay && totalOf(dateKey(d)) > 0) {
     count++
     d = addDays(d, -1)
   }
@@ -118,7 +134,6 @@ const streak = computed(() => {
 
 const monthKeys = computed(() => cells.value.filter((c) => !c.future && Number(c.key.slice(5, 7)) === month && Number(c.key.slice(0, 4)) === today.getFullYear()))
 const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.seconds, 0))
-const monthDays = computed(() => monthKeys.value.filter((c) => c.seconds > 0).length)
 </script>
 
 <style scoped>

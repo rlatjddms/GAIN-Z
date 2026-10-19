@@ -73,6 +73,12 @@ const routes = [
       component: () => import('../views/MyPageView.vue'),
       meta: { requiresCharacter: true }
     },
+    {
+      path: '/friends',
+      name: 'friends',
+      component: () => import('../views/FriendsView.vue'),
+      meta: { requiresCharacter: true }
+    },
     // 홈 BAND 탭에서 들어가는 밴드 화면
     {
       path: '/bands/:id(\\d+)/setlists',

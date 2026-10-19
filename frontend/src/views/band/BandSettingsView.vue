@@ -58,18 +58,36 @@
               <strong>
                 <span v-if="m.position === 'LEADER'" title="리더">👑 </span>{{ m.character?.nickname || '알 수 없는 멤버' }}
                 <em v-if="m.me">나</em>
+                <em v-else-if="friendOf(m) === 'FRIEND'" class="friend">친구</em>
+                <em v-else-if="friendOf(m) === 'SENT'" class="muted">신청함</em>
               </strong>
-              <span>Lv.{{ m.character?.level ?? 1 }} · {{ joinedLabel(m.joinedAt) }} 가입</span>
+              <span>Lv.{{ m.character?.level ?? 1 }}</span>
             </div>
-            <select class="part-select" :value="m.part" :disabled="busy || !(m.me || isLeader)"
-                    :title="m.me || isLeader ? '파트 바꾸기' : '본인이나 리더만 바꿀 수 있어요'"
+
+            <!-- 파트: 본인이나 리더만 바꿀 수 있다 -->
+            <select v-if="m.me || isLeader" class="part-select" :value="m.part" :disabled="busy" title="파트 바꾸기"
                     @change="changePart(m, $event.target.value)">
-              <option v-for="o in INSTRUMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.emoji }} {{ o.label }}</option>
+              <option v-for="o in INSTRUMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
-            <div v-if="isLeader && !m.me" class="member-actions">
-              <button class="mini" :disabled="busy" @click="makeLeader(m)">리더 넘기기</button>
-              <button class="mini danger" :disabled="busy" @click="kick(m)">내보내기</button>
+            <span v-else class="part-text">{{ partName(m.part) }}</span>
+
+            <!-- 리더: 친구 신청·리더 넘기기·내보내기를 더보기 메뉴로 / 멤버: 친구 신청 버튼 하나 -->
+            <div v-if="isLeader && !m.me" class="more" :class="{ open: moreId === m.memberId }">
+              <button class="more-btn" title="더보기" aria-haspopup="menu" :aria-expanded="moreId === m.memberId"
+                      :disabled="busy || friendBusyId === m.userId" @click.stop="moreId = moreId === m.memberId ? null : m.memberId">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>
+              </button>
+              <div v-if="moreId === m.memberId" class="more-menu" role="menu">
+                <button v-if="friendOf(m) === 'RECEIVED'" class="more-item" role="menuitem" @click="moreId = null; acceptMate(m)">친구 수락</button>
+                <button v-else-if="friendOf(m) === 'NONE'" class="more-item" role="menuitem" @click="moreId = null; requestMate(m)">친구 신청</button>
+                <button class="more-item" role="menuitem" @click="moreId = null; makeLeader(m)">리더 넘기기</button>
+                <button class="more-item danger" role="menuitem" @click="moreId = null; kick(m)">내보내기</button>
+              </div>
             </div>
+            <button v-else-if="!m.me && friendOf(m) === 'RECEIVED'" class="mini primary" :disabled="friendBusyId === m.userId"
+                    @click="acceptMate(m)">친구 수락</button>
+            <button v-else-if="!m.me && friendOf(m) === 'NONE'" class="mini primary" :disabled="friendBusyId === m.userId"
+                    @click="requestMate(m)">{{ friendBusyId === m.userId ? '보내는 중…' : '친구 신청' }}</button>
           </li>
         </ul>
       </section>
@@ -122,6 +140,7 @@ import {
   BAND_NAME_MAX, BAND_DESCRIPTION_MAX, MAX_BAND_MEMBERS,
 } from '../../api/band'
 import { apiErrorMessage } from '../../api/practice'
+import { getFriends, getSentRequests, getReceivedRequests, sendFriendRequestToBandMate, acceptFriendRequest } from '../../api/friend'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { useBandStore } from '../../stores/band'
 import { BAND_STAGES, DEFAULT_BAND_STAGE } from '../../constants/bandStage'
@@ -153,6 +172,64 @@ const apply = (b) => {
   description.value = b.description || ''
   bandStore.upsertBand(b)
 }
+
+/* ---------- 멤버와 친구 맺기 ---------- */
+// { friendIds, sentIds, received: { userId: 받은 신청 } } (못 불러오면 버튼을 숨긴다)
+const friendState = ref(null)
+const friendBusyId = ref(null)
+
+const loadFriendState = async () => {
+  try {
+    const [friends, sent, received] = await Promise.all([getFriends(), getSentRequests(), getReceivedRequests()])
+    friendState.value = {
+      friendIds: new Set(friends.map((f) => f.userId)),
+      sentIds: new Set(sent.map((r) => r.user.userId)),
+      received: Object.fromEntries(received.map((r) => [r.user.userId, r])),
+    }
+  } catch {
+    friendState.value = null
+  }
+}
+
+const friendAction = async (m, action, done, fallback) => {
+  friendBusyId.value = m.userId
+  say('')
+  try {
+    await action()
+    say(done)
+  } catch (e) {
+    say(apiErrorMessage(e, fallback), true)
+  } finally {
+    friendBusyId.value = null
+    await loadFriendState()
+  }
+}
+
+// 이 멤버와 나의 친구 상태: FRIEND / SENT / RECEIVED / NONE (못 불러왔으면 null)
+const friendOf = (m) => {
+  const state = friendState.value
+  if (!state || m.me) return null
+  if (state.friendIds.has(m.userId)) return 'FRIEND'
+  if (state.received[m.userId]) return 'RECEIVED'
+  if (state.sentIds.has(m.userId)) return 'SENT'
+  return 'NONE'
+}
+
+// 리더의 더보기 메뉴 (밖을 누르면 닫힘)
+const moreId = ref(null)
+const closeMore = () => { moreId.value = null }
+onMounted(() => document.addEventListener('click', closeMore))
+onBeforeUnmount(() => document.removeEventListener('click', closeMore))
+
+const partName = (part) => INSTRUMENT_OPTIONS.find((o) => o.value === part)?.label || part
+
+const memberName = (m) => m.character?.nickname || '멤버'
+const requestMate = (m) => friendAction(m, () => sendFriendRequestToBandMate(m.userId),
+  `${memberName(m)} 님에게 친구 신청을 보냈어요`, '친구 신청을 보내지 못했어요.')
+const acceptMate = (m) => friendAction(m, () => acceptFriendRequest(friendState.value.received[m.userId].requestId),
+  `${memberName(m)} 님과 친구가 됐어요`, '친구 신청을 수락하지 못했어요.')
+
+onMounted(loadFriendState)
 
 onMounted(async () => {
   try {
@@ -248,11 +325,6 @@ const copyCode = async () => {
 }
 onBeforeUnmount(() => clearTimeout(copiedTimer))
 
-const joinedLabel = (iso) => {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
-}
 </script>
 
 <style scoped>
@@ -318,19 +390,42 @@ const joinedLabel = (iso) => {
   font-style: normal; font-size: 0.65rem; font-weight: 800; color: #2d5bff; background: #fff;
   border: 1px solid #c5d3ff; padding: 1px 6px; border-radius: 6px; margin-left: 4px; vertical-align: 1px;
 }
+.who em.friend { color: #2f9e44; border-color: #b2f2bb; }
+.who em.muted { color: #868e96; border-color: #dee2e6; }
 .who span { font-size: 0.72rem; color: #868e96; }
 .part-select {
   border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 7px 10px; font-family: inherit;
   font-size: 0.8rem; font-weight: 700; color: #495057; cursor: pointer;
 }
 .part-select:disabled { cursor: default; opacity: 0.7; }
-.member-actions { display: flex; gap: 6px; }
+.part-text { font-size: 0.8rem; font-weight: 700; color: #495057; padding: 0 4px; }
+.more { position: relative; flex: none; }
+.more-btn {
+  display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+  border: none; background: none; border-radius: 8px; cursor: pointer; color: #adb5bd; transition: 0.15s;
+}
+.more-btn:hover:not(:disabled), .more.open .more-btn { background: #e9ecef; color: #495057; }
+.more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.more-menu {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 10; min-width: 120px;
+  background: #fff; border: 1px solid #e9ecef; border-radius: 12px; padding: 4px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+.more-item {
+  display: block; width: 100%; padding: 8px 10px; border: none; background: none; border-radius: 8px; cursor: pointer;
+  font-family: inherit; font-size: 0.8rem; font-weight: 700; color: #495057; text-align: left; white-space: nowrap;
+}
+.more-item:hover { background: #f1f3f5; }
+.more-item.danger { color: #e03131; }
+.more-item.danger:hover { background: #fff5f5; }
 .mini {
   border: 1px solid #e9ecef; background: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer;
   font-family: inherit; font-size: 0.72rem; font-weight: 800; color: #495057;
 }
 .mini:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.mini.primary { color: #2d5bff; border-color: #d0dcff; background: #f0f4ff; }
 .mini.danger { color: #e03131; }
+
 .mini.danger:hover:not(:disabled) { border-color: #e03131; color: #e03131; }
 .mini:disabled { opacity: 0.5; cursor: not-allowed; }
 
