@@ -5,6 +5,8 @@ import com.project.gainz.domain.band.service.BandService;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.friend.service.FriendService;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
+import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
+import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
 import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
 import com.project.gainz.domain.user.dto.request.WithdrawRequest;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
@@ -47,6 +49,26 @@ public class UserService {
     public MyInfoResponse updateName(Long userId, UpdateNameRequest request) {
         User user = findUser(userId);
         user.update(request.name().trim());
+        return MyInfoResponse.from(user);
+    }
+
+    // 요즘 듣는 음악 설정 (링크는 비우면 null)
+    public MyInfoResponse updateProfileMusic(Long userId, ProfileMusicRequest request) {
+        User user = findUser(userId);
+        String url = request.url() == null || request.url().isBlank() ? null : request.url().trim();
+        user.changeProfileMusic(request.title().trim(), request.artist().trim(), url);
+        return MyInfoResponse.from(user);
+    }
+
+    public MyInfoResponse deleteProfileMusic(Long userId) {
+        User user = findUser(userId);
+        user.clearProfileMusic();
+        return MyInfoResponse.from(user);
+    }
+
+    public MyInfoResponse changeProfileVisibility(Long userId, ProfileVisibilityRequest request) {
+        User user = findUser(userId);
+        user.changeProfileVisibility(request.visibility());
         return MyInfoResponse.from(user);
     }
 

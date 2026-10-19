@@ -1,6 +1,7 @@
 package com.project.gainz.domain.user.entity;
 
 import com.project.gainz.domain.character.entity.Character;
+import com.project.gainz.domain.user.enums.ProfileVisibility;
 import com.project.gainz.domain.user.enums.SocialProvider;
 import com.project.gainz.domain.user.enums.UserRole;
 import com.project.gainz.global.common.entity.BaseEntity;
@@ -56,6 +57,21 @@ public class User extends BaseEntity {
     @Column(length = 20)
     private String profileImageType;
 
+    // 요즘 듣는 음악 (제목·아티스트는 함께 있거나 함께 없다, 링크는 선택)
+    @Column(length = 100)
+    private String profileMusicTitle;
+
+    @Column(length = 100)
+    private String profileMusicArtist;
+
+    @Column(length = 500)
+    private String profileMusicUrl;
+
+    // 프로필 공개 범위. 컬럼이 나중에 생겨서 기존 사용자는 null → 전체 공개로 본다
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private ProfileVisibility profileVisibility;
+
     // 친구 코드 (처음 친구 화면을 열 때 만든다)
     @Column(unique = true, length = 8)
     private String friendCode;
@@ -91,6 +107,28 @@ public class User extends BaseEntity {
         this.friendCode = friendCode;
     }
 
+    public void changeProfileMusic(String title, String artist, String url) {
+        this.profileMusicTitle = title;
+        this.profileMusicArtist = artist;
+        this.profileMusicUrl = url;
+    }
+
+    public void clearProfileMusic() {
+        changeProfileMusic(null, null, null);
+    }
+
+    public boolean hasProfileMusic() {
+        return profileMusicTitle != null;
+    }
+
+    public ProfileVisibility getProfileVisibility() {
+        return profileVisibility != null ? profileVisibility : ProfileVisibility.PUBLIC;
+    }
+
+    public void changeProfileVisibility(ProfileVisibility visibility) {
+        this.profileVisibility = visibility;
+    }
+
     public boolean hasProfileImage() {
         return profileImage != null;
     }
@@ -103,6 +141,7 @@ public class User extends BaseEntity {
         this.profileImage = null;
         this.profileImageType = null;
         this.friendCode = null;
+        clearProfileMusic();
         delete();
     }
 }

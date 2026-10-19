@@ -1,9 +1,13 @@
 package com.project.gainz.domain.user.controller;
 
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
+import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
+import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
 import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
 import com.project.gainz.domain.user.dto.request.WithdrawRequest;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
+import com.project.gainz.domain.user.dto.response.UserProfileResponse;
+import com.project.gainz.domain.user.service.UserProfileService;
 import com.project.gainz.domain.user.service.UserService;
 import com.project.gainz.domain.user.service.UserService.ProfileImageFile;
 import com.project.gainz.global.common.dto.ApiResponse;
@@ -35,6 +39,7 @@ import java.time.Duration;
 public class UserController {
 
     private final UserService userService;
+    private final UserProfileService userProfileService;
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<MyInfoResponse>> getMyInfo(
@@ -49,6 +54,40 @@ public class UserController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(ApiResponse.success(userService.updateName(principal.getUserId(), request)));
+    }
+
+    // 요즘 듣는 음악 설정·지우기
+    @PutMapping("/me/profile-music")
+    public ResponseEntity<ApiResponse<MyInfoResponse>> updateProfileMusic(
+            @Valid @RequestBody ProfileMusicRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(userService.updateProfileMusic(principal.getUserId(), request)));
+    }
+
+    @DeleteMapping("/me/profile-music")
+    public ResponseEntity<ApiResponse<MyInfoResponse>> deleteProfileMusic(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(userService.deleteProfileMusic(principal.getUserId())));
+    }
+
+    // 프로필 공개 범위 (전체 공개·친구에게만·비공개)
+    @PatchMapping("/me/visibility")
+    public ResponseEntity<ApiResponse<MyInfoResponse>> changeProfileVisibility(
+            @Valid @RequestBody ProfileVisibilityRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(userService.changeProfileVisibility(principal.getUserId(), request)));
+    }
+
+    // 다른 사람 프로필 (공개 범위에 따라 이름·사진만 보일 수 있다)
+    @GetMapping("/{userId}/profile")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getProfile(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(userProfileService.getProfile(principal.getUserId(), userId)));
     }
 
     // 프로필 사진 바꾸기 (multipart "file")
