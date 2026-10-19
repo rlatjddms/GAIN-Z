@@ -50,11 +50,11 @@
         <h2>멤버 <span class="count">{{ band.members.length }} / {{ MAX_BAND_MEMBERS }}</span></h2>
         <ul class="members">
           <li v-for="m in band.members" :key="m.memberId" class="member" :class="{ me: m.me }">
-            <div class="avatar">
+            <div class="avatar" :class="{ clickable: !m.me }" @click="openProfile(m)">
               <PixelCharacter :character="looks[m.memberId]"
                               :outfit="m.character?.currentOutfitSpriteKey || 'DEFAULT'" :scale="2" :animate="false" />
             </div>
-            <div class="who">
+            <div class="who" :class="{ clickable: !m.me }" :title="m.me ? '' : '프로필 보기'" @click="openProfile(m)">
               <strong>
                 <span v-if="m.position === 'LEADER'" title="리더">👑 </span>{{ m.character?.nickname || '알 수 없는 멤버' }}
                 <em v-if="m.me">나</em>
@@ -127,6 +127,7 @@
         </template>
       </section>
     </template>
+    <ProfileModal :user-id="profileUserId" can-request @close="profileUserId = null" @changed="loadFriendState" @remove="removeFromProfile" />
   </SubPageLayout>
 </template>
 
@@ -135,12 +136,13 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import PixelCharacter from '../../components/PixelCharacter.vue'
+import ProfileModal from '../../components/ProfileModal.vue'
 import {
   getBand, updateBand, updateBandStage, deleteBand, regenerateInviteCode, changeMemberPart, removeMember, leaveBand, transferLeader,
   BAND_NAME_MAX, BAND_DESCRIPTION_MAX, MAX_BAND_MEMBERS,
 } from '../../api/band'
 import { apiErrorMessage } from '../../api/practice'
-import { getFriends, getSentRequests, getReceivedRequests, sendFriendRequestToBandMate, acceptFriendRequest } from '../../api/friend'
+import { getFriends, getSentRequests, getReceivedRequests, sendFriendRequestToBandMate, acceptFriendRequest, removeFriend } from '../../api/friend'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { useBandStore } from '../../stores/band'
 import { BAND_STAGES, DEFAULT_BAND_STAGE } from '../../constants/bandStage'
@@ -220,6 +222,23 @@ const moreId = ref(null)
 const closeMore = () => { moreId.value = null }
 onMounted(() => document.addEventListener('click', closeMore))
 onBeforeUnmount(() => document.removeEventListener('click', closeMore))
+
+// 멤버를 누르면 프로필 팝업
+const profileUserId = ref(null)
+const openProfile = (m) => { if (!m.me) profileUserId.value = m.userId }
+
+const removeFromProfile = async (profile) => {
+  if (!window.confirm(`${profile.name} 님을 친구에서 삭제할까요?`)) return
+  try {
+    await removeFriend(profile.userId)
+    profileUserId.value = null
+    say(`${profile.name} 님을 친구에서 삭제했어요`)
+  } catch (e) {
+    say(apiErrorMessage(e, '친구를 삭제하지 못했어요.'), true)
+  } finally {
+    await loadFriendState()
+  }
+}
 
 const partName = (part) => INSTRUMENT_OPTIONS.find((o) => o.value === part)?.label || part
 
@@ -393,6 +412,8 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 .who em.friend { color: #2f9e44; border-color: #b2f2bb; }
 .who em.muted { color: #868e96; border-color: #dee2e6; }
 .who span { font-size: 0.72rem; color: #868e96; }
+.avatar.clickable, .who.clickable { cursor: pointer; }
+.who.clickable:hover strong { color: #2d5bff; }
 .part-select {
   border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 7px 10px; font-family: inherit;
   font-size: 0.8rem; font-weight: 700; color: #495057; cursor: pointer;

@@ -66,6 +66,17 @@
         </template>
       </WsCard>
 
+      <WsCard title="프로필 공개 범위">
+        <p class="muted">다른 사람이 내 프로필을 열었을 때 캐릭터·연습 기록·가입한 밴드·요즘 듣는 음악을 보여 줄지 정해요. 이름과 사진은 항상 보여요.</p>
+        <div class="segmented" role="radiogroup" aria-label="프로필 공개 범위">
+          <button v-for="o in PROFILE_VISIBILITY_OPTIONS" :key="o.value" type="button" role="radio"
+                  :aria-checked="currentVisibility === o.value" :class="{ on: currentVisibility === o.value }"
+                  :disabled="!profile || visibilityBusy" @click="changeVisibility(o.value)">{{ o.label }}</button>
+        </div>
+        <p class="muted small">{{ visibilityDesc }}</p>
+        <p v-if="visibilityError" class="field-error">{{ visibilityError }}</p>
+      </WsCard>
+
       <WsCard title="계정 설정">
         <div class="settings">
           <button v-if="isLocal" class="setting" @click="passwordOpen = true">
@@ -98,7 +109,9 @@ import WithdrawModal from '../components/mypage/WithdrawModal.vue'
 import { useAuthStore } from '../stores/auth'
 import {
   updateMyName, uploadProfileImage, deleteProfileImage,
+  updateProfileVisibility,
   PROFILE_IMAGE_ACCEPT, PROFILE_IMAGE_TYPES, MAX_PROFILE_IMAGE_MB,
+  PROFILE_VISIBILITY_OPTIONS,
 } from '../api/user'
 import { apiErrorMessage } from '../api/practice'
 
@@ -206,6 +219,25 @@ const saveName = async () => {
   }
 }
 
+/* ---------- 공개 범위 ---------- */
+const visibilityBusy = ref(false)
+const visibilityError = ref('')
+const currentVisibility = computed(() => profile.value?.profileVisibility || 'PUBLIC')
+const visibilityDesc = computed(() => PROFILE_VISIBILITY_OPTIONS.find((o) => o.value === currentVisibility.value)?.desc || '')
+
+const changeVisibility = async (value) => {
+  if (value === currentVisibility.value || visibilityBusy.value) return
+  visibilityBusy.value = true
+  visibilityError.value = ''
+  try {
+    authStore.profile = await updateProfileVisibility(value)
+  } catch (e) {
+    visibilityError.value = apiErrorMessage(e, '공개 범위를 바꾸지 못했어요.')
+  } finally {
+    visibilityBusy.value = false
+  }
+}
+
 /* ---------- 비밀번호·로그아웃·탈퇴 ---------- */
 const passwordOpen = ref(false)
 const passwordStatus = ref('')
@@ -290,6 +322,14 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .text-btn { border: none; background: none; padding: 0; color: #2d5bff; font-weight: 800; cursor: pointer; font-family: inherit; font-size: 0.75rem; }
 
+.segmented { display: inline-flex; background: #f1f3f5; border-radius: 12px; padding: 3px; gap: 2px; }
+.segmented button {
+  border: none; background: none; border-radius: 10px; padding: 7px 14px; cursor: pointer;
+  font-family: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96; transition: 0.15s;
+}
+.segmented button.on { background: #fff; color: #2d5bff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
+.segmented button:disabled { cursor: not-allowed; }
+.muted.small { margin: 8px 0 0; font-size: 0.72rem; }
 .saved { margin: 10px 0 0; font-size: 0.75rem; font-weight: 800; color: #2f9e44; }
 .error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
 .loading { padding: 16px 0; font-size: 0.85rem; color: #adb5bd; }

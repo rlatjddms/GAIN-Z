@@ -66,6 +66,7 @@
               <div class="who">
                 <strong>{{ f.name }}</strong>
                 <span>{{ levelText(f) }}</span>
+                <ProfileMusic v-if="f.profileMusic" :music="f.profileMusic" compact />
               </div>
             </button>
             <button class="remove-btn" :disabled="removingId === f.userId" @click="unfriend(f)">{{ removingId === f.userId ? '삭제 중…' : '삭제' }}</button>
@@ -111,7 +112,7 @@
       </WsCard>
     </div>
 
-    <FriendProfileModal ref="profileModal" :user-id="selectedId" @close="selectedId = null" @remove="unfriend" />
+    <ProfileModal ref="profileModal" :user-id="selectedId" @close="selectedId = null" @remove="unfriend" @changed="loadAll" />
   </SubPageLayout>
 </template>
 
@@ -120,7 +121,8 @@ import { ref, computed, onMounted } from 'vue'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import WsCard from '../components/workspace/WsCard.vue'
 import ProfileAvatar from '../components/ProfileAvatar.vue'
-import FriendProfileModal from '../components/friend/FriendProfileModal.vue'
+import ProfileModal from '../components/ProfileModal.vue'
+import ProfileMusic from '../components/ProfileMusic.vue'
 import {
   getMyFriendCode, regenerateFriendCode, sendFriendRequest,
   getReceivedRequests, getSentRequests, acceptFriendRequest, deleteFriendRequest,
