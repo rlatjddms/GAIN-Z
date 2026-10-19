@@ -24,6 +24,7 @@ import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.domain.record.service.RecordService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -60,6 +61,7 @@ class UserServiceTest {
     @Mock private FriendService friendService;
 
     @Mock private NotificationService notificationService;
+    @Mock private RecordService recordService;
     @InjectMocks private UserService userService;
 
     private User localUser() {
@@ -322,6 +324,7 @@ class UserServiceTest {
         verify(bandService).leaveAllBands(USER_ID);
         verify(friendService).removeAll(USER_ID);
         verify(notificationService).removeAllOf(USER_ID);
+        verify(recordService).removeAllOf(USER_ID);
         assertThat(user.hasProfileImage()).isFalse();
         assertThat(user.getFriendCode()).isNull();
         assertThat(user.hasProfileMusic()).isFalse();

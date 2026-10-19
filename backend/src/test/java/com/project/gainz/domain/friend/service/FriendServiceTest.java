@@ -27,6 +27,8 @@ import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.record.enums.RecordMetric;
+import com.project.gainz.domain.record.event.RecordCheckEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -34,6 +36,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 import java.util.Optional;
@@ -63,6 +66,7 @@ class FriendServiceTest {
     @Mock private BandMemberRepository bandMemberRepository;
 
     @Mock private NotificationService notificationService;
+    @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private FriendService friendService;
 
     /* ---------- 준비 ---------- */
@@ -298,6 +302,9 @@ class FriendServiceTest {
         assertThat(request.getAcceptedAt()).isNotNull();
         assertThat(response.userId()).isEqualTo(OTHER);
         assertThat(response.since()).isEqualTo(request.getAcceptedAt());
+        // 두 사람 모두 친구 레코드 판정
+        verify(eventPublisher).publishEvent(RecordCheckEvent.of(ME, RecordMetric.FRIENDS));
+        verify(eventPublisher).publishEvent(RecordCheckEvent.of(OTHER, RecordMetric.FRIENDS));
         verify(notificationService).notify(sender, NotificationType.FRIEND_ACCEPT, "친구", "유저1 님이 친구 신청을 수락했어요", "/friends");
     }
 

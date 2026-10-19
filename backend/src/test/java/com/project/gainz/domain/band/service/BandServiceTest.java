@@ -29,6 +29,8 @@ import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.record.enums.RecordMetric;
+import com.project.gainz.domain.record.event.RecordCheckEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -36,6 +38,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,6 +70,7 @@ class BandServiceTest {
     @Mock private CharacterRepository characterRepository;
 
     @Mock private NotificationService notificationService;
+    @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private BandService bandService;
 
     /* ---------- 준비 ---------- */
@@ -169,6 +173,7 @@ class BandServiceTest {
             assertThat(m.me()).isTrue();
             assertThat(m.character().nickname()).isEqualTo("기타 리더");
         });
+        verify(eventPublisher).publishEvent(RecordCheckEvent.of(LEADER_ID, RecordMetric.BANDS));
     }
 
     @Test
@@ -274,6 +279,7 @@ class BandServiceTest {
         assertThat(saved.getValue().getStageOrder()).isEqualTo(4);
         assertThat(response.myPosition()).isEqualTo(Position.MEMBER);
         // 기존 멤버에게 새 멤버 알림
+        verify(eventPublisher).publishEvent(RecordCheckEvent.of(OTHER_ID, RecordMetric.BANDS));
         verify(notificationService).notifyAll(eq(List.of(band.getLeader())), eq(OTHER_ID), eq(NotificationType.BAND_JOIN),
                 eq("락앤롤 베이비"), anyString(), eq("/bands/" + BAND_ID + "/settings"));
     }
