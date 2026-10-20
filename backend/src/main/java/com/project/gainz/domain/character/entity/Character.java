@@ -1,13 +1,19 @@
 package com.project.gainz.domain.character.entity;
 
+import com.project.gainz.domain.character.enums.Accessory;
+import com.project.gainz.domain.character.enums.AccessorySlot;
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.LevelPolicy;
 import com.project.gainz.domain.character.enums.StageBackground;
+import com.project.gainz.domain.character.enums.StageEffect;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
+import java.util.Map;
+import java.util.TreeMap;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -57,8 +63,9 @@ public class Character extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
+    // 레벨 보상 머리가 늘어서 값 목록 제약 없는 varchar로 둔다 (EnumNameConverter, CharacterSchemaPatcher)
+    @Column(nullable = false, length = 30)
+    @Convert(converter = HairStyleConverter.class)
     private HairStyle hairStyle;
 
     @Column(nullable = false, length = 7)
@@ -94,6 +101,50 @@ public class Character extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
     private StageBackground stageBackground;
+
+    // 쓰고 있는 레벨 보상 소품 (자리마다 하나, 없으면 null)
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory hat;
+
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory glasses;
+
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory earrings;
+
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory neck;
+
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory shoes;
+
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory waist;
+
+    // 그림에서 악기를 내려놓았는지 (악기 종류·밴드 포지션은 그대로). null = 예전 캐릭터 = 들고 있음
+    @Column(name = "instrument_hidden")
+    private Boolean instrumentHidden;
+
+    // 아이템마다 고른 색 { "HOODIE": "#ffd8a8" } (없는 아이템은 기본 색)
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = ItemColorsConverter.class)
+    private Map<String, String> itemColors = new TreeMap<>();
+
+    // 고른 무대 효과 (레벨 보상, 없으면 null)
+    @Column(length = 30)
+    @Convert(converter = StageEffectConverter.class)
+    private StageEffect stageEffect;
+
+    // 입고 있는 하의 (null이면 기본 청바지. 예전 캐릭터)
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory bottom;
 
     @Version
     private Long version;
@@ -147,6 +198,51 @@ public class Character extends BaseEntity {
 
     public void changeStageBackground(StageBackground background) {
         this.stageBackground = background;
+    }
+
+    // 옷장: 자리마다 소품·하의 쓰기·벗기 (자리·해금 여부는 서비스에서 확인)
+    public void wear(AccessorySlot slot, Accessory accessory) {
+        switch (slot) {
+            case HAT -> this.hat = accessory;
+            case GLASSES -> this.glasses = accessory;
+            case EARRINGS -> this.earrings = accessory;
+            case NECK -> this.neck = accessory;
+            case WAIST -> this.waist = accessory;
+            case SHOES -> this.shoes = accessory;
+            case BOTTOM -> this.bottom = accessory;
+        }
+    }
+
+    // 입고 있는 하의·신발 (고른 적 없으면 기본 청바지·신발)
+    public Accessory getWornBottom() {
+        return bottom != null ? bottom : Accessory.defaultFor(AccessorySlot.BOTTOM);
+    }
+
+    public Accessory getWornShoes() {
+        return shoes != null ? shoes : Accessory.defaultFor(AccessorySlot.SHOES);
+    }
+
+    public boolean isInstrumentHidden() {
+        return Boolean.TRUE.equals(instrumentHidden);
+    }
+
+    // 옷장: 악기 들기·내려놓기
+    public void changeInstrumentHidden(boolean hidden) {
+        this.instrumentHidden = hidden;
+    }
+
+    public Map<String, String> getItemColors() {
+        return itemColors != null ? Map.copyOf(itemColors) : Map.of();
+    }
+
+    // 옷장: 아이템 색 바꾸기 (키·색 검사는 서비스에서)
+    public void changeItemColors(Map<String, String> colors) {
+        this.itemColors = new TreeMap<>(colors);
+    }
+
+    // 옷장: 무대 효과 고르기 (null이면 끄기, 해금 여부는 서비스에서 확인)
+    public void changeStageEffect(StageEffect effect) {
+        this.stageEffect = effect;
     }
 
     // 지금 무대 배경. 아직 고른 적 없으면 레벨로 얻은 가장 큰 무대

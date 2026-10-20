@@ -4,15 +4,21 @@ package com.project.gainz.domain.character.enums;
 // 필요 레벨은 프론트 constants/levelTier.js의 구간과 같다
 public enum StageBackground {
 
-    ROOKIE(1),    // 방구석
-    RISING(10),   // 동네 클럽
-    PRO(20),      // 투어 공연장
-    LEGEND(30);   // 전설의 무대 (최대 레벨)
+    ROOKIE(1, "방구석"),
+    RISING(10, "동네 클럽"),
+    PRO(20, "투어 공연장"),
+    LEGEND(30, "전설의 무대");   // 최대 레벨
 
     private final int requiredLevel;
+    private final String label;
 
-    StageBackground(int requiredLevel) {
+    StageBackground(int requiredLevel, String label) {
         this.requiredLevel = requiredLevel;
+        this.label = label;
+    }
+
+    public String getLabel() {
+        return label;
     }
 
     public int getRequiredLevel() {
