@@ -6,6 +6,7 @@ import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.LevelPolicy;
 import com.project.gainz.domain.character.enums.StageBackground;
+import com.project.gainz.domain.character.enums.RoomDecor;
 import com.project.gainz.domain.character.enums.StageEffect;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.user.entity.User;
@@ -98,9 +99,15 @@ public class Character extends BaseEntity {
     private OutfitItem currentOutfit;
 
     // 고른 무대 배경. 예전 캐릭터처럼 비어 있으면 레벨로 얻은 가장 큰 무대
-    @Enumerated(EnumType.STRING)
-    @Column(length = 10)
+    // 리스닝 룸이 늘어 값 목록 제약 없는 varchar로 둔다 (CharacterSchemaPatcher가 예전 칸을 넓힘)
+    @Convert(converter = StageBackgroundConverter.class)
+    @Column(length = 20)
     private StageBackground stageBackground;
+
+    // 무대에 놓은 방 꾸미기 세트 (레코드 수집 보상, 없으면 null)
+    @Column(length = 20)
+    @Convert(converter = RoomDecorConverter.class)
+    private RoomDecor roomDecor;
 
     // 쓰고 있는 레벨 보상 소품 (자리마다 하나, 없으면 null)
     @Column(length = 30)
@@ -224,6 +231,11 @@ public class Character extends BaseEntity {
 
     public boolean isInstrumentHidden() {
         return Boolean.TRUE.equals(instrumentHidden);
+    }
+
+    // 옷장: 방 꾸미기 세트 고르기 (null이면 없음, 모은 여부는 서비스에서 확인)
+    public void changeRoomDecor(RoomDecor decor) {
+        this.roomDecor = decor;
     }
 
     // 옷장: 악기 들기·내려놓기

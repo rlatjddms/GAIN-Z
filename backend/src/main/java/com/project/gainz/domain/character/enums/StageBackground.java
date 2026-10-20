@@ -7,7 +7,10 @@ public enum StageBackground {
     ROOKIE(1, "방구석"),
     RISING(10, "동네 클럽"),
     PRO(20, "투어 공연장"),
-    LEGEND(30, "전설의 무대");   // 최대 레벨
+    LEGEND(30, "전설의 무대"),   // 최대 레벨
+
+    // 레코드 12개를 전부 모으면 얻는 무대 (레벨로는 얻지 않음, RoomDecor.allCollected)
+    LISTENING_ROOM(Integer.MAX_VALUE, "리스닝 룸");
 
     private final int requiredLevel;
     private final String label;
@@ -23,6 +26,11 @@ public enum StageBackground {
 
     public int getRequiredLevel() {
         return requiredLevel;
+    }
+
+    // 레벨이 아니라 레코드 수집으로 얻는 무대인지
+    public boolean isRecordReward() {
+        return this == LISTENING_ROOM;
     }
 
     public boolean isUnlockedAt(int level) {

@@ -2,6 +2,7 @@ package com.project.gainz.domain.character.dto.request;
 
 import com.project.gainz.domain.character.enums.Accessory;
 import com.project.gainz.domain.character.enums.StageBackground;
+import com.project.gainz.domain.character.enums.RoomDecor;
 import com.project.gainz.domain.character.enums.StageEffect;
 
 import java.util.Map;
@@ -30,12 +31,21 @@ public record WardrobeUpdateRequest(
         Map<String, String> itemColors,
 
         // 그림에서 악기 내려놓기. null이면 그대로 둠
-        Boolean instrumentHidden
+        Boolean instrumentHidden,
+
+        // 방 꾸미기 세트 (null이면 없음. 그 종류 레코드를 다 모은 것만)
+        RoomDecor roomDecor
 ) {
     public WardrobeUpdateRequest(Long outfitId, StageBackground stageBackground, Accessory hat, Accessory glasses, Accessory neck,
                                  Accessory shoes, Accessory bottom, Accessory earrings, StageEffect stageEffect, Accessory waist,
+                                 Map<String, String> itemColors, Boolean instrumentHidden) {
+        this(outfitId, stageBackground, hat, glasses, neck, shoes, bottom, earrings, stageEffect, waist, itemColors, instrumentHidden, null);
+    }
+
+    public WardrobeUpdateRequest(Long outfitId, StageBackground stageBackground, Accessory hat, Accessory glasses, Accessory neck,
+                                 Accessory shoes, Accessory bottom, Accessory earrings, StageEffect stageEffect, Accessory waist,
                                  Map<String, String> itemColors) {
-        this(outfitId, stageBackground, hat, glasses, neck, shoes, bottom, earrings, stageEffect, waist, itemColors, null);
+        this(outfitId, stageBackground, hat, glasses, neck, shoes, bottom, earrings, stageEffect, waist, itemColors, null, null);
     }
 
     public WardrobeUpdateRequest(Long outfitId, StageBackground stageBackground, Accessory hat, Accessory glasses, Accessory neck,
