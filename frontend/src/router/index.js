@@ -36,7 +36,7 @@ const routes = [
       component: () => import('../views/workspace/SheetsView.vue'),
       meta: { requiresCharacter: true }
     },
-    // 악보 올리기 / 보관함 악보 보기(:id = 보관함 항목) / 내가 올린 악보 고치기
+    // 악보 생성하기 / 보관함 악보 보기(:id = 보관함 항목) / 내가 올린 악보 고치기
     {
       path: '/sheets/new',
       name: 'sheet-new',

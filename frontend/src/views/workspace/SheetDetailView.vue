@@ -55,7 +55,7 @@
 
           <!-- 예전에 직접 쓴 코드 악보 -->
           <ChordSheet
-            v-else-if="sheet.content"
+            v-else-if="sheet.content && !textTab"
             :content="sheet.content"
             :original-key="sheet.originalKey"
             :view-key="viewKey"
@@ -110,6 +110,7 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 import ChordSheet from '../../components/workspace/ChordSheet.vue'
+import { tabRowsFromText } from '../../music/tabImport'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
 import MeasureSheet from '../../components/workspace/MeasureSheet.vue'
 import KeyHelper from '../../components/workspace/KeyHelper.vue'
@@ -131,7 +132,9 @@ const loadError = ref('')
 const actionError = ref('')
 const sheet = computed(() => item.value?.sheet || {})
 const pages = computed(() => sheet.value.pages || [])
-const tabs = computed(() => sheet.value.tabs || [])
+// 마디 악보: 저장된 마디 데이터, 없으면 글자 타브 악보(#166)를 읽어서 그린다
+const textTab = computed(() => !sheet.value.tabs?.length && sheet.value.sheetTypes?.[0] === 'TAB' && sheet.value.content)
+const tabs = computed(() => (textTab.value ? tabRowsFromText(sheet.value.content) : sheet.value.tabs || []))
 const metaText = computed(() => {
   const s = sheet.value
   return [
