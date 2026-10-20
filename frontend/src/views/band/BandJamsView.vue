@@ -9,16 +9,25 @@
       <div class="workspace">
         <WsCard :title="`잼 ${jams.length}`" class="sidebar">
           <button class="btn add-jam" :disabled="busy || recording" @click="openForm(null)">+ 잼 만들기</button>
-          <ul v-if="jams.length" class="jam-list">
-            <li v-for="item in jams" :key="item.id">
+          <!-- 셋리스트 목록과 같은 도구: 즐겨찾기만 보기, 여러 개 골라 지우기 (만든 멤버·리더만 지울 수 있어서 그 잼만 고를 수 있음) -->
+          <div v-if="jams.length" class="list-tools">
+            <button class="text-btn" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly"><Star :size="14" :stroke-width="2.2" :fill="favoritesOnly ? 'currentColor' : 'none'" /> 즐겨찾기</button>
+            <button class="text-btn" :disabled="recording" @click="selecting = !selecting; checkedIds = []">{{ selecting ? '선택 취소' : '선택' }}</button>
+          </div>
+          <div v-if="selecting" class="bulk-tools"><span>{{ checkedIds.length }}개 선택</span><button class="text-btn danger" :disabled="!checkedIds.length || busy" @click="askDelete({ kind: 'bulk', ids: [...checkedIds] })">선택 삭제</button></div>
+          <ul v-if="visibleJams.length" class="jam-list">
+            <li v-for="item in visibleJams" :key="item.id" class="jam-row">
+              <input v-if="selecting" v-model="checkedIds" type="checkbox" :value="item.id" :disabled="!item.canManage"
+                     :aria-label="`${item.title} 선택`" :title="item.canManage ? '' : '만든 멤버나 리더만 지울 수 있어요'">
               <button class="jam-link" :class="{ active: item.id === selectedId }" :aria-pressed="item.id === selectedId" :disabled="recording" @click="selectJam(item.id)">
                 <strong>{{ item.title }}</strong>
                 <span>{{ item.bpm }} BPM · 트랙 {{ item.trackCount }}</span>
                 <small v-if="item.song">셋리스트 · {{ item.song.title }}</small>
               </button>
+              <button class="star" :class="{ on: item.favorite }" :disabled="busy" :aria-pressed="item.favorite" :aria-label="`${item.title} 즐겨찾기`" @click="toggleFavorite(item)"><Star :size="16" :stroke-width="2.2" :fill="item.favorite ? 'currentColor' : 'none'" /></button>
             </li>
           </ul>
-          <p v-else class="muted">아직 잼이 없어요. 합주할 곡으로 잼을 만들어 보세요.</p>
+          <p v-else class="muted">{{ favoritesOnly && jams.length ? '즐겨찾기한 잼이 없어요.' : '아직 잼이 없어요. 합주할 곡으로 잼을 만들어 보세요.' }}</p>
         </WsCard>
 
         <WsCard :title="jam?.title || '레이어 잼'" class="detail">
@@ -164,15 +173,15 @@
     </dialog>
 
     <dialog ref="deleteDialog" class="jam-dialog" aria-labelledby="jam-delete-title">
-      <h3 id="jam-delete-title">{{ deleteTarget?.kind === 'jam' ? '잼을 삭제할까요?' : '트랙을 삭제할까요?' }}</h3>
-      <p class="muted">{{ deleteTarget?.kind === 'jam' ? '이 잼의 모든 트랙이 함께 지워져요.' : '올린 녹음 파일이 지워져요.' }}</p>
+      <h3 id="jam-delete-title">{{ deleteTarget?.kind === 'bulk' ? `잼 ${deleteTarget.ids.length}개를 삭제할까요?` : deleteTarget?.kind === 'jam' ? '잼을 삭제할까요?' : '트랙을 삭제할까요?' }}</h3>
+      <p class="muted">{{ deleteTarget?.kind === 'track' ? '올린 녹음 파일이 지워져요.' : '잼의 모든 트랙이 함께 지워져요.' }}</p>
       <div class="dialog-actions"><button class="btn" @click="deleteDialog.close()">취소</button><button class="btn danger" :disabled="busy" @click="confirmDelete">삭제</button></div>
     </dialog>
   </SubPageLayout>
 </template>
 
 <script setup>
-import { SkipBack, FileUp, Mic, Headphones } from 'lucide-vue-next'
+import { SkipBack, FileUp, Mic, Headphones, Star } from 'lucide-vue-next'
 import PixelIcon from '../../components/PixelIcon.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
@@ -180,7 +189,7 @@ import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 import { getBand } from '../../api/band'
 import { listSetlists } from '../../api/setlist'
-import { createJam, deleteJam, deleteJamTrack, getJam, listJams, loadJamTrackFile, updateJam, updateJamTrack, uploadJamTrack } from '../../api/jam'
+import { createJam, deleteJam, deleteJamTrack, getJam, listJams, loadJamTrackFile, setJamFavorite, updateJam, updateJamTrack, uploadJamTrack } from '../../api/jam'
 import { apiErrorMessage } from '../../api/practice'
 import { useBandStore } from '../../stores/band'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
@@ -196,6 +205,8 @@ const router = useRouter()
 const store = useBandStore()
 const engine = new JamEngine()
 const band = ref(null), error = ref(''), saveError = ref(''), notice = ref(''), busy = ref(false)
+const favoritesOnly = ref(false), selecting = ref(false), checkedIds = ref([])
+const visibleJams = computed(() => jams.value.filter(item => !favoritesOnly.value || item.favorite))
 const jams = ref([]), selectedId = ref(null), jam = ref(null), jamLoading = ref(false), tracks = ref([]), soloIds = ref([])
 const playing = ref(false), position = ref(0), metronomeOn = ref(false), countInOn = ref(true)
 const micReady = ref(false), latencyMs = ref(readLatency() ?? 0), latencyEstimate = ref(0), measuring = ref(false)
@@ -519,8 +530,37 @@ async function saveForm() {
   }
 }
 function askDelete(target) { deleteTarget.value = target; deleteDialog.value.showModal() }
+async function toggleFavorite(item) {
+  await run(async () => Object.assign(item, await setJamFavorite(bandId(), item.id, !item.favorite)), '즐겨찾기를 바꾸지 못했어요.')
+}
+// 고른 잼 여러 개 지우기: 하나씩 지우고, 지운 것만 목록에서 뺀다
+async function deleteChecked(ids) {
+  const removed = []
+  const ok = await run(async () => {
+    for (const id of ids) {
+      await deleteJam(bandId(), id)
+      removed.push(id)
+    }
+  }, '일부 잼을 삭제하지 못했어요.')
+  deleteDialog.value.close()
+  jams.value = jams.value.filter(item => !removed.includes(item.id))
+  checkedIds.value = checkedIds.value.filter(id => !removed.includes(id))
+  if (removed.includes(jam.value?.id)) {
+    stopPlayback(true)
+    discardTake()
+    jam.value = null
+    tracks.value = []
+    selectedId.value = null
+    router.replace({ query: {} })
+  }
+  if (ok) {
+    selecting.value = false
+    notice.value = `잼 ${removed.length}개를 삭제했어요.`
+  }
+}
 async function confirmDelete() {
   const target = deleteTarget.value
+  if (target.kind === 'bulk') return deleteChecked(target.ids)
   const jamId = jam.value.id
   const ok = await run(async () => {
     if (target.kind === 'jam') await deleteJam(bandId(), jamId)
@@ -580,6 +620,16 @@ button:disabled { opacity:.4; cursor:default; }
 button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset:2px; }
 .add-jam { width:100%; margin-bottom:12px; background:#f8f9fa; border-style:dashed; }
 .jam-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.jam-row { display:flex; align-items:center; gap:6px; }
+.jam-row input[type='checkbox'] { width:16px; height:16px; flex:none; }
+.jam-row .jam-link { flex:1; min-width:0; }
+.list-tools,.bulk-tools { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 12px; font-size:.73rem; color:#868e96; }
+.text-btn { display:inline-flex; align-items:center; gap:4px; border:0; background:transparent; padding:4px 0; font-family:inherit; font-size:.74rem; color:#495057; cursor:pointer; }
+.text-btn[aria-pressed='true'] { color:#f59f00; }
+.text-btn.danger { color:var(--c-danger); }
+.text-btn:disabled { opacity:.45; cursor:default; }
+.star { display:inline-flex; background:transparent; border:0; color:#ced4da; cursor:pointer; padding:3px; flex:none; }
+.star.on { color:#fab005; }
 .jam-link { width:100%; display:flex; flex-direction:column; gap:5px; padding:10px 12px; text-align:left; border:1px solid #e9ecef; border-radius:12px; background:#fff; font-family:inherit; color:#343a40; cursor:pointer; overflow-wrap:anywhere; }
 .jam-link.active { background:var(--c-primary-soft); border-color:#dce3f5; }
 .jam-link strong { font-size:.79rem; }

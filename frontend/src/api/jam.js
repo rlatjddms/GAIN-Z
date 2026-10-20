@@ -3,7 +3,8 @@ import api from './axios'
 const base = (bandId) => `/api/v1/bands/${bandId}/jams`
 const data = async (request) => (await request).data.data
 
-// 잼 목록 → [{ id, title, bpm, song: { setlistItemId, title } | null, trackCount, creatorName, updatedAt }]
+// 잼 목록 → [{ id, title, bpm, song: { setlistItemId, title } | null, trackCount, creatorName, updatedAt,
+//            favorite(밴드 전체가 같이 봄), canManage(보는 사람이 지울 수 있는지) }]
 export const listJams = (bandId) => data(api.get(base(bandId)))
 // 잼 → { id, title, bpm, song, creatorName, canManage,
 //        tracks: [{ id, userId, nickname, part, name, type, volume, offsetMs, durationMs, canDelete, url, createdAt }] }
@@ -12,6 +13,8 @@ export const getJam = (bandId, id) => data(api.get(`${base(bandId)}/${id}`))
 export const createJam = (bandId, jam) => data(api.post(base(bandId), jam))
 export const updateJam = (bandId, id, jam) => data(api.put(`${base(bandId)}/${id}`, jam))
 export const deleteJam = (bandId, id) => api.delete(`${base(bandId)}/${id}`)
+// 즐겨찾기 켜기·끄기 (밴드 멤버 누구나) → 목록 한 줄
+export const setJamFavorite = (bandId, id, favorite) => data(api.patch(`${base(bandId)}/${id}/favorite`, { favorite }))
 
 // 녹음 올리기. track: { offsetMs, volume, durationMs } → 트랙
 export async function uploadJamTrack(bandId, jamId, track, file, onProgress) {
