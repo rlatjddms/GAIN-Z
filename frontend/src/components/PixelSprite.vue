@@ -28,13 +28,18 @@ const props = defineProps({
   region: { type: Object, default: null },
   // 들어갈 상자 크기(px). 이 안에 맞는 가장 큰 정수배
   box: { type: Number, default: 48 },
+  // true면 정수배가 아니어도 상자에 꽉 맞춘다 (크기가 제각각인 악기를 비슷한 크기로 보여 줄 때)
+  exact: { type: Boolean, default: false },
   label: { type: String, default: '' },
 })
 
 const canvasRef = ref(null)
 const crop = ref({ x: 0, y: 0, w: SPRITE_WIDTH, h: SPRITE_HEIGHT })
-const scale = computed(() => Math.max(1, Math.floor(Math.min(props.box / crop.value.w, props.box / crop.value.h))))
-const size = computed(() => ({ w: crop.value.w * scale.value, h: crop.value.h * scale.value }))
+const scale = computed(() => {
+  const fit = Math.min(props.box / crop.value.w, props.box / crop.value.h)
+  return props.exact ? fit : Math.max(1, Math.floor(fit))
+})
+const size = computed(() => ({ w: Math.round(crop.value.w * scale.value), h: Math.round(crop.value.h * scale.value) }))
 
 let token = 0
 async function render() {
@@ -81,7 +86,7 @@ function boundsOf(image) {
 }
 
 onMounted(render)
-watch(() => [props.parts, props.colors, props.itemColors, props.region, props.box], render, { deep: true })
+watch(() => [props.parts, props.colors, props.itemColors, props.region, props.box, props.exact], render, { deep: true })
 </script>
 
 <style scoped>

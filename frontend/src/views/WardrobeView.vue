@@ -76,10 +76,16 @@
               <div class="grid">
                 <button v-for="i in INSTRUMENT_OPTIONS" :key="i.value" class="opt" :class="{ on: draft.instrumentType === i.value }" @click="draft.instrumentType = i.value">
                   <span class="opt-thumb">
-                    <PixelSprite :parts="[['instrument', i.value]]" :colors="looks" :box="40" :label="i.label" />
+                    <PixelSprite :parts="[['instrument', i.value]]" :colors="looks" :box="34" exact :label="i.label" />
                   </span>{{ i.label }}
                 </button>
               </div>
+              <!-- 악기 종류(밴드 포지션)는 그대로, 그림에서만 내려놓기 -->
+              <label class="toggle">
+                <input type="checkbox" :checked="!draft.instrumentHidden" @change="draft.instrumentHidden = !$event.target.checked">
+                <span>캐릭터가 악기를 들고 있기</span>
+                <small>끄면 옷이 잘 보여요. 밴드에서 맡은 악기는 그대로예요.</small>
+              </label>
             </div>
 
             <div class="field">
@@ -264,11 +270,11 @@ const original = ref(null)
 const draft = reactive({
   nickname: '', gender: 'MALE', skinColor: DEFAULT_COLORS.skinColor, hairStyle: 'SHORT_CUT', hairColor: '#111827',
   instrumentType: 'GUITAR', instrumentColor: '#B91C1C', outfitId: null, stageBackground: null,
-  itemColors: {}, stageEffect: null, bottom: 'JEANS', hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: 'BASIC_SHOES',
+  itemColors: {}, instrumentHidden: false, stageEffect: null, bottom: 'JEANS', hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: 'BASIC_SHOES',
 })
 const WEAR_SLOTS = [BOTTOM_SLOT, ...ACCESSORY_SLOTS]
 const ACCESSORY_FIELDS = WEAR_SLOTS.map((s) => s.field)
-const WARDROBE_KEYS = ['outfitId', 'stageBackground', 'stageEffect', ...ACCESSORY_FIELDS]
+const WARDROBE_KEYS = ['outfitId', 'stageBackground', 'stageEffect', 'instrumentHidden', ...ACCESSORY_FIELDS]
 
 const outfits = ref([])
 const backgrounds = ref([])
@@ -283,6 +289,7 @@ const snapshot = (c, wardrobe) => ({
   // 고른 적 없으면 레벨로 얻은 가장 큰 무대 (서버도 같은 규칙으로 돌려준다)
   stageBackground: wardrobe?.stageBackground ?? c.stageBackground ?? getLevelTier(c.level ?? 1).key,
   stageEffect: c.stageEffect ?? null,
+  instrumentHidden: !!c.instrumentHidden,
   itemColors: { ...(c.itemColors || {}) },
   ...Object.fromEntries(WEAR_SLOTS.map((s) => [s.field, wornIn(s, c)])),
 })
@@ -441,6 +448,13 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .opt-thumb i, .item-thumb.sprite i { font-style: normal; }
 .opt-thumb i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(248, 249, 250, 0.75); font-size: 0.9rem; }
 .item-thumb.sprite { align-items: center; }
+.toggle {
+  display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 2px; cursor: pointer;
+  padding: 10px 12px; background: #f8f9fa; border-radius: 12px;
+}
+.toggle input { width: 16px; height: 16px; accent-color: #2d5bff; }
+.toggle span { font-size: 0.82rem; font-weight: 800; color: #495057; }
+.toggle small { grid-column: 2; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 .item-color { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px; background: #f8f9fa; border-radius: 12px; }
 .item-color > span { font-size: 0.75rem; font-weight: 800; color: #868e96; }
 

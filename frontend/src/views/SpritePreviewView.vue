@@ -55,7 +55,7 @@
           <figcaption>{{ h }}</figcaption>
         </figure>
         <figure v-for="i in instruments" :key="`i-${i}`">
-          <PixelSprite :parts="[['instrument', i]]" :colors="character" :box="40" />
+          <PixelSprite :parts="[['instrument', i]]" :colors="character" :box="36" exact />
           <figcaption>{{ i }}</figcaption>
         </figure>
         <template v-for="slot in ACCESSORY_SLOTS" :key="`s-${slot.key}`">

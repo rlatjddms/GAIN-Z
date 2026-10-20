@@ -51,7 +51,8 @@ const spec = computed(() => {
     glasses: c.glasses || null,
     hat: c.hat || null,
     hair: c.hairStyle === null ? null : (c.hairStyle || 'SHORT_CUT'),
-    instrument: c.instrumentType === null ? null : (c.instrumentType || 'GUITAR'),
+    // 악기를 내려놓은 캐릭터(instrumentHidden)는 악기를 그리지 않는다
+    instrument: c.instrumentType === null || c.instrumentHidden ? null : (c.instrumentType || 'GUITAR'),
     colors: {
       skinColor: c.skinColor || DEFAULT_COLORS.skinColor,
       hairColor: c.hairColor || DEFAULT_COLORS.hairColor,

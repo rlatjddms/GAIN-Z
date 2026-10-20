@@ -176,7 +176,7 @@
                     @click="instrumentType = inst.value"
                   >
                     <span class="inst-grid-icon">
-                      <PixelSprite :parts="[['instrument', inst.value]]" :colors="{ instrumentColor }" :box="40" :label="inst.label" />
+                      <PixelSprite :parts="[['instrument', inst.value]]" :colors="{ instrumentColor }" :box="36" exact :label="inst.label" />
                     </span>
                     <span class="inst-grid-label">{{ inst.label }}</span>
                   </button>
