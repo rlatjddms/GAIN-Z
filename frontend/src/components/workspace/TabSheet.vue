@@ -123,7 +123,7 @@ const rows = computed(() => {
 .tuning { position: relative; flex: none; width: 20px; margin-top: 36px; }
 .tuning span {
   position: absolute; left: 0; transform: translateY(-50%);
-  font-size: 0.6rem; font-weight: 800; color: #adb5bd; line-height: 1;
+  font-size: 0.6rem; font-weight: 800; color: var(--c-faint); line-height: 1;
 }
 
 .measures { flex: 1; display: flex; min-width: 0; }
@@ -135,8 +135,8 @@ const rows = computed(() => {
   font-size: 0.65rem; font-weight: 900; color: #fff; background: var(--c-primary); border-radius: 4px; padding: 1px 5px;
 }
 .num { font-size: 0.6rem; font-weight: 800; color: #ced4da; font-variant-numeric: tabular-nums; }
-.time { font-size: 0.65rem; font-weight: 900; color: #495057; }
-.bad { font-size: 0.6rem; font-weight: 800; color: #e03131; }
+.time { font-size: 0.65rem; font-weight: 900; color: var(--c-text-2); }
+.bad { font-size: 0.6rem; font-weight: 800; color: var(--c-danger); }
 
 .chords { position: relative; height: 20px; }
 .chords span {
@@ -145,8 +145,8 @@ const rows = computed(() => {
 }
 
 /* 줄과 마디줄: 마디마다 왼쪽에 마디줄, 줄 마지막 마디는 오른쪽에도 */
-.staff { position: relative; border-left: 1px solid #868e96; }
-.measure:last-child .staff { border-right: 1px solid #868e96; }
+.staff { position: relative; border-left: 1px solid var(--c-muted); }
+.measure:last-child .staff { border-right: 1px solid var(--c-muted); }
 .line { position: absolute; left: 0; right: 0; height: 1px; background: #ced4da; }
 
 .fret {
@@ -156,7 +156,7 @@ const rows = computed(() => {
   font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
 }
 .measure.current .fret { background: var(--c-primary-soft); }
-.fret small { font-size: 0.6rem; color: #868e96; margin-left: 1px; }
+.fret small { font-size: 0.6rem; color: var(--c-muted); margin-left: 1px; }
 .tech {
   position: absolute; transform: translate(-190%, -120%);
   font-size: 0.58rem; font-weight: 800; font-style: italic; color: var(--c-primary-text); line-height: 1;
@@ -165,8 +165,8 @@ const rows = computed(() => {
 .cursor { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--c-primary); border-radius: 1px; }
 
 .fingering {
-  margin: 4px 0 0; padding: 0 4px; font-size: 0.62rem; font-weight: 700; color: #868e96;
+  margin: 4px 0 0; padding: 0 4px; font-size: 0.62rem; font-weight: 700; color: var(--c-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.measure.invalid .staff { background: repeating-linear-gradient(135deg, transparent 0 6px, #fff5f5 6px 12px); }
+.measure.invalid .staff { background: repeating-linear-gradient(135deg, transparent 0 6px, var(--c-danger-soft) 6px 12px); }
 </style>

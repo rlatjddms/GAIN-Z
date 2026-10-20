@@ -25,9 +25,9 @@ const glyph = computed(() => Math.round(props.size / 2))
 <style scoped>
 .icon {
   flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: #f1f3f5; color: #868e96;
+  background: var(--c-line-soft); color: var(--c-muted);
 }
-.icon.friend { background: #ebfbee; color: #2f9e44; }
+.icon.friend { background: #ebfbee; color: var(--c-success); }
 .icon.band { background: var(--c-primary-soft); color: var(--c-primary-text); }
 .icon.community { background: #fff4e6; color: #e8590c; }
 .icon.jam { background: #f3f0ff; color: #7048e8; }

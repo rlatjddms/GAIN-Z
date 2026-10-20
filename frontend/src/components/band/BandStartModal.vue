@@ -3,10 +3,10 @@
     <transition name="modal">
       <div v-if="open" class="backdrop" @click.self="!saving && emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="band-start-title">
-          <div class="tabs" role="tablist">
-            <button type="button" role="tab" :aria-selected="tab === 'create'" :class="{ active: tab === 'create' }"
+          <div class="segment fill tabs" role="tablist">
+            <button type="button" role="tab" :aria-selected="tab === 'create'" :class="{ on: tab === 'create' }"
                     :disabled="saving" @click="tab = 'create'">밴드 만들기</button>
-            <button type="button" role="tab" :aria-selected="tab === 'join'" :class="{ active: tab === 'join' }"
+            <button type="button" role="tab" :aria-selected="tab === 'join'" :class="{ on: tab === 'join' }"
                     :disabled="saving" @click="tab = 'join'">초대 코드로 가입</button>
           </div>
 
@@ -124,31 +124,26 @@ const submit = async () => {
 </script>
 
 <style scoped>
+.tabs { margin-bottom: 18px; }
 .backdrop {
   position: fixed; inset: 0; z-index: 2000; background: rgba(15, 23, 42, 0.45);
   display: flex; align-items: center; justify-content: center; padding: 16px;
 }
 .modal {
   width: 100%; max-width: 420px; box-sizing: border-box;
-  background: #fff; border-radius: 24px; padding: 24px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  font-family: 'Pretendard', sans-serif; color: #1a1a1a;
+  background: var(--c-surface); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-lg);
+  font-family: 'Pretendard', sans-serif; color: var(--c-text);
 }
-.tabs { display: flex; background: #f1f3f5; padding: 4px; border-radius: 12px; margin-bottom: 18px; }
-.tabs button {
-  flex: 1; border: none; background: none; padding: 8px; border-radius: 9px; cursor: pointer;
-  font-family: inherit; font-weight: 800; font-size: 0.8rem; color: #adb5bd;
-}
-.tabs button.active { background: #fff; color: var(--c-primary-text); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }
 h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
-.sub { margin: 0 0 18px; font-size: 0.8rem; color: #868e96; line-height: 1.5; }
+.sub { margin: 0 0 18px; font-size: 0.8rem; color: var(--c-muted); line-height: 1.5; }
 
 .field { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
 form > .field:first-child { margin-top: 0; }
-.field > span { font-size: 0.75rem; font-weight: 800; color: #495057; }
-.field em { font-style: normal; font-weight: 600; color: #adb5bd; }
+.field > span { font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }
+.field em { font-style: normal; font-weight: 600; color: var(--c-faint); }
 .field input, .field textarea {
-  border: 1px solid #e9ecef; border-radius: 12px; padding: 11px 14px; font-family: inherit;
-  font-size: 0.9rem; outline: none; background: #f8f9fa; resize: none;
+  border: 1px solid var(--c-line); border-radius: 12px; padding: 11px 14px; font-family: inherit;
+  font-size: 0.9rem; outline: none; background: var(--c-bg); resize: none;
 }
 .field input:focus, .field textarea:focus { border-color: var(--c-primary); background: #fff; }
 .code-input { font-family: ui-monospace, Menlo, Consolas, monospace !important; letter-spacing: 4px; font-weight: 800; text-align: center; font-size: 1.1rem !important; }
@@ -156,21 +151,15 @@ form > .field:first-child { margin-top: 0; }
 
 .parts { display: flex; flex-wrap: wrap; gap: 6px; }
 .part {
-  border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 7px 10px; cursor: pointer;
-  font-family: inherit; font-size: 0.78rem; font-weight: 700; color: #495057; display: flex; align-items: center; gap: 4px;
+  border: 1px solid var(--c-line); background: #fff; border-radius: 10px; padding: 7px 10px; cursor: pointer;
+  font-family: inherit; font-size: 0.78rem; font-weight: 700; color: var(--c-text-2); display: flex; align-items: center; gap: 4px;
 }
 .part.active { border-color: var(--c-primary); background: var(--c-primary-soft); color: var(--c-primary-text); }
 .part .emoji { font-size: 0.95rem; }
 
-.error { margin: 12px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.error { margin: 12px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 .actions { display: flex; gap: 8px; margin-top: 20px; }
-.btn {
-  flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
-  font-weight: 800; font-size: 0.9rem; padding: 12px; border-radius: 12px; font-family: inherit;
-}
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
+.btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 </style>

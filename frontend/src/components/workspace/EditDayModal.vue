@@ -17,7 +17,7 @@
             </label>
           </div>
           <div class="quick">
-            <button v-for="q in QUICK" :key="q" class="chip" :disabled="saving" @click="addMinutes(q)">+{{ q }}분</button>
+            <button v-for="q in QUICK" :key="q" class="btn small" :disabled="saving" @click="addMinutes(q)">+{{ q }}분</button>
           </div>
 
           <p class="note">지금 기록: {{ durationText(currentSeconds) }}</p>
@@ -92,37 +92,27 @@ const submit = async () => {
 }
 .modal {
   width: 100%; max-width: 380px; box-sizing: border-box;
-  background: #fff; border-radius: 24px; padding: 24px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  font-family: 'Pretendard', sans-serif; color: #1a1a1a;
+  background: var(--c-surface); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-lg);
+  font-family: 'Pretendard', sans-serif; color: var(--c-text);
 }
 h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
-.sub { margin: 0 0 18px; font-size: 0.8rem; color: #868e96; }
+.sub { margin: 0 0 18px; font-size: 0.8rem; color: var(--c-muted); }
 
 .inputs { display: flex; gap: 10px; }
-.inputs label { flex: 1; display: flex; align-items: center; gap: 8px; background: #f8f9fa; border-radius: 12px; padding: 10px 14px; }
+.inputs label { flex: 1; display: flex; align-items: center; gap: 8px; background: var(--c-bg); border-radius: 12px; padding: 10px 14px; }
 .inputs input {
   width: 100%; min-width: 0; border: none; background: none; outline: none; font-family: inherit;
   font-size: 1.4rem; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums;
 }
-.inputs span { flex: none; white-space: nowrap; font-size: 0.85rem; font-weight: 800; color: #868e96; }
+.inputs span { flex: none; white-space: nowrap; font-size: 0.85rem; font-weight: 800; color: var(--c-muted); }
 .quick { display: flex; gap: 6px; margin-top: 10px; }
-.chip {
-  flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer; font-family: inherit;
-  font-size: 0.75rem; font-weight: 800; padding: 7px 0; border-radius: 9px;
-}
-.chip:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
+.quick .btn { flex: 1; }
 
-.note { margin: 14px 0 0; font-size: 0.75rem; color: #adb5bd; line-height: 1.5; }
-.error { margin: 8px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.note { margin: 14px 0 0; font-size: 0.75rem; color: var(--c-faint); line-height: 1.5; }
+.error { margin: 8px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 .actions { display: flex; gap: 8px; margin-top: 18px; }
-.btn {
-  flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
-  font-weight: 800; font-size: 0.9rem; padding: 12px; border-radius: 12px; font-family: inherit;
-}
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
+.btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 </style>

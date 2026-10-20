@@ -198,7 +198,7 @@ const handleSocialLogin = (provider) => {
   font-size: 0.95rem;
   background: #fff;
   transition: all 0.2s;
-  color: #1a1a1a;
+  color: var(--c-text);
   outline: none;
 }
 
@@ -284,7 +284,7 @@ const handleSocialLogin = (provider) => {
   left: 0;
   width: 100%;
   height: 1px;
-  background: #f1f3f5;
+  background: var(--c-line-soft);
 }
 
 .social-divider span {
@@ -292,7 +292,7 @@ const handleSocialLogin = (provider) => {
   background: #fff;
   padding: 0 15px;
   font-size: 0.8rem;
-  color: #adb5bd;
+  color: var(--c-faint);
 }
 
 .social-row {
@@ -329,7 +329,7 @@ const handleSocialLogin = (provider) => {
 
 .naver { background: #03c75a; color: #fff; font-weight: 900; font-size: 1.1rem; }
 
-.google { background: #fff; border: 1px solid #e9ecef !important; }
+.google { background: #fff; border: 1px solid var(--c-line) !important; }
 
 .login-footer {
   margin-top: 45px;

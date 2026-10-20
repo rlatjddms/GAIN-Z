@@ -69,26 +69,26 @@ const capo = computed(() => (props.instrumentType === 'GUITAR' && changed.value 
 .key-row { display: flex; align-items: center; gap: 8px; }
 .key-control { display: flex; align-items: center; gap: 4px; }
 .key-box { min-width: 56px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
-.key-box .label { font-size: 0.6rem; font-weight: 800; color: #adb5bd; }
-.key-box strong { font-size: 1.2rem; font-weight: 900; color: #495057; }
+.key-box .label { font-size: 0.6rem; font-weight: 800; color: var(--c-faint); }
+.key-box strong { font-size: 1.2rem; font-weight: 900; color: var(--c-text-2); }
 .key-box.now strong { color: #e8590c; }
 .arrow { color: #ced4da; font-weight: 900; }
 .step {
-  width: 34px; height: 34px; border: 1px solid #e9ecef; background: #fff; border-radius: 10px; cursor: pointer;
-  font-family: inherit; font-size: 1.05rem; font-weight: 900; color: #495057;
+  width: 34px; height: 34px; border: 1px solid var(--c-line); background: #fff; border-radius: 10px; cursor: pointer;
+  font-family: inherit; font-size: 1.05rem; font-weight: 900; color: var(--c-text-2);
 }
 .step:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 
-.info { margin: 10px 0 0; font-size: 0.75rem; font-weight: 700; color: #868e96; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.saved { color: #2f9e44; font-weight: 800; }
+.info { margin: 10px 0 0; font-size: 0.75rem; font-weight: 700; color: var(--c-muted); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.saved { font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
 .text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; }
 .capo { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: #fff4e6; color: #d9480f; font-size: 0.75rem; font-weight: 700; line-height: 1.5; }
 
 .map { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 0.85rem; }
-.map th { font-size: 0.65rem; font-weight: 800; color: #adb5bd; text-align: left; padding: 0 4px 6px; }
-.map td { padding: 5px 4px; border-top: 1px solid #f1f3f5; font-weight: 800; color: #495057; }
-.map .degree { font-size: 0.7rem; color: #adb5bd; width: 34px; }
+.map th { font-size: 0.65rem; font-weight: 800; color: var(--c-faint); text-align: left; padding: 0 4px 6px; }
+.map td { padding: 5px 4px; border-top: 1px solid var(--c-line-soft); font-weight: 800; color: var(--c-text-2); }
+.map .degree { font-size: 0.7rem; color: var(--c-faint); width: 34px; }
 .map .arrow { width: 18px; text-align: center; }
 .map .to { color: #e8590c; font-weight: 900; }
-.note { margin: 8px 0 0; font-size: 0.7rem; color: #adb5bd; line-height: 1.5; }
+.note { margin: 8px 0 0; font-size: 0.7rem; color: var(--c-faint); line-height: 1.5; }
 </style>

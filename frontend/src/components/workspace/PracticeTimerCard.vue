@@ -53,6 +53,7 @@ import EditDayModal from './EditDayModal.vue'
 import { usePracticeTimerStore } from '../../stores/practiceTimer'
 import { usePracticeStore } from '../../stores/practice'
 import { apiErrorMessage } from '../../api/practice'
+import { useDialogStore } from '../../stores/dialog'
 import { clock, dateKey, dateLabel, durationText, isEditable, startOfDay } from '../../constants/practice'
 
 // date: 보고 있는 날짜 ('YYYY-MM-DD'). 오늘이면 타이머, 지난 날이면 그날 총 시간과 고치기
@@ -106,7 +107,8 @@ let savedTimer = null
 
 const LONG_SESSION_SECONDS = 8 * 3600
 
-const toggle = () => {
+const dialog = useDialogStore()
+const toggle = async () => {
   if (!timer.running) {
     error.value = ''
     savedMessage.value = ''
@@ -117,8 +119,8 @@ const toggle = () => {
   const total = sessionSeconds.value
   // 깜빡 켜 두었을 수 있으니 아주 긴 구간은 한 번 확인
   if (total >= LONG_SESSION_SECONDS
-    && !window.confirm(`타이머가 ${durationText(total)} 동안 켜져 있었어요. 그대로 기록할까요?\n(나중에 날짜를 눌러 시간을 고칠 수도 있어요)`)) {
-    if (window.confirm('이번 구간을 기록하지 않고 버릴까요?')) timer.discard()
+    && !await dialog.confirm({ title: `타이머가 ${durationText(total)} 동안 켜져 있었어요`, text: '그대로 기록할까요?\n나중에 날짜를 눌러 시간을 고칠 수도 있어요.', okText: '기록하기', cancelText: '아니요' })) {
+    if (await dialog.confirm({ title: '이번 구간을 버릴까요?', text: '기록하지 않고 타이머를 멈춰요.', okText: '버리기', cancelText: '그대로 두기', danger: true })) timer.discard()
     return
   }
   saveParts(timer.stop())
@@ -176,9 +178,9 @@ const showSaved = (exp) => {
 <style scoped>
 .timer-display {
   font-size: 3rem; font-weight: 900; letter-spacing: 2px; text-align: center;
-  font-variant-numeric: tabular-nums; color: #868e96; padding: 8px 0 16px; transition: color 0.2s;
+  font-variant-numeric: tabular-nums; color: var(--c-muted); padding: 8px 0 16px; transition: color 0.2s;
 }
-.timer-display.running { color: #1a1a1a; }
+.timer-display.running { color: var(--c-text); }
 
 .toggle {
   width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -188,7 +190,7 @@ const showSaved = (exp) => {
 }
 .toggle:hover:not(:disabled) { background: var(--c-primary-strong); }
 .toggle:active:not(:disabled) { transform: scale(0.98); }
-.toggle.running { background: #1a1a1a; }
+.toggle.running { background: var(--c-text); }
 .toggle.running:hover:not(:disabled) { background: #343a40; }
 .toggle:disabled { opacity: 0.6; cursor: wait; }
 .toggle.secondary { background: #fff; color: var(--c-primary-text); box-shadow: inset 0 0 0 1px var(--c-primary-line); }
@@ -198,19 +200,19 @@ const showSaved = (exp) => {
   color: var(--c-primary-text); cursor: pointer;
 }
 .text-btn:disabled { color: #ced4da; cursor: default; }
-.live-note { color: #e03131; font-weight: 700; }
+.live-note { color: var(--c-danger); font-weight: 700; }
 .link { border: none; background: none; padding: 0; font: inherit; font-weight: 800; color: var(--c-primary-text); cursor: pointer; text-decoration: underline; }
 .icon { font-size: 0.85rem; }
 
-.badge { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 800; color: #e03131; }
-.badge i { width: 7px; height: 7px; border-radius: 50%; background: #e03131; animation: blink 1s infinite; }
+.badge { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 800; color: var(--c-danger); }
+.badge i { width: 7px; height: 7px; border-radius: 50%; background: var(--c-danger); animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: 0.2; } }
 
-.status { margin: 12px 0 0; font-size: 0.75rem; color: #adb5bd; line-height: 1.5; text-align: center; font-variant-numeric: tabular-nums; }
+.status { margin: 12px 0 0; font-size: 0.75rem; color: var(--c-faint); line-height: 1.5; text-align: center; font-variant-numeric: tabular-nums; }
 .status.saved { color: var(--c-primary-text); font-weight: 800; }
-.status.error { color: #e03131; font-weight: 700; }
+.status.error { color: var(--c-danger); font-weight: 700; }
 .retry {
-  margin-left: 6px; border: 1px solid #ffc9c9; background: #fff5f5; color: #e03131; cursor: pointer;
+  margin-left: 6px; border: 1px solid #ffc9c9; background: var(--c-danger-soft); color: var(--c-danger); cursor: pointer;
   font: inherit; font-weight: 800; padding: 2px 8px; border-radius: 6px;
 }
 

@@ -48,5 +48,5 @@ const shift = (chord) => transposeChord(chord, ctx.value.semitones, ctx.value.pr
   font-family: 'Pretendard', sans-serif; font-variant-numeric: tabular-nums;
 }
 .lyric { font-weight: 600; }
-.empty { margin: 0; color: #adb5bd; font-size: 0.85rem; }
+.empty { margin: 0; color: var(--c-faint); font-size: 0.85rem; }
 </style>

@@ -44,6 +44,7 @@ import {
   PROFILE_MUSIC_TITLE_MAX, PROFILE_MUSIC_ARTIST_MAX, PROFILE_MUSIC_URL_MAX,
 } from '../api/user'
 import { apiErrorMessage } from '../api/practice'
+import { useDialogStore } from '../stores/dialog'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -92,8 +93,8 @@ const save = () => {
     '음악을 저장하지 못했어요.')
 }
 
-const remove = () => {
-  if (busy.value || !window.confirm('요즘 듣는 음악을 지울까요?')) return
+const remove = async () => {
+  if (busy.value || !await useDialogStore().confirm({ title: '요즘 듣는 음악을 지울까요?', okText: '지우기', danger: true })) return
   run(() => deleteProfileMusic(), '음악을 지우지 못했어요.')
 }
 </script>
@@ -105,33 +106,25 @@ const remove = () => {
 }
 .modal {
   width: 100%; max-width: 380px; box-sizing: border-box;
-  background: #fff; border-radius: 24px; padding: 24px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  font-family: 'Pretendard', sans-serif; color: #1a1a1a;
+  background: var(--c-surface); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-lg);
+  font-family: 'Pretendard', sans-serif; color: var(--c-text);
 }
 h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
-.sub { margin: 0 0 18px; font-size: 0.8rem; color: #868e96; }
+.sub { margin: 0 0 18px; font-size: 0.8rem; color: var(--c-muted); }
 .field { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
 .field:first-of-type { margin-top: 0; }
-.field span { font-size: 0.75rem; font-weight: 800; color: #495057; }
-.field em { font-style: normal; font-weight: 700; color: #adb5bd; margin-left: 4px; }
+.field span { font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }
+.field em { font-style: normal; font-weight: 700; color: var(--c-faint); margin-left: 4px; }
 .field input {
-  border: 1px solid #e9ecef; border-radius: 12px; padding: 11px 14px; font-family: inherit;
-  font-size: 0.9rem; outline: none; background: #f8f9fa;
+  border: 1px solid var(--c-line); border-radius: 12px; padding: 11px 14px; font-family: inherit;
+  font-size: 0.9rem; outline: none; background: var(--c-bg);
 }
 .field input:focus { border-color: var(--c-primary); background: #fff; }
 .hint { margin: 6px 0 0; font-size: 0.72rem; font-weight: 700; line-height: 1.5; }
 .hint.bad { color: #e8590c; }
-.error { margin: 12px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.error { margin: 12px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 .actions { display: flex; align-items: center; gap: 8px; margin-top: 20px; }
 .spacer { flex: 1; }
-.btn {
-  border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
-  font-weight: 800; font-size: 0.85rem; padding: 10px 14px; border-radius: 12px; font-family: inherit;
-}
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn.ghost { border-color: transparent; color: #adb5bd; padding-left: 4px; padding-right: 4px; }
-.btn.ghost:hover:not(:disabled) { color: #e03131; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }

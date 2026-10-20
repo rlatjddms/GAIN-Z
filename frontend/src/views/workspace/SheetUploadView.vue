@@ -1,17 +1,13 @@
 <template>
-  <SubPageLayout>
-  <div class="page">
-    <router-link :to="editing ? `/sheets/${itemId}` : '/sheets'" class="crumb">‹ {{ editing ? '악보로 돌아가기' : '악보 보관함' }}</router-link>
-
-    <div class="page-head">
-      <div>
-        <h2>{{ editing ? '악보 정보 수정' : '악보 올리기' }}</h2>
-        <p>{{ editing ? '곡 정보를 고치거나 장을 더 올리고 지울 수 있어요.' : '갖고 있는 악보 사진·스캔·PDF를 올리면 내 보관함에 담겨요.' }}</p>
-      </div>
+  <SubPageLayout :back-to="editing ? `/sheets/${itemId}` : '/sheets'" :back-label="editing ? '악보' : '악보 보관함'"
+                 :title="editing ? 'EDIT SHEET' : 'UPLOAD SHEET'" :name="editing ? '악보 정보 수정' : '악보 올리기'"
+                 :subtitle="editing ? '곡 정보를 고치거나 장을 더 올리고 지울 수 있어요' : '갖고 있는 악보 사진·스캔·PDF를 올리면 내 보관함에 담겨요'">
+    <template #actions>
       <button class="btn primary" :disabled="!canSave" @click="save">
         {{ saving ? (editing ? '저장 중…' : `올리는 중 ${Math.round(progress * 100)}%`) : (editing ? '저장' : '올리기') }}
       </button>
-    </div>
+    </template>
+  <div class="page">
 
     <p v-if="loadError" class="error">{{ loadError }}</p>
     <div v-else-if="editing && !sheet" class="loading">불러오는 중…</div>
@@ -149,9 +145,11 @@ import {
 } from '../../constants/sheet'
 import { MAJOR_KEYS, MINOR_KEYS } from '../../music/transpose'
 import { useAuthStore } from '../../stores/auth'
+import { useDialogStore } from '../../stores/dialog'
 
 const route = useRoute()
 const router = useRouter()
+const dialog = useDialogStore()
 const auth = useAuthStore()
 const itemId = route.params.id
 const editing = !!itemId
@@ -255,7 +253,7 @@ const uploadMore = async (files) => {
 }
 
 const removePage = async (page) => {
-  if (!window.confirm(`${page.pageNumber}장을 지울까요?`)) return
+  if (!await dialog.confirm({ title: `${page.pageNumber}장을 지울까요?`, okText: '지우기', danger: true })) return
   adding.value = true
   try {
     const result = await deleteSheetPage(sheet.value.id, page.id)
@@ -300,23 +298,12 @@ const save = async () => {
   }
 }
 
-onBeforeRouteLeave(() => (dirty.value && !loadError.value ? window.confirm('저장하지 않은 내용이 있어요. 나갈까요?') : true))
+onBeforeRouteLeave(() => (dirty.value && !loadError.value ? dialog.confirm({ title: '저장하지 않은 내용이 있어요', text: '저장하지 않고 나갈까요?', okText: '나가기' }) : true))
 </script>
 
 <style scoped>
-.page { display: flex; flex-direction: column; gap: 14px; }
-.crumb { align-self: flex-start; font-size: 0.8rem; font-weight: 800; color: #868e96; text-decoration: none; }
-.crumb:hover { color: var(--c-primary-text); }
-.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.page-head h2 { margin: 0 0 4px; font-size: 1.3rem; font-weight: 900; }
-.page-head p { margin: 0; font-size: 0.8rem; font-weight: 700; color: #adb5bd; }
+.page { display: flex; flex-direction: column; gap: 16px; }
 
-.btn {
-  border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit; cursor: pointer;
-  font-weight: 800; font-size: 0.85rem; padding: 10px 22px; border-radius: 12px;
-}
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .info-card { position: sticky; top: 16px; }
@@ -332,45 +319,45 @@ onBeforeRouteLeave(() => (dirty.value && !loadError.value ? window.confirm('저�
 .drop input:disabled { cursor: not-allowed; }
 .drop-icon { color: var(--c-faint); }
 .drop strong { font-size: 0.9rem; font-weight: 800; color: #343a40; }
-.drop-sub { font-size: 0.72rem; color: #adb5bd; font-weight: 600; line-height: 1.6; }
+.drop-sub { font-size: 0.72rem; color: var(--c-faint); font-weight: 600; line-height: 1.6; }
 
-.progress { height: 6px; margin-top: 10px; border-radius: 999px; background: #f1f3f5; overflow: hidden; }
+.progress { height: 6px; margin-top: 10px; border-radius: 999px; background: var(--c-line-soft); overflow: hidden; }
 .progress span { display: block; height: 100%; background: var(--c-primary); transition: width 0.2s; }
 
 .pages { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.pages li { display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid #f1f3f5; border-radius: 12px; }
+.pages li { display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid var(--c-line-soft); border-radius: 12px; }
 .thumb {
-  flex: none; width: 48px; height: 64px; border-radius: 6px; overflow: hidden; background: #f8f9fa;
-  display: flex; align-items: center; justify-content: center; border: 1px solid #f1f3f5;
+  flex: none; width: 48px; height: 64px; border-radius: 6px; overflow: hidden; background: var(--c-bg);
+  display: flex; align-items: center; justify-content: center; border: 1px solid var(--c-line-soft);
 }
 .thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.thumb .pdf { font-size: 0.65rem; font-weight: 900; color: #e03131; }
+.thumb .pdf { font-size: 0.65rem; font-weight: 900; color: var(--c-danger); }
 .page-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .page-info strong { font-size: 0.85rem; font-weight: 800; }
-.page-info span { font-size: 0.72rem; color: #868e96; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-info span { font-size: 0.72rem; color: var(--c-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .page-actions { display: flex; gap: 4px; }
 .icon {
-  width: 32px; height: 32px; border: 1px solid #e9ecef; background: #fff; border-radius: 8px; cursor: pointer;
-  font-family: inherit; font-weight: 900; color: #495057;
+  width: 32px; height: 32px; border: 1px solid var(--c-line); background: #fff; border-radius: 8px; cursor: pointer;
+  font-family: inherit; font-weight: 900; color: var(--c-text-2);
 }
 .icon:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
-.icon.danger:hover:not(:disabled) { border-color: #ffa8a8; color: #e03131; }
+.icon.danger:hover:not(:disabled) { border-color: #ffa8a8; color: var(--c-danger); }
 .icon:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field.wide { grid-column: 1 / -1; }
-.field > span { font-size: 0.75rem; font-weight: 800; color: #495057; }
-.field em { font-style: normal; color: #e03131; }
+.field > span { font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }
+.field em { font-style: normal; color: var(--c-danger); }
 .field input, .field select {
-  width: 100%; box-sizing: border-box; border: 1px solid #e9ecef; border-radius: 10px; background: #fff;
+  width: 100%; box-sizing: border-box; border: 1px solid var(--c-line); border-radius: 10px; background: #fff;
   padding: 10px 12px; font-family: inherit; font-size: 0.85rem; color: #212529; outline: none;
 }
 .field input:focus, .field select:focus { border-color: var(--c-primary); }
-.tip { margin: 12px 0 0; font-size: 0.72rem; color: #868e96; line-height: 1.5; }
+.tip { margin: 12px 0 0; font-size: 0.72rem; color: var(--c-muted); line-height: 1.5; }
 .hint { margin: 10px 0 0; font-size: 0.75rem; color: #e8590c; font-weight: 700; }
-.error { margin: 10px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
-.loading { padding: 48px; text-align: center; font-size: 0.85rem; color: #adb5bd; }
+.error { margin: 10px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
+.loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }

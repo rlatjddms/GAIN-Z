@@ -1,17 +1,11 @@
 <template>
-  <SubPageLayout>
+  <SubPageLayout title="WARDROBE" name="옷장" subtitle="바꾼 모습은 저장해야 반영돼요">
+    <template #actions>
+      <span v-if="savedMessage" class="saved">{{ savedMessage }}</span>
+      <button class="btn" :disabled="!dirty || saving" @click="reset">되돌리기</button>
+      <button class="btn primary" :disabled="!dirty || saving || !!nicknameError" @click="save">{{ saving ? '저장 중…' : '저장' }}</button>
+    </template>
     <div class="page">
-      <div class="page-head">
-        <div>
-          <h2>옷장</h2>
-          <p>바꾼 모습은 저장해야 반영돼요.</p>
-        </div>
-        <div class="head-actions">
-          <span v-if="savedMessage" class="saved">{{ savedMessage }}</span>
-          <button class="btn" :disabled="!dirty || saving" @click="reset">되돌리기</button>
-          <button class="btn primary" :disabled="!dirty || saving || !!nicknameError" @click="save">{{ saving ? '저장 중…' : '저장' }}</button>
-        </div>
-      </div>
       <p v-if="error" class="error">{{ error }}</p>
 
       <div class="layout">
@@ -43,7 +37,7 @@
             <div class="field">
               <span class="label">성별</span>
               <div class="chips">
-                <button v-for="g in GENDER_OPTIONS" :key="g.value" class="chip" :class="{ on: draft.gender === g.value }" @click="draft.gender = g.value">{{ g.label }}</button>
+                <button v-for="g in GENDER_OPTIONS" :key="g.value" class="pick" :class="{ on: draft.gender === g.value }" @click="draft.gender = g.value">{{ g.label }}</button>
               </div>
             </div>
 
@@ -262,6 +256,7 @@ import PixelCharacter from '../components/PixelCharacter.vue'
 import PixelSprite from '../components/PixelSprite.vue'
 import StageScene from '../components/StageScene.vue'
 import { useAuthStore } from '../stores/auth'
+import { useDialogStore } from '../stores/dialog'
 import { getWardrobe, updateWardrobe, updateAppearance } from '../api/character'
 import { apiErrorMessage } from '../api/practice'
 import { getLevelTier } from '../constants/levelTier'
@@ -430,27 +425,18 @@ const save = async () => {
 }
 
 // 저장하지 않고 나가려 하면 한 번 묻는다
-onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변경이 있어요. 나갈까요?') : true))
+const dialog = useDialogStore()
+onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 않은 변경이 있어요', text: '저장하지 않고 나갈까요?', okText: '나가기' }) : true))
 </script>
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 16px; }
-.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.page-head h2 { margin: 0 0 4px; font-size: 1.3rem; font-weight: 900; }
-.page-head p { margin: 0; font-size: 0.8rem; font-weight: 700; color: #adb5bd; }
-.head-actions { display: flex; align-items: center; gap: 8px; }
-.saved { font-size: 0.8rem; font-weight: 800; color: #2b8a3e; }
-.btn {
-  border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer; font-family: inherit;
-  font-weight: 800; font-size: 0.85rem; padding: 10px 18px; border-radius: 12px;
-}
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.error { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fff5f5; color: #e03131; font-size: 0.8rem; font-weight: 700; }
+.saved { font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
+.error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
 .preview { display: flex; flex-direction: column; gap: 8px; }
-.preview-caption { margin: 0; text-align: center; font-size: 0.78rem; font-weight: 800; color: #868e96; }
+.preview-caption { margin: 0; text-align: center; font-size: 0.78rem; font-weight: 800; color: var(--c-muted); }
 
 /* 넓은 화면: 옷장 전체가 한 화면에 들어오고, 긴 목록은 오른쪽 칸 안에서만 스크롤 */
 @media (min-width: 861px) {
@@ -462,31 +448,31 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
   .layout { grid-template-columns: minmax(0, 1fr); }
 }
 
-.panel { background: #fff; border: 1px solid #e9ecef; border-radius: 20px; overflow: hidden; }
-.tabs { display: flex; border-bottom: 1px solid #f1f3f5; }
+.panel { background: #fff; border: 1px solid var(--c-line); border-radius: 20px; overflow: hidden; }
+.tabs { display: flex; border-bottom: 1px solid var(--c-line-soft); }
 .tabs button {
   flex: 1; border: none; background: none; padding: 14px 0; cursor: pointer; font-family: inherit;
-  font-size: 0.9rem; font-weight: 800; color: #adb5bd; border-bottom: 2px solid transparent;
+  font-size: 0.9rem; font-weight: 800; color: var(--c-faint); border-bottom: 2px solid transparent;
 }
 .tabs button.on { color: var(--c-primary-text); border-bottom-color: var(--c-primary); }
 .tab-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 18px; }
 
 .field { display: flex; flex-direction: column; gap: 8px; }
-.label { font-size: 0.75rem; font-weight: 800; color: #868e96; }
+.label { font-size: 0.75rem; font-weight: 800; color: var(--c-muted); }
 .input {
   border: 1px solid #dee2e6; border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 0.9rem; font-weight: 700; outline: none;
 }
 .input:focus { border-color: var(--c-primary); }
 .warn { font-size: 0.72rem; font-weight: 700; color: #f08c00; margin: 0; }
-.hint { margin: 0; font-size: 0.78rem; color: #adb5bd; }
+.hint { margin: 0; font-size: 0.78rem; color: var(--c-faint); }
 
 .chips { display: flex; gap: 8px; }
-.chip, .opt, .item, .stage {
-  border: 1px solid #e9ecef; background: #fff; cursor: pointer; font-family: inherit; color: #495057;
+.pick, .opt, .item, .stage {
+  border: 1px solid var(--c-line); background: #fff; cursor: pointer; font-family: inherit; color: var(--c-text-2);
   transition: border-color 0.15s, background 0.15s;
 }
-.chip { padding: 8px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 800; }
-.chip.on, .opt.on, .item.on, .stage.on { border-color: var(--c-primary); background: var(--c-primary-soft); color: var(--c-primary-text); }
+.pick { padding: 8px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 800; }
+.pick.on, .opt.on, .item.on, .stage.on { border-color: var(--c-primary); background: var(--c-primary-soft); color: var(--c-primary-text); }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 .opt {
@@ -494,7 +480,7 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
   font-size: 0.75rem; font-weight: 800;
 }
 .opt-thumb {
-  position: relative; width: 52px; height: 40px; border-radius: 10px; background: #f8f9fa;
+  position: relative; width: 52px; height: 40px; border-radius: 10px; background: var(--c-bg);
   display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
 .opt.on .opt-thumb { background: #fff; }
@@ -503,14 +489,14 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .item-thumb.sprite { align-items: center; }
 .toggle {
   display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 2px; cursor: pointer;
-  padding: 10px 12px; background: #f8f9fa; border-radius: 12px;
+  padding: 10px 12px; background: var(--c-bg); border-radius: 12px;
 }
 .toggle input { width: 16px; height: 16px; accent-color: var(--c-primary); }
-.toggle span { font-size: 0.82rem; font-weight: 800; color: #495057; }
-.toggle small { grid-column: 2; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
+.toggle span { font-size: 0.82rem; font-weight: 800; color: var(--c-text-2); }
+.toggle small { grid-column: 2; font-size: 0.7rem; font-weight: 700; color: var(--c-faint); }
 .decor-thumb { width: 40px; image-rendering: pixelated; }
-.item-color { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px; background: #f8f9fa; border-radius: 12px; }
-.item-color > span { font-size: 0.75rem; font-weight: 800; color: #868e96; }
+.item-color { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px; background: var(--c-bg); border-radius: 12px; }
+.item-color > span { font-size: 0.75rem; font-weight: 800; color: var(--c-muted); }
 
 .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .item {
@@ -518,33 +504,33 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 }
 .item-thumb {
   position: relative; display: flex; align-items: flex-end; justify-content: center;
-  width: 64px; height: 72px; border-radius: 12px; background: #f1f3f5; overflow: hidden; font-size: 1.6rem;
+  width: 64px; height: 72px; border-radius: 12px; background: var(--c-line-soft); overflow: hidden; font-size: 1.6rem;
 }
 .item-thumb i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(248, 249, 250, 0.7); font-style: normal; }
-.empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 28px 12px; border: 2px dashed #e9ecef; border-radius: 14px; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 28px 12px; border: 2px dashed var(--c-line); border-radius: 14px; }
 .empty.small { padding: 14px 12px; }
 .empty-icon { font-size: 1.8rem; }
-.empty strong { font-size: 0.85rem; font-weight: 800; color: #868e96; }
-.empty p { margin: 0; font-size: 0.75rem; color: #adb5bd; }
+.empty strong { font-size: 0.85rem; font-weight: 800; color: var(--c-muted); }
+.empty p { margin: 0; font-size: 0.75rem; color: var(--c-faint); }
 .sub-section { display: flex; flex-direction: column; gap: 8px; }
 .item strong { font-size: 0.85rem; font-weight: 800; }
-.item small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
+.item small { font-size: 0.7rem; font-weight: 700; color: var(--c-faint); }
 .item.on small { color: var(--c-primary-text); }
-.item.locked, .stage.locked, .opt.locked { cursor: not-allowed; background: #f8f9fa; }
-.opt.locked { color: #adb5bd; }
-.lv { font-size: 0.65rem; font-weight: 800; color: #adb5bd; }
+.item.locked, .stage.locked, .opt.locked { cursor: not-allowed; background: var(--c-bg); }
+.opt.locked { color: var(--c-faint); }
+.lv { font-size: 0.65rem; font-weight: 800; color: var(--c-faint); }
 .items.small { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .items.small .item { padding: 10px 6px; }
 .items.small .item strong { font-size: 0.78rem; }
-.item-thumb.none { align-items: center; font-size: 0.75rem; font-weight: 800; color: #adb5bd; }
+.item-thumb.none { align-items: center; font-size: 0.75rem; font-weight: 800; color: var(--c-faint); }
 
-.item.locked strong, .stage.locked strong { color: #adb5bd; }
+.item.locked strong, .stage.locked strong { color: var(--c-faint); }
 
 .stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 .stage { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 10px; border-radius: 14px; text-align: left; }
 .thumb { position: relative; display: block; border-radius: 9px; overflow: hidden; line-height: 0; }
 .thumb i { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.55); font-style: normal; line-height: 1; }
 .stage strong { font-size: 0.82rem; font-weight: 800; }
-.stage small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
+.stage small { font-size: 0.7rem; font-weight: 700; color: var(--c-faint); }
 
 </style>

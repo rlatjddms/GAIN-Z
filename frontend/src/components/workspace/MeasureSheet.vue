@@ -2,7 +2,7 @@
   <!-- 마디 악보(TabData) 보기: 타브·코드 전환, 보는 키로 옮기기, BPM 따라가기 커서 -->
   <div ref="root" class="measure-sheet">
     <div class="bar">
-      <div v-if="canTab && hasChords" class="modes" role="tablist" aria-label="악보 종류">
+      <div v-if="canTab && hasChords" class="segment small" role="tablist" aria-label="악보 종류">
         <button role="tab" :aria-selected="mode === 'tab'" :class="{ on: mode === 'tab' }" @click="mode = 'tab'">타브</button>
         <button role="tab" :aria-selected="mode === 'chord'" :class="{ on: mode === 'chord' }" @click="mode = 'chord'">코드</button>
       </div>
@@ -114,25 +114,14 @@ onBeforeUnmount(stop)
 
 <style scoped>
 .bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-.modes { display: flex; background: #f1f3f5; border-radius: 10px; padding: 3px; }
-.modes button {
-  border: none; background: none; font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #868e96;
-  padding: 6px 12px; border-radius: 8px; cursor: pointer;
-}
-.modes button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
-.info { font-size: 0.72rem; font-weight: 700; color: #868e96; }
+.info { font-size: 0.72rem; font-weight: 700; color: var(--c-muted); }
 
 .play { margin-left: auto; display: flex; align-items: center; gap: 6px; }
-.bpm { display: flex; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 800; color: #adb5bd; }
+.bpm { display: flex; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 800; color: var(--c-faint); }
 .bpm input {
-  width: 52px; border: 1px solid #e9ecef; border-radius: 8px; padding: 6px; font-family: inherit;
-  font-size: 0.78rem; font-weight: 800; color: #495057; text-align: center; outline: none;
+  width: 52px; border: 1px solid var(--c-line); border-radius: 8px; padding: 6px; font-family: inherit;
+  font-size: 0.78rem; font-weight: 800; color: var(--c-text-2); text-align: center; outline: none;
 }
 .bpm input:focus { border-color: var(--c-primary); }
-.btn {
-  border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit; cursor: pointer;
-  font-weight: 800; font-size: 0.75rem; padding: 7px 12px; border-radius: 10px;
-}
-.btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 .btn.on { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 </style>

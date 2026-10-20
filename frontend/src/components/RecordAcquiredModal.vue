@@ -89,8 +89,8 @@ const showInCollection = () => {
 }
 .modal {
   position: relative; overflow: hidden; width: 100%; max-width: 340px; box-sizing: border-box; text-align: center;
-  background: #fff; border-radius: 28px; padding: 28px 24px 22px; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
-  font-family: 'Pretendard', sans-serif; color: #1a1a1a;
+  background: var(--c-surface); border-radius: var(--radius-xl); padding: 28px 24px 22px; box-shadow: var(--shadow-lg);
+  font-family: 'Pretendard', sans-serif; color: var(--c-text);
 }
 .rays {
   position: absolute; top: -120px; left: 50%; width: 360px; height: 360px; transform: translateX(-50%);
@@ -99,21 +99,15 @@ const showInCollection = () => {
 }
 .badge {
   position: relative; display: inline-block; padding: 5px 12px; border-radius: 999px;
-  background: #1a1a1a; color: #fff; font-size: 0.72rem; font-weight: 900; letter-spacing: 1px;
+  background: var(--c-text); color: #fff; font-size: 0.72rem; font-weight: 900; letter-spacing: 1px;
 }
 .disc { position: relative; display: flex; justify-content: center; margin: 18px 0 12px; animation: spin-in 0.7s ease-out; }
-.rarity { position: relative; font-size: 0.72rem; font-weight: 800; color: #868e96; }
+.rarity { position: relative; font-size: 0.72rem; font-weight: 800; color: var(--c-muted); }
 h2 { position: relative; margin: 4px 0 8px; font-size: 1.3rem; font-weight: 900; }
-.desc { margin: 0; font-size: 0.85rem; font-weight: 700; color: #495057; line-height: 1.5; }
-.condition { margin: 6px 0 0; font-size: 0.75rem; font-weight: 700; color: #adb5bd; }
+.desc { margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--c-text-2); line-height: 1.5; }
+.condition { margin: 6px 0 0; font-size: 0.75rem; font-weight: 700; color: var(--c-faint); }
 .actions { display: flex; gap: 8px; margin-top: 20px; }
-.btn {
-  flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
-  font-weight: 800; font-size: 0.85rem; padding: 11px; border-radius: 12px; font-family: inherit;
-}
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn.ghost:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
-
+.btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
 @keyframes spin-in {
   from { transform: scale(0.4) rotate(-180deg); opacity: 0; }
   to { transform: scale(1) rotate(0); opacity: 1; }

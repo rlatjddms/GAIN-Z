@@ -69,7 +69,9 @@ import BandPostAttachment from './BandPostAttachment.vue'
 import { attachmentsOf, postDate, postTimeAgo, mentionMembers, isActiveNotice } from '../../constants/bandBoard'
 import { deleteBandPost, listBandComments, addBandComment, updateBandComment, deleteBandComment } from '../../api/bandBoard'
 
+import { useDialogStore } from '../../stores/dialog'
 const props = defineProps({ post: { type: Object, required: true }, band: { type: Object, required: true } })
+const dialog = useDialogStore()
 const emit = defineEmits(['edit', 'deleted', 'changed', 'busy'])
 const auth = useAuthStore()
 const noticeNow = useNoticeClock(() => [props.post])
@@ -129,8 +131,8 @@ async function action(work) {
   catch (e) { error.value = message(e) }
   finally { busy.value = false; emit('busy', false) }
 }
-function removePost() {
-  if (!window.confirm('게시글을 삭제할까요?')) return
+async function removePost() {
+  if (!await dialog.confirm({ title: '게시글을 삭제할까요?', okText: '삭제', danger: true })) return
   action(async () => { await deleteBandPost(props.band.id, props.post.id); emit('deleted') })
 }
 async function startReply(comment) { replyTo.value = comment; await nextTick(); commentInput.value?.focus() }
@@ -150,8 +152,8 @@ function saveComment(comment) {
   if (!editText.value.trim()) return
   action(async () => { await updateBandComment(props.band.id, props.post.id, comment.id, editText.value.trim()); editId.value = null; await loadComments() })
 }
-function removeComment(comment) {
-  if (!window.confirm('댓글을 삭제할까요?')) return
+async function removeComment(comment) {
+  if (!await dialog.confirm({ title: '댓글을 삭제할까요?', okText: '삭제', danger: true })) return
   action(async () => {
     await deleteBandComment(props.band.id, props.post.id, comment.id)
     if (replyTo.value?.id === comment.id) replyTo.value = null
@@ -167,16 +169,16 @@ function removeComment(comment) {
 .author-row { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
 .author-info { flex: 1; min-width: 0; }
 .author-info strong { display: block; font-size: 14px; font-weight: 800; }
-.author-info time { display: block; font-size: 11px; color: #868e96; margin-top: 6px; }
+.author-info time { display: block; font-size: 11px; color: var(--c-muted); margin-top: 6px; }
 .post-title { margin: 0 0 20px; font-size: 25px; font-weight: 800; line-height: 1.5; letter-spacing: -.6px; overflow-wrap: anywhere; }
-.post-content { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.9; color: #495057; margin: 0 0 24px; }
+.post-content { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.9; color: var(--c-text-2); margin: 0 0 24px; }
 .notice-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--c-primary-text); background: var(--c-primary-soft); border-radius: 6px; padding: 4px 7px; font-size: 10px; font-weight: 800; margin-bottom: 10px; }
 .more-menu { position: relative; margin-left: auto; flex: none; }
 .more-menu summary { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: #526071; cursor: pointer; list-style: none; }
 .more-menu summary::-webkit-details-marker { display: none; }
-.more-menu summary:hover, .more-menu[open] summary { background: #f1f3f5; color: #343a40; }
-.menu-items { position: absolute; top: 36px; right: 0; z-index: 10; min-width: 132px; padding: 5px; border: 1px solid #e9ecef; border-radius: 12px; background: #fff; box-shadow: 0 6px 24px #1c2c4a14; }
-.menu-items button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 10px; background: none; border: none; border-radius: 7px; font: inherit; font-size: 12px; text-align: left; color: #495057; cursor: pointer; white-space: nowrap; }
+.more-menu summary:hover, .more-menu[open] summary { background: var(--c-line-soft); color: #343a40; }
+.menu-items { position: absolute; top: 36px; right: 0; z-index: 10; min-width: 132px; padding: 5px; border: 1px solid var(--c-line); border-radius: 12px; background: #fff; box-shadow: 0 6px 24px #1c2c4a14; }
+.menu-items button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 10px; background: none; border: none; border-radius: 7px; font: inherit; font-size: 12px; text-align: left; color: var(--c-text-2); cursor: pointer; white-space: nowrap; }
 .menu-items button:hover { background: #f6f7f9; }
 .menu-items .danger { color: #e05252; }
 .media-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -190,31 +192,31 @@ function removeComment(comment) {
 .comment-main { flex: 1; min-width: 0; }
 .comment-meta { display: flex; align-items: center; gap: 9px; min-height: 22px; }
 .comment-meta strong { font-size: 12px; font-weight: 800; }
-.comment-meta time { font-size: 10px; color: #adb5bd; }
+.comment-meta time { font-size: 10px; color: var(--c-faint); }
 .comment-menu summary { width: 24px; height: 24px; }
 .comment-menu .menu-items { top: 26px; min-width: 90px; }
-.comment-content { margin: 4px 0 7px; font-size: 13px; line-height: 1.65; color: #495057; white-space: pre-wrap; overflow-wrap: anywhere; }
+.comment-content { margin: 4px 0 7px; font-size: 13px; line-height: 1.65; color: var(--c-text-2); white-space: pre-wrap; overflow-wrap: anywhere; }
 .reply-button { padding: 0; background: none; border: none; font-family: inherit; font-size: 12px; font-weight: 500; color: #858b94; cursor: pointer; }
 .reply-button:hover { color: var(--c-primary-text); }
 .deleted { display: block; padding-left: 40px; }
-.quiet, .empty-comments { font-size: 12px; color: #adb5bd; }
+.quiet, .empty-comments { font-size: 12px; color: var(--c-faint); }
 .empty-comments { padding: 8px 0 20px; }
 .comment-composer { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; }
 .composer-box { flex: 1; min-width: 0; border: 1px solid #e3e7ee; background: #fff; border-radius: 13px; padding: 12px 14px; }
 .composer-box:focus-within { border-color: var(--c-primary-line); box-shadow: 0 0 0 3px var(--c-primary)06; }
 .composer-box :deep(textarea) { width: 100%; padding: 0; border: 0; outline: none; resize: vertical; min-height: 42px; font-family: inherit; font-size: 12px; color: #343a40; line-height: 1.7; background: transparent; }
-.composer-box :deep(textarea)::placeholder { color: #adb5bd; }
+.composer-box :deep(textarea)::placeholder { color: var(--c-faint); }
 .composer-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
 .composer-footer > span { color: #c0c7d1; font-size: 10px; }
 .composer-footer button { display: flex; align-items: center; gap: 5px; background: var(--c-primary); border: 0; border-radius: 7px; padding: 6px 10px; color: white; font-family: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
-.composer-footer button:disabled { background: #edf0f5; color: #adb5bd; cursor: default; }
+.composer-footer button:disabled { background: #edf0f5; color: var(--c-faint); cursor: default; }
 .reply-target { display: flex; align-items: center; gap: 8px; color: var(--c-primary-text); font-size: 11px; margin-bottom: 10px; }
 .reply-target button { display: grid; place-items: center; border: 0; background: var(--c-primary-soft); border-radius: 4px; color: var(--c-primary-text); cursor: pointer; }
 .edit-comment :deep(textarea) { width: 100%; border: 1px solid #dfe5ee; border-radius: 8px; padding: 9px; font: inherit; font-size: 12px; resize: vertical; }
 .edit-comment > div { display: flex; justify-content: flex-end; gap: 10px; margin: 6px 0; }
-.edit-comment button { border: 0; background: none; font: inherit; font-size: 11px; color: #868e96; cursor: pointer; }
+.edit-comment button { border: 0; background: none; font: inherit; font-size: 11px; color: var(--c-muted); cursor: pointer; }
 .edit-comment .text-primary { color: var(--c-primary-text); font-weight: 800; }
-.error { color: #d94841; background: #fff5f5; border-radius: 10px; padding: 12px; font-size: 12px; line-height: 1.6; }
+.error { padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 @media(max-width: 600px) {
   .article-body { padding: 22px 20px 26px; }
   .post-title { font-size: 22px; }

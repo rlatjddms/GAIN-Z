@@ -59,12 +59,12 @@ img { display: block; width: 100%; height: auto; user-select: none; }
 .pdf-frame { display: block; width: 100%; height: 85vh; border: 0; }
 .state {
   display: flex; align-items: center; justify-content: center; min-height: 240px;
-  font-size: 0.8rem; font-weight: 700; color: #adb5bd; background: #f8f9fa;
+  font-size: 0.8rem; font-weight: 700; color: var(--c-faint); background: var(--c-bg);
 }
-.state.error { color: #e03131; }
+.state.error { color: var(--c-danger); }
 
-.thumb { width: 100%; height: 100%; overflow: hidden; background: #f8f9fa; }
+.thumb { width: 100%; height: 100%; overflow: hidden; background: var(--c-bg); }
 .thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .thumb .state { min-height: 0; height: 100%; font-size: 0.7rem; }
-.thumb .state.pdf { color: #e03131; font-weight: 900; letter-spacing: 0.05em; }
+.thumb .state.pdf { color: var(--c-danger); font-weight: 900; letter-spacing: 0.05em; }
 </style>

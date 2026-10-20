@@ -1,19 +1,14 @@
 <template>
-  <SubPageLayout pill="NOTIFICATIONS">
+  <SubPageLayout pill="NOTIFICATIONS" title="NOTIFICATIONS" name="알림" subtitle="읽은 알림은 30일이 지나면 자동으로 지워져요">
+    <template #actions>
+      <router-link to="/mypage#notification-settings" class="btn small"><Settings :size="14" :stroke-width="2.2" /> 알림 설정</router-link>
+    </template>
     <div class="page">
-      <div class="page-head">
-        <h2>알림</h2>
-        <p>읽은 알림은 30일이 지나면 자동으로 지워져요</p>
-        <router-link to="/mypage#notification-settings" class="settings-link" title="알림 설정">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          알림 설정
-        </router-link>
-      </div>
 
       <section class="card">
         <!-- 걸러 보기 탭 -->
         <div class="tabs" role="tablist" aria-label="알림 걸러 보기">
-          <button v-for="t in TABS" :key="t.key" role="tab" :aria-selected="tab === t.key" :class="{ on: tab === t.key }"
+          <button v-for="t in TABS" :key="t.key" class="chip" role="tab" :aria-selected="tab === t.key" :class="{ on: tab === t.key }"
                   @click="tab = t.key">
             {{ t.label }}<span v-if="t.key === 'UNREAD' && store.unreadCount" class="tab-count">{{ store.unreadCount }}</span>
           </button>
@@ -75,12 +70,16 @@ import { useRouter } from 'vue-router'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import NotificationIcon from '../components/NotificationIcon.vue'
 import { useNotificationStore } from '../stores/notification'
+import { useDialogStore } from '../stores/dialog'
+import { Settings } from 'lucide-vue-next'
 import {
   getNotifications, markNotificationRead, markNotificationsRead, markAllNotificationsRead,
   deleteNotification, deleteNotifications, deleteReadNotifications,
 } from '../api/notification'
 import { apiErrorMessage } from '../api/practice'
 import { NOTIFICATION_CATEGORIES, agoText, categoryOf, groupByDate } from '../constants/notification'
+
+const dialog = useDialogStore()
 
 const PAGE_SIZE = 30
 const TABS = [{ key: 'ALL', label: '전체' }, { key: 'UNREAD', label: '안 읽음' },
@@ -201,7 +200,7 @@ const readSelected = () => run(async () => {
 
 const deleteSelected = () => run(async () => {
   const ids = [...selected.value]
-  if (!window.confirm(`알림 ${ids.length}개를 지울까요?`)) return
+  if (!await dialog.confirm({ title: `알림 ${ids.length}개를 지울까요?`, okText: '지우기', danger: true })) return
   await deleteNotifications(ids)
   items.value = items.value.filter((n) => !selected.value.has(n.id))
   stopSelect()
@@ -217,7 +216,7 @@ const readAll = () => run(async () => {
 }, '읽음으로 바꾸지 못했어요.')
 
 const clearRead = () => run(async () => {
-  if (!window.confirm('읽은 알림을 모두 지울까요? 안 읽은 알림은 남아요.')) return
+  if (!await dialog.confirm({ title: '읽은 알림을 모두 지울까요?', text: '안 읽은 알림은 남아요.', okText: '지우기', danger: true })) return
   await deleteReadNotifications()
   await reload()
 }, '알림을 지우지 못했어요.')
@@ -235,48 +234,32 @@ watch(tab, () => { stopSelect(); reload() }, { immediate: true })
 </script>
 
 <style scoped>
-.page { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-.page-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
-.page-head h2 { margin: 0; font-size: 1.3rem; font-weight: 900; }
-.page-head p { margin: 0; font-size: 0.85rem; font-weight: 700; color: #adb5bd; }
-.settings-link {
-  margin-left: auto; align-self: center; display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 11px; border: 1px solid #e9ecef; border-radius: 10px; background: #fff;
-  font-size: 0.75rem; font-weight: 800; color: #495057; text-decoration: none;
-}
-.settings-link:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
+.page { display: flex; flex-direction: column; gap: 16px; }
 
-.card { background: #fff; border: 1px solid #e9ecef; border-radius: 20px; padding: 18px 20px 20px; }
+.card { background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: 20px 22px; }
 
-.tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 12px; border-bottom: 1px solid #f1f3f5; }
-.tabs button {
-  flex: none; display: inline-flex; align-items: center; gap: 5px; border: none; background: none; cursor: pointer;
-  padding: 7px 12px; border-radius: 999px; font-family: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96;
-}
-.tabs button:hover { background: #f8f9fa; color: #495057; }
-.tabs button.on { background: var(--c-primary); color: #fff; }
+.tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 12px; border-bottom: 1px solid var(--c-line-soft); }
 .tab-count { min-width: 16px; padding: 0 5px; border-radius: 999px; background: #fa5252; color: #fff; font-size: 0.65rem; line-height: 16px; text-align: center; }
-.tabs button.on .tab-count { background: #fff; color: var(--c-primary-text); }
 
 .toolbar { display: flex; align-items: center; gap: 6px; padding: 10px 0; }
 .spacer { flex: 1; }
 .tool {
-  border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 6px 11px; cursor: pointer;
-  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #495057; white-space: nowrap;
+  border: 1px solid var(--c-line); background: #fff; border-radius: 10px; padding: 6px 11px; cursor: pointer;
+  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); white-space: nowrap;
 }
 .tool:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
-.tool.muted { color: #868e96; }
-.tool.danger { color: #e03131; }
-.tool.danger:hover:not(:disabled) { border-color: #ffc9c9; background: #fff5f5; color: #e03131; }
+.tool.muted { color: var(--c-muted); }
+.tool.danger { color: var(--c-danger); }
+.tool.danger:hover:not(:disabled) { border-color: #ffc9c9; background: var(--c-danger-soft); color: var(--c-danger); }
 .tool:disabled { opacity: 0.45; cursor: not-allowed; }
-.check-all { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 800; color: #495057; cursor: pointer; }
+.check-all { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 800; color: var(--c-text-2); cursor: pointer; }
 .check-all input, .check { width: 16px; height: 16px; accent-color: var(--c-primary); cursor: pointer; }
 
 .group + .group { margin-top: 8px; }
-.group h3 { margin: 8px 0 4px; padding: 0 4px; font-size: 0.72rem; font-weight: 800; color: #adb5bd; }
+.group h3 { margin: 8px 0 4px; padding: 0 4px; font-size: 0.72rem; font-weight: 800; color: var(--c-faint); }
 ul { list-style: none; margin: 0; padding: 0; }
 .item { display: flex; align-items: center; gap: 4px; border-radius: 14px; padding-left: 6px; }
-.item:hover { background: #f8f9fa; }
+.item:hover { background: var(--c-bg); }
 .item.unread { background: var(--c-primary-soft); }
 .item.unread:hover { background: var(--c-primary-soft); }
 .item.checked { background: var(--c-primary-soft); }
@@ -286,26 +269,26 @@ ul { list-style: none; margin: 0; padding: 0; }
   cursor: pointer; text-align: left; font-family: inherit;
 }
 .text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.title { font-size: 0.72rem; font-weight: 800; color: #868e96; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title { font-size: 0.72rem; font-weight: 800; color: var(--c-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .content { font-size: 0.86rem; font-weight: 700; color: #343a40; line-height: 1.45; overflow-wrap: anywhere; }
-.item.unread .content { font-weight: 800; color: #1a1a1a; }
-.time { flex: none; align-self: flex-start; margin-top: 2px; font-size: 0.7rem; font-weight: 700; color: #adb5bd; white-space: nowrap; }
+.item.unread .content { font-weight: 800; color: var(--c-text); }
+.time { flex: none; align-self: flex-start; margin-top: 2px; font-size: 0.7rem; font-weight: 700; color: var(--c-faint); white-space: nowrap; }
 .item.unread .time::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--c-primary); margin-right: 5px; vertical-align: 1px; }
 .remove {
   flex: none; width: 26px; height: 26px; margin-right: 6px; border: none; background: none; border-radius: 8px;
   cursor: pointer; color: #ced4da; font-size: 1.1rem; line-height: 1; opacity: 0; transition: 0.15s;
 }
 .item:hover .remove, .remove:focus-visible { opacity: 1; }
-.remove:hover { color: #495057; background: #e9ecef; }
+.remove:hover { color: var(--c-text-2); background: var(--c-line); }
 
 .more {
   display: block; width: 100%; margin-top: 10px; padding: 10px; border: 1px dashed #dee2e6; background: none; border-radius: 12px;
-  cursor: pointer; font-family: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96;
+  cursor: pointer; font-family: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-muted);
 }
 .more:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 
-.state { margin: 0; padding: 36px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: #adb5bd; }
-.error { margin: 0 0 8px; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.state { margin: 0; padding: 36px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
+.error { margin: 0 0 8px; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 @media (hover: none) {
   .remove { opacity: 1; }

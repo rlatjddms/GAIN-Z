@@ -5,6 +5,7 @@ import { useNotificationStore } from './stores/notification'
 import NotificationToasts from './components/NotificationToasts.vue'
 import RecordAcquiredModal from './components/RecordAcquiredModal.vue'
 import PracticeTimerGuard from './components/workspace/PracticeTimerGuard.vue'
+import AppDialog from './components/ui/AppDialog.vue'
 
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
@@ -21,13 +22,14 @@ watch(() => authStore.isAuthenticated, (loggedIn) => {
   <NotificationToasts v-if="authStore.isAuthenticated" />
   <RecordAcquiredModal v-if="authStore.isAuthenticated" />
   <PracticeTimerGuard v-if="authStore.isAuthenticated" />
+  <AppDialog />
 </template>
 
 
 <style scoped>
 
 header {
-  background-color: #f8f9fa;
+  background-color: var(--c-bg);
   padding: 20px;
   text-align: center;
 }
@@ -53,7 +55,7 @@ html, body {
 }
 
 input::placeholder, textarea::placeholder {
-  color: #adb5bd;
+  color: var(--c-faint);
   opacity: 1;
   font-weight: 400;
 }

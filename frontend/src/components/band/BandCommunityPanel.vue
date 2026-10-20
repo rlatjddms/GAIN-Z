@@ -16,6 +16,7 @@ import { listBandPosts, deleteBandPost } from '../../api/bandBoard'
 import BandCommunityFeed from './BandCommunityFeed.vue'
 import BandPostDialog from './BandPostDialog.vue'
 import BoardIcon from './BoardIcon.vue'
+import { useDialogStore } from '../../stores/dialog'
 const props = defineProps({ band: { type: Object, required: true } })
 const route = useRoute()
 const router = useRouter()
@@ -78,7 +79,7 @@ const close = () => router.push(query({}))
 async function saved(post) { await router.replace(query({ post: post.id })); await load() }
 async function toggleMine() { await router.push(query({ mine: mine.value ? undefined : '1' })) }
 async function remove(post) {
-  if (!window.confirm('게시글을 삭제할까요?')) return
+  if (!await useDialogStore().confirm({ title: '게시글을 삭제할까요?', okText: '삭제', danger: true })) return
   try { await deleteBandPost(props.band.id, post.id); await load() }
   catch (e) { error.value = e.response?.data?.message || '글을 삭제하지 못했어요. 다시 시도해 주세요.' }
 }
@@ -87,9 +88,9 @@ watch(() => [props.band.id, mine.value], () => { page.value = 0; rows.value = []
 
 <style scoped>
 .community-panel { scroll-margin-top: 84px; }
-.load-more { display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; margin-top: 14px; padding: 13px; border: 1px solid #e9ecef; border-radius: 12px; background: #fff; color: #687385; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.load-more { display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; margin-top: 14px; padding: 13px; border: 1px solid var(--c-line); border-radius: 12px; background: #fff; color: #687385; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .load-more:hover { color: var(--c-primary-text); border-color: var(--c-primary-line); }
-.load-more span { color: #adb5bd; font-size: 10px; font-weight: 500; margin-left: 4px; }
-.error { color: #d94841; background: #fff5f5; padding: 12px; font-size: 12px; border-radius: 10px; }
+.load-more span { color: var(--c-faint); font-size: 10px; font-weight: 500; margin-left: 4px; }
+.error { padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .error button { border: 0; background: none; color: var(--c-primary-text); font: inherit; cursor: pointer; }
 </style>
