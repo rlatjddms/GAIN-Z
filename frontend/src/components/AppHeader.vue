@@ -151,9 +151,9 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
   .header-inner { padding: 0 12px; height: 56px; grid-template-columns: auto 1fr auto; gap: 8px; }
   .logo :deep(.app-logo) { width: auto; height: 14px; }
   .header-right { gap: 6px; }
-  /* 휴대폰: SOLO/BAND 토글이 작아지는 만큼 프로필 버튼도 작게 (사진 28px + 둘레 2px = 32px, 알림 버튼과 같음) */
+  /* 휴대폰: SOLO/BAND 토글이 작아지는 만큼 프로필 버튼도 조금 작게 (사진 30px + 둘레 2px = 34px, 알림 버튼과 같음) */
   .user-info { padding: 2px; }
-  .user-info :deep(.profile-avatar) { width: 28px !important; height: 28px !important; }
+  .user-info :deep(.profile-avatar) { width: 30px !important; height: 30px !important; }
   .name, .caret { display: none; }
   .has-back .logo { display: none; }
   .has-back .header-back {

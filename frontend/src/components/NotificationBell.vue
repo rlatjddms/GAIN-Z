@@ -228,9 +228,9 @@ ul { list-style: none; margin: 0; padding: 0; }
 }
 /* 휴대폰: 종 아래가 아니라 화면 폭에 맞춰 헤더 바로 아래에 */
 @media (max-width: 640px) {
-  /* 휴대폰: SOLO/BAND 토글처럼 헤더 오른쪽 버튼도 작게 (프로필 버튼과 같은 32px) */
-  .noti-btn { width: 32px; height: 32px; }
-  .noti-btn svg { width: 18px; height: 18px; }
+  /* 휴대폰: 헤더 오른쪽 버튼은 프로필 버튼과 같은 34px */
+  .noti-btn { width: 34px; height: 34px; }
+  .noti-btn svg { width: 19px; height: 19px; }
   .panel { position: fixed; top: 64px; left: 12px; right: 12px; width: auto; max-width: none; max-height: calc(100dvh - 80px); }
 }
 </style>
