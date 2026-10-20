@@ -23,13 +23,18 @@
         <WsCard class="sheet-card">
           <div class="toolbar">
             <span class="count">{{ !tabs.length && pages.length ? `${pages.length}장` : '' }}</span>
-            <div v-if="!tabs.length && hasImages" class="zoom" role="group" aria-label="확대·축소">
+            <div v-if="!tabs.length && pages.length" class="zoom" role="group" aria-label="확대·축소">
               <button class="step" :disabled="zoom <= ZOOMS[0]" aria-label="축소" @click="setZoom(-1)">−</button>
               <span class="zoom-value">{{ zoom }}%</span>
               <button class="step" :disabled="zoom >= ZOOMS[ZOOMS.length - 1]" aria-label="확대" @click="setZoom(1)">+</button>
             </div>
-            <button class="btn small" @click="wide = !wide">{{ wide ? '메모 보이기' : '악보만 크게' }}</button>
+            <button v-if="!tabs.length && pages.length" class="btn small" :class="{ on: annot.enabled }" :aria-pressed="annot.enabled"
+                    :disabled="!annot.loaded" :title="annot.loaded ? '악보 위에 펜·형광펜으로 쓰기' : '필기를 불러오지 못했어요'"
+                    @click="annot.enabled = !annot.enabled"><PenLine :size="14" :stroke-width="2.2" /> 필기</button>
+            <button class="btn small wide-toggle" @click="wide = !wide">{{ wide ? '메모 보이기' : '악보만 크게' }}</button>
           </div>
+          <!-- 필기 도구: 악보를 내려도 위에 붙어 있다. 필기 중엔 장 위에서 스크롤 대신 그려진다 -->
+          <AnnotationToolbar v-if="annot.enabled && !tabs.length && pages.length" class="annot-bar" @done="annot.enabled = false" />
 
           <!-- 마디 악보(타브·코드): 보는 키로 옮겨서 그린다 -->
           <MeasureSheet
@@ -42,8 +47,8 @@
           />
 
           <div v-else-if="pages.length" class="pages">
-            <figure v-for="p in pages" :key="p.id" class="page-frame" :style="isPdf(p.contentType) ? null : { width: `${zoom}%` }">
-              <SheetPageView :sheet-id="sheet.id" :page-id="p.id" :content-type="p.contentType" :alt="`${sheet.title} ${p.pageNumber}장`" />
+            <figure v-for="p in pages" :key="p.id" class="page-frame" :style="{ width: `${zoom}%` }">
+              <SheetPageView :sheet-id="sheet.id" :page-id="p.id" :content-type="p.contentType" :alt="`${sheet.title} ${p.pageNumber}장`" annotate />
               <figcaption v-if="pages.length > 1">{{ p.pageNumber }} / {{ pages.length }}</figcaption>
             </figure>
           </div>
@@ -99,7 +104,7 @@
 </template>
 
 <script setup>
-import { Star } from 'lucide-vue-next'
+import { Star, PenLine } from 'lucide-vue-next'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -108,11 +113,13 @@ import ChordSheet from '../../components/workspace/ChordSheet.vue'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
 import MeasureSheet from '../../components/workspace/MeasureSheet.vue'
 import KeyHelper from '../../components/workspace/KeyHelper.vue'
+import AnnotationToolbar from '../../components/workspace/AnnotationToolbar.vue'
+import { useAnnotationStore } from '../../stores/annotation'
 import { getWorkspaceItem, updateWorkspaceItem, removeWorkspaceItem } from '../../api/sheet'
 import { useDialogStore } from '../../stores/dialog'
 import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
-import { sheetTypeLabel, isPdf } from '../../constants/sheet'
+import { sheetTypeLabel } from '../../constants/sheet'
 
 const route = useRoute()
 const router = useRouter()
@@ -125,7 +132,6 @@ const actionError = ref('')
 const sheet = computed(() => item.value?.sheet || {})
 const pages = computed(() => sheet.value.pages || [])
 const tabs = computed(() => sheet.value.tabs || [])
-const hasImages = computed(() => pages.value.some((p) => !isPdf(p.contentType)))
 const metaText = computed(() => {
   const s = sheet.value
   return [
@@ -142,6 +148,7 @@ onMounted(async () => {
     item.value = await getWorkspaceItem(itemId)
     viewKey.value = item.value.customKey || item.value.sheet.originalKey
     memo.value = item.value.personalMemo || ''
+    if (pages.value.length) annot.load(item.value.sheet.id)
   } catch (e) {
     loadError.value = `악보를 불러오지 못했어요. ${apiErrorMessage(e)}`
   }
@@ -161,6 +168,14 @@ const setZoom = (d) => {
   zoom.value = ZOOMS[Math.min(Math.max(ZOOMS.indexOf(zoom.value) + d, 0), ZOOMS.length - 1)]
   writePref('sheetZoom', zoom.value)
 }
+
+/* ---------- 악보 위 필기 (#167): 쓰면 잠시 뒤 자동 저장, 나갈 때 남은 것 저장 ---------- */
+const annot = useAnnotationStore()
+annot.enabled = false
+onBeforeUnmount(() => {
+  annot.enabled = false
+  annot.flush()
+})
 
 /* ---------- 연습 키: 바꾸면 잠시 뒤 자동 저장 ---------- */
 const viewKey = ref(null)
@@ -249,6 +264,8 @@ onBeforeRouteLeave(() => (memoDirty.value ? dialog.confirm({ title: '저장하�
 
 .toolbar { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--c-line-soft); }
 .toolbar .count { margin-right: auto; font-size: 0.75rem; font-weight: 800; color: var(--c-muted); }
+/* 위 앱 헤더(64px, 휴대폰 56px) 바로 아래에 붙는다 */
+.annot-bar { position: sticky; top: 73px; z-index: 5; margin: -4px 0 16px; }
 .zoom { display: flex; align-items: center; gap: 4px; }
 .zoom-value { min-width: 44px; text-align: center; font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); font-variant-numeric: tabular-nums; }
 .step {
@@ -282,6 +299,9 @@ figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight
   .layout { grid-template-columns: 1fr; }
   .side { position: static; }
   .memo { min-height: 110px; }
-  .toolbar .btn.small { display: none; }
+  .toolbar .wide-toggle { display: none; }
+}
+@media (max-width: 640px) {
+  .annot-bar { top: 64px; }
 }
 </style>
