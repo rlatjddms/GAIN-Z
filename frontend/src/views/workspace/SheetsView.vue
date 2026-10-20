@@ -1,6 +1,7 @@
 <template>
   <SubPageLayout title="WORK BENCH" name="악보 보관함" subtitle="갖고 있는 악보를 모아 두고 다른 키로도 쳐 봐요">
     <template #actions>
+      <router-link to="/sheets/new?mode=chords" class="btn">코드 붙여넣기</router-link>
       <router-link to="/sheets/new" class="btn primary">+ 악보 올리기</router-link>
     </template>
   <div class="page">

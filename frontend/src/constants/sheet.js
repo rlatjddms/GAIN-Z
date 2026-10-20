@@ -15,6 +15,8 @@ export const sheetTypeLabel = (value) => SHEET_TYPE_OPTIONS.find((o) => o.value 
 export const SHEET_FILE_ACCEPT = 'image/png,image/jpeg,image/webp,application/pdf'
 export const SHEET_FILE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf']
 export const MAX_SHEET_PAGES = 20
+// 코드 붙여넣기로 만든 코드 악보 글 길이 (#157, 백엔드 SheetRequest와 같게)
+export const MAX_CHORD_TEXT = 20000
 export const MAX_SHEET_FILE_MB = 10
 
 export const isPdf = (contentType) => contentType === 'application/pdf'
