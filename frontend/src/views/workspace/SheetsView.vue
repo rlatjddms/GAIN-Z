@@ -5,6 +5,25 @@
     </template>
   <div class="page">
 
+    <!-- 악보 찾기 (#156): 내 보관함에서 먼저 찾고, 없으면 파는 곳·무료 코드 사이트로. 산 악보는 올리기 -->
+    <WsCard title="악보 찾기">
+      <div class="finder">
+        <input v-model="findQuery" class="find-input" maxlength="100" placeholder="곡 제목이나 가수를 입력해 주세요" aria-label="찾을 곡">
+        <div v-if="findQuery.trim()" class="mine-found">
+          <span class="found-label">내 보관함</span>
+          <template v-if="myMatches.length">
+            <router-link v-for="m in myMatches" :key="m.id" :to="`/sheets/${m.id}`" class="chip">{{ m.title }}<span v-if="m.artist" class="found-artist"> · {{ m.artist }}</span></router-link>
+          </template>
+          <span v-else class="found-none">없어요</span>
+        </div>
+        <div class="site-row">
+          <span class="found-label">다른 곳에서 찾기</span>
+          <SheetSearchLinks :title="findQuery" />
+        </div>
+      </div>
+      <p class="find-hint">산 악보 PDF·사진은 <router-link to="/sheets/new">악보 올리기</router-link>로 담아 두면 메모·키 바꾸기·밴드 공유를 쓸 수 있어요.</p>
+    </WsCard>
+
     <WsCard :title="`내 악보${items.length ? ` ${items.length}` : ''}`">
       <template #actions>
         <div class="filters">
@@ -105,6 +124,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import EmptyState from '../../components/ui/EmptyState.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
+import SheetSearchLinks from '../../components/workspace/SheetSearchLinks.vue'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
 import { getWorkspace, updateWorkspaceItem, removeWorkspaceItem } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
@@ -114,6 +134,14 @@ import { useDialogStore } from '../../stores/dialog'
 
 const dialog = useDialogStore()
 
+const findQuery = ref('')
+// 내 보관함에서 찾기: 검색어 낱말이 모두 제목·가수에 들어 있는 악보 (띄어쓰기·대소문자 무시, 최대 5개)
+const squash = (s) => (s || '').toLowerCase().replace(/\s+/g, '')
+const myMatches = computed(() => {
+  const words = findQuery.value.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  if (!words.length) return []
+  return items.value.filter((i) => words.every((w) => squash(`${i.title} ${i.artist || ''}`).includes(w))).slice(0, 5)
+})
 const items = ref([])
 const loading = ref(false)
 const error = ref('')
@@ -209,6 +237,19 @@ onMounted(load)
 </script>
 
 <style scoped>
+.finder { display: flex; flex-direction: column; gap: 10px; }
+.find-input {
+  border: 1px solid var(--c-line); border-radius: 10px; padding: 9px 12px; font: inherit; font-size: 0.88rem; outline: none;
+  max-width: 420px; box-sizing: border-box; width: 100%;
+}
+.find-input:focus { border-color: var(--c-primary); }
+.mine-found, .site-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.found-label { font-size: 0.72rem; font-weight: 800; color: var(--c-muted); margin-right: 2px; }
+.found-none { font-size: 0.75rem; color: var(--c-faint); }
+.found-artist { font-weight: 600; color: var(--c-faint); }
+.mine-found .chip { text-decoration: none; }
+.find-hint { margin: 10px 0 0; font-size: 0.75rem; color: var(--c-muted); line-height: 1.6; }
+.find-hint a { color: var(--c-primary-text); font-weight: 800; }
 .page { display: flex; flex-direction: column; gap: 16px; }
 
 
