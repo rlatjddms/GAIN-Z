@@ -91,12 +91,12 @@ watch(() => [props.mode, props.postId], load, { immediate: true })
 .dialog-context h2 { font-size: 14px; font-weight: 800; margin: 0; }
 .close-button { display: grid; place-items: center; width: 32px; height: 32px; border: none; border-radius: 9px; background: #f6f7f9; color: #868e96; cursor: pointer; }
 .close-button:hover { background: #edf0f4; color: #212529; }
-.publish { display: flex; align-items: center; gap: 8px; background: #2d5bff; color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.publish { display: flex; align-items: center; gap: 8px; background: var(--c-primary); color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
 .publish:hover { background: #214ce8; }
 .publish:disabled { background: #edf0f6; color: #adb5bd; cursor: default; }
 .dialog-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
 .load-state { padding: 32px; min-height: 280px; color: #868e96; font-size: 13px; }
-.load-state button { border: 0; color: #2d5bff; background: #f0f4ff; border-radius: 8px; padding: 9px 14px; cursor: pointer; font: inherit; }
+.load-state button { border: 0; color: var(--c-primary-text); background: var(--c-primary-soft); border-radius: 8px; padding: 9px 14px; cursor: pointer; font: inherit; }
 .loading-line, .loading-box { display: block; height: 14px; background: #f1f3f6; border-radius: 6px; margin-bottom: 16px; }
 .loading-line { width: 50%; }
 .loading-line.short { width: 30%; }

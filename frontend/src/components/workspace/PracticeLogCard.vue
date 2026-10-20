@@ -173,10 +173,10 @@ const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.secon
 .tip span.done { color: #8ce99a; }
 .grass-legend { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 .grass-legend .g { width: 10px; }
-.g.lv1 { background: #c9d6ff; }
-.g.lv2 { background: #8ea8ff; }
-.g.lv3 { background: #5a7dff; }
-.g.lv4 { background: #2d5bff; }
+.g.lv1 { background: var(--c-primary-line); }
+.g.lv2 { background: color-mix(in srgb, var(--c-primary) 55%, #fff); }
+.g.lv3 { background: color-mix(in srgb, var(--c-primary) 78%, #fff); }
+.g.lv4 { background: var(--c-primary); }
 
 .error { margin: 10px 0 0; font-size: 0.75rem; font-weight: 700; color: #e03131; }
 </style>

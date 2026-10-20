@@ -54,7 +54,7 @@ const STEPS = [
 .page-head p { margin: 0; font-size: 0.85rem; font-weight: 700; color: #adb5bd; }
 
 .dropzone {
-  border: 2px dashed #dbe4ff; background: #f8faff; border-radius: 16px; padding: 36px 20px;
+  border: 2px dashed var(--c-primary-line); background: #f8faff; border-radius: 16px; padding: 36px 20px;
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
 }
 .drop-icon { font-size: 2rem; margin-bottom: 4px; }
@@ -65,19 +65,19 @@ const STEPS = [
   border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit;
   font-weight: 800; font-size: 0.85rem; padding: 10px 18px; border-radius: 12px;
 }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .steps { list-style: none; margin: 20px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .steps li { display: flex; gap: 10px; align-items: flex-start; }
 .step-no {
-  flex: none; width: 24px; height: 24px; border-radius: 8px; background: #f0f4ff; color: #2d5bff;
+  flex: none; width: 24px; height: 24px; border-radius: 8px; background: var(--c-primary-soft); color: var(--c-primary-text);
   font-size: 0.75rem; font-weight: 900; display: flex; align-items: center; justify-content: center;
 }
 .steps strong { display: block; font-size: 0.85rem; font-weight: 800; margin-bottom: 2px; }
 .steps p { margin: 0; font-size: 0.75rem; color: #868e96; line-height: 1.5; }
 
-.text-btn { font-size: 0.75rem; font-weight: 800; color: #2d5bff; text-decoration: none; }
+.text-btn { font-size: 0.75rem; font-weight: 800; color: var(--c-primary-text); text-decoration: none; }
 .empty { margin: 0; padding: 20px 0; text-align: center; font-size: 0.8rem; color: #adb5bd; }
 
 @media (max-width: 760px) {

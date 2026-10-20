@@ -124,7 +124,7 @@ const openForm = (r) => {
 <style scoped>
 .text-btn {
   border: none; background: none; padding: 0; font: inherit; font-size: 0.75rem; font-weight: 800;
-  color: #2d5bff; cursor: pointer;
+  color: var(--c-primary-text); cursor: pointer;
 }
 
 .summary { margin: -6px 0 12px; font-size: 0.75rem; font-weight: 800; color: #868e96; }
@@ -151,7 +151,7 @@ const openForm = (r) => {
 .schedule { margin-top: -4px; font-size: 0.68rem; font-weight: 700; color: #adb5bd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .completed .content { color: #2b8a3e; }
 .bar { height: 6px; background: #e9ecef; border-radius: 4px; overflow: hidden; }
-.bar i { display: block; height: 100%; background: #5a7dff; border-radius: 4px; transition: width 0.2s; }
+.bar i { display: block; height: 100%; background: color-mix(in srgb, var(--c-primary) 78%, #fff); border-radius: 4px; transition: width 0.2s; }
 .completed .bar i { background: #40c057; }
 
 .counter { flex: none; display: flex; align-items: center; gap: 4px; }
@@ -159,7 +159,7 @@ const openForm = (r) => {
   width: 26px; height: 26px; border: 1px solid #e9ecef; border-radius: 8px; background: #fff; color: #495057;
   font-size: 0.95rem; font-weight: 900; cursor: pointer; line-height: 1;
 }
-.step:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.step:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .step:disabled { opacity: 0.35; cursor: default; }
 .count { min-width: 44px; text-align: center; font-size: 0.75rem; font-weight: 800; color: #495057; font-variant-numeric: tabular-nums; }
 
@@ -173,7 +173,7 @@ const openForm = (r) => {
   border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer; font-family: inherit;
   font-size: 0.75rem; font-weight: 800; padding: 7px 12px; border-radius: 9px;
 }
-.small.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.small.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 .small:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .empty { text-align: center; padding: 12px 0 4px; }

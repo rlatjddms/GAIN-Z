@@ -244,7 +244,7 @@ watch(tab, () => { stopSelect(); reload() }, { immediate: true })
   padding: 6px 11px; border: 1px solid #e9ecef; border-radius: 10px; background: #fff;
   font-size: 0.75rem; font-weight: 800; color: #495057; text-decoration: none;
 }
-.settings-link:hover { border-color: #2d5bff; color: #2d5bff; }
+.settings-link:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 
 .card { background: #fff; border: 1px solid #e9ecef; border-radius: 20px; padding: 18px 20px 20px; }
 
@@ -254,9 +254,9 @@ watch(tab, () => { stopSelect(); reload() }, { immediate: true })
   padding: 7px 12px; border-radius: 999px; font-family: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96;
 }
 .tabs button:hover { background: #f8f9fa; color: #495057; }
-.tabs button.on { background: #2d5bff; color: #fff; }
+.tabs button.on { background: var(--c-primary); color: #fff; }
 .tab-count { min-width: 16px; padding: 0 5px; border-radius: 999px; background: #fa5252; color: #fff; font-size: 0.65rem; line-height: 16px; text-align: center; }
-.tabs button.on .tab-count { background: #fff; color: #2d5bff; }
+.tabs button.on .tab-count { background: #fff; color: var(--c-primary-text); }
 
 .toolbar { display: flex; align-items: center; gap: 6px; padding: 10px 0; }
 .spacer { flex: 1; }
@@ -264,13 +264,13 @@ watch(tab, () => { stopSelect(); reload() }, { immediate: true })
   border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 6px 11px; cursor: pointer;
   font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #495057; white-space: nowrap;
 }
-.tool:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.tool:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .tool.muted { color: #868e96; }
 .tool.danger { color: #e03131; }
 .tool.danger:hover:not(:disabled) { border-color: #ffc9c9; background: #fff5f5; color: #e03131; }
 .tool:disabled { opacity: 0.45; cursor: not-allowed; }
 .check-all { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 800; color: #495057; cursor: pointer; }
-.check-all input, .check { width: 16px; height: 16px; accent-color: #2d5bff; cursor: pointer; }
+.check-all input, .check { width: 16px; height: 16px; accent-color: var(--c-primary); cursor: pointer; }
 
 .group + .group { margin-top: 8px; }
 .group h3 { margin: 8px 0 4px; padding: 0 4px; font-size: 0.72rem; font-weight: 800; color: #adb5bd; }
@@ -278,7 +278,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .item { display: flex; align-items: center; gap: 4px; border-radius: 14px; padding-left: 6px; }
 .item:hover { background: #f8f9fa; }
 .item.unread { background: #f5f8ff; }
-.item.unread:hover { background: #edf2ff; }
+.item.unread:hover { background: var(--c-primary-soft); }
 .item.checked { background: #e7efff; }
 .check { flex: none; margin-left: 4px; }
 .item-main {
@@ -290,7 +290,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .content { font-size: 0.86rem; font-weight: 700; color: #343a40; line-height: 1.45; overflow-wrap: anywhere; }
 .item.unread .content { font-weight: 800; color: #1a1a1a; }
 .time { flex: none; align-self: flex-start; margin-top: 2px; font-size: 0.7rem; font-weight: 700; color: #adb5bd; white-space: nowrap; }
-.item.unread .time::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2d5bff; margin-right: 5px; vertical-align: 1px; }
+.item.unread .time::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--c-primary); margin-right: 5px; vertical-align: 1px; }
 .remove {
   flex: none; width: 26px; height: 26px; margin-right: 6px; border: none; background: none; border-radius: 8px;
   cursor: pointer; color: #ced4da; font-size: 1.1rem; line-height: 1; opacity: 0; transition: 0.15s;
@@ -302,7 +302,7 @@ ul { list-style: none; margin: 0; padding: 0; }
   display: block; width: 100%; margin-top: 10px; padding: 10px; border: 1px dashed #dee2e6; background: none; border-radius: 12px;
   cursor: pointer; font-family: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96;
 }
-.more:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.more:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 
 .state { margin: 0; padding: 36px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: #adb5bd; }
 .error { margin: 0 0 8px; font-size: 0.8rem; color: #e03131; font-weight: 700; }

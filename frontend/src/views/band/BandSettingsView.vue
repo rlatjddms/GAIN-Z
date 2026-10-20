@@ -354,7 +354,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 
 .notice {
   margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; font-size: 0.85rem; font-weight: 700;
-  background: #f0f4ff; color: #2d5bff;
+  background: var(--c-primary-soft); color: var(--c-primary-text);
 }
 .notice.bad { background: #fff5f5; color: #e03131; }
 
@@ -371,7 +371,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
   border: 1px solid #e9ecef; border-radius: 12px; padding: 11px 14px; font-family: inherit;
   font-size: 0.9rem; outline: none; background: #f8f9fa; resize: none;
 }
-.field input:focus, .field textarea:focus { border-color: #2d5bff; background: #fff; }
+.field input:focus, .field textarea:focus { border-color: var(--c-primary); background: #fff; }
 
 .info { display: grid; grid-template-columns: 56px 1fr; gap: 8px; margin: 0; font-size: 0.88rem; }
 .info dt { color: #868e96; font-weight: 800; font-size: 0.78rem; }
@@ -382,8 +382,8 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
   border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
   font-weight: 800; font-size: 0.85rem; padding: 10px 16px; border-radius: 12px; font-family: inherit;
 }
-.btn:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 .btn.primary:hover:not(:disabled) { background: #1f47e0; color: #fff; }
 .btn.danger { border-color: #ffc9c9; color: #e03131; }
 .btn.danger:hover:not(:disabled) { background: #fff5f5; border-color: #e03131; color: #e03131; }
@@ -400,20 +400,20 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
   display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: #f8f9fa;
   flex-wrap: wrap;
 }
-.member.me { background: #f0f4ff; }
+.member.me { background: var(--c-primary-soft); }
 .avatar { width: 48px; flex-shrink: 0; line-height: 0; }
 .avatar :deep(.pixel-character) { width: 48px !important; height: auto !important; }
 .who { flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 2px; }
 .who strong { font-size: 0.9rem; font-weight: 800; }
 .who em {
-  font-style: normal; font-size: 0.65rem; font-weight: 800; color: #2d5bff; background: #fff;
+  font-style: normal; font-size: 0.65rem; font-weight: 800; color: var(--c-primary-text); background: #fff;
   border: 1px solid #c5d3ff; padding: 1px 6px; border-radius: 6px; margin-left: 4px; vertical-align: 1px;
 }
 .who em.friend { color: #2f9e44; border-color: #b2f2bb; }
 .who em.muted { color: #868e96; border-color: #dee2e6; }
 .who span { font-size: 0.72rem; color: #868e96; }
 .avatar.clickable, .who.clickable { cursor: pointer; }
-.who.clickable:hover strong { color: #2d5bff; }
+.who.clickable:hover strong { color: var(--c-primary-text); }
 .part-select {
   border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 7px 10px; font-family: inherit;
   font-size: 0.8rem; font-weight: 700; color: #495057; cursor: pointer;
@@ -443,8 +443,8 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
   border: 1px solid #e9ecef; background: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer;
   font-family: inherit; font-size: 0.72rem; font-weight: 800; color: #495057;
 }
-.mini:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
-.mini.primary { color: #2d5bff; border-color: #d0dcff; background: #f0f4ff; }
+.mini:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
+.mini.primary { color: var(--c-primary-text); border-color: #d0dcff; background: var(--c-primary-soft); }
 .mini.danger { color: #e03131; }
 
 .mini.danger:hover:not(:disabled) { border-color: #e03131; color: #e03131; }
@@ -463,8 +463,8 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 }
 .stage-option span { font-size: 0.78rem; font-weight: 800; color: #495057; }
 .stage-option:hover:not(:disabled) { border-color: #a5b8ff; }
-.stage-option.active { border-color: #2d5bff; }
-.stage-option.active span { color: #2d5bff; }
+.stage-option.active { border-color: var(--c-primary); }
+.stage-option.active span { color: var(--c-primary-text); }
 .stage-option:disabled { cursor: default; }
 .stage-option:disabled:not(.active) { opacity: 0.6; }
 

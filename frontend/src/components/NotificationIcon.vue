@@ -28,7 +28,7 @@ const glyph = computed(() => Math.round(props.size / 2))
   background: #f1f3f5; color: #868e96;
 }
 .icon.friend { background: #ebfbee; color: #2f9e44; }
-.icon.band { background: #f0f4ff; color: #2d5bff; }
+.icon.band { background: var(--c-primary-soft); color: var(--c-primary-text); }
 .icon.community { background: #fff4e6; color: #e8590c; }
 .icon.jam { background: #f3f0ff; color: #7048e8; }
 .icon.record { background: #fff9db; color: #e67700; }

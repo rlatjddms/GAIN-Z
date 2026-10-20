@@ -160,16 +160,16 @@ async function save() {
 .attachments-section { margin-top: 8px; }
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .section-head > span { display: flex; align-items: center; gap: 6px; color: #495057; font-size: 12px; font-weight: 800; }
-.section-head b { color: #2d5bff; }
+.section-head b { color: var(--c-primary-text); }
 .section-head small { color: #868e96; font-size: 11px; }
 .dropzone { display: flex; align-items: center; gap: 14px; padding: 22px 20px; background: #fafbfe; border: 1px dashed #cdd5e4; border-radius: 14px; cursor: pointer; transition: .15s; }
-.dropzone:hover, .dropzone.over, .dropzone:focus-within { background: #f0f4ff; border-color: #2d5bff; }
+.dropzone:hover, .dropzone.over, .dropzone:focus-within { background: var(--c-primary-soft); border-color: var(--c-primary); }
 .dropzone input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.upload-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #eaf0ff; color: #2d5bff; flex: none; }
+.upload-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #eaf0ff; color: var(--c-primary-text); flex: none; }
 .drop-copy { flex: 1; min-width: 0; }
 .drop-copy strong { display: block; font-size: 13px; font-weight: 700; }
 .drop-copy > span { display: block; font-size: 11px; color: #868e96; margin-top: 6px; }
-.drop-copy b { color: #2d5bff; font-weight: 700; }
+.drop-copy b { color: var(--c-primary-text); font-weight: 700; }
 .dropzone > svg { color: #adb5bd; }
 .dropzone.compact { padding: 14px; margin-top: 12px; }
 .file-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -183,14 +183,14 @@ async function save() {
 .file-caption span { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
 .file-caption small { color: #adb5bd; font-size: 10px; }
 .notice-option { display: flex; align-items: center; gap: 12px; padding: 18px 0 0; margin-top: 24px; border-top: 1px solid #f1f3f5; cursor: pointer; }
-.pin-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #f0f4ff; color: #2d5bff; }
+.pin-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--c-primary-soft); color: var(--c-primary-text); }
 .notice-copy { flex: 1; }
 .notice-copy strong { display: block; font-size: 13px; }
 .notice-copy > span { display: block; margin-top: 4px; color: #868e96; font-size: 11px; }
 .notice-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .switch { width: 36px; height: 21px; background: #dee2e6; border-radius: 20px; padding: 3px; transition: background .15s; }
 .switch::after { content: ''; display: block; width: 15px; height: 15px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0002; transition: transform .15s; }
-input:checked + .switch { background: #2d5bff; }
+input:checked + .switch { background: var(--c-primary); }
 input:checked + .switch::after { transform: translateX(15px); }
 input:focus-visible + .switch { outline: 3px solid #b6c5ff; outline-offset: 3px; }
 .error { color: #d94841; background: #fff5f5; border-radius: 10px; padding: 12px; font-size: 12px; line-height: 1.6; }
@@ -206,11 +206,11 @@ input:focus-visible + .switch { outline: 3px solid #b6c5ff; outline-offset: 3px;
 .period-options input:disabled + span { opacity: .5; cursor: default; }
 .period-end { flex: 1; min-width: 0; max-width: 240px; }
 .period-end > input { box-sizing: border-box; width: 100%; min-width: 0; padding: 7px 10px; border: 1px solid #e1e6ee; border-radius: 9px; background: #fff; color: #495057; font: inherit; font-size: 13px; outline: none; }
-.period-end > input:focus { border-color: #9aaff4; box-shadow: 0 0 0 3px #2d5bff08; }
+.period-end > input:focus { border-color: #9aaff4; box-shadow: 0 0 0 3px var(--c-primary)08; }
 .period-hint { margin: 7px 0 0; color: #939ba7; font-size: 10px; line-height: 1.6; }
 .notice-hint { color: #62708c; background: #f5f7fb; border-radius: 10px; padding: 12px; font-size: 12px; }
 .save-progress { margin-top: 20px; height: 3px; background: #edf0f5; border-radius: 3px; }
-.save-progress > span { display: block; height: 3px; background: #2d5bff; border-radius: 3px; }
+.save-progress > span { display: block; height: 3px; background: var(--c-primary); border-radius: 3px; }
 .save-progress p { color: #868e96; font-size: 11px; margin-top: 8px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 @media(max-width: 600px) {

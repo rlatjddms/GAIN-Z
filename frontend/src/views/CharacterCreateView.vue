@@ -495,7 +495,7 @@ const handleSubmit = async () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at 30% 80%, rgba(45,91,255,0.03) 0%, transparent 50%);
+  background: radial-gradient(circle at 30% 80%, color-mix(in srgb, var(--c-primary) 3%, transparent) 0%, transparent 50%);
   z-index: 0;
 }
 
@@ -574,14 +574,14 @@ const handleSubmit = async () => {
 
 .preview-badge {
   display: inline-block;
-  background: #f0f4ff;
+  background: var(--c-primary-soft);
   border: 1px solid #cce0ff;
   padding: 6px 16px;
   border-radius: 20px;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.8px;
-  color: #2d5bff;
+  color: var(--c-primary-text);
 }
 
 .preview-info {
@@ -617,7 +617,7 @@ const handleSubmit = async () => {
 .step-badge {
   font-size: 0.75rem;
   font-weight: 800;
-  color: #2d5bff;
+  color: var(--c-primary-text);
   letter-spacing: 0.8px;
 }
 
@@ -676,15 +676,15 @@ const handleSubmit = async () => {
 }
 
 .step-dot.active .dot-inner {
-  background: #2d5bff;
-  border-color: #2d5bff;
+  background: var(--c-primary);
+  border-color: var(--c-primary);
   color: #fff;
 }
 
 .step-dot.complete .dot-inner {
   background: #e7f5ff;
   border-color: #3b82f6;
-  color: #2d5bff;
+  color: var(--c-primary-text);
 }
 
 .dot-label {
@@ -711,7 +711,7 @@ const handleSubmit = async () => {
 }
 
 .step-line.fill {
-  background: #2d5bff;
+  background: var(--c-primary);
 }
 
 .steps-container {
@@ -763,8 +763,8 @@ const handleSubmit = async () => {
 }
 
 .gz-input:focus {
-  border-color: #2d5bff;
-  box-shadow: 0 0 0 4px rgba(45, 91, 255, 0.05);
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 5%, transparent);
 }
 
 .validation-tip {
@@ -809,9 +809,9 @@ const handleSubmit = async () => {
 }
 
 .gender-card.active {
-  background: #f0f4ff;
-  border-color: #2d5bff;
-  color: #2d5bff;
+  background: var(--c-primary-soft);
+  border-color: var(--c-primary);
+  color: var(--c-primary-text);
 }
 
 .gender-icon {
@@ -962,9 +962,9 @@ const handleSubmit = async () => {
 }
 
 .inst-card-grid.active {
-  background: #f0f4ff;
-  border-color: #2d5bff;
-  color: #2d5bff;
+  background: var(--c-primary-soft);
+  border-color: var(--c-primary);
+  color: var(--c-primary-text);
 }
 
 .inst-grid-icon {
@@ -1031,7 +1031,7 @@ const handleSubmit = async () => {
 .nav-btn-submit {
   flex: 1;
   padding: 11px;
-  background: #2d5bff;
+  background: var(--c-primary);
   border: none;
   border-radius: 12px;
   font-size: 0.88rem;
@@ -1048,8 +1048,8 @@ const handleSubmit = async () => {
 
 .nav-btn-next:hover:not(:disabled),
 .nav-btn-submit:hover:not(:disabled) {
-  background: #1a4aff;
-  box-shadow: 0 5px 15px rgba(45, 91, 255, 0.15);
+  background: var(--c-primary-strong);
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--c-primary) 15%, transparent);
 }
 
 .nav-btn-next:disabled,

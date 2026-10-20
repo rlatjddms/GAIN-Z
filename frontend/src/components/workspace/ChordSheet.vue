@@ -37,7 +37,7 @@ const shift = (chord) => transposeChord(chord, ctx.value.semitones, ctx.value.pr
 <style scoped>
 .chord-sheet { line-height: 1.35; color: #212529; word-break: keep-all; }
 .section {
-  margin: 18px 0 6px; font-size: 0.75em; font-weight: 900; letter-spacing: 0.04em; color: #2d5bff;
+  margin: 18px 0 6px; font-size: 0.75em; font-weight: 900; letter-spacing: 0.04em; color: var(--c-primary-text);
 }
 .section:first-child { margin-top: 0; }
 .blank { height: 0.9em; }

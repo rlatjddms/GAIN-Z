@@ -171,7 +171,7 @@ h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
   border: 1px solid #dee2e6; border-radius: 10px; padding: 9px 11px; font: inherit; font-size: 0.9rem; font-weight: 700;
   outline: none; min-width: 0; box-sizing: border-box;
 }
-.input:focus { border-color: #2d5bff; }
+.input:focus { border-color: var(--c-primary); }
 .inline { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 700; color: #868e96; }
 .input.count { width: 72px; text-align: right; }
 
@@ -180,14 +180,14 @@ h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
   flex: 1; border: none; background: none; border-radius: 9px; padding: 8px 0; cursor: pointer;
   font: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96;
 }
-.segment button.on { background: #fff; color: #2d5bff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06); }
+.segment button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06); }
 
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .days button {
   aspect-ratio: 1; border: 1px solid #e9ecef; background: #fff; border-radius: 10px; cursor: pointer;
   font: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96;
 }
-.days button.on { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.days button.on { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 
 .period { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-weight: 800; color: #adb5bd; }
 .period .input { flex: 1; min-width: 130px; font-size: 0.8rem; }
@@ -204,7 +204,7 @@ h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
   flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
   font-weight: 800; font-size: 0.85rem; padding: 11px; border-radius: 12px; font-family: inherit;
 }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 .btn.danger { flex: none; color: #e03131; border-color: #ffc9c9; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 

@@ -88,8 +88,8 @@ watch(() => [props.band.id, mine.value], () => { page.value = 0; rows.value = []
 <style scoped>
 .community-panel { scroll-margin-top: 84px; }
 .load-more { display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; margin-top: 14px; padding: 13px; border: 1px solid #e9ecef; border-radius: 12px; background: #fff; color: #687385; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-.load-more:hover { color: #2d5bff; border-color: #cdd7ff; }
+.load-more:hover { color: var(--c-primary-text); border-color: #cdd7ff; }
 .load-more span { color: #adb5bd; font-size: 10px; font-weight: 500; margin-left: 4px; }
 .error { color: #d94841; background: #fff5f5; padding: 12px; font-size: 12px; border-radius: 10px; }
-.error button { border: 0; background: none; color: #2d5bff; font: inherit; cursor: pointer; }
+.error button { border: 0; background: none; color: var(--c-primary-text); font: inherit; cursor: pointer; }
 </style>

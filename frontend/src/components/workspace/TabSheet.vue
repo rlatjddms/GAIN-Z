@@ -128,11 +128,11 @@ const rows = computed(() => {
 
 .measures { flex: 1; display: flex; min-width: 0; }
 .measure { flex-basis: 0; min-width: 0; position: relative; border-radius: 6px; }
-.measure.current { background: #f0f4ff; }
+.measure.current { background: var(--c-primary-soft); }
 
 .head { height: 16px; display: flex; align-items: center; gap: 6px; padding-left: 4px; white-space: nowrap; overflow: hidden; }
 .section {
-  font-size: 0.65rem; font-weight: 900; color: #fff; background: #2d5bff; border-radius: 4px; padding: 1px 5px;
+  font-size: 0.65rem; font-weight: 900; color: #fff; background: var(--c-primary); border-radius: 4px; padding: 1px 5px;
 }
 .num { font-size: 0.6rem; font-weight: 800; color: #ced4da; font-variant-numeric: tabular-nums; }
 .time { font-size: 0.65rem; font-weight: 900; color: #495057; }
@@ -155,14 +155,14 @@ const rows = computed(() => {
   font-size: 0.72rem; font-weight: 800; color: #212529; white-space: nowrap;
   font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
 }
-.measure.current .fret { background: #f0f4ff; }
+.measure.current .fret { background: var(--c-primary-soft); }
 .fret small { font-size: 0.6rem; color: #868e96; margin-left: 1px; }
 .tech {
   position: absolute; transform: translate(-190%, -120%);
-  font-size: 0.58rem; font-weight: 800; font-style: italic; color: #2d5bff; line-height: 1;
+  font-size: 0.58rem; font-weight: 800; font-style: italic; color: var(--c-primary-text); line-height: 1;
 }
 
-.cursor { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: #2d5bff; border-radius: 1px; }
+.cursor { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--c-primary); border-radius: 1px; }
 
 .fingering {
   margin: 4px 0 0; padding: 0 4px; font-size: 0.62rem; font-weight: 700; color: #868e96;

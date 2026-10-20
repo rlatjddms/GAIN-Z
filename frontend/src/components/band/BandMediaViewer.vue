@@ -69,7 +69,7 @@ button:disabled { opacity: .35; cursor: default; } button:focus-visible { outlin
 img, video { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
 .zoomed { display: block; }.zoomed .image-button { display: block; width: 200%; height: 200%; cursor: zoom-out; }.zoomed img { max-width: none; max-height: none; }
 .previous, .next { position: absolute; top: 50%; font-size: 32px; width: 42px; height: 54px; z-index: 2; }.previous { left: 12px; }.next { right: 12px; }
-footer { flex: none; padding: 12px 20px 20px; text-align: center; color: #a5b0c2; font-size: 11px; } nav { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; } nav button[aria-current] { background: #2d5bff; border-color: #7191ff; }
+footer { flex: none; padding: 12px 20px 20px; text-align: center; color: #a5b0c2; font-size: 11px; } nav { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; } nav button[aria-current] { background: var(--c-primary); border-color: #7191ff; }
 .error { color: #ffb4b4; padding: 8px 24px; margin: 0; font-size: 12px; }
 @media(max-width: 600px) { header { padding: 12px; gap: 6px; } header button { padding: 9px 7px; font-size: 10px; } header button svg { width: 15px; } .stage { padding: 12px 42px; } .previous,.next { width: 30px; height: 44px; padding: 0; }.previous { left: 4px; }.next { right: 4px; } footer { padding-bottom: 16px; } }
 </style>

@@ -111,8 +111,8 @@ h2 { position: relative; margin: 4px 0 8px; font-size: 1.3rem; font-weight: 900;
   flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
   font-weight: 800; font-size: 0.85rem; padding: 11px; border-radius: 12px; font-family: inherit;
 }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
-.btn.ghost:hover { border-color: #2d5bff; color: #2d5bff; }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
+.btn.ghost:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 
 @keyframes spin-in {
   from { transform: scale(0.4) rotate(-180deg); opacity: 0; }

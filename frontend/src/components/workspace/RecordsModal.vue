@@ -99,7 +99,7 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 const close = () => emit('close')
 
-const LEGEND_COLORS = { COMMON: '#5a7dff', RARE: '#e8590c', LEGENDARY: '#7c3aed' }
+const LEGEND_COLORS = { COMMON: 'color-mix(in srgb, var(--c-primary) 78%, #fff)', RARE: '#e8590c', LEGENDARY: '#7c3aed' }
 
 const store = useRecordsStore()
 const error = ref('')
@@ -153,7 +153,7 @@ const allDone = computed(() => store.records.length > 0 && store.records.every((
 .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .modal-head h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; display: flex; align-items: center; gap: 8px; }
 .modal-head p { margin: 0; font-size: 0.8rem; color: #868e96; }
-.count { font-size: 0.75rem; font-weight: 800; color: #2d5bff; background: #f0f4ff; padding: 3px 8px; border-radius: 6px; }
+.count { font-size: 0.75rem; font-weight: 800; color: var(--c-primary-text); background: var(--c-primary-soft); padding: 3px 8px; border-radius: 6px; }
 .close {
   flex: none; width: 32px; height: 32px; border: none; border-radius: 10px; background: #f1f3f5;
   color: #868e96; font-size: 0.9rem; cursor: pointer;
@@ -177,7 +177,7 @@ const allDone = computed(() => store.records.length > 0 && store.records.every((
 .progress { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
 .progress span { font-size: 0.72rem; font-weight: 800; color: #495057; white-space: nowrap; }
 .bar { flex: 1; height: 8px; border-radius: 999px; background: #e9ecef; overflow: hidden; }
-.fill { height: 100%; border-radius: 999px; background: #2d5bff; transition: width 0.3s; }
+.fill { height: 100%; border-radius: 999px; background: var(--c-primary); transition: width 0.3s; }
 .detail-close {
   position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border: none; background: none;
   border-radius: 6px; cursor: pointer; color: #adb5bd; font-size: 0.8rem;

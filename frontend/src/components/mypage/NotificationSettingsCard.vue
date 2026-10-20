@@ -90,7 +90,7 @@ const setGroup = (g, on) => save(Object.fromEntries(g.items.map((item) => [item.
 .group-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .group-head strong { font-size: 0.85rem; font-weight: 900; color: #343a40; }
 .spacer { flex: 1; }
-.text-btn { border: none; background: none; padding: 0; cursor: pointer; font-family: inherit; font-size: 0.72rem; font-weight: 800; color: #2d5bff; }
+.text-btn { border: none; background: none; padding: 0; cursor: pointer; font-family: inherit; font-size: 0.72rem; font-weight: 800; color: var(--c-primary-text); }
 .text-btn:disabled { opacity: 0.4; cursor: default; }
 
 ul { list-style: none; margin: 0; padding: 0; }
@@ -103,7 +103,7 @@ ul { list-style: none; margin: 0; padding: 0; }
   flex: none; position: relative; width: 40px; height: 22px; border: none; border-radius: 999px; cursor: pointer;
   background: #dee2e6; transition: background 0.15s; padding: 0;
 }
-.switch.on { background: #2d5bff; }
+.switch.on { background: var(--c-primary); }
 .switch:disabled { cursor: wait; }
 .knob {
   position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff;

@@ -172,8 +172,8 @@ defineExpose({
   font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #868e96; white-space: nowrap;
 }
 .head-btn.danger:hover:not(:disabled) { color: #e03131; border-color: #ffc9c9; background: #fff5f5; }
-.head-btn.primary { color: #2d5bff; border-color: #d0dcff; background: #f0f4ff; }
-.head-btn.primary:hover:not(:disabled) { background: #2d5bff; color: #fff; border-color: #2d5bff; }
+.head-btn.primary { color: var(--c-primary-text); border-color: #d0dcff; background: var(--c-primary-soft); }
+.head-btn.primary:hover:not(:disabled) { background: var(--c-primary); color: #fff; border-color: var(--c-primary); }
 .head-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .head-tag { flex: none; font-size: 0.72rem; font-weight: 800; color: #868e96; background: #f1f3f5; padding: 5px 10px; border-radius: 999px; }
 
