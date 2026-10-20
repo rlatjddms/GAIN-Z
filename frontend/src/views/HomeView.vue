@@ -80,11 +80,6 @@
                         :title="bandStore.bands.length >= MAX_JOINED_BANDS ? `밴드는 ${MAX_JOINED_BANDS}개까지 들어갈 수 있어요` : '밴드 만들기 · 초대 코드로 가입'"
                         @click="openStart('create')">+</button>
               </div>
-
-              <button class="match-make-btn" title="밴드 매칭은 준비 중이에요">
-                <span class="plus-icon">+</span>
-                <span class="btn-lbl">BAND MATCHING</span>
-              </button>
             </div>
           </nav>
 
@@ -411,7 +406,7 @@ button::-moz-focus-inner { border: 0 !important; }
 .band-stage { border-top-left-radius: 0; border-top-right-radius: 0; }
 
 
-/* 밴드 매칭 탭 (양쪽 잘림 수정 완료) */
+/* 밴드 이름 탭 (합주실 선택) */
 .band-nav { margin-bottom: -1px; position: relative; z-index: 10; }
 .band-tabs-row {
   display: flex;
@@ -424,7 +419,7 @@ button::-moz-focus-inner { border: 0 !important; }
 }
 .band-tabs-left button {
   background: var(--c-line-soft); border: 1px solid #dee2e6; border-bottom: none;
-  padding: 10px 24px; border-radius: 16px 16px 0 0; cursor: pointer; color: var(--c-faint); font-size: 0.9rem;
+  padding: 7px 20px; border-radius: 14px 14px 0 0; cursor: pointer; color: var(--c-faint); font-size: 0.85rem;
   transition: background 0.2s, color 0.2s; position: relative; top: 1px;
   outline: none;
 }
@@ -436,21 +431,9 @@ button::-moz-focus-inner { border: 0 !important; }
 .band-tabs-left button.active {
   background: #fff; color: var(--c-text); font-weight: 800;
   border-color: var(--c-line); border-bottom: 2px solid #fff; /* 흰색 선으로 스테이지 선을 지움 */
-  padding-bottom: 11px; z-index: 11;
+  padding-bottom: 8px; z-index: 11;
 }
 
-/* 우측 매칭 버튼: z-index를 높여 스테이지 위로 올림 */
-.match-make-btn {
-  background: #fff; border: 1px solid var(--c-primary); border-bottom: none; /* dashed 대신 solid로 변경하여 울렁임 방지 */
-  padding: 10px 18px; border-radius: 12px 12px 0 0; cursor: pointer;
-  display: flex; align-items: center; gap: 8px;
-  position: relative; top: 1px;
-  z-index: 11; /* stage 위로 올림 */
-  transition: background 0.2s; /* 움직임 효과(all) 제거 */
-}
-.match-make-btn:hover { background: var(--c-primary-soft); }
-.match-make-btn .plus-icon { color: var(--c-primary-text); font-weight: 900; font-size: 1.1rem; }
-.match-make-btn .btn-lbl { color: var(--c-primary-text); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; }
 
 /* 그리드 & 카드 */
 .solo-menus { margin-bottom: 24px; }
@@ -498,7 +481,7 @@ button::-moz-focus-inner { border: 0 !important; }
 
 /* 밴드 전용 */
 .crown { margin-right: 4px; color: #f08c00; vertical-align: -1px; }
-.band-tabs-left .add-band-tab { font-weight: 900; font-size: 1rem; padding: 10px 16px; color: var(--c-primary-text); }
+.band-tabs-left .add-band-tab { font-weight: 900; font-size: 1rem; padding: 5px 16px; color: var(--c-primary-text); }
 .band-tabs-left .add-band-tab:disabled { color: #ced4da; cursor: not-allowed; }
 
 .band-empty { padding: 56px 24px; }
@@ -599,11 +582,9 @@ button::-moz-focus-inner { border: 0 !important; }
   .band-tabs-left { overflow-x: auto; scrollbar-width: none; min-width: 0; }
   .band-tabs-left::-webkit-scrollbar { display: none; }
   /* 밴드 이름 탭은 위아래를 얇게 */
-  .band-tabs-left button { flex: none; padding: 6px 12px; font-size: 0.8rem; white-space: nowrap; }
-  .band-tabs-left button.active { padding-bottom: 7px; }
-  .band-tabs-left .add-band-tab { padding: 6px 12px; }
-  .match-make-btn { flex: none; padding: 6px 10px; }
-  .match-make-btn .btn-lbl { display: none; }
+  .band-tabs-left button { flex: none; padding: 5px 12px; font-size: 0.8rem; white-space: nowrap; }
+  .band-tabs-left button.active { padding-bottom: 6px; }
+  .band-tabs-left .add-band-tab { padding: 3px 12px; }
   .m-item { min-width: 0; padding: 8px 10px; }
 }
 /* 터치 화면에서는 눌렀을 때 카드가 떠오르지 않게 */
