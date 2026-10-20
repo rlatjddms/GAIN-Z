@@ -85,9 +85,9 @@ class NotificationRepositoryTest {
         em.clear();
 
         // 영역·안 읽음으로 거르기
-        assertThat(notifications.findPage(me.getId(), NotificationCategory.JAM.types(), false, PageRequest.of(0, 10)).getContent())
+        assertThat(notifications.findPage(me.getId(), NotificationCategory.BAND.types(), false, PageRequest.of(0, 10)).getContent())
                 .extracting(Notification::getContent).containsExactly("트랙", "새 잼");
-        assertThat(notifications.findPage(me.getId(), NotificationCategory.JAM.types(), true, PageRequest.of(0, 10)).getContent())
+        assertThat(notifications.findPage(me.getId(), NotificationCategory.BAND.types(), true, PageRequest.of(0, 10)).getContent())
                 .extracting(Notification::getContent).containsExactly("새 잼");
         assertThat(notifications.findPage(me.getId(), NotificationCategory.FRIEND.types(), false, PageRequest.of(0, 10)).getContent())
                 .extracting(Notification::getId).containsExactly(friend.getId());
