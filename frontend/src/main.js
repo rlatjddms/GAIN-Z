@@ -14,4 +14,9 @@ app.use(pinia)
 useThemeStore(pinia).init()
 app.use(router)
 app.mount('#app')
+
+// PWA (#143): 배포한 화면에서만 서비스 워커를 켠다 (개발 중에는 캐시 때문에 고친 화면이 안 보일 수 있어서 끈다)
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+}
 
