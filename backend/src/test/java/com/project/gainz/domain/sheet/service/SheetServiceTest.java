@@ -3,13 +3,16 @@ package com.project.gainz.domain.sheet.service;
 import com.project.gainz.domain.band.repository.SetlistItemRepository;
 import com.project.gainz.domain.sheet.dto.request.SheetRequest;
 import com.project.gainz.domain.sheet.dto.request.WorkspaceUpdateRequest;
+import com.project.gainz.domain.sheet.dto.response.AnnotationResponse;
 import com.project.gainz.domain.sheet.dto.response.SheetDetailResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceDetailResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceItemResponse;
+import com.project.gainz.domain.sheet.entity.SheetAnnotation;
 import com.project.gainz.domain.sheet.entity.SheetMusic;
 import com.project.gainz.domain.sheet.entity.SheetPage;
 import com.project.gainz.domain.sheet.entity.UserWorkspace;
 import com.project.gainz.domain.sheet.enums.SheetType;
+import com.project.gainz.domain.sheet.repository.SheetAnnotationRepository;
 import com.project.gainz.domain.sheet.repository.SheetMusicRepository;
 import com.project.gainz.domain.sheet.repository.SheetPageRepository;
 import com.project.gainz.domain.sheet.repository.TabDataRepository;
@@ -58,6 +61,7 @@ class SheetServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private SheetFileStorage fileStorage;
     @Mock private SetlistItemRepository setlistItemRepository;
+    @Mock private SheetAnnotationRepository sheetAnnotationRepository;
 
     @InjectMocks private SheetService sheetService;
 
@@ -293,6 +297,7 @@ class SheetServiceTest {
 
         SheetDetailResponse result = sheetService.deletePage(USER_ID, 10L, 2L);
 
+        verify(sheetAnnotationRepository).deleteAllBySheetPageIdIn(List.of(2L));
         verify(sheetPageRepository).delete(p2);
         verify(fileStorage).delete("f2");
         assertThat(result.pages()).extracting(SheetDetailResponse.PageView::id).containsExactly(1L, 3L);
@@ -345,6 +350,111 @@ class SheetServiceTest {
 
         assertThatThrownBy(() -> sheetService.getPageFile(USER_ID, 10L, 99L))
                 .extracting("errorCode").isEqualTo(ErrorCode.SHEET_PAGE_NOT_FOUND);
+    }
+
+    /* ---------- 악보 위 필기 (#167) ---------- */
+
+    private static final String ONE_STROKE = "{\"w\":1000,\"h\":1414,\"strokes\":[{\"t\":\"pen\",\"c\":\"#e11d48\",\"s\":3,\"p\":[1,2,3,4]}]}";
+    private static final String NO_STROKES = "{\"w\":1000,\"h\":1414,\"strokes\":[]}";
+
+    // 내 악보 10번의 장 하나 (그림 또는 PDF)
+    private SheetPage annotatablePage(Long pageId, String contentType) {
+        SheetMusic mine = sheet(10L, user(USER_ID), "곡");
+        SheetPage page = page(pageId, mine, pageId.intValue(), contentType);
+        when(sheetMusicRepository.findById(10L)).thenReturn(Optional.of(mine));
+        when(sheetPageRepository.findByIdAndSheetMusicId(pageId, 10L)).thenReturn(Optional.of(page));
+        return page;
+    }
+
+    @Test
+    void 이_악보의_내_필기를_장과_쪽마다_돌려준다() {
+        SheetMusic mine = sheet(10L, user(USER_ID), "곡");
+        when(sheetMusicRepository.findById(10L)).thenReturn(Optional.of(mine));
+        SheetAnnotation a = SheetAnnotation.builder().user(mock(User.class)).sheetPage(page(2L, mine, 2, "application/pdf"))
+                .pdfPage(3).data(ONE_STROKE).build();
+        when(sheetAnnotationRepository.findAllByUserIdAndSheetPageSheetMusicId(USER_ID, 10L)).thenReturn(List.of(a));
+
+        List<AnnotationResponse> result = sheetService.getAnnotations(USER_ID, 10L);
+
+        assertThat(result).singleElement().satisfies(r -> {
+            assertThat(r.pageId()).isEqualTo(2L);
+            assertThat(r.pdfPage()).isEqualTo(3);
+            assertThat(r.data()).isEqualTo(ONE_STROKE);
+        });
+    }
+
+    @Test
+    void PDF_쪽에_처음_쓰면_새로_저장한다() {
+        SheetPage pdf = annotatablePage(2L, "application/pdf");
+        when(sheetAnnotationRepository.findByUserIdAndSheetPageIdAndPdfPage(USER_ID, 2L, 5)).thenReturn(Optional.empty());
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(mock(User.class)));
+        when(sheetAnnotationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AnnotationResponse result = sheetService.saveAnnotation(USER_ID, 10L, 2L, 5, ONE_STROKE);
+
+        ArgumentCaptor<SheetAnnotation> captor = ArgumentCaptor.forClass(SheetAnnotation.class);
+        verify(sheetAnnotationRepository).save(captor.capture());
+        assertThat(captor.getValue().getSheetPage()).isSameAs(pdf);
+        assertThat(captor.getValue().getPdfPage()).isEqualTo(5);
+        assertThat(result.data()).isEqualTo(ONE_STROKE);
+    }
+
+    @Test
+    void 이미_쓴_필기가_있으면_내용만_바꾼다() {
+        SheetPage image = annotatablePage(1L, "image/png");
+        SheetAnnotation saved = SheetAnnotation.builder().user(mock(User.class)).sheetPage(image).pdfPage(1).data(NO_STROKES).build();
+        when(sheetAnnotationRepository.findByUserIdAndSheetPageIdAndPdfPage(USER_ID, 1L, 1)).thenReturn(Optional.of(saved));
+
+        sheetService.saveAnnotation(USER_ID, 10L, 1L, 1, ONE_STROKE);
+
+        assertThat(saved.getData()).isEqualTo(ONE_STROKE);
+        verify(sheetAnnotationRepository, never()).save(any());
+    }
+
+    @Test
+    void 획이_없으면_필기를_지운다() {
+        SheetPage image = annotatablePage(1L, "image/png");
+        SheetAnnotation saved = SheetAnnotation.builder().user(mock(User.class)).sheetPage(image).pdfPage(1).data(ONE_STROKE).build();
+        when(sheetAnnotationRepository.findByUserIdAndSheetPageIdAndPdfPage(USER_ID, 1L, 1)).thenReturn(Optional.of(saved));
+
+        assertThat(sheetService.saveAnnotation(USER_ID, 10L, 1L, 1, NO_STROKES)).isNull();
+        verify(sheetAnnotationRepository).delete(saved);
+    }
+
+    @Test
+    void 그림_장은_1쪽만_있고_쪽_번호는_1부터다() {
+        annotatablePage(1L, "image/png");
+
+        assertThatThrownBy(() -> sheetService.saveAnnotation(USER_ID, 10L, 1L, 2, ONE_STROKE))
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_ANNOTATION);
+        assertThatThrownBy(() -> sheetService.saveAnnotation(USER_ID, 10L, 1L, 0, ONE_STROKE))
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_ANNOTATION);
+    }
+
+    @Test
+    void 필기_형식이_틀리거나_너무_크면_저장하지_않는다() {
+        annotatablePage(2L, "application/pdf");
+
+        assertThatThrownBy(() -> sheetService.saveAnnotation(USER_ID, 10L, 2L, 1, "{\"strokes\":"))
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_ANNOTATION);
+        assertThatThrownBy(() -> sheetService.saveAnnotation(USER_ID, 10L, 2L, 1, "{\"lines\":[]}"))
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_ANNOTATION);
+        String huge = "{\"strokes\":[" + "1,".repeat(SheetService.MAX_ANNOTATION_LENGTH / 2) + "1]}";
+        assertThatThrownBy(() -> sheetService.saveAnnotation(USER_ID, 10L, 2L, 1, huge))
+                .extracting("errorCode").isEqualTo(ErrorCode.ANNOTATION_TOO_LARGE);
+        verify(sheetAnnotationRepository, never()).save(any());
+    }
+
+    @Test
+    void 볼_수_없는_악보에는_필기할_수_없다() {
+        SheetMusic others = sheet(10L, user(OTHER_ID), "남의 악보");
+        when(sheetMusicRepository.findById(10L)).thenReturn(Optional.of(others));
+
+        assertThatThrownBy(() -> sheetService.getAnnotations(USER_ID, 10L))
+                .extracting("errorCode").isEqualTo(ErrorCode.SHEET_NOT_FOUND);
+        assertThatThrownBy(() -> sheetService.saveAnnotation(USER_ID, 10L, 1L, 1, ONE_STROKE))
+                .extracting("errorCode").isEqualTo(ErrorCode.SHEET_NOT_FOUND);
+        verify(sheetAnnotationRepository, never()).save(any());
     }
 
     /* ---------- 보관함 ---------- */
@@ -445,6 +555,7 @@ class SheetServiceTest {
         sheetService.removeFromWorkspace(USER_ID, 1L);
 
         verify(userWorkspaceRepository).delete(item);
+        verify(sheetAnnotationRepository).deleteAllBySheetPageIdIn(List.of(1L, 2L));
         verify(sheetPageRepository).deleteAll(pages);
         verify(sheetMusicRepository).delete(mine);
         verify(fileStorage).delete("f1");
