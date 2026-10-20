@@ -61,7 +61,7 @@
                 </article>
               </template>
             </SmoothReorder>
-            <div v-else class="empty"><span class="empty-icon"><PixelIcon name="notes" :size="48" /></span><strong>아직 등록한 곡이 없어요</strong><p>곡을 추가하고 곡마다 내용을 저장해 보세요.</p><button class="btn" @click="addSong">+ 첫 곡 추가</button></div>
+            <div v-else class="empty"><span class="empty-icon"><PixelIcon name="songs" :size="48" /></span><strong>아직 등록한 곡이 없어요</strong><p>곡을 추가하고 곡마다 내용을 저장해 보세요.</p><button class="btn" @click="addSong">+ 첫 곡 추가</button></div>
           </template>
 
           <div v-else class="empty"><span class="empty-icon"><PixelIcon name="music" :size="48" /></span><strong>우리 밴드의 다음 합주를 준비해요</strong><p>왼쪽 목록에서 셋리스트를 만들어 주세요.</p></div>
@@ -392,7 +392,7 @@ button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset
 .summary b { color:#495057; }
 .summary em { margin-left:8px; color:#868e96; font-size:.7rem; font-style:normal; }
 .empty { display:flex; flex-direction:column; align-items:center; text-align:center; padding:36px 14px; margin-top:16px; border:1px dashed #e9ecef; border-radius:14px; gap:8px; }
-.empty-icon { font-size:2rem; margin-bottom:8px; }
+.empty-icon { margin-bottom:8px; color: var(--c-faint); }
 .empty strong { font-size:.9rem; color:#495057; }
 .empty p { margin:0 0 8px; }
 .edit-toolbar { display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; margin-top:18px; }

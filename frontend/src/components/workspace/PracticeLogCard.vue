@@ -12,7 +12,7 @@
     <div class="log-stats">
       <div class="log-stat streak-stat">
         <span>연속 연습</span>
-        <strong>{{ streak }}일 <Flame class="flame" :size="14" :stroke-width="2.4" /></strong>
+        <strong>{{ streak }}일</strong>
       </div>
       <div class="log-stat">
         <span>{{ month }}월 연습 시간</span>
@@ -48,7 +48,6 @@
 </template>
 
 <script setup>
-import { Flame } from 'lucide-vue-next'
 import { ref, computed, onMounted } from 'vue'
 import { usePracticeStore } from '../../stores/practice'
 import { useAuthStore } from '../../stores/auth'

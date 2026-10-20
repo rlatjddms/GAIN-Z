@@ -134,7 +134,7 @@
                 <div class="m-name">
                   <Crown v-if="m.position === 'LEADER'" class="crown" :size="12" :stroke-width="2.4" aria-label="리더" />{{ m.character?.nickname || '알 수 없는 멤버' }}
                 </div>
-                <div class="m-role"><PixelSprite v-if="m.part" class="part-icon" :parts="[['instrument', m.part]]" :box="14" exact /> {{ partLabel(m.part) }}<template v-if="m.me"> · 나</template></div>
+                <div class="m-role">{{ partLabel(m.part) }}<template v-if="m.me"> · 나</template></div>
               </div>
             </div>
           </section>
@@ -166,7 +166,6 @@
 <script setup>
 import { Crown, Music, Settings } from 'lucide-vue-next'
 import PixelIcon from '../components/PixelIcon.vue'
-import PixelSprite from '../components/PixelSprite.vue'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
@@ -475,11 +474,24 @@ button::-moz-focus-inner { border: 0 !important; }
 .card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
 .card-title.link:hover { color: var(--c-primary-text); }
 .record-count { font-size: 0.75rem; color: #adb5bd; }
-.shelf { cursor: pointer; display: flex; flex-direction: column; gap: 14px; }
+/* 유리 진열장: 얇은 테두리 안에 투명한 유리 선반, 비스듬한 빛 반사 */
+.shelf {
+  position: relative; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; gap: 12px;
+  padding: 14px 10px 10px; border-radius: 14px;
+  background: linear-gradient(180deg, #f8fbfd 0%, #ffffff 100%);
+  border: 1px solid #dee2e6;
+  box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 4px #eef1f4;
+}
+.shelf::after {
+  content: ''; position: absolute; top: -40%; left: -30%; width: 40%; height: 180%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0) 100%);
+  transform: rotate(20deg); pointer-events: none;
+}
 .shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
 .shelf-board {
-  height: 8px; border-radius: 3px; margin-top: 2px;
-  background: #c08a52; box-shadow: inset 0 -3px 0 #8e6035;
+  height: 3px; border-radius: 2px; margin-top: 2px;
+  background: linear-gradient(180deg, #ffffff 0%, #e3e8ee 100%);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.12);
 }
 .shelf:hover .shelf-items { transform: translateY(-2px); }
 .shelf-items { transition: transform 0.2s; }
@@ -487,7 +499,6 @@ button::-moz-focus-inner { border: 0 !important; }
 
 /* 밴드 전용 */
 .crown { margin-right: 4px; color: #f08c00; vertical-align: -1px; }
-.part-icon { display: inline-block; vertical-align: -2px; }
 .band-tabs-left .add-band-tab { font-weight: 900; font-size: 1rem; padding: 10px 16px; color: var(--c-primary-text); }
 .band-tabs-left .add-band-tab:disabled { color: #ced4da; cursor: not-allowed; }
 

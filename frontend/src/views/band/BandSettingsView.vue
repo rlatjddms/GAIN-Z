@@ -472,4 +472,6 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 @media (max-width: 560px) {
   .stages { grid-template-columns: 1fr; }
 }
+/* 리더 왕관: 홈 밴드 무대와 같은 노란 왕관, 이름과 띄움 */
+.crown { margin-right: 6px; color: #f08c00; vertical-align: -1px; flex: none; }
 </style>
