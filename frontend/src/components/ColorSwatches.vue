@@ -35,7 +35,7 @@ const isCustom = computed(() => !props.presets.some((c) => same(c, props.modelVa
   position: relative; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; padding: 0;
   border: 2px solid #fff; box-shadow: 0 0 0 1px #dee2e6;
 }
-.swatch.on { box-shadow: 0 0 0 2px #2d5bff; }
+.swatch.on { box-shadow: 0 0 0 2px var(--c-primary); }
 .custom {
   display: flex; align-items: center; justify-content: center; overflow: hidden;
   background: conic-gradient(#ef4444, #f59e0b, #22c55e, #3b82f6, #a855f7, #ef4444);

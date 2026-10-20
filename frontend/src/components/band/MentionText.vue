@@ -14,4 +14,4 @@ const parts = computed(() => {
   return result
 })
 </script>
-<style scoped>.mention { color: #2d5bff; background: #edf2ff; border-radius: 4px; padding: 1px 3px; font-weight: 700; }</style>
+<style scoped>.mention { color: var(--c-primary-text); background: var(--c-primary-soft); border-radius: 4px; padding: 1px 3px; font-weight: 700; }</style>

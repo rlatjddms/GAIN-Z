@@ -320,7 +320,7 @@ const unfriend = async (friend) => {
 .code-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
 .code {
   font-family: 'Courier New', monospace; font-size: 1.25rem; font-weight: 900; letter-spacing: 3px;
-  color: #2d5bff; background: #f0f4ff; padding: 6px 12px; border-radius: 10px; margin-right: 4px;
+  color: var(--c-primary-text); background: var(--c-primary-soft); padding: 6px 12px; border-radius: 10px; margin-right: 4px;
 }
 .hint { margin: 8px 0 0; font-size: 0.72rem; font-weight: 700; color: #adb5bd; line-height: 1.5; }
 
@@ -329,7 +329,7 @@ const unfriend = async (friend) => {
   flex: 1; min-width: 0; border: 1px solid #e9ecef; border-radius: 10px; padding: 9px 12px; background: #f8f9fa;
   font-family: 'Courier New', monospace; font-size: 0.95rem; font-weight: 800; letter-spacing: 2px; outline: none;
 }
-.request-form input:focus { border-color: #2d5bff; background: #fff; }
+.request-form input:focus { border-color: var(--c-primary); background: #fff; }
 
 .people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .people > li + li { border-top: 1px solid #f1f3f5; }
@@ -355,10 +355,10 @@ const unfriend = async (friend) => {
   border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit; cursor: pointer;
   font-weight: 800; font-size: 0.8rem; padding: 8px 12px; border-radius: 10px; white-space: nowrap;
 }
-.btn:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .btn.small { padding: 7px 10px; font-size: 0.75rem; }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
-.btn.primary:hover:not(:disabled) { color: #fff; background: #1f4ae0; }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
+.btn.primary:hover:not(:disabled) { color: #fff; background: var(--c-primary-strong); }
 .btn.ghost { border-color: transparent; color: #868e96; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 

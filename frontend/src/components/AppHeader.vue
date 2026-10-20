@@ -2,7 +2,7 @@
   <header class="main-header">
     <div class="header-inner">
       <div class="header-left">
-        <router-link to="/home" class="logo">GAIN-Z</router-link>
+        <router-link to="/home" class="logo" aria-label="GAIN-Z 홈"><AppLogo :pixel="3" /></router-link>
       </div>
 
       <div class="header-center">
@@ -46,6 +46,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import ProfileAvatar from './ProfileAvatar.vue'
+import AppLogo from './AppLogo.vue'
 import NotificationBell from './NotificationBell.vue'
 
 const router = useRouter()
@@ -101,7 +102,7 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 .header-left { display: flex; justify-content: flex-start; }
 .header-center { display: flex; justify-content: center; }
 .header-right { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
-.logo { font-size: 1.4rem; font-weight: 900; color: #2d5bff; letter-spacing: -1px; text-decoration: none; }
+.logo { display: inline-flex; align-items: center; text-decoration: none; }
 
 .profile-menu { position: relative; }
 .user-info {
@@ -109,8 +110,8 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
   border: none; background: none; cursor: pointer; font-family: inherit;
   border-radius: 999px; transition: background 0.15s;
 }
-.user-info:hover, .user-info.on { background: #f0f4ff; }
-.user-info.on .name, .user-info.on .caret { color: #2d5bff; }
+.user-info:hover, .user-info.on { background: var(--c-primary-soft); }
+.user-info.on .name, .user-info.on .caret { color: var(--c-primary-text); }
 .caret { color: #adb5bd; transition: transform 0.15s; }
 .user-info[aria-expanded="true"] .caret { transform: rotate(180deg); }
 
@@ -125,8 +126,8 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
   font-family: inherit; font-size: 0.85rem; font-weight: 700; color: #495057; text-decoration: none; text-align: left;
 }
 .menu-item svg { color: #adb5bd; flex: none; }
-.menu-item:hover, .menu-item.on { background: #f0f4ff; color: #2d5bff; }
-.menu-item:hover svg, .menu-item.on svg { color: #2d5bff; }
+.menu-item:hover, .menu-item.on { background: var(--c-primary-soft); color: var(--c-primary-text); }
+.menu-item:hover svg, .menu-item.on svg { color: var(--c-primary-text); }
 .menu-item.logout:hover { background: #fff5f5; color: #fa5252; }
 .menu-item.logout:hover svg { color: #fa5252; }
 .menu-divider { height: 1px; background: #f1f3f5; margin: 4px 6px; }

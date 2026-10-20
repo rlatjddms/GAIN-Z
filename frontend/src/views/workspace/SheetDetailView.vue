@@ -247,7 +247,7 @@ onBeforeRouteLeave(() => (memoDirty.value ? window.confirm('저장하지 않은 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
 .crumb { align-self: flex-start; font-size: 0.8rem; font-weight: 800; color: #868e96; text-decoration: none; }
-.crumb:hover { color: #2d5bff; }
+.crumb:hover { color: var(--c-primary-text); }
 
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .title { min-width: 0; }
@@ -259,10 +259,10 @@ onBeforeRouteLeave(() => (memoDirty.value ? window.confirm('저장하지 않은 
   border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit; cursor: pointer;
   font-weight: 800; font-size: 0.8rem; padding: 9px 14px; border-radius: 12px; text-decoration: none;
 }
-.btn:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .btn.small { padding: 7px 12px; font-size: 0.75rem; border-radius: 10px; }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
-.btn.primary:hover:not(:disabled) { color: #fff; background: #1f4ae0; }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
+.btn.primary:hover:not(:disabled) { color: #fff; background: var(--c-primary-strong); }
 .btn.star.on { color: #e67700; border-color: #ffe066; background: #fff9db; }
 .btn.danger:hover:not(:disabled) { border-color: #ffa8a8; color: #e03131; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -279,7 +279,7 @@ onBeforeRouteLeave(() => (memoDirty.value ? window.confirm('저장하지 않은 
   width: 32px; height: 32px; border: 1px solid #e9ecef; background: #fff; border-radius: 9px; cursor: pointer;
   font-family: inherit; font-size: 1rem; font-weight: 900; color: #495057;
 }
-.step:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.step:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .step:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .pages { display: flex; flex-direction: column; align-items: center; gap: 18px; }
@@ -291,12 +291,12 @@ figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight
   width: 100%; box-sizing: border-box; min-height: 180px; resize: vertical; border: 1px solid #e9ecef; border-radius: 12px;
   padding: 12px; font-family: inherit; font-size: 0.85rem; line-height: 1.6; color: #212529; outline: none;
 }
-.memo:focus { border-color: #2d5bff; }
+.memo:focus { border-color: var(--c-primary); }
 .memo-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .memo-foot .count { font-size: 0.7rem; color: #adb5bd; font-weight: 700; margin-right: auto; }
 .saved { color: #2f9e44; font-weight: 800; font-size: 0.72rem; }
 .muted { margin: 0; font-size: 0.78rem; color: #868e96; line-height: 1.6; }
-.text-btn { border: none; background: none; padding: 0; color: #2d5bff; font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; text-decoration: none; }
+.text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; text-decoration: none; }
 
 .empty { margin: 0; padding: 32px; text-align: center; font-size: 0.85rem; color: #adb5bd; }
 .loading { padding: 48px; text-align: center; font-size: 0.85rem; color: #adb5bd; }

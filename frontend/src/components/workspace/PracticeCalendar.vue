@@ -117,17 +117,17 @@ const select = (key) => {
   aspect-ratio: 1; border: none; border-radius: 9px; background: #f8f9fa; cursor: pointer;
   font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #495057; font-variant-numeric: tabular-nums;
 }
-.day:hover:not(:disabled) { outline: 2px solid #c9d6ff; }
-.day.lv1 { background: #c9d6ff; }
-.day.lv2 { background: #8ea8ff; color: #fff; }
-.day.lv3 { background: #5a7dff; color: #fff; }
-.day.lv4 { background: #2d5bff; color: #fff; }
+.day:hover:not(:disabled) { outline: 2px solid var(--c-primary-line); }
+.day.lv1 { background: var(--c-primary-line); }
+.day.lv2 { background: color-mix(in srgb, var(--c-primary) 55%, #fff); color: #fff; }
+.day.lv3 { background: color-mix(in srgb, var(--c-primary) 78%, #fff); color: #fff; }
+.day.lv4 { background: var(--c-primary); color: #fff; }
 .day.other { opacity: 0.4; }
-.day.today { color: #2d5bff; }
+.day.today { color: var(--c-primary-text); }
 .day.today.lv2, .day.today.lv3, .day.today.lv4 { color: #fff; text-decoration: underline; }
-.day.selected { outline: 2px solid #2d5bff; outline-offset: 1px; }
+.day.selected { outline: 2px solid var(--c-primary); outline-offset: 1px; }
 .day:disabled { background: transparent; color: #dee2e6; cursor: default; }
 
 .cal-foot { display: flex; justify-content: flex-end; margin-top: 10px; }
-.link { border: none; background: none; padding: 0; font: inherit; font-size: 0.75rem; font-weight: 800; color: #2d5bff; cursor: pointer; }
+.link { border: none; background: none; padding: 0; font: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-primary-text); cursor: pointer; }
 </style>

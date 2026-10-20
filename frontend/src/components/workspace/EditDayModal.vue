@@ -110,7 +110,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
   flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer; font-family: inherit;
   font-size: 0.75rem; font-weight: 800; padding: 7px 0; border-radius: 9px;
 }
-.chip:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.chip:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 
 .note { margin: 14px 0 0; font-size: 0.75rem; color: #adb5bd; line-height: 1.5; }
 .error { margin: 8px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
@@ -120,7 +120,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
   flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
   font-weight: 800; font-size: 0.9rem; padding: 12px; border-radius: 12px; font-family: inherit;
 }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }

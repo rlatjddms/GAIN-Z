@@ -57,7 +57,7 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border: 4px solid #eceff2;
-  border-top-color: #2d5bff;
+  border-top-color: var(--c-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 20px;

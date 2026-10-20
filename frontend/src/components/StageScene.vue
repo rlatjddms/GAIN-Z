@@ -145,7 +145,7 @@ const actorStyle = computed(() => ({
 .actor { position: absolute; line-height: 0; z-index: 2; }
 .decor { position: absolute; z-index: 1; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; user-select: none; }
 /* 소품 옮기기: 앞뒤 순서는 그대로 두고(캐릭터 뒤 소품은 뒤에), 캐릭터가 클릭을 가로채지 않게 해서 뒤에 있는 소품도 잡힌다 */
-.editing .decor { pointer-events: auto; cursor: grab; touch-action: none; outline: 1px dashed rgba(45, 91, 255, 0.7); outline-offset: -1px; }
+.editing .decor { pointer-events: auto; cursor: grab; touch-action: none; outline: 1px dashed color-mix(in srgb, var(--c-primary) 70%, transparent); outline-offset: -1px; }
 .editing .decor:active { cursor: grabbing; }
 .editing .actor { pointer-events: none; }
 /* 캐릭터 캔버스(24×33)를 배경과 같은 배율로 늘린다 */

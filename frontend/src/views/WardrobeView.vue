@@ -443,7 +443,7 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
   border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer; font-family: inherit;
   font-weight: 800; font-size: 0.85rem; padding: 10px 18px; border-radius: 12px;
 }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .error { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fff5f5; color: #e03131; font-size: 0.8rem; font-weight: 700; }
 
@@ -467,7 +467,7 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
   flex: 1; border: none; background: none; padding: 14px 0; cursor: pointer; font-family: inherit;
   font-size: 0.9rem; font-weight: 800; color: #adb5bd; border-bottom: 2px solid transparent;
 }
-.tabs button.on { color: #2d5bff; border-bottom-color: #2d5bff; }
+.tabs button.on { color: var(--c-primary-text); border-bottom-color: var(--c-primary); }
 .tab-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 18px; }
 
 .field { display: flex; flex-direction: column; gap: 8px; }
@@ -475,7 +475,7 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .input {
   border: 1px solid #dee2e6; border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 0.9rem; font-weight: 700; outline: none;
 }
-.input:focus { border-color: #2d5bff; }
+.input:focus { border-color: var(--c-primary); }
 .warn { font-size: 0.72rem; font-weight: 700; color: #f08c00; margin: 0; }
 .hint { margin: 0; font-size: 0.78rem; color: #adb5bd; }
 
@@ -485,7 +485,7 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
   transition: border-color 0.15s, background 0.15s;
 }
 .chip { padding: 8px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 800; }
-.chip.on, .opt.on, .item.on, .stage.on { border-color: #2d5bff; background: #f0f4ff; color: #2d5bff; }
+.chip.on, .opt.on, .item.on, .stage.on { border-color: var(--c-primary); background: var(--c-primary-soft); color: var(--c-primary-text); }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 .opt {
@@ -504,7 +504,7 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
   display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 2px; cursor: pointer;
   padding: 10px 12px; background: #f8f9fa; border-radius: 12px;
 }
-.toggle input { width: 16px; height: 16px; accent-color: #2d5bff; }
+.toggle input { width: 16px; height: 16px; accent-color: var(--c-primary); }
 .toggle span { font-size: 0.82rem; font-weight: 800; color: #495057; }
 .toggle small { grid-column: 2; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 .decor-thumb { width: 40px; image-rendering: pixelated; }
@@ -528,7 +528,7 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .sub-section { display: flex; flex-direction: column; gap: 8px; }
 .item strong { font-size: 0.85rem; font-weight: 800; }
 .item small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
-.item.on small { color: #2d5bff; }
+.item.on small { color: var(--c-primary-text); }
 .item.locked, .stage.locked, .opt.locked { cursor: not-allowed; background: #f8f9fa; }
 .opt.locked { color: #adb5bd; }
 .lv { font-size: 0.65rem; font-weight: 800; color: #adb5bd; }

@@ -77,6 +77,8 @@
         <p v-if="visibilityError" class="field-error">{{ visibilityError }}</p>
       </WsCard>
 
+      <ThemeCard />
+
       <div id="notification-settings" ref="notificationSettingsRef">
         <NotificationSettingsCard @loaded="scrollToHash" />
       </div>
@@ -111,6 +113,7 @@ import ProfileAvatar from '../components/ProfileAvatar.vue'
 import PasswordModal from '../components/mypage/PasswordModal.vue'
 import WithdrawModal from '../components/mypage/WithdrawModal.vue'
 import NotificationSettingsCard from '../components/mypage/NotificationSettingsCard.vue'
+import ThemeCard from '../components/mypage/ThemeCard.vue'
 import { useAuthStore } from '../stores/auth'
 import {
   updateMyName, uploadProfileImage, deleteProfileImage,
@@ -296,7 +299,7 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
 .name-view strong { font-weight: 900; }
 .name-edit form { display: flex; gap: 6px; }
 .name-edit input {
-  flex: 1; min-width: 0; border: 1px solid #2d5bff; border-radius: 10px; padding: 7px 10px;
+  flex: 1; min-width: 0; border: 1px solid var(--c-primary); border-radius: 10px; padding: 7px 10px;
   font-family: inherit; font-size: 0.85rem; font-weight: 700; outline: none;
 }
 .field-error { margin: 8px 0 0; font-size: 0.72rem; font-weight: 700; color: #e03131; }
@@ -316,7 +319,7 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
   font-family: inherit; font-size: 0.88rem; font-weight: 800; color: #343a40; text-align: left;
 }
 .setting:first-child { border-top: none; padding-top: 0; }
-.setting:hover { color: #2d5bff; }
+.setting:hover { color: var(--c-primary-text); }
 .chev { color: #ced4da; font-size: 1.1rem; }
 .muted { margin: 0 0 12px; font-size: 0.78rem; color: #868e96; line-height: 1.6; }
 .withdraw-link {
@@ -330,20 +333,20 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
   border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit; cursor: pointer;
   font-weight: 800; font-size: 0.8rem; padding: 8px 12px; border-radius: 10px; white-space: nowrap;
 }
-.btn:hover:not(:disabled) { border-color: #2d5bff; color: #2d5bff; }
+.btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .btn.small { padding: 7px 10px; font-size: 0.75rem; }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
-.btn.primary:hover:not(:disabled) { color: #fff; background: #1f4ae0; }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
+.btn.primary:hover:not(:disabled) { color: #fff; background: var(--c-primary-strong); }
 .btn.ghost { border-color: transparent; color: #868e96; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.text-btn { border: none; background: none; padding: 0; color: #2d5bff; font-weight: 800; cursor: pointer; font-family: inherit; font-size: 0.75rem; }
+.text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: 0.75rem; }
 
 .segmented { display: inline-flex; background: #f1f3f5; border-radius: 12px; padding: 3px; gap: 2px; }
 .segmented button {
   border: none; background: none; border-radius: 10px; padding: 7px 14px; cursor: pointer;
   font-family: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96; transition: 0.15s;
 }
-.segmented button.on { background: #fff; color: #2d5bff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
+.segmented button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
 .segmented button:disabled { cursor: not-allowed; }
 .muted.small { margin: 8px 0 0; font-size: 0.72rem; }
 .saved { margin: 10px 0 0; font-size: 0.75rem; font-weight: 800; color: #2f9e44; }

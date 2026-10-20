@@ -37,21 +37,21 @@ const safeUrl = computed(() => (!props.compact && /^https?:\/\//i.test(props.mus
   background: #fff; border: 1px solid #e9ecef; border-radius: 16px; padding: 12px 16px;
   color: #343a40; text-decoration: none; transition: border-color 0.15s, background 0.15s;
 }
-.profile-music.link:hover { border-color: #2d5bff; background: #f8faff; }
+.profile-music.link:hover { border-color: var(--c-primary); background: var(--c-primary-soft); }
 .note {
   flex: none; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: #2d5bff; color: #fff; font-size: 0.95rem; font-weight: 900;
+  background: var(--c-primary); color: #fff; font-size: 0.95rem; font-weight: 900;
 }
 .text { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; overflow: hidden; }
 .text strong, .artist { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .text strong { font-size: 0.9rem; font-weight: 900; }
 .artist { font-size: 0.8rem; font-weight: 700; color: #868e96; }
 .out { flex: none; color: #adb5bd; }
-.profile-music.link:hover .out { color: #2d5bff; }
+.profile-music.link:hover .out { color: var(--c-primary-text); }
 
 /* 목록 안 작은 한 줄 */
 .profile-music.compact { background: none; border: none; padding: 0; gap: 5px; }
-.profile-music.compact .note { width: auto; height: auto; background: none; color: #2d5bff; font-size: 0.75rem; }
+.profile-music.compact .note { width: auto; height: auto; background: none; color: var(--c-primary-text); font-size: 0.75rem; }
 .profile-music.compact .text strong { font-size: 0.75rem; font-weight: 800; color: #495057; }
 .profile-music.compact .artist { font-size: 0.72rem; }
 .profile-music.compact .out { width: 12px; height: 12px; }

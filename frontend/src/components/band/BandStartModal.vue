@@ -138,7 +138,7 @@ const submit = async () => {
   flex: 1; border: none; background: none; padding: 8px; border-radius: 9px; cursor: pointer;
   font-family: inherit; font-weight: 800; font-size: 0.8rem; color: #adb5bd;
 }
-.tabs button.active { background: #fff; color: #2d5bff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }
+.tabs button.active { background: #fff; color: var(--c-primary-text); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }
 h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 .sub { margin: 0 0 18px; font-size: 0.8rem; color: #868e96; line-height: 1.5; }
 
@@ -150,7 +150,7 @@ form > .field:first-child { margin-top: 0; }
   border: 1px solid #e9ecef; border-radius: 12px; padding: 11px 14px; font-family: inherit;
   font-size: 0.9rem; outline: none; background: #f8f9fa; resize: none;
 }
-.field input:focus, .field textarea:focus { border-color: #2d5bff; background: #fff; }
+.field input:focus, .field textarea:focus { border-color: var(--c-primary); background: #fff; }
 .code-input { font-family: ui-monospace, Menlo, Consolas, monospace !important; letter-spacing: 4px; font-weight: 800; text-align: center; font-size: 1.1rem !important; }
 .code-input::placeholder { font-family: 'Pretendard', sans-serif; letter-spacing: 0; font-weight: 600; font-size: 0.9rem; }
 
@@ -159,7 +159,7 @@ form > .field:first-child { margin-top: 0; }
   border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 7px 10px; cursor: pointer;
   font-family: inherit; font-size: 0.78rem; font-weight: 700; color: #495057; display: flex; align-items: center; gap: 4px;
 }
-.part.active { border-color: #2d5bff; background: #f0f4ff; color: #2d5bff; }
+.part.active { border-color: var(--c-primary); background: var(--c-primary-soft); color: var(--c-primary-text); }
 .part .emoji { font-size: 0.95rem; }
 
 .error { margin: 12px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
@@ -168,7 +168,7 @@ form > .field:first-child { margin-top: 0; }
   flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
   font-weight: 800; font-size: 0.9rem; padding: 12px; border-radius: 12px; font-family: inherit;
 }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }

@@ -53,7 +53,7 @@ const open = (t) => {
   flex: 1; min-width: 0; display: flex; gap: 12px; padding: 12px 6px 12px 12px; border: none; background: none;
   cursor: pointer; text-align: left; font-family: inherit;
 }
-.toast-main:hover .content { color: #2d5bff; }
+.toast-main:hover .content { color: var(--c-primary-text); }
 .text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .title { font-size: 0.72rem; font-weight: 800; color: #868e96; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .content {

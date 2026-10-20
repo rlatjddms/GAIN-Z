@@ -76,11 +76,11 @@ const capo = computed(() => (props.instrumentType === 'GUITAR' && changed.value 
   width: 34px; height: 34px; border: 1px solid #e9ecef; background: #fff; border-radius: 10px; cursor: pointer;
   font-family: inherit; font-size: 1.05rem; font-weight: 900; color: #495057;
 }
-.step:hover { border-color: #2d5bff; color: #2d5bff; }
+.step:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 
 .info { margin: 10px 0 0; font-size: 0.75rem; font-weight: 700; color: #868e96; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .saved { color: #2f9e44; font-weight: 800; }
-.text-btn { border: none; background: none; padding: 0; color: #2d5bff; font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; }
+.text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; }
 .capo { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: #fff4e6; color: #d9480f; font-size: 0.75rem; font-weight: 700; line-height: 1.5; }
 
 .map { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 0.85rem; }

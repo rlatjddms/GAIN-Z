@@ -102,7 +102,7 @@ const goWardrobe = () => {
 .next { margin: 10px 0 0; font-size: 0.72rem; font-weight: 700; color: #adb5bd; }
 .actions { margin-top: 18px; display: flex; gap: 8px; }
 .btn {
-  flex: 1; border: none; background: #2d5bff; color: #fff; cursor: pointer;
+  flex: 1; border: none; background: var(--c-primary); color: #fff; cursor: pointer;
   font-weight: 800; font-size: 0.88rem; padding: 12px; border-radius: 12px; font-family: inherit;
 }
 .btn.ghost { background: #f1f3f5; color: #495057; }

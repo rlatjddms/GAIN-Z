@@ -4,7 +4,7 @@
 
     <main class="signup-card-container">
       <div class="brand-header">
-        <div class="brand-logo">GAIN-Z</div>
+        <div class="brand-logo"><AppLogo :pixel="5" /></div>
         <p class="brand-sub">회원 정보를 입력해주세요</p>
       </div>
 
@@ -84,6 +84,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import AppLogo from '../components/AppLogo.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -226,7 +227,7 @@ const handleSignup = async () => {
 
 .login-background-deco {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: radial-gradient(circle at 30% 80%, rgba(45,91,255,0.03) 0%, transparent 50%);
+  background: radial-gradient(circle at 30% 80%, color-mix(in srgb, var(--c-primary) 3%, transparent) 0%, transparent 50%);
 }
 
 .signup-card-container {
@@ -237,7 +238,7 @@ const handleSignup = async () => {
 }
 
 .brand-header { margin-bottom: 45px; }
-.brand-logo { font-size: 1.8rem; font-weight: 900; color: #2d5bff; letter-spacing: -1.2px; margin-bottom: 6px; }
+.brand-logo { display: flex; justify-content: center; margin-bottom: 10px; }
 .brand-sub { font-size: 0.95rem; color: #a0a8b1; letter-spacing: -0.3px; }
 
 .input-grid { display: flex; flex-direction: column; gap: 14px; }
@@ -249,7 +250,7 @@ const handleSignup = async () => {
   width: 100%; padding: 18px 20px; border: 1.5px solid #eceff2; border-radius: 12px;
   font-size: 0.95rem; background: #fff; transition: all 0.2s; color: #1a1a1a; outline: none;
 }
-.gz-input:focus { border-color: #2d5bff; box-shadow: 0 0 0 4px rgba(45, 91, 255, 0.05); }
+.gz-input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 5%, transparent); }
 .gz-input:disabled { background: #f8f9fb; color: #adb5bd; cursor: not-allowed; }
 
 .check-btn {
@@ -265,13 +266,13 @@ const handleSignup = async () => {
 .status-msg.success { color: #37b24d; font-weight: 600; }
 
 .signup-btn-main {
-  width: 100%; padding: 18px; background: #2d5bff; color: #fff; border: none;
+  width: 100%; padding: 18px; background: var(--c-primary); color: #fff; border: none;
   border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer;
   transition: 0.25s ease; margin-top: 35px;
 }
 .signup-btn-main:disabled { background: #ced4da; cursor: not-allowed; box-shadow: none; }
-.signup-btn-main:hover:not(:disabled) { background: #1a4aff; box-shadow: 0 5px 15px rgba(45, 91, 255, 0.2); }
+.signup-btn-main:hover:not(:disabled) { background: var(--c-primary-strong); box-shadow: 0 5px 15px color-mix(in srgb, var(--c-primary) 20%, transparent); }
 
 .signup-footer { margin-top: 45px; font-size: 0.9rem; color: #a0a8b1; }
-.signup-footer a { color: #2d5bff; font-weight: 700; text-decoration: none; margin-left: 8px; }
+.signup-footer a { color: var(--c-primary-text); font-weight: 700; text-decoration: none; margin-left: 8px; }
 </style>

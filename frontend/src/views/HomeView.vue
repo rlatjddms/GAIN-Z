@@ -395,7 +395,7 @@ button::-moz-focus-inner { border: 0 !important; }
   border: none; background: none; padding: 7px 24px; font-weight: 700;
   border-radius: 9px; cursor: pointer; color: #adb5bd; transition: 0.2s; font-size: 0.85rem;
 }
-.tab-switcher button.active { background: #fff; color: #2d5bff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.tab-switcher button.active { background: #fff; color: var(--c-primary-text); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 
 /* 레이아웃 메인 */
 .main-body { padding: 40px 20px; }
@@ -442,16 +442,16 @@ button::-moz-focus-inner { border: 0 !important; }
 
 /* 우측 매칭 버튼: z-index를 높여 스테이지 위로 올림 */
 .match-make-btn {
-  background: #fff; border: 1px solid #2d5bff; border-bottom: none; /* dashed 대신 solid로 변경하여 울렁임 방지 */
+  background: #fff; border: 1px solid var(--c-primary); border-bottom: none; /* dashed 대신 solid로 변경하여 울렁임 방지 */
   padding: 10px 18px; border-radius: 12px 12px 0 0; cursor: pointer;
   display: flex; align-items: center; gap: 8px;
   position: relative; top: 1px;
   z-index: 11; /* stage 위로 올림 */
   transition: background 0.2s; /* 움직임 효과(all) 제거 */
 }
-.match-make-btn:hover { background: #f0f4ff; }
-.match-make-btn .plus-icon { color: #2d5bff; font-weight: 900; font-size: 1.1rem; }
-.match-make-btn .btn-lbl { color: #2d5bff; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; }
+.match-make-btn:hover { background: var(--c-primary-soft); }
+.match-make-btn .plus-icon { color: var(--c-primary-text); font-weight: 900; font-size: 1.1rem; }
+.match-make-btn .btn-lbl { color: var(--c-primary-text); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; }
 
 /* 그리드 & 카드 */
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
@@ -462,8 +462,8 @@ button::-moz-focus-inner { border: 0 !important; }
   padding: 24px; display: flex; align-items: center; gap: 18px;
   cursor: pointer; transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); text-align: left;
 }
-.card-btn:hover { border-color: #2d5bff; transform: translateY(-4px); box-shadow: 0 10px 20px rgba(45,91,255,0.06); }
-.c-icon { font-size: 1.8rem; background: #f1f5ff; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 14px; }
+.card-btn:hover { border-color: var(--c-primary); transform: translateY(-4px); box-shadow: 0 10px 20px color-mix(in srgb, var(--c-primary) 6%, transparent); }
+.c-icon { font-size: 1.8rem; background: var(--c-primary-soft); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 14px; }
 .c-text strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
 .c-text span { font-size: 0.75rem; color: #868e96; }
 
@@ -471,7 +471,7 @@ button::-moz-focus-inner { border: 0 !important; }
 .data-card { background: #fff; border: 1px solid #e9ecef; border-radius: 24px; padding: 24px; }
 .card-title { font-weight: 800; font-size: 0.85rem; margin-bottom: 18px; display: flex; justify-content: space-between; color: #495057; }
 .card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
-.card-title.link:hover { color: #2d5bff; }
+.card-title.link:hover { color: var(--c-primary-text); }
 .record-count { font-size: 0.75rem; color: #adb5bd; }
 .shelf { cursor: pointer; display: flex; flex-direction: column; gap: 14px; }
 .shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
@@ -485,7 +485,7 @@ button::-moz-focus-inner { border: 0 !important; }
 
 /* 밴드 전용 */
 .crown { margin-right: 4px; font-size: 0.8rem; }
-.band-tabs-left .add-band-tab { font-weight: 900; font-size: 1rem; padding: 10px 16px; color: #2d5bff; }
+.band-tabs-left .add-band-tab { font-weight: 900; font-size: 1rem; padding: 10px 16px; color: var(--c-primary-text); }
 .band-tabs-left .add-band-tab:disabled { color: #ced4da; cursor: not-allowed; }
 
 .band-empty { padding: 56px 24px; }
@@ -497,10 +497,10 @@ button::-moz-focus-inner { border: 0 !important; }
   border: 1px solid #dee2e6; background: #fff; color: #495057; border-radius: 12px; padding: 10px 18px;
   font-family: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; transition: 0.2s;
 }
-.pill-btn:hover { border-color: #2d5bff; color: #2d5bff; }
-.pill-btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
-.pill-btn.primary:hover { background: #1f47e0; color: #fff; }
-.text-btn { margin-left: 8px; border: none; background: none; color: #2d5bff; font-weight: 800; cursor: pointer; font-family: inherit; }
+.pill-btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
+.pill-btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
+.pill-btn.primary:hover { background: var(--c-primary-strong); color: #fff; }
+.text-btn { margin-left: 8px; border: none; background: none; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; }
 
 .band-room { padding: 24px; text-align: left; }
 .band-info { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
@@ -512,18 +512,18 @@ button::-moz-focus-inner { border: 0 !important; }
   font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #495057; display: flex; align-items: center; gap: 6px;
   transition: 0.2s;
 }
-.tool-btn:hover { border-color: #2d5bff; color: #2d5bff; }
+.tool-btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 .band-scene { margin-top: 16px; border-radius: 18px; overflow: hidden; border: 1px solid #f1f3f5; }
 .scene-hint { margin: 8px 0 0; text-align: center; font-size: 0.72rem; color: #adb5bd; font-weight: 600; }
 .scene-hint.bad { color: #e03131; font-weight: 700; }
 
 .member-list { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .m-item { text-align: center; padding: 8px 12px; border-radius: 12px; background: #f8f9fa; min-width: 88px; }
-.m-item.me { background: #f0f4ff; }
+.m-item.me { background: var(--c-primary-soft); }
 .member-list.reorderable .m-item { cursor: grab; touch-action: none; user-select: none; }
 .member-list.dragging .m-item { cursor: grabbing; transition: transform 0.18s ease; }
 .member-list.settling .m-item { transition: none; }
-.m-item.held { position: relative; z-index: 2; box-shadow: 0 6px 16px rgba(45, 91, 255, 0.18), 0 0 0 2px #2d5bff; background: #fff; }
+.m-item.held { position: relative; z-index: 2; box-shadow: 0 6px 16px color-mix(in srgb, var(--c-primary) 18%, transparent), 0 0 0 2px var(--c-primary); background: #fff; }
 .member-list.dragging .m-item.held { transition: none; }
 .m-name { font-size: 0.8rem; font-weight: 800; margin-bottom: 4px; white-space: nowrap; }
 .m-role { font-size: 0.7rem; font-weight: 700; color: #868e96; }
@@ -555,15 +555,15 @@ button::-moz-focus-inner { border: 0 !important; }
   background: rgba(255, 255, 255, 0.92); border: 1px solid #e9ecef; border-radius: 999px;
   transition: border-color 0.15s;
 }
-.music-chip:hover { border-color: #2d5bff; }
+.music-chip:hover { border-color: var(--c-primary); }
 .music-main {
   display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 12px 5px 6px;
   border: none; background: none; cursor: pointer; font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #495057;
 }
-.music-main:hover { color: #2d5bff; }
+.music-main:hover { color: var(--c-primary-text); }
 .music-chip .note {
   flex: none; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: #2d5bff; color: #fff; font-size: 0.7rem;
+  background: var(--c-primary); color: #fff; font-size: 0.7rem;
 }
 .music-chip.empty .music-main { color: #adb5bd; }
 .music-chip.empty .note { background: #ced4da; }
@@ -572,12 +572,12 @@ button::-moz-focus-inner { border: 0 !important; }
   flex: none; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin-right: 3px;
   border-radius: 50%; color: #adb5bd; transition: 0.15s;
 }
-.music-link:hover { background: #f0f4ff; color: #2d5bff; }
+.music-link:hover { background: var(--c-primary-soft); color: var(--c-primary-text); }
 
 .edit-char-btn:hover {
   background: #f1f3f5;
-  color: #2d5bff;
-  border-color: #2d5bff;
+  color: var(--c-primary-text);
+  border-color: var(--c-primary);
 }
 
 /* 좁은 화면: 무대 아래 경험치와 겹치지 않게 옷장 버튼을 무대 밑으로 */

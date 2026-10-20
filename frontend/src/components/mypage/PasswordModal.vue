@@ -102,7 +102,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
   border: 1px solid #e9ecef; border-radius: 12px; padding: 11px 14px; font-family: inherit;
   font-size: 0.9rem; outline: none; background: #f8f9fa;
 }
-.field input:focus { border-color: #2d5bff; background: #fff; }
+.field input:focus { border-color: var(--c-primary); background: #fff; }
 .hint { margin: 6px 0 0; font-size: 0.72rem; font-weight: 700; line-height: 1.5; }
 .hint.bad { color: #e8590c; }
 .error { margin: 12px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
@@ -112,7 +112,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
   flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
   font-weight: 800; font-size: 0.9rem; padding: 12px; border-radius: 12px; font-family: inherit;
 }
-.btn.primary { background: #2d5bff; border-color: #2d5bff; color: #fff; }
+.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }

@@ -182,24 +182,24 @@ const showSaved = (exp) => {
 
 .toggle {
   width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
-  border: none; background: #2d5bff; color: #fff; cursor: pointer; font-family: inherit;
+  border: none; background: var(--c-primary); color: #fff; cursor: pointer; font-family: inherit;
   font-weight: 900; font-size: 1rem; padding: 14px; border-radius: 14px;
   transition: background 0.15s, transform 0.1s;
 }
-.toggle:hover:not(:disabled) { background: #1f47e0; }
+.toggle:hover:not(:disabled) { background: var(--c-primary-strong); }
 .toggle:active:not(:disabled) { transform: scale(0.98); }
 .toggle.running { background: #1a1a1a; }
 .toggle.running:hover:not(:disabled) { background: #343a40; }
 .toggle:disabled { opacity: 0.6; cursor: wait; }
-.toggle.secondary { background: #fff; color: #2d5bff; box-shadow: inset 0 0 0 1px #c9d6ff; }
-.toggle.secondary:hover { background: #f0f4ff; }
+.toggle.secondary { background: #fff; color: var(--c-primary-text); box-shadow: inset 0 0 0 1px var(--c-primary-line); }
+.toggle.secondary:hover { background: var(--c-primary-soft); }
 .text-btn {
   border: none; background: none; padding: 0; font: inherit; font-size: 0.75rem; font-weight: 800;
-  color: #2d5bff; cursor: pointer;
+  color: var(--c-primary-text); cursor: pointer;
 }
 .text-btn:disabled { color: #ced4da; cursor: default; }
 .live-note { color: #e03131; font-weight: 700; }
-.link { border: none; background: none; padding: 0; font: inherit; font-weight: 800; color: #2d5bff; cursor: pointer; text-decoration: underline; }
+.link { border: none; background: none; padding: 0; font: inherit; font-weight: 800; color: var(--c-primary-text); cursor: pointer; text-decoration: underline; }
 .icon { font-size: 0.85rem; }
 
 .badge { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 800; color: #e03131; }
@@ -207,7 +207,7 @@ const showSaved = (exp) => {
 @keyframes blink { 50% { opacity: 0.2; } }
 
 .status { margin: 12px 0 0; font-size: 0.75rem; color: #adb5bd; line-height: 1.5; text-align: center; font-variant-numeric: tabular-nums; }
-.status.saved { color: #2d5bff; font-weight: 800; }
+.status.saved { color: var(--c-primary-text); font-weight: 800; }
 .status.error { color: #e03131; font-weight: 700; }
 .retry {
   margin-left: 6px; border: 1px solid #ffc9c9; background: #fff5f5; color: #e03131; cursor: pointer;

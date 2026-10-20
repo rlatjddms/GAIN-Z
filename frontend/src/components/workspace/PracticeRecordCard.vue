@@ -218,14 +218,14 @@ const compareText = computed(() => {
   width: 28px; height: 28px; border: none; border-radius: 9px; background: #fff; color: #495057;
   font-size: 1rem; font-weight: 900; cursor: pointer; box-shadow: inset 0 0 0 1px #e9ecef;
 }
-.arrow:hover:not(:disabled) { color: #2d5bff; box-shadow: inset 0 0 0 1px #c9d6ff; }
+.arrow:hover:not(:disabled) { color: var(--c-primary-text); box-shadow: inset 0 0 0 1px var(--c-primary-line); }
 .arrow:disabled { opacity: 0.35; cursor: default; }
 .mode { display: inline-flex; background: #f1f3f5; border-radius: 10px; padding: 3px; gap: 2px; }
 .mode button {
   border: none; background: none; border-radius: 8px; padding: 4px 14px; cursor: pointer;
   font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #868e96;
 }
-.mode button.on { background: #fff; color: #2d5bff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
+.mode button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
 
 /* 위 요약 한 줄, 아래 칸 */
 .body { display: flex; flex-direction: column; gap: 16px; }
@@ -238,11 +238,11 @@ const compareText = computed(() => {
   transition: box-shadow 0.15s; min-width: 0;
 }
 .week .cell { height: 64px; padding: 7px 8px; }
-.cell:hover:not(:disabled) { box-shadow: 0 0 0 2px #c9d6ff; }
+.cell:hover:not(:disabled) { box-shadow: 0 0 0 2px var(--c-primary-line); }
 .cell:disabled { cursor: default; opacity: 0.4; }
-.cell.selected { box-shadow: 0 0 0 2px #2d5bff; }
+.cell.selected { box-shadow: 0 0 0 2px var(--c-primary); }
 .num { font-size: 0.72rem; font-weight: 800; color: #495057; line-height: 1; }
-.cell.today .num { color: #2d5bff; text-decoration: underline; text-underline-offset: 2px; }
+.cell.today .num { color: var(--c-primary-text); text-decoration: underline; text-underline-offset: 2px; }
 .time { align-self: stretch; text-align: right; font-size: 0.68rem; font-weight: 800; color: #343a40; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; overflow: hidden; }
 .week .time { font-size: 0.78rem; }
 .time.zero { color: #ced4da; }
@@ -251,10 +251,10 @@ const compareText = computed(() => {
   color: #868e96; font-variant-numeric: tabular-nums;
 }
 .routine.done { color: #2f9e44; font-size: 0.7rem; }
-.cell.lv1, .legend i.lv1 { background: #c9d6ff; }
-.cell.lv2, .legend i.lv2 { background: #8ea8ff; }
-.cell.lv3, .legend i.lv3 { background: #5a7dff; }
-.cell.lv4, .legend i.lv4 { background: #2d5bff; }
+.cell.lv1, .legend i.lv1 { background: var(--c-primary-line); }
+.cell.lv2, .legend i.lv2 { background: color-mix(in srgb, var(--c-primary) 55%, #fff); }
+.cell.lv3, .legend i.lv3 { background: color-mix(in srgb, var(--c-primary) 78%, #fff); }
+.cell.lv4, .legend i.lv4 { background: var(--c-primary); }
 .cell.lv3 .num, .cell.lv4 .num, .cell.lv3 .time, .cell.lv4 .time, .cell.lv3 .routine, .cell.lv4 .routine { color: #fff; }
 .cell.lv3 .routine.done, .cell.lv4 .routine.done { color: #b2f2bb; }
 

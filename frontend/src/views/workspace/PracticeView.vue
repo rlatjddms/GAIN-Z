@@ -111,7 +111,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
   width: 32px; height: 32px; border: none; border-radius: 10px; background: #fff; color: #495057;
   font-size: 1.1rem; font-weight: 900; cursor: pointer; box-shadow: inset 0 0 0 1px #e9ecef;
 }
-.arrow:hover:not(:disabled) { color: #2d5bff; box-shadow: inset 0 0 0 1px #c9d6ff; }
+.arrow:hover:not(:disabled) { color: var(--c-primary-text); box-shadow: inset 0 0 0 1px var(--c-primary-line); }
 .arrow:disabled { opacity: 0.35; cursor: default; }
 .date-title {
   display: flex; align-items: center; gap: 6px; border: none; background: none; cursor: pointer;
@@ -119,7 +119,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 }
 .date-title:hover { background: #f1f3f5; }
 .today-btn {
-  border: 1px solid #c9d6ff; background: #f0f4ff; color: #2d5bff; cursor: pointer; font-family: inherit;
+  border: 1px solid var(--c-primary-line); background: var(--c-primary-soft); color: var(--c-primary-text); cursor: pointer; font-family: inherit;
   font-size: 0.75rem; font-weight: 800; padding: 6px 12px; border-radius: 9px;
 }
 
