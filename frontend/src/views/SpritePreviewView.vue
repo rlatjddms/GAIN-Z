@@ -81,10 +81,29 @@
     </section>
 
     <section class="panel">
+      <h2>방 꾸미기 세트 · 리스닝 룸 (레코드 수집 보상)</h2>
+      <div class="fx-grid">
+        <figure v-for="set in ROOM_DECOR_SETS" :key="set.key">
+          <StageScene :character="character" :stage-key="set.key === 'LP' ? 'RISING' : 'ROOKIE'" :decor="layoutOf(set)" :effects="[]" />
+          <figcaption>{{ set.name }}</figcaption>
+        </figure>
+        <figure>
+          <StageScene :character="character" stage-key="LISTENING_ROOM" :decor="[{ key: 'TURNTABLE', x: 30 }, { key: 'LP_SHELF', x: 150 }, { key: 'CD_RACK', x: 128 }]" :effects="['SPARKLE', 'SPOTLIGHT']" />
+          <figcaption>리스닝 룸 + 소품 셋 + 효과 둘</figcaption>
+        </figure>
+        <figure>
+          <StageScene :character="character" stage-key="ROOKIE" :decor="dragLayout" :effects="[]" decor-editable
+                      @decor-move="(key, x, y) => { dragLayout = dragLayout.map((d) => (d.key === key ? { ...d, x, y } : d)) }" />
+          <figcaption>끌어서 옮기기 시험 ({{ dragLayout.map((d) => `${d.key} x${d.x} y${d.y ?? '바닥'}`).join(', ') }})</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>무대 효과 {{ STAGE_EFFECTS.length }}종</h2>
       <div class="fx-grid">
         <figure v-for="e in STAGE_EFFECTS" :key="e.key">
-          <StageScene :character="character" stage-key="RISING" :effect="e.key" />
+          <StageScene :character="character" stage-key="RISING" :effects="[e.key]" />
           <figcaption>{{ e.icon }} {{ e.key }}</figcaption>
         </figure>
       </div>
@@ -147,6 +166,10 @@ import { HEAD_REGION } from '../pixel/palette'
 import { listSprites } from '../pixel/sprites'
 import { ACCESSORY_SLOTS as WEAR_SLOTS, BOTTOM_SLOT, STAGE_EFFECTS, ACCESSORIES, BOTTOMS, slotOf } from '../constants/rewards'
 import { ITEM_COLORS } from '../constants/itemColors'
+import { ROOM_DECOR_SETS } from '../constants/recordRewards'
+
+const dragLayout = ref([{ key: 'CASSETTE_DECK', x: 46 }, { key: 'TAPE_RACK', x: 138 }])
+const layoutOf = (set) => [{ key: set.player.key, x: 46 }, { key: set.rack.key, x: 138 }]
 import { outfitSpriteName } from '../pixel/sprites'
 
 // 하의도 소품처럼 자리 하나로 보여 준다

@@ -10,7 +10,8 @@
     </div>
 
     <!-- 배경과 캐릭터는 같은 도트 격자 (홈과 옷장 미리보기가 똑같이 보인다) -->
-    <StageScene :character="character" :stage-key="bgTier.key" :view-width="viewWidth" @actor-click="!bare && toggleSpeech()">
+    <StageScene :character="character" :stage-key="bgTier.key" :view-width="viewWidth" :decor-editable="decorEditable"
+                @actor-click="!bare && toggleSpeech()" @decor-move="(key, x, y) => emit('decor-move', key, x, y)">
       <template #behind>
         <div v-if="!bare && tier.aura !== 'none'" class="aura" :class="`aura-${tier.aura}`"></div>
       </template>
@@ -39,13 +40,17 @@ import {
   MAX_LEVEL,
   clampLevel,
   getLevelTier,
+  stageOf,
   getNextTier,
   getRequiredExp,
   getExpProgress,
 } from '../constants/levelTier'
 import StageScene from './StageScene.vue'
 
+const emit = defineEmits(['decor-move'])
 const props = defineProps({
+  // 옷장 미리보기에서 방 꾸미기 소품을 끌어 옮기기 → decor-move(key, x, y)
+  decorEditable: { type: Boolean, default: false },
   character: { type: Object, default: null },
   // 캐릭터와 배경만 (옷장 미리보기용: 레벨·칭호·경험치 숨김)
   bare: { type: Boolean, default: false },
@@ -78,7 +83,7 @@ const expLabel = computed(() => {
 const character = computed(() => props.character)
 
 // 옷장에서 고른 무대 배경 (아직 모르면 레벨에 맞는 무대). 글자색도 배경에 맞춘다
-const bgTier = computed(() => LEVEL_TIERS.find((t) => t.key === props.character?.stageBackground) || tier.value)
+const bgTier = computed(() => stageOf(props.character?.stageBackground) || tier.value)
 
 const stageStyle = computed(() => ({
   '--accent': bgTier.value.accent,

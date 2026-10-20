@@ -2,6 +2,7 @@ import rookieStage from '../assets/stages/rookie.png'
 import clubStage from '../assets/stages/club.png'
 import concertStage from '../assets/stages/concert.png'
 import legendStage from '../assets/stages/legend.png'
+import listeningStage from '../assets/stages/listening.png'
 
 // 백엔드 LevelPolicy와 같은 규칙: 최대 Lv.30, 다음 레벨까지 필요 경험치 = 50 × 지금 레벨 + 20
 // 한쪽을 바꾸면 같이 바꾼다
@@ -66,6 +67,25 @@ export const LEVEL_TIERS = [
     speech: '이제 전설은 내 이름으로 쓰인다.',
   },
 ]
+
+// 고를 수 있는 무대 전체: 레벨 무대 + 레코드를 모두 모으면 얻는 리스닝 룸 (#129)
+export const STAGE_BACKGROUNDS = [
+  ...LEVEL_TIERS,
+  {
+    key: 'LISTENING_ROOM',
+    floorY: 58,
+    name: '리스닝 룸',
+    background: listeningStage,
+    accent: '#ae3ec9',
+    accentSoft: '#f8f0fc',
+    textColor: '#ffffff',
+    scale: 1,
+    aura: 'none',
+    speech: '오늘은 어떤 판을 걸어 볼까?',
+  },
+]
+
+export const stageOf = (key) => STAGE_BACKGROUNDS.find((t) => t.key === key) || null
 
 export function clampLevel(level) {
   const parsed = Number(level)

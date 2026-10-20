@@ -18,7 +18,9 @@
         <!-- 미리보기: 바꾼 모습이 바로 보인다 -->
         <div class="preview">
           <!-- 무대 가운데(캐릭터 쪽)만 카메라처럼 잘라 보여 준다. 배율은 무대 전체와 같다 -->
-          <CharacterStage v-if="preview" :character="preview" bare :view-width="PREVIEW_VIEW_WIDTH" />
+          <!-- 배경 탭에서는 무대 전체를 보여 주고, 올린 소품을 끌어 옮길 수 있다 -->
+          <CharacterStage v-if="preview" :character="preview" bare :view-width="tab === 'stage' ? 208 : PREVIEW_VIEW_WIDTH"
+                          :decor-editable="tab === 'stage'" @decor-move="moveDecor" />
           <p class="preview-caption">{{ STAGE_NAMES[draft.stageBackground] }} 무대 · {{ clothes.find((o) => o.id === draft.outfitId)?.name || '기본 의상' }} · {{ BOTTOMS.find((b) => b.key === draft.bottom)?.name || '청바지' }}</p>
         </div>
 
@@ -180,7 +182,7 @@
 
           <!-- 배경: 레벨로 얻은 무대는 계속 간직하고 그중 하나를 고른다 -->
           <div v-else class="tab-body">
-            <p class="hint">Lv.10·20·30에 새 무대를 얻어요. 얻은 무대는 언제든 다시 고를 수 있어요.</p>
+            <p class="hint">Lv.10·20·30에 새 무대를 얻고, 레코드를 모두 모으면 리스닝 룸을 얻어요. 얻은 무대는 언제든 다시 고를 수 있어요.</p>
             <p v-if="wardrobeError" class="warn">{{ wardrobeError }}</p>
             <div class="stages">
               <button
@@ -190,35 +192,55 @@
                 @click="draft.stageBackground = b.key"
               >
                 <span class="thumb">
-                  <StageScene :character="preview" :stage-key="b.key" :effect="null" :animate="false" />
+                  <StageScene :character="preview" :stage-key="b.key" :effects="[]" :decor="[]" :animate="false" />
                   <i v-if="!b.unlocked">🔒</i>
                 </span>
                 <strong>{{ STAGE_NAMES[b.key] }}</strong>
-                <small>{{ b.unlocked ? (draft.stageBackground === b.key ? '사용 중' : '고르기') : `Lv.${b.requiredLevel}에 해금` }}</small>
+                <small>{{ b.unlocked ? (draft.stageBackground === b.key ? '사용 중' : '고르기') : stageLockText(b) }}</small>
               </button>
             </div>
 
             <div class="sub-section">
+              <span class="label">방 꾸미기</span>
+              <p class="hint">레코드를 종류별로 모두 모으면 소품을 얻어요. 올린 소품은 위 미리보기에서 끌어서 어디든 옮길 수 있어요. 캐릭터 발보다 아래에 두면 캐릭터 앞에 보여요.</p>
+              <div class="items small">
+                <button
+                  v-for="d in ROOM_DECOR_ITEMS" :key="d.key" class="item"
+                  :class="{ on: isPlaced(d.key), locked: !decorUnlocked(d.set) }"
+                  :disabled="!decorUnlocked(d.set)"
+                  @click="toggleDecor(d)"
+                >
+                  <span class="item-thumb sprite">
+                    <img class="decor-thumb" :src="decorUrl(d.key)" :alt="d.name">
+                    <i v-if="!decorUnlocked(d.set)">🔒</i>
+                  </span>
+                  <strong>{{ d.name }}</strong>
+                  <small>{{ decorUnlocked(d.set) ? (isPlaced(d.key) ? '올려 둠' : '올리기') : decorLockText(d.set) }}</small>
+                </button>
+              </div>
+            </div>
+
+            <div class="sub-section">
               <span class="label">무대 효과</span>
-              <p class="hint">5레벨마다 의상과 함께 무대 배경이나 효과를 얻어요.</p>
+              <p class="hint">5레벨마다 의상과 함께 무대 배경이나 효과를 얻어요. 여러 개를 같이 켤 수 있어요.</p>
               <div class="stages">
-                <button class="stage" :class="{ on: !draft.stageEffect }" @click="draft.stageEffect = null">
-                  <span class="thumb"><StageScene :character="preview" :stage-key="draft.stageBackground" :effect="null" :animate="false" /></span>
+                <button class="stage" :class="{ on: !draft.stageEffects.length }" @click="draft.stageEffects = []">
+                  <span class="thumb"><StageScene :character="preview" :stage-key="draft.stageBackground" :effects="[]" :decor="[]" :animate="false" /></span>
                   <strong>효과 없음</strong>
-                  <small>{{ !draft.stageEffect ? '사용 중' : '고르기' }}</small>
+                  <small>{{ !draft.stageEffects.length ? '사용 중' : '모두 끄기' }}</small>
                 </button>
                 <button
                   v-for="e in STAGE_EFFECTS" :key="e.key" class="stage"
-                  :class="{ on: draft.stageEffect === e.key, locked: !unlocked(e.level) }"
+                  :class="{ on: draft.stageEffects.includes(e.key), locked: !unlocked(e.level) }"
                   :disabled="!unlocked(e.level)"
-                  @click="draft.stageEffect = e.key"
+                  @click="toggleEffect(e.key)"
                 >
                   <span class="thumb">
-                    <StageScene :character="preview" :stage-key="draft.stageBackground" :effect="e.key" :animate="false" />
+                    <StageScene :character="preview" :stage-key="draft.stageBackground" :effects="[e.key]" :decor="[]" :animate="false" />
                     <i v-if="!unlocked(e.level)">🔒</i>
                   </span>
                   <strong>{{ e.icon }} {{ e.name }}</strong>
-                  <small>{{ unlocked(e.level) ? (draft.stageEffect === e.key ? '사용 중' : '고르기') : `Lv.${e.level}에 해금` }}</small>
+                  <small>{{ unlocked(e.level) ? (draft.stageEffects.includes(e.key) ? '켜짐' : '켜기') : `Lv.${e.level}에 해금` }}</small>
                 </button>
               </div>
             </div>
@@ -250,6 +272,8 @@ import { DEFAULT_COLORS, HEAD_REGION } from '../pixel/palette'
 import { outfitSpriteName } from '../pixel/sprites'
 import { ACCESSORY_SLOTS, ACCESSORIES, BOTTOMS, BOTTOM_SLOT, STAGE_EFFECTS, wornIn } from '../constants/rewards'
 import { ITEM_COLORS, isColorable, itemColorOf } from '../constants/itemColors'
+import { ROOM_DECOR_SETS, ROOM_DECOR_ITEMS, decorUrl } from '../constants/recordRewards'
+import { rarityOf } from '../constants/records'
 
 const TABS = [
   { key: 'look', label: '외형' },
@@ -259,7 +283,10 @@ const TABS = [
 ]
 // 미리보기는 무대(208칸) 중 가운데 96칸만 보여 준다 → 왼쪽 칸에 크게, 한 화면에 들어가게
 const PREVIEW_VIEW_WIDTH = 96
-const STAGE_NAMES = { ROOKIE: '방구석', RISING: '동네 클럽', PRO: '투어 공연장', LEGEND: '전설의 무대' }
+const STAGE_NAMES = { ROOKIE: '방구석', RISING: '동네 클럽', PRO: '투어 공연장', LEGEND: '전설의 무대', LISTENING_ROOM: '리스닝 룸' }
+// 레코드 수집 보상: 무대 잠금 안내
+const stageLockText = (b) => (b.key === 'LISTENING_ROOM' ? '레코드 12개를 모두 모으면' : `Lv.${b.requiredLevel}에 해금`)
+const decorLockText = (setKey) => `${rarityOf(ROOM_DECOR_SETS.find((s) => s.key === setKey).rarity).label}를 모두 모으면`
 
 const authStore = useAuthStore()
 const tab = ref('look')
@@ -270,14 +297,37 @@ const original = ref(null)
 const draft = reactive({
   nickname: '', gender: 'MALE', skinColor: DEFAULT_COLORS.skinColor, hairStyle: 'SHORT_CUT', hairColor: '#111827',
   instrumentType: 'GUITAR', instrumentColor: '#B91C1C', outfitId: null, stageBackground: null,
-  itemColors: {}, instrumentHidden: false, stageEffect: null, bottom: 'JEANS', hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: 'BASIC_SHOES',
+  itemColors: {}, instrumentHidden: false, stageEffects: [], decorLayout: [], bottom: 'JEANS', hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: 'BASIC_SHOES',
 })
 const WEAR_SLOTS = [BOTTOM_SLOT, ...ACCESSORY_SLOTS]
 const ACCESSORY_FIELDS = WEAR_SLOTS.map((s) => s.field)
-const WARDROBE_KEYS = ['outfitId', 'stageBackground', 'stageEffect', 'instrumentHidden', ...ACCESSORY_FIELDS]
+const WARDROBE_KEYS = ['outfitId', 'stageBackground', 'instrumentHidden', ...ACCESSORY_FIELDS]
+// 목록·표라서 내용으로 비교하는 값
+const LIST_KEYS = ['itemColors', 'stageEffects', 'decorLayout']
 
 const outfits = ref([])
 const backgrounds = ref([])
+// 방 꾸미기 세트 잠금 여부 [{ key, unlocked }] (레코드 수집 보상, 서버가 판단)
+const decorSets = ref([])
+const decorUnlocked = (key) => decorSets.value.some((s) => s.key === key && s.unlocked)
+
+// 방 꾸미기: 소품을 올리거나 내리고, 미리보기에서 끈 자리로 옮긴다 (목록은 새로 만들어 넣어 되돌리기가 섞이지 않게)
+const isPlaced = (key) => draft.decorLayout.some((d) => d.key === key)
+const toggleDecor = (item) => {
+  draft.decorLayout = isPlaced(item.key)
+    ? draft.decorLayout.filter((d) => d.key !== item.key)
+    : [...draft.decorLayout, { key: item.key, x: item.defaultX }]
+}
+const moveDecor = (key, x, y) => {
+  draft.decorLayout = draft.decorLayout.map((d) => (d.key === key ? { ...d, x, y } : d))
+}
+// 무대 효과: 여러 개를 켜고 끈다 (표 순서대로)
+const toggleEffect = (key) => {
+  const on = new Set(draft.stageEffects)
+  if (on.has(key)) on.delete(key)
+  else on.add(key)
+  draft.stageEffects = STAGE_EFFECTS.map((e) => e.key).filter((k) => on.has(k))
+}
 const wardrobeLoaded = ref(false)
 const wardrobeError = ref('')
 
@@ -288,7 +338,8 @@ const snapshot = (c, wardrobe) => ({
   outfitId: wardrobe?.outfits?.find((o) => o.equipped)?.id ?? c.currentOutfitId ?? null,
   // 고른 적 없으면 레벨로 얻은 가장 큰 무대 (서버도 같은 규칙으로 돌려준다)
   stageBackground: wardrobe?.stageBackground ?? c.stageBackground ?? getLevelTier(c.level ?? 1).key,
-  stageEffect: c.stageEffect ?? null,
+  stageEffects: [...(c.stageEffects || [])],
+  decorLayout: (c.decorLayout || []).map((d) => ({ ...d })),
   instrumentHidden: !!c.instrumentHidden,
   itemColors: { ...(c.itemColors || {}) },
   ...Object.fromEntries(WEAR_SLOTS.map((s) => [s.field, wornIn(s, c)])),
@@ -301,6 +352,7 @@ onMounted(async () => {
     wardrobe = await getWardrobe()
     outfits.value = wardrobe.outfits || []
     backgrounds.value = wardrobe.backgrounds || []
+    decorSets.value = wardrobe.decorSets || []
     wardrobeLoaded.value = true
   } catch (e) {
     wardrobeError.value = `의상·배경 목록을 불러오지 못했어요. ${apiErrorMessage(e)}`
@@ -312,7 +364,7 @@ onMounted(async () => {
 const appearanceDirty = computed(() => !!original.value && APPEARANCE_KEYS.some((k) => draft[k] !== original.value[k]))
 const wardrobeDirty = computed(() => !!original.value && wardrobeLoaded.value
   && (WARDROBE_KEYS.some((k) => draft[k] !== original.value[k])
-    || JSON.stringify(draft.itemColors) !== JSON.stringify(original.value.itemColors)))
+    || LIST_KEYS.some((k) => JSON.stringify(draft[k]) !== JSON.stringify(original.value[k]))))
 const dirty = computed(() => appearanceDirty.value || wardrobeDirty.value)
 const nicknameError = computed(() => (appearanceDirty.value ? nicknameProblem(draft.nickname) : ''))
 
@@ -362,7 +414,7 @@ const save = async () => {
       await updateAppearance({ ...body, nickname: draft.nickname.trim() })
     }
     if (wardrobeDirty.value) {
-      await updateWardrobe({ ...Object.fromEntries(WARDROBE_KEYS.map((k) => [k, draft[k]])), itemColors: draft.itemColors })
+      await updateWardrobe(Object.fromEntries([...WARDROBE_KEYS, ...LIST_KEYS].map((k) => [k, draft[k]])))
     }
     await authStore.fetchCharacter()
     original.value = { ...draft, nickname: draft.nickname.trim() }
@@ -455,6 +507,7 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .toggle input { width: 16px; height: 16px; accent-color: #2d5bff; }
 .toggle span { font-size: 0.82rem; font-weight: 800; color: #495057; }
 .toggle small { grid-column: 2; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
+.decor-thumb { width: 40px; image-rendering: pixelated; }
 .item-color { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px; background: #f8f9fa; border-radius: 12px; }
 .item-color > span { font-size: 0.75rem; font-weight: 800; color: #868e96; }
 
