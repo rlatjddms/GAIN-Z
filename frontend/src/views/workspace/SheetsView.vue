@@ -5,6 +5,15 @@
     </template>
   <div class="page">
 
+    <!-- 악보 찾기 (#156): 곡 이름으로 파는 곳·무료 코드 사이트를 바로 찾고, 산 악보는 올리기 -->
+    <WsCard title="악보 찾기">
+      <div class="finder">
+        <input v-model="findQuery" class="find-input" maxlength="100" placeholder="곡 제목과 가수 (예: 밤양갱 비비)" aria-label="찾을 곡">
+        <SheetSearchLinks :title="findQuery" />
+      </div>
+      <p class="find-hint">산 악보 PDF·사진은 <router-link to="/sheets/new">악보 올리기</router-link>로 담아 두면 메모·키 바꾸기·밴드 공유를 쓸 수 있어요.</p>
+    </WsCard>
+
     <WsCard :title="`내 악보${items.length ? ` ${items.length}` : ''}`">
       <template #actions>
         <div class="filters">
@@ -105,6 +114,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import EmptyState from '../../components/ui/EmptyState.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
+import SheetSearchLinks from '../../components/workspace/SheetSearchLinks.vue'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
 import { getWorkspace, updateWorkspaceItem, removeWorkspaceItem } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
@@ -114,6 +124,7 @@ import { useDialogStore } from '../../stores/dialog'
 
 const dialog = useDialogStore()
 
+const findQuery = ref('')
 const items = ref([])
 const loading = ref(false)
 const error = ref('')
@@ -209,6 +220,14 @@ onMounted(load)
 </script>
 
 <style scoped>
+.finder { display: flex; flex-direction: column; gap: 10px; }
+.find-input {
+  border: 1px solid var(--c-line); border-radius: 10px; padding: 9px 12px; font: inherit; font-size: 0.88rem; outline: none;
+  max-width: 420px; box-sizing: border-box; width: 100%;
+}
+.find-input:focus { border-color: var(--c-primary); }
+.find-hint { margin: 10px 0 0; font-size: 0.75rem; color: var(--c-muted); line-height: 1.6; }
+.find-hint a { color: var(--c-primary-text); font-weight: 800; }
 .page { display: flex; flex-direction: column; gap: 16px; }
 
 
