@@ -89,6 +89,23 @@ class JamServiceTest {
         verifyNoInteractions(jams, storage);
     }
 
+    @Test void anyMemberCanFavoriteAndListShowsFavoriteAndWhoCanDelete() {
+        Jam mine = jam(50L, me);
+        Jam drummers = jam(51L, drummer);
+        when(jams.findAllByBandIdOrderByIdDesc(10L)).thenReturn(List.of(drummers, mine));
+
+        // 드럼 멤버가 내 잼을 즐겨찾기해도 된다
+        assertThat(service.setFavorite(2L, 10L, 50L, true).favorite()).isTrue();
+        assertThat(mine.isFavorite()).isTrue();
+
+        // 나에게는 내 잼만 지울 수 있게 보이고, 리더에게는 모두
+        assertThat(service.list(1L, 10L)).extracting(JamResponse.Summary::id, JamResponse.Summary::favorite, JamResponse.Summary::canManage)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(51L, false, false), org.assertj.core.groups.Tuple.tuple(50L, true, true));
+        assertThat(service.list(9L, 10L)).extracting(JamResponse.Summary::canManage).containsExactly(true, true);
+
+        fails(() -> service.setFavorite(3L, 10L, 50L, true), ErrorCode.NOT_BAND_MEMBER);
+    }
+
     @Test void createsJamLinkedToSetlistSongOfSameBand() {
         SetlistItem song = song(31L, band, "Hysteria");
         when(setlistItems.findById(31L)).thenReturn(Optional.of(song));

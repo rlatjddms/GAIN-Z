@@ -14,6 +14,10 @@ public final class JamRequest {
     public static final int VOLUME_MAX = 150;
 
     // 잼 만들기·수정. setlistItemId는 연결할 셋리스트 곡 (없으면 연결 안 함)
+    // 즐겨찾기 켜기·끄기
+    public record Favorite(@jakarta.validation.constraints.NotNull Boolean favorite) {
+    }
+
     public record Save(
             @NotBlank @Size(max = 60) String title,
             @NotNull @Min(40) @Max(240) Integer bpm,
