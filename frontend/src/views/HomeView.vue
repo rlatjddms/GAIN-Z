@@ -595,25 +595,29 @@ button::-moz-focus-inner { border: 0 !important; }
   border-color: var(--c-primary);
 }
 
-/* 태블릿: 바로가기 카드 두 줄 */
-@media (max-width: 860px) {
-  .grid-3 { grid-template-columns: 1fr 1fr; }
-}
-/* 휴대폰: 카드는 한 줄씩, 여백을 줄이고 밴드 탭은 옆으로 밀어서 본다 */
+/* 휴대폰: 바로가기 카드는 한 줄에 나란히(아이콘 위·이름 아래), 아래 카드는 한 줄씩(연습 로그 먼저)
+   여백을 줄이고 밴드 탭은 옆으로 밀어서 본다 */
 @media (max-width: 640px) {
   .tab-switcher button { padding: 6px 14px; font-size: 0.8rem; }
   .main-body { padding: 16px 12px 32px; }
-  .grid-3, .grid-2 { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  .grid-3 { margin-bottom: 12px; }
-  .card-btn { padding: 16px 18px; gap: 14px; }
+  .quick-grid { gap: 8px; margin-bottom: 12px; }
+  .quick-grid .card-btn { flex-direction: column; justify-content: center; gap: 8px; padding: 14px 6px; text-align: center; }
+  .quick-grid .c-icon { width: 40px; height: 40px; border-radius: 12px; }
+  .quick-grid .c-text strong { font-size: 0.68rem; letter-spacing: -0.01em; margin-bottom: 0; }
+  .quick-grid .c-text span { display: none; }
+  .footer-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .footer-grid > :last-child { order: -1; }
   .stage { padding: 40px 16px; margin-bottom: 12px; }
   .band-room { padding: 16px; }
   .band-info h2 { font-size: 1.15rem; }
   .band-tabs-row { gap: 8px; }
   .band-tabs-left { overflow-x: auto; scrollbar-width: none; min-width: 0; }
   .band-tabs-left::-webkit-scrollbar { display: none; }
-  .band-tabs-left button { flex: none; padding: 10px 14px; white-space: nowrap; }
-  .match-make-btn { flex: none; padding: 10px 12px; }
+  /* 밴드 이름 탭은 위아래를 얇게 */
+  .band-tabs-left button { flex: none; padding: 6px 12px; font-size: 0.8rem; white-space: nowrap; }
+  .band-tabs-left button.active { padding-bottom: 7px; }
+  .band-tabs-left .add-band-tab { padding: 6px 12px; }
+  .match-make-btn { flex: none; padding: 6px 10px; }
   .match-make-btn .btn-lbl { display: none; }
   .m-item { min-width: 0; padding: 8px 10px; }
 }

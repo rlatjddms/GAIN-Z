@@ -10,7 +10,7 @@
     </div>
 
     <!-- 배경과 캐릭터는 같은 도트 격자 (홈과 옷장 미리보기가 똑같이 보인다) -->
-    <StageScene :character="character" :stage-key="bgTier.key" :view-width="sceneWidth" :decor-editable="decorEditable"
+    <StageScene :character="character" :stage-key="bgTier.key" :view-width="viewWidth" :decor-editable="decorEditable"
                 @actor-click="!bare && toggleSpeech()" @decor-move="(key, x, y) => emit('decor-move', key, x, y)">
       <template #behind>
         <div v-if="!bare && tier.aura !== 'none'" class="aura" :class="`aura-${tier.aura}`"></div>
@@ -46,7 +46,6 @@ import {
   getExpProgress,
 } from '../constants/levelTier'
 import StageScene from './StageScene.vue'
-import { PHONE_QUERY, useMediaQuery } from '../composables/useMediaQuery'
 
 const emit = defineEmits(['decor-move'])
 const props = defineProps({
@@ -58,11 +57,6 @@ const props = defineProps({
   // 무대 중 보여 줄 가로 폭 (무대 도트 기준). 작게 주면 캐릭터 쪽만 카메라처럼 잘라서 보여 준다
   viewWidth: { type: Number, default: 208 },
 })
-
-// 휴대폰 홈: 무대 전체를 넣으면 캐릭터가 너무 작아서 가운데(캐릭터 쪽)만 잘라 크게 보여 준다
-const PHONE_VIEW_WIDTH = 144
-const isPhone = useMediaQuery(PHONE_QUERY)
-const sceneWidth = computed(() => (!props.bare && isPhone.value ? Math.min(props.viewWidth, PHONE_VIEW_WIDTH) : props.viewWidth))
 
 const showSpeech = ref(false)
 const toggleSpeech = () => { showSpeech.value = !showSpeech.value }

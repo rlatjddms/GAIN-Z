@@ -74,7 +74,7 @@
         <p v-if="visibilityError" class="field-error">{{ visibilityError }}</p>
       </WsCard>
 
-      <WsCard title="계정 설정">
+      <WsCard title="계정 설정" class="account-card">
         <div class="settings">
           <button v-if="isLocal" class="setting" @click="passwordOpen = true">
             <span>비밀번호 바꾸기</span><span class="chev">›</span>
@@ -285,8 +285,11 @@ const onWithdrawn = async () => {
 #notification-settings { scroll-margin-top: 80px; }
 .page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* 한 줄로 쌓일 때: 계정 설정(비밀번호·로그아웃·탈퇴)은 맨 아래로 */
 @media (max-width: 860px) {
-  .page { grid-template-columns: minmax(0, 1fr); }
+  .page { display: flex; flex-direction: column; }
+  .col { display: contents; }
+  .account-card { order: 1; }
 }
 
 .photo { display: flex; align-items: center; gap: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--c-line-soft); }

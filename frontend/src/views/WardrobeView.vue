@@ -444,8 +444,18 @@ onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 �
   .panel { height: 100%; display: flex; flex-direction: column; }
   .tab-body { flex: 1; min-height: 0; overflow-y: auto; }
 }
+/* 좁은 화면: 미리보기가 위, 고르는 칸이 아래. 아래를 스크롤해도 미리보기는 헤더 밑에 붙어 있다 */
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
+  .preview {
+    position: sticky; top: 64px; z-index: 5;
+    margin: 0 -16px; padding: 8px 16px 10px; background: var(--c-bg);
+    box-shadow: 0 8px 12px -12px rgba(15, 23, 42, 0.25);
+  }
+}
+@media (max-width: 640px) {
+  .preview { top: 56px; }
+  .preview :deep(.character-stage) { max-width: 320px; margin-left: auto; margin-right: auto; }
 }
 
 .panel { background: #fff; border: 1px solid var(--c-line); border-radius: 20px; overflow: hidden; }
