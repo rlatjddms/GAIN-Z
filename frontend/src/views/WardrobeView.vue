@@ -14,7 +14,7 @@
       </div>
       <p v-if="error" class="error">{{ error }}</p>
 
-      <div class="layout" :class="{ wide: tab === 'stage' }">
+      <div class="layout">
         <!-- 미리보기: 바꾼 모습이 바로 보인다 -->
         <div class="preview">
           <!-- 무대 가운데(캐릭터 쪽)만 카메라처럼 잘라 보여 준다. 배율은 무대 전체와 같다 -->
@@ -460,10 +460,6 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
 }
-/* 배경 탭: 무대를 크게 보도록 미리보기를 위에 꽉 차게, 목록은 그 아래 */
-.layout.wide { grid-template-columns: minmax(0, 1fr); height: auto; }
-.layout.wide .panel { height: auto; }
-.layout.wide .tab-body { overflow: visible; }
 
 .panel { background: #fff; border: 1px solid #e9ecef; border-radius: 20px; overflow: hidden; }
 .tabs { display: flex; border-bottom: 1px solid #f1f3f5; }
@@ -543,7 +539,7 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 
 .item.locked strong, .stage.locked strong { color: #adb5bd; }
 
-.stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 .stage { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 10px; border-radius: 14px; text-align: left; }
 .thumb { position: relative; display: block; border-radius: 9px; overflow: hidden; line-height: 0; }
 .thumb i { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.55); font-style: normal; line-height: 1; }
