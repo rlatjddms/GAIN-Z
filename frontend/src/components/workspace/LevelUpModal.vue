@@ -17,7 +17,8 @@
                   <PixelSprite v-if="r.type === 'OUTFIT'" :parts="[['outfit', outfitSpriteName(r.key, me?.gender)]]" :box="40" />
                   <PixelSprite v-else-if="r.type === 'HAIR'" :parts="[['body', me?.gender === 'MALE' ? 'MALE' : 'FEMALE'], ['hair', r.key]]" :colors="me || {}" :region="HEAD_REGION" :box="48" />
                   <PixelSprite v-else-if="r.type === 'ACCESSORY' || r.type === 'BOTTOM'" :parts="[[slotOf(r.slot).folder, r.key]]" :box="40" />
-                  <span v-else class="stage-icon">{{ r.type === 'EFFECT' ? r.icon : '🎪' }}</span>
+                  <StageScene v-else class="stage-thumb" :character="me" :stage-key="r.type === 'STAGE' ? r.key : (me?.stageBackground || 'ROOKIE')"
+                              :effects="r.type === 'EFFECT' ? [r.key] : []" :decor="[]" :view-width="56" :animate="false" />
                 </span>
                 <span class="what">
                   <small>Lv.{{ r.level }} · {{ rewardLabel(r) }}</small>
@@ -41,6 +42,7 @@
 <script setup>
 // 레벨업했을 때 띄운다. 받은 보상은 레벨 보상 표(constants/rewards.js)에서 찾는다
 // result: { previousLevel, currentLevel, expGained }
+import StageScene from '../StageScene.vue'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import PixelSprite from '../PixelSprite.vue'
@@ -95,7 +97,7 @@ const goWardrobe = () => {
 .rewards ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
 .rewards li { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 10px; padding: 4px 10px 4px 4px; }
 .thumb { width: 48px; height: 56px; border-radius: 8px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-.stage-icon { font-size: 1.5rem; }
+.stage-thumb { width: 100%; align-self: stretch; }
 .what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .what small { font-size: 0.68rem; font-weight: 800; color: #adb5bd; }
 .what b { font-size: 0.88rem; font-weight: 900; color: #343a40; }

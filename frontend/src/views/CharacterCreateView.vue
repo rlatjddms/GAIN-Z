@@ -80,7 +80,7 @@
                     :class="{ active: gender === 'MALE' }"
                     @click="gender = 'MALE'"
                   >
-                    <span class="gender-icon">👨</span>
+                    <span class="gender-icon"><PixelSprite :parts="[['body', 'MALE'], ['hair', 'SHORT_CUT']]" :colors="{ skinColor, hairColor }" :region="HEAD_REGION" :box="36" label="남성" /></span>
                     <span class="gender-label">남성</span>
                   </button>
                   <button
@@ -89,7 +89,7 @@
                     :class="{ active: gender === 'FEMALE' }"
                     @click="gender = 'FEMALE'"
                   >
-                    <span class="gender-icon">👩</span>
+                    <span class="gender-icon"><PixelSprite :parts="[['body', 'FEMALE'], ['hair', 'LONG_STRAIGHT']]" :colors="{ skinColor, hairColor }" :region="HEAD_REGION" :box="36" label="여성" /></span>
                     <span class="gender-label">여성</span>
                   </button>
                 </div>
@@ -112,7 +112,7 @@
                   ></button>
                   <div class="custom-color-picker">
                     <input type="color" v-model="skinColor" class="picker-input" />
-                    <span class="picker-icon">🎨</span>
+                    <span class="picker-icon"><Palette :size="16" :stroke-width="2.2" /></span>
                   </div>
                 </div>
               </div>
@@ -156,7 +156,7 @@
                   ></button>
                   <div class="custom-color-picker">
                     <input type="color" v-model="hairColor" class="picker-input" />
-                    <span class="picker-icon">🎨</span>
+                    <span class="picker-icon"><Palette :size="16" :stroke-width="2.2" /></span>
                   </div>
                 </div>
               </div>
@@ -200,7 +200,7 @@
                   ></button>
                   <div class="custom-color-picker">
                     <input type="color" v-model="instrumentColor" class="picker-input" />
-                    <span class="picker-icon">🎨</span>
+                    <span class="picker-icon"><Palette :size="16" :stroke-width="2.2" /></span>
                   </div>
                 </div>
               </div>
@@ -255,6 +255,7 @@
 </template>
 
 <script setup>
+import { Palette } from 'lucide-vue-next'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'

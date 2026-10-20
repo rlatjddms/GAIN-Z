@@ -34,7 +34,7 @@
             :disabled="busy || pageCount >= MAX_SHEET_PAGES"
             @change="onPick"
           >
-          <span class="drop-icon">📄</span>
+          <span class="drop-icon"><PixelIcon name="file" :size="48" /></span>
           <strong>{{ pageCount ? '장 더 올리기' : '악보 파일을 끌어 놓거나 눌러서 고르세요' }}</strong>
           <span class="drop-sub">PNG·JPG·WEBP 이미지, PDF · 한 장 {{ MAX_SHEET_FILE_MB }}MB까지 · 최대 {{ MAX_SHEET_PAGES }}장<br>휴대폰에서는 카메라로 바로 찍을 수 있어요</span>
         </label>
@@ -53,9 +53,9 @@
               <span>{{ p.file.name }} · {{ fileSizeText(p.file.size) }}</span>
             </div>
             <div class="page-actions">
-              <button class="icon" :disabled="i === 0 || saving" aria-label="앞으로" @click="move(i, -1)">↑</button>
-              <button class="icon" :disabled="i === picked.length - 1 || saving" aria-label="뒤로" @click="move(i, 1)">↓</button>
-              <button class="icon danger" :disabled="saving" aria-label="삭제" @click="unpick(i)">✕</button>
+              <button class="icon" :disabled="i === 0 || saving" aria-label="앞으로" @click="move(i, -1)"><ArrowUp :size="14" :stroke-width="2.4" /></button>
+              <button class="icon" :disabled="i === picked.length - 1 || saving" aria-label="뒤로" @click="move(i, 1)"><ArrowDown :size="14" :stroke-width="2.4" /></button>
+              <button class="icon danger" :disabled="saving" aria-label="삭제" @click="unpick(i)"><X :size="14" :stroke-width="2.4" /></button>
             </div>
           </li>
         </ol>
@@ -77,7 +77,7 @@
                 :title="sheet.pages.length <= 1 ? '마지막 한 장은 지울 수 없어요' : ''"
                 aria-label="이 장 지우기"
                 @click="removePage(p)"
-              >✕</button>
+              ><X :size="14" :stroke-width="2.4" /></button>
             </div>
           </li>
         </ol>
@@ -133,6 +133,8 @@
 </template>
 
 <script setup>
+import { ArrowUp, ArrowDown, X } from 'lucide-vue-next'
+import PixelIcon from '../../components/PixelIcon.vue'
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'

@@ -46,7 +46,7 @@
             <span class="num">{{ d.day }}</span>
             <i v-if="d.key === todayKey && timer.running" class="rec"></i>
             <span v-if="!d.future" class="time" :class="{ zero: !d.seconds }">{{ shortDuration(d.seconds) }}</span>
-            <span v-if="d.routine" class="routine" :class="{ done: d.routine.done }">{{ d.routine.done ? '✓' : `${d.routine.completed}/${d.routine.total}` }}</span>
+            <span v-if="d.routine" class="routine" :class="{ done: d.routine.done }"><Check v-if="d.routine.done" :size="11" :stroke-width="3.5" /><template v-else>{{ d.routine.completed }}/{{ d.routine.total }}</template></span>
           </button>
         </template>
       </div>
@@ -56,7 +56,7 @@
         <span class="scale">
           <template v-for="l in LEGEND" :key="l.level"><i :class="`lv${l.level}`"></i><small>{{ l.label }}</small></template>
         </span>
-        <span class="rt"><b>2/3</b> 루틴 체크 <b class="done">✓</b> 모두 완료</span>
+        <span class="rt"><b>2/3</b> 루틴 체크 <b class="done"><Check :size="11" :stroke-width="3.5" /></b> 모두 완료</span>
       </div>
     </div>
 
@@ -66,6 +66,7 @@
 
 <script setup>
 // 고른 날짜가 들어 있는 주(월~일) 또는 달의 연습 기록과 요약. 기간은 화면 위 날짜를 따라가고, 칸을 누르면 그 날짜로 이동
+import { Check } from 'lucide-vue-next'
 import { ref, computed, watch } from 'vue'
 import WsCard from './WsCard.vue'
 import { usePracticeStore } from '../../stores/practice'

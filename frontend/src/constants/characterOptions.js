@@ -7,22 +7,22 @@ export const GENDER_OPTIONS = [
 ]
 
 export const HAIR_STYLE_OPTIONS = [
-  { value: 'BALD', label: '대머리', emoji: '🧑‍🦲' },
-  { value: 'SHORT_CUT', label: '숏컷', emoji: '👦' },
-  { value: 'MID_LENGTH_BOB', label: '보브컷', emoji: '👩' },
-  { value: 'LONG_STRAIGHT', label: '생머리', emoji: '👱‍♀️' },
-  { value: 'NATURAL_WAVE', label: '웨이브', emoji: '👩‍🦱' },
-  { value: 'WOLF_CUT', label: '울프컷', emoji: '🐺' },
-  { value: 'SIDE_PART_QUIFF', label: '포마드', emoji: '🧔' },
-  { value: 'MESSY_ROUGH', label: '헝클어짐', emoji: '🦁' },
-  { value: 'DREADLOCKS', label: '드레드락', emoji: '🦱' },
-  { value: 'MOHAWK_SHARP', label: '모히칸', emoji: '🐔' },
+  { value: 'BALD', label: '대머리' },
+  { value: 'SHORT_CUT', label: '숏컷' },
+  { value: 'MID_LENGTH_BOB', label: '보브컷' },
+  { value: 'LONG_STRAIGHT', label: '생머리' },
+  { value: 'NATURAL_WAVE', label: '웨이브' },
+  { value: 'WOLF_CUT', label: '울프컷' },
+  { value: 'SIDE_PART_QUIFF', label: '포마드' },
+  { value: 'MESSY_ROUGH', label: '헝클어짐' },
+  { value: 'DREADLOCKS', label: '드레드락' },
+  { value: 'MOHAWK_SHARP', label: '모히칸' },
   // 레벨 보상 (constants/rewards.js의 REWARD_HAIR_STYLES와 같은 레벨)
-  { value: 'PONYTAIL', label: '포니테일', emoji: '🎀', level: 4 },
-  { value: 'SPIKY', label: '스파이크', emoji: '⚡', level: 11 },
-  { value: 'BUN', label: '번 헤어', emoji: '🍡', level: 17 },
-  { value: 'TWIN_TAILS', label: '트윈테일', emoji: '🎎', level: 23 },
-  { value: 'AFRO', label: '아프로', emoji: '🌳', level: 29 },
+  { value: 'PONYTAIL', label: '포니테일', level: 4 },
+  { value: 'SPIKY', label: '스파이크', level: 11 },
+  { value: 'BUN', label: '번 헤어', level: 17 },
+  { value: 'TWIN_TAILS', label: '트윈테일', level: 23 },
+  { value: 'AFRO', label: '아프로', level: 29 },
 ]
 
 // 처음부터 고를 수 있는 머리 (캐릭터 만들기)
@@ -42,11 +42,11 @@ export const HAIR_COLOR_PRESETS = [
 
 // thumb: 고르기 썸네일 크기 비율 (세로로 긴 마이크는 꽉 채우면 커 보여서 작게)
 export const INSTRUMENT_OPTIONS = [
-  { value: 'GUITAR', label: '일렉기타', emoji: '🎸' },
-  { value: 'BASS', label: '베이스', emoji: '🎸' },
-  { value: 'DRUM', label: '드럼', emoji: '🥁' },
-  { value: 'VOCAL', label: '보컬', emoji: '🎤', thumb: 0.72 },
-  { value: 'KEYBOARD', label: '건반', emoji: '🎹' },
+  { value: 'GUITAR', label: '일렉기타' },
+  { value: 'BASS', label: '베이스' },
+  { value: 'DRUM', label: '드럼' },
+  { value: 'VOCAL', label: '보컬', thumb: 0.72 },
+  { value: 'KEYBOARD', label: '건반' },
 ]
 
 export const INSTRUMENT_COLOR_PRESETS = [

@@ -61,7 +61,7 @@
                         @click="draft.hairStyle = h.value">
                   <span class="opt-thumb">
                     <PixelSprite :parts="[['body', draft.gender === 'MALE' ? 'MALE' : 'FEMALE'], ['hair', h.value]]" :colors="looks" :region="HEAD_REGION" :box="48" :label="h.label" />
-                    <i v-if="!unlocked(h.level)">🔒</i>
+                    <i v-if="!unlocked(h.level)"><PixelIcon name="lock" :size="12" /></i>
                   </span>{{ h.label }}
                   <small v-if="!unlocked(h.level)" class="lv">Lv.{{ h.level }}</small>
                 </button>
@@ -111,7 +111,7 @@
                 >
                   <span class="item-thumb sprite">
                     <PixelSprite :parts="[['outfit', outfitSpriteName(o.spriteKey, draft.gender)]]" :item-colors="draft.itemColors" :box="44" :label="o.name" />
-                    <i v-if="!o.owned">🔒</i>
+                    <i v-if="!o.owned"><PixelIcon name="lock" :size="24" /></i>
                   </span>
                   <strong>{{ o.name }}</strong>
                   <small>{{ o.owned ? (draft.outfitId === o.id ? '입는 중' : '입기') : `Lv.${o.requiredLevel}에 해금` }}</small>
@@ -134,7 +134,7 @@
                 >
                   <span class="item-thumb sprite">
                     <PixelSprite :parts="[['bottom', b.key]]" :item-colors="draft.itemColors" :box="44" :label="b.name" />
-                    <i v-if="!unlocked(b.level)">🔒</i>
+                    <i v-if="!unlocked(b.level)"><PixelIcon name="lock" :size="24" /></i>
                   </span>
                   <strong>{{ b.name }}</strong>
                   <small>{{ unlocked(b.level) ? (draft.bottom === b.key ? '입는 중' : '입기') : `Lv.${b.level}에 해금` }}</small>
@@ -166,7 +166,7 @@
                 >
                   <span class="item-thumb sprite">
                     <PixelSprite :parts="[[slot.folder, a.key]]" :item-colors="draft.itemColors" :box="44" :label="a.name" />
-                    <i v-if="!unlocked(a.level)">🔒</i>
+                    <i v-if="!unlocked(a.level)"><PixelIcon name="lock" :size="24" /></i>
                   </span>
                   <strong>{{ a.name }}</strong>
                   <small>{{ unlocked(a.level) ? (draft[slot.field] === a.key ? '쓰는 중' : '쓰기') : `Lv.${a.level}에 해금` }}</small>
@@ -193,7 +193,7 @@
               >
                 <span class="thumb">
                   <StageScene :character="preview" :stage-key="b.key" :effects="[]" :decor="[]" :animate="false" />
-                  <i v-if="!b.unlocked">🔒</i>
+                  <i v-if="!b.unlocked"><PixelIcon name="lock" :size="24" /></i>
                 </span>
                 <strong>{{ STAGE_NAMES[b.key] }}</strong>
                 <small>{{ b.unlocked ? (draft.stageBackground === b.key ? '사용 중' : '고르기') : stageLockText(b) }}</small>
@@ -212,7 +212,7 @@
                 >
                   <span class="item-thumb sprite">
                     <img class="decor-thumb" :src="decorUrl(d.key)" :alt="d.name">
-                    <i v-if="!decorUnlocked(d.set)">🔒</i>
+                    <i v-if="!decorUnlocked(d.set)"><PixelIcon name="lock" :size="24" /></i>
                   </span>
                   <strong>{{ d.name }}</strong>
                   <small>{{ decorUnlocked(d.set) ? (isPlaced(d.key) ? '올려 둠' : '올리기') : decorLockText(d.set) }}</small>
@@ -237,9 +237,9 @@
                 >
                   <span class="thumb">
                     <StageScene :character="preview" :stage-key="draft.stageBackground" :effects="[e.key]" :decor="[]" :animate="false" />
-                    <i v-if="!unlocked(e.level)">🔒</i>
+                    <i v-if="!unlocked(e.level)"><PixelIcon name="lock" :size="24" /></i>
                   </span>
-                  <strong>{{ e.icon }} {{ e.name }}</strong>
+                  <strong>{{ e.name }}</strong>
                   <small>{{ unlocked(e.level) ? (draft.stageEffects.includes(e.key) ? '켜짐' : '켜기') : `Lv.${e.level}에 해금` }}</small>
                 </button>
               </div>
@@ -252,6 +252,7 @@
 </template>
 
 <script setup>
+import PixelIcon from '../components/PixelIcon.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'

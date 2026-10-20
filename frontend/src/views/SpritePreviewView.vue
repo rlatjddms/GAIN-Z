@@ -48,6 +48,16 @@
     </section>
 
     <section class="panel">
+      <h2>픽셀 아이콘 {{ pixelIconNames.length }}종 (큰 아이콘)</h2>
+      <div class="grid">
+        <figure v-for="n in pixelIconNames" :key="n" style="color: var(--c-primary-text)">
+          <PixelIcon :name="n" :size="48" />
+          <figcaption>{{ n }}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>썸네일 (옷장·캐릭터 만들기)</h2>
       <div class="grid thumbs">
         <figure v-for="h in hairStyles" :key="`h-${h}`">
@@ -161,6 +171,8 @@ import { reactive, ref } from 'vue'
 import PixelCharacter from '../components/PixelCharacter.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import PixelSprite from '../components/PixelSprite.vue'
+import PixelIcon from '../components/PixelIcon.vue'
+import { PIXEL_ICONS } from '../pixel/icons'
 import StageScene from '../components/StageScene.vue'
 import { HEAD_REGION } from '../pixel/palette'
 import { listSprites } from '../pixel/sprites'
@@ -175,6 +187,7 @@ import { outfitSpriteName } from '../pixel/sprites'
 // 하의도 소품처럼 자리 하나로 보여 준다
 const ACCESSORY_SLOTS = [BOTTOM_SLOT, ...WEAR_SLOTS]
 
+const pixelIconNames = Object.keys(PIXEL_ICONS)
 const hairStyles = listSprites('hair')
 const instruments = listSprites('instrument')
 // 의상 파일은 <이름>_<성별>.png → 이름만

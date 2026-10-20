@@ -15,7 +15,7 @@
             <!-- 요즘 듣는 음악: 누르면 등록·수정 팝업, 링크가 있으면 옆 아이콘으로 새 탭 -->
             <div class="music-chip" :class="{ empty: !myMusic }">
               <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
-                <span class="note">♪</span>
+                <span class="note"><Music :size="13" :stroke-width="2.5" /></span>
                 <span class="music-text">{{ myMusic ? `${myMusic.title} · ${myMusic.artist}` : '요즘 듣는 음악 등록' }}</span>
               </button>
               <a v-if="myMusicUrl" class="music-link" :href="myMusicUrl" target="_blank" rel="noopener noreferrer" title="새 탭에서 듣기">
@@ -32,15 +32,15 @@
 
           <section class="quick-grid grid-3">
             <button class="card-btn" @click="router.push('/practice')">
-              <div class="c-icon">🕒</div>
+              <div class="c-icon"><PixelIcon name="clock" :size="24" /></div>
               <div class="c-text"><strong>ROUTINE TRACKER</strong><span>연습 루틴 및 기록장</span></div>
             </button>
             <button class="card-btn" @click="router.push('/sheets')">
-              <div class="c-icon">📂</div>
+              <div class="c-icon"><PixelIcon name="folder" :size="24" /></div>
               <div class="c-text"><strong>WORK BENCH</strong><span>악보 편집 및 보관함</span></div>
             </button>
             <button class="card-btn" @click="router.push('/transcribe')">
-              <div class="c-icon">📄</div>
+              <div class="c-icon"><PixelIcon name="file" :size="24" /></div>
               <div class="c-text"><strong>AI TRANSCRIBER</strong><span>코드 / 오선보 / 타브 악보</span></div>
             </button>
           </section>
@@ -75,7 +75,7 @@
                 <button v-for="band in bandStore.bands" :key="band.id"
                         :class="{ active: activeBand?.id === band.id }"
                         @click="bandStore.selectedBandId = band.id">
-                  <span v-if="band.myPosition === 'LEADER'" class="crown" title="내가 리더">👑</span>{{ band.name }}
+                  <Crown v-if="band.myPosition === 'LEADER'" class="crown" :size="13" :stroke-width="2.4" aria-label="내가 리더" />{{ band.name }}
                 </button>
                 <button v-if="bandStore.loaded" class="add-band-tab"
                         :disabled="bandStore.bands.length >= MAX_JOINED_BANDS"
@@ -99,7 +99,7 @@
           </section>
 
           <section v-else-if="!activeBand" class="stage band-stage band-empty">
-            <div class="empty-icon">🎸🥁🎤</div>
+            <div class="empty-icon"><PixelIcon name="guitar" :size="48" /></div>
             <h2>아직 들어간 밴드가 없어요</h2>
             <p class="empty-text">밴드를 새로 만들거나, 리더에게 받은 초대 코드로 가입해 보세요.</p>
             <div class="empty-actions">
@@ -115,7 +115,7 @@
                 <p>{{ activeBand.members.length }}명의 멤버가 참여 중<template v-if="activeBand.description"> · {{ activeBand.description }}</template></p>
               </div>
               <div class="band-tools">
-                <button class="tool-btn" @click="router.push(`/bands/${activeBand.id}/settings`)">⚙ 밴드 설정</button>
+                <button class="tool-btn" @click="router.push(`/bands/${activeBand.id}/settings`)"><Settings :size="14" :stroke-width="2.2" /> 밴드 설정</button>
               </div>
             </div>
 
@@ -132,9 +132,9 @@
                    :class="{ me: m.me, held: tagDrag?.id === m.memberId }" :style="tagStyle(m.memberId)"
                    @pointerdown="startTagDrag($event, m.memberId)">
                 <div class="m-name">
-                  <span v-if="m.position === 'LEADER'" title="리더">👑</span>{{ m.character?.nickname || '알 수 없는 멤버' }}
+                  <Crown v-if="m.position === 'LEADER'" class="crown" :size="12" :stroke-width="2.4" aria-label="리더" />{{ m.character?.nickname || '알 수 없는 멤버' }}
                 </div>
-                <div class="m-role">{{ partEmoji(m.part) }} {{ partLabel(m.part) }}<template v-if="m.me"> · 나</template></div>
+                <div class="m-role"><PixelSprite v-if="m.part" class="part-icon" :parts="[['instrument', m.part]]" :box="14" exact /> {{ partLabel(m.part) }}<template v-if="m.me"> · 나</template></div>
               </div>
             </div>
           </section>
@@ -146,11 +146,11 @@
           <template v-if="activeBand">
             <section class="quick-grid grid-2 band-menus">
               <button class="card-btn" @click="router.push(`/bands/${activeBand.id}/setlists`)">
-                <div class="c-icon">🎶</div>
+                <div class="c-icon"><PixelIcon name="notes" :size="24" /></div>
                 <div class="c-text"><strong>BAND SETLIST</strong><span>파트 분배 및 합주 현황 공유</span></div>
               </button>
               <button class="card-btn" @click="router.push(`/bands/${activeBand.id}/jams`)">
-                <div class="c-icon">🎙️</div>
+                <div class="c-icon"><PixelIcon name="mic" :size="24" /></div>
                 <div class="c-text"><strong>LAYER JAM</strong><span>레이어링 방식 비대면 합주</span></div>
               </button>
             </section>
@@ -164,6 +164,9 @@
 </template>
 
 <script setup>
+import { Crown, Music, Settings } from 'lucide-vue-next'
+import PixelIcon from '../components/PixelIcon.vue'
+import PixelSprite from '../components/PixelSprite.vue'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
@@ -369,7 +372,6 @@ onBeforeUnmount(stopTagListening)
 
 const partOption = (part) => INSTRUMENT_OPTIONS.find((o) => o.value === part)
 const partLabel = (part) => partOption(part)?.label || part
-const partEmoji = (part) => partOption(part)?.emoji || '🎵'
 </script>
 
 <style scoped>
@@ -463,7 +465,7 @@ button::-moz-focus-inner { border: 0 !important; }
   cursor: pointer; transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); text-align: left;
 }
 .card-btn:hover { border-color: var(--c-primary); transform: translateY(-4px); box-shadow: 0 10px 20px color-mix(in srgb, var(--c-primary) 6%, transparent); }
-.c-icon { font-size: 1.8rem; background: var(--c-primary-soft); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 14px; }
+.c-icon { color: var(--c-primary-text); background: var(--c-primary-soft); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 14px; }
 .c-text strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
 .c-text span { font-size: 0.75rem; color: #868e96; }
 
@@ -484,13 +486,14 @@ button::-moz-focus-inner { border: 0 !important; }
 
 
 /* 밴드 전용 */
-.crown { margin-right: 4px; font-size: 0.8rem; }
+.crown { margin-right: 4px; color: #f08c00; vertical-align: -1px; }
+.part-icon { display: inline-block; vertical-align: -2px; }
 .band-tabs-left .add-band-tab { font-weight: 900; font-size: 1rem; padding: 10px 16px; color: var(--c-primary-text); }
 .band-tabs-left .add-band-tab:disabled { color: #ced4da; cursor: not-allowed; }
 
 .band-empty { padding: 56px 24px; }
 .band-empty h2 { margin: 12px 0 6px; font-size: 1.25rem; font-weight: 800; }
-.empty-icon { font-size: 2rem; letter-spacing: 6px; }
+.empty-icon { color: var(--c-faint); display: flex; justify-content: center; }
 .empty-text { margin: 0; font-size: 0.85rem; color: #868e96; }
 .empty-actions { display: flex; justify-content: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
 .pill-btn {

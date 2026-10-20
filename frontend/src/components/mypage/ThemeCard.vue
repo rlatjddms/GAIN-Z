@@ -7,7 +7,7 @@
         :class="{ on: theme.key === t.key }" :aria-checked="theme.key === t.key"
         @click="theme.set(t.key)"
       >
-        <span class="swatch" :style="{ background: t.color }"><i v-if="theme.key === t.key">✓</i></span>
+        <span class="swatch" :style="{ background: t.color }"><Check v-if="theme.key === t.key" :size="16" :stroke-width="3" /></span>
         <span class="name">{{ t.name }}</span>
       </button>
     </div>
@@ -16,6 +16,7 @@
 
 <script setup>
 // 테마 색 고르기 (#122). 고르면 바로 화면 전체·파비콘에 적용된다
+import { Check } from 'lucide-vue-next'
 import WsCard from '../workspace/WsCard.vue'
 import { THEMES } from '../../constants/themes'
 import { useThemeStore } from '../../stores/theme'
@@ -36,7 +37,6 @@ const theme = useThemeStore()
   width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 0.8rem; font-weight: 900;
 }
-.swatch i { font-style: normal; }
 .name { font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }
 .theme.on .name { color: var(--c-primary-text); }
 </style>

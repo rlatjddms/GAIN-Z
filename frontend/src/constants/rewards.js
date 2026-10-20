@@ -71,10 +71,10 @@ export const REWARD_OUTFITS = [
 
 // 무대 꾸미기 효과: 5레벨 보상 중 배경이 없는 Lv.5·15·25와 마지막 Lv.30 (components/StageEffect.vue)
 export const STAGE_EFFECTS = [
-  { key: 'SPARKLE', name: '반짝이', icon: '✨', level: 5 },
-  { key: 'SMOKE', name: '스모크', icon: '🌫️', level: 15 },
-  { key: 'SPOTLIGHT', name: '스포트라이트', icon: '🔦', level: 25 },
-  { key: 'FIREWORKS', name: '불꽃놀이', icon: '🎆', level: 30 },
+  { key: 'SPARKLE', name: '반짝이', level: 5 },
+  { key: 'SMOKE', name: '스모크', level: 15 },
+  { key: 'SPOTLIGHT', name: '스포트라이트', level: 25 },
+  { key: 'FIREWORKS', name: '불꽃놀이', level: 30 },
 ]
 
 export const STAGE_REWARDS = [
@@ -94,7 +94,7 @@ export function rewardsAt(level) {
   for (const o of REWARD_OUTFITS) if (o.level === level) out.push({ type: 'OUTFIT', key: o.key, name: o.name })
   for (const b of BOTTOMS) if (b.level === level) out.push({ type: 'BOTTOM', key: b.key, name: b.name, slot: 'BOTTOM' })
   for (const s of STAGE_REWARDS) if (s.level === level) out.push({ type: 'STAGE', key: s.key, name: s.name })
-  for (const e of STAGE_EFFECTS) if (e.level === level) out.push({ type: 'EFFECT', key: e.key, name: e.name, icon: e.icon })
+  for (const e of STAGE_EFFECTS) if (e.level === level) out.push({ type: 'EFFECT', key: e.key, name: e.name })
   for (const a of ACCESSORIES) if (a.level === level) out.push({ type: 'ACCESSORY', key: a.key, name: a.name, slot: a.slot })
   for (const h of REWARD_HAIR_STYLES) if (h.level === level) out.push({ type: 'HAIR', key: h.key, name: h.name })
   return out
