@@ -12,20 +12,16 @@
 <script setup>
 import { computed } from 'vue'
 import { ExternalLink } from 'lucide-vue-next'
-import { SHEET_SEARCH_SITES, hasHangul, sheetSearchQuery } from '../../constants/sheetSearch'
+import { SHEET_SEARCH_SITES, sheetSearchQuery } from '../../constants/sheetSearch'
 
 const props = defineProps({
   title: { type: String, default: '' },
   artist: { type: String, default: '' },
 })
 const query = computed(() => sheetSearchQuery(props.title, props.artist))
-// 검색어가 없거나, 영어 전용 사이트에 한글 검색어면 끈다
-const usable = (s) => !!query.value && !(s.latinOnly && hasHangul(query.value))
-const tip = (s) => {
-  if (!query.value) return '곡 제목이나 가수를 먼저 입력해 주세요'
-  if (!usable(s)) return `${s.name}는 영어 제목으로만 찾을 수 있어요`
-  return `${s.name}에서 '${query.value}' 찾기`
-}
+// 검색어가 없으면 끈다
+const usable = () => !!query.value
+const tip = (s) => (query.value ? `${s.name}에서 '${query.value}' 찾기` : '곡 제목이나 가수를 먼저 입력해 주세요')
 </script>
 
 <style scoped>
