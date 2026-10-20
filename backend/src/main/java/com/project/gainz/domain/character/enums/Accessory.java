@@ -14,7 +14,9 @@ public enum Accessory {
     SKIRT(AccessorySlot.BOTTOM, "치마", 8),
     CAP(AccessorySlot.HAT, "볼캡", 9),
     SUNGLASSES(AccessorySlot.GLASSES, "선글라스", 12),
+    // Lv.13 헤드폰은 목에 걸기·머리에 쓰기 두 가지로 받는다
     HEADPHONES(AccessorySlot.NECK, "헤드폰", 13),
+    HEAD_HEADPHONES(AccessorySlot.HAT, "헤드폰", 13),
     STUD_EARRINGS(AccessorySlot.EARRINGS, "스터드 귀걸이", 14),
     BELT(AccessorySlot.WAIST, "체인 벨트", 16),
     HOOP_EARRINGS(AccessorySlot.EARRINGS, "링 귀걸이", 18),
