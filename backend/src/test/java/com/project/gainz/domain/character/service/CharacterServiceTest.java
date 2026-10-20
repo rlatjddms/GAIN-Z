@@ -369,6 +369,23 @@ class CharacterServiceTest {
     }
 
     @Test
+    void 악기를_내려놓고_다시_들_수_있다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+        assertThat(characterService.getCharacter(USER_ID).instrumentHidden()).isFalse();
+
+        WardrobeUpdateRequest hide = new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, null, null, true);
+        assertThat(characterService.updateWardrobe(USER_ID, hide).instrumentHidden()).isTrue();
+        // 값을 안 보내면 그대로
+        assertThat(characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.ROOKIE)).instrumentHidden()).isTrue();
+        // 악기 종류는 바뀌지 않는다
+        assertThat(character.getInstrumentType()).isEqualTo(InstrumentType.values()[0]);
+
+        WardrobeUpdateRequest show = new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, null, null, false);
+        assertThat(characterService.updateWardrobe(USER_ID, show).instrumentHidden()).isFalse();
+    }
+
+    @Test
     void 벨트는_허리_자리에_쓴다() {
         ReflectionTestUtils.setField(character, "level", 16);
         when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
