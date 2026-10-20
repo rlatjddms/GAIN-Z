@@ -1,5 +1,7 @@
 package com.project.gainz.global.security.oauth2;
 
+import com.project.gainz.domain.user.entity.RefreshToken;
+import com.project.gainz.domain.user.repository.RefreshTokenRepository;
 import com.project.gainz.global.security.jwt.JwtTokenProvider;
 import com.project.gainz.global.security.principal.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +19,7 @@ import java.io.IOException;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
@@ -27,6 +30,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         String accessToken = jwtTokenProvider.createAccessToken(email, role);
         String refreshToken = jwtTokenProvider.createRefreshToken(email);
+
+        // 일반 로그인처럼 재발급용 토큰을 저장해야 접속 토큰이 만료돼도 재발급된다 (#144)
+        refreshTokenRepository.save(new RefreshToken(email, refreshToken));
 
         String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth2/redirect")
                 .queryParam("accessToken", accessToken)
