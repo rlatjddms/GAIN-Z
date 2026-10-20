@@ -88,24 +88,24 @@ const submit = async () => {
   background: var(--c-surface); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-lg);
   font-family: 'Pretendard', sans-serif; color: var(--c-text);
 }
-h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; color: #e03131; }
+h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; color: var(--c-danger); }
 .sub { margin: 0 0 14px; font-size: 0.8rem; color: var(--c-muted); }
 
 .notice {
-  margin: 0 0 16px; padding: 12px 14px 12px 30px; background: #fff5f5; border-radius: 12px;
+  margin: 0 0 16px; padding: 12px 14px 12px 30px; background: var(--c-danger-soft); border-radius: 12px;
   font-size: 0.78rem; font-weight: 700; color: #c92a2a; line-height: 1.7;
 }
 
 .field { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
 .field:first-of-type { margin-top: 0; }
 .field span { font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }
-.field b { color: #e03131; }
+.field b { color: var(--c-danger); }
 .field input {
   border: 1px solid var(--c-line); border-radius: 12px; padding: 11px 14px; font-family: inherit;
   font-size: 0.9rem; outline: none; background: var(--c-bg);
 }
-.field input:focus { border-color: #e03131; background: #fff; }
-.error { margin: 12px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.field input:focus { border-color: var(--c-danger); background: #fff; }
+.error { margin: 12px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 .actions { display: flex; gap: 8px; margin-top: 20px; }
 .btn { flex: 1; min-height: 44px; font-size: 0.88rem; }

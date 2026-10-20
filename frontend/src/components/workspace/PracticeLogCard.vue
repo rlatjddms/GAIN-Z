@@ -179,5 +179,5 @@ const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.secon
 .g.lv3 { background: color-mix(in srgb, var(--c-primary) 78%, #fff); }
 .g.lv4 { background: var(--c-primary); }
 
-.error { margin: 10px 0 0; font-size: 0.75rem; font-weight: 700; color: #e03131; }
+.error { margin: 10px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 </style>

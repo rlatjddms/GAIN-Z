@@ -65,7 +65,7 @@
 
       <WsCard title="프로필 공개 범위">
         <p class="muted">다른 사람이 내 프로필을 열었을 때 캐릭터·연습 기록·가입한 밴드·요즘 듣는 음악을 보여 줄지 정해요. 이름과 사진은 항상 보여요.</p>
-        <div class="segmented" role="radiogroup" aria-label="프로필 공개 범위">
+        <div class="segment" role="radiogroup" aria-label="프로필 공개 범위">
           <button v-for="o in PROFILE_VISIBILITY_OPTIONS" :key="o.value" type="button" role="radio"
                   :aria-checked="currentVisibility === o.value" :class="{ on: currentVisibility === o.value }"
                   :disabled="!profile || visibilityBusy" @click="changeVisibility(o.value)">{{ o.label }}</button>
@@ -305,7 +305,7 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
   flex: 1; min-width: 0; border: 1px solid var(--c-primary); border-radius: 10px; padding: 7px 10px;
   font-family: inherit; font-size: 0.85rem; font-weight: 700; outline: none;
 }
-.field-error { margin: 8px 0 0; font-size: 0.72rem; font-weight: 700; color: #e03131; }
+.field-error { margin: 8px 0 0; font-size: 0.75rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 .provider {
   display: inline-block; font-size: 0.72rem; font-weight: 800; padding: 3px 9px; border-radius: 999px;
@@ -329,20 +329,13 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
   margin-top: 14px; border: none; background: none; padding: 0; cursor: pointer;
   font-family: inherit; font-size: 0.72rem; font-weight: 700; color: var(--c-faint); text-decoration: underline;
 }
-.withdraw-link:hover:not(:disabled) { color: #e03131; }
+.withdraw-link:hover:not(:disabled) { color: var(--c-danger); }
 .withdraw-link:disabled { cursor: not-allowed; }
 
 .text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: 0.75rem; }
 
-.segmented { display: inline-flex; background: var(--c-line-soft); border-radius: 12px; padding: 3px; gap: 2px; }
-.segmented button {
-  border: none; background: none; border-radius: 10px; padding: 7px 14px; cursor: pointer;
-  font-family: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-muted); transition: 0.15s;
-}
-.segmented button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
-.segmented button:disabled { cursor: not-allowed; }
 .muted.small { margin: 8px 0 0; font-size: 0.72rem; }
-.saved { margin: 10px 0 0; font-size: 0.75rem; font-weight: 800; color: #2f9e44; }
-.error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
-.loading { padding: 16px 0; font-size: 0.85rem; color: var(--c-faint); }
+.saved { margin: 10px 0 0; font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
+.error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
+.loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 </style>

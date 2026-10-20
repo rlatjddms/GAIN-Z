@@ -200,19 +200,19 @@ const showSaved = (exp) => {
   color: var(--c-primary-text); cursor: pointer;
 }
 .text-btn:disabled { color: #ced4da; cursor: default; }
-.live-note { color: #e03131; font-weight: 700; }
+.live-note { color: var(--c-danger); font-weight: 700; }
 .link { border: none; background: none; padding: 0; font: inherit; font-weight: 800; color: var(--c-primary-text); cursor: pointer; text-decoration: underline; }
 .icon { font-size: 0.85rem; }
 
-.badge { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 800; color: #e03131; }
-.badge i { width: 7px; height: 7px; border-radius: 50%; background: #e03131; animation: blink 1s infinite; }
+.badge { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 800; color: var(--c-danger); }
+.badge i { width: 7px; height: 7px; border-radius: 50%; background: var(--c-danger); animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: 0.2; } }
 
 .status { margin: 12px 0 0; font-size: 0.75rem; color: var(--c-faint); line-height: 1.5; text-align: center; font-variant-numeric: tabular-nums; }
 .status.saved { color: var(--c-primary-text); font-weight: 800; }
-.status.error { color: #e03131; font-weight: 700; }
+.status.error { color: var(--c-danger); font-weight: 700; }
 .retry {
-  margin-left: 6px; border: 1px solid #ffc9c9; background: #fff5f5; color: #e03131; cursor: pointer;
+  margin-left: 6px; border: 1px solid #ffc9c9; background: var(--c-danger-soft); color: var(--c-danger); cursor: pointer;
   font: inherit; font-weight: 800; padding: 2px 8px; border-radius: 6px;
 }
 

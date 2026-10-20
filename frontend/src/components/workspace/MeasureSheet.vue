@@ -2,7 +2,7 @@
   <!-- 마디 악보(TabData) 보기: 타브·코드 전환, 보는 키로 옮기기, BPM 따라가기 커서 -->
   <div ref="root" class="measure-sheet">
     <div class="bar">
-      <div v-if="canTab && hasChords" class="modes" role="tablist" aria-label="악보 종류">
+      <div v-if="canTab && hasChords" class="segment small" role="tablist" aria-label="악보 종류">
         <button role="tab" :aria-selected="mode === 'tab'" :class="{ on: mode === 'tab' }" @click="mode = 'tab'">타브</button>
         <button role="tab" :aria-selected="mode === 'chord'" :class="{ on: mode === 'chord' }" @click="mode = 'chord'">코드</button>
       </div>
@@ -114,12 +114,6 @@ onBeforeUnmount(stop)
 
 <style scoped>
 .bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-.modes { display: flex; background: var(--c-line-soft); border-radius: 10px; padding: 3px; }
-.modes button {
-  border: none; background: none; font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-muted);
-  padding: 6px 12px; border-radius: 8px; cursor: pointer;
-}
-.modes button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
 .info { font-size: 0.72rem; font-weight: 700; color: var(--c-muted); }
 
 .play { margin-left: auto; display: flex; align-items: center; gap: 6px; }

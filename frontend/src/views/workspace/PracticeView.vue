@@ -119,7 +119,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 
 .today-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
 
-.load-error { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fff5f5; color: #e03131; font-size: 0.8rem; font-weight: 700; }
+.load-error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 
 @media (max-width: 760px) {
   .today-grid { grid-template-columns: minmax(0, 1fr); }

@@ -179,5 +179,5 @@ const openForm = (r) => {
 
 .empty { text-align: center; padding: 12px 0 4px; }
 .empty p { margin: 0 0 12px; font-size: 0.8rem; color: var(--c-faint); }
-.error { margin: 10px 0 0; font-size: 0.75rem; font-weight: 700; color: #e03131; }
+.error { margin: 10px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 </style>

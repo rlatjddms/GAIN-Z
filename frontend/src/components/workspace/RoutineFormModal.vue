@@ -19,7 +19,7 @@
 
           <div class="field">
             <span class="label">반복</span>
-            <div class="segment" role="radiogroup" aria-label="반복 방식">
+            <div class="segment fill" role="radiogroup" aria-label="반복 방식">
               <button
                 v-for="t in REPEAT_TYPES" :key="t.key" type="button" role="radio"
                 :aria-checked="form.repeatType === t.key" :class="{ on: form.repeatType === t.key }"
@@ -176,12 +176,6 @@ h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
 .inline { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 700; color: var(--c-muted); }
 .input.count { width: 72px; text-align: right; }
 
-.segment { display: flex; background: var(--c-line-soft); border-radius: 11px; padding: 3px; }
-.segment button {
-  flex: 1; border: none; background: none; border-radius: 9px; padding: 8px 0; cursor: pointer;
-  font: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-muted);
-}
-.segment button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06); }
 
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .days button {
@@ -198,7 +192,7 @@ h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
 }
 .help { margin: 0; font-size: 0.72rem; color: var(--c-faint); }
 .help.warn { color: #f08c00; font-weight: 700; }
-.error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 .actions { display: flex; gap: 8px; margin-top: 4px; }
 .btn { flex: 1; min-height: 44px; font-size: 0.88rem; }

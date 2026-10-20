@@ -216,7 +216,7 @@ async function removeComment(comment) {
 .edit-comment > div { display: flex; justify-content: flex-end; gap: 10px; margin: 6px 0; }
 .edit-comment button { border: 0; background: none; font: inherit; font-size: 11px; color: var(--c-muted); cursor: pointer; }
 .edit-comment .text-primary { color: var(--c-primary-text); font-weight: 800; }
-.error { color: #d94841; background: #fff5f5; border-radius: 10px; padding: 12px; font-size: 12px; line-height: 1.6; }
+.error { padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 @media(max-width: 600px) {
   .article-body { padding: 22px 20px 26px; }
   .post-title { font-size: 22px; }

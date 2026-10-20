@@ -136,7 +136,7 @@ const rows = computed(() => {
 }
 .num { font-size: 0.6rem; font-weight: 800; color: #ced4da; font-variant-numeric: tabular-nums; }
 .time { font-size: 0.65rem; font-weight: 900; color: var(--c-text-2); }
-.bad { font-size: 0.6rem; font-weight: 800; color: #e03131; }
+.bad { font-size: 0.6rem; font-weight: 800; color: var(--c-danger); }
 
 .chords { position: relative; height: 20px; }
 .chords span {
@@ -168,5 +168,5 @@ const rows = computed(() => {
   margin: 4px 0 0; padding: 0 4px; font-size: 0.62rem; font-weight: 700; color: var(--c-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.measure.invalid .staff { background: repeating-linear-gradient(135deg, transparent 0 6px, #fff5f5 6px 12px); }
+.measure.invalid .staff { background: repeating-linear-gradient(135deg, transparent 0 6px, var(--c-danger-soft) 6px 12px); }
 </style>

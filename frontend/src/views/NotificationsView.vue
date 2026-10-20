@@ -8,7 +8,7 @@
       <section class="card">
         <!-- 걸러 보기 탭 -->
         <div class="tabs" role="tablist" aria-label="알림 걸러 보기">
-          <button v-for="t in TABS" :key="t.key" role="tab" :aria-selected="tab === t.key" :class="{ on: tab === t.key }"
+          <button v-for="t in TABS" :key="t.key" class="chip" role="tab" :aria-selected="tab === t.key" :class="{ on: tab === t.key }"
                   @click="tab = t.key">
             {{ t.label }}<span v-if="t.key === 'UNREAD' && store.unreadCount" class="tab-count">{{ store.unreadCount }}</span>
           </button>
@@ -239,14 +239,7 @@ watch(tab, () => { stopSelect(); reload() }, { immediate: true })
 .card { background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: 20px 22px; }
 
 .tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 12px; border-bottom: 1px solid var(--c-line-soft); }
-.tabs button {
-  flex: none; display: inline-flex; align-items: center; gap: 5px; border: none; background: none; cursor: pointer;
-  padding: 7px 12px; border-radius: 999px; font-family: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-muted);
-}
-.tabs button:hover { background: var(--c-bg); color: var(--c-text-2); }
-.tabs button.on { background: var(--c-primary); color: #fff; }
 .tab-count { min-width: 16px; padding: 0 5px; border-radius: 999px; background: #fa5252; color: #fff; font-size: 0.65rem; line-height: 16px; text-align: center; }
-.tabs button.on .tab-count { background: #fff; color: var(--c-primary-text); }
 
 .toolbar { display: flex; align-items: center; gap: 6px; padding: 10px 0; }
 .spacer { flex: 1; }
@@ -256,8 +249,8 @@ watch(tab, () => { stopSelect(); reload() }, { immediate: true })
 }
 .tool:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .tool.muted { color: var(--c-muted); }
-.tool.danger { color: #e03131; }
-.tool.danger:hover:not(:disabled) { border-color: #ffc9c9; background: #fff5f5; color: #e03131; }
+.tool.danger { color: var(--c-danger); }
+.tool.danger:hover:not(:disabled) { border-color: #ffc9c9; background: var(--c-danger-soft); color: var(--c-danger); }
 .tool:disabled { opacity: 0.45; cursor: not-allowed; }
 .check-all { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 800; color: var(--c-text-2); cursor: pointer; }
 .check-all input, .check { width: 16px; height: 16px; accent-color: var(--c-primary); cursor: pointer; }
@@ -295,7 +288,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .more:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 
 .state { margin: 0; padding: 36px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
-.error { margin: 0 0 8px; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.error { margin: 0 0 8px; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 @media (hover: none) {
   .remove { opacity: 1; }

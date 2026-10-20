@@ -7,7 +7,7 @@
         <h3>{{ title }}</h3>
         <button class="arrow" :disabled="!canNext" :aria-label="mode === 'WEEK' ? '다음 주' : '다음 달'" @click="shift(1)">›</button>
       </div>
-      <div class="mode" role="tablist" aria-label="보기">
+      <div class="segment small" role="tablist" aria-label="보기">
         <button role="tab" :aria-selected="mode === 'WEEK'" :class="{ on: mode === 'WEEK' }" @click="emit('update:mode', 'WEEK')">주</button>
         <button role="tab" :aria-selected="mode === 'MONTH'" :class="{ on: mode === 'MONTH' }" @click="emit('update:mode', 'MONTH')">월</button>
       </div>
@@ -221,12 +221,6 @@ const compareText = computed(() => {
 }
 .arrow:hover:not(:disabled) { color: var(--c-primary-text); box-shadow: inset 0 0 0 1px var(--c-primary-line); }
 .arrow:disabled { opacity: 0.35; cursor: default; }
-.mode { display: inline-flex; background: var(--c-line-soft); border-radius: 10px; padding: 3px; gap: 2px; }
-.mode button {
-  border: none; background: none; border-radius: 8px; padding: 4px 14px; cursor: pointer;
-  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-muted);
-}
-.mode button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
 
 /* 위 요약 한 줄, 아래 칸 */
 .body { display: flex; flex-direction: column; gap: 16px; }
@@ -251,7 +245,7 @@ const compareText = computed(() => {
   position: absolute; top: 5px; right: 6px; font-size: 0.6rem; font-weight: 900; line-height: 1;
   color: var(--c-muted); font-variant-numeric: tabular-nums;
 }
-.routine.done { color: #2f9e44; font-size: 0.7rem; }
+.routine.done { color: var(--c-success); font-size: 0.7rem; }
 .cell.lv1, .legend i.lv1 { background: var(--c-primary-line); }
 .cell.lv2, .legend i.lv2 { background: color-mix(in srgb, var(--c-primary) 55%, #fff); }
 .cell.lv3, .legend i.lv3 { background: color-mix(in srgb, var(--c-primary) 78%, #fff); }
@@ -264,11 +258,11 @@ const compareText = computed(() => {
 .scale i { width: 10px; height: 10px; border-radius: 3px; background: var(--c-line-soft); }
 .scale small { font-size: inherit; margin-right: 6px; }
 .rt b { color: var(--c-muted); margin-right: 2px; }
-.rt b.done { color: #2f9e44; margin-left: 6px; }
+.rt b.done { color: var(--c-success); margin-left: 6px; }
 
 .rec {
   position: absolute; bottom: 7px; left: 7px; width: 6px; height: 6px; border-radius: 50%;
-  background: #e03131; animation: blink 1s infinite;
+  background: var(--c-danger); animation: blink 1s infinite;
 }
 @keyframes blink { 50% { opacity: 0.2; } }
 
@@ -282,10 +276,10 @@ const compareText = computed(() => {
 .stat strong.empty { color: #ced4da; }
 .stat small { font-size: 0.72rem; font-weight: 800; color: var(--c-faint); }
 .stat em { font-style: normal; font-size: 0.68rem; font-weight: 700; color: var(--c-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.stat em.up { color: #2f9e44; }
+.stat em.up { color: var(--c-success); }
 .stat em.down { color: #e8590c; }
 
-.error { margin: 12px 0 0; font-size: 0.78rem; font-weight: 700; color: #e03131; }
+.error { margin: 12px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 @media (max-width: 640px) {
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }

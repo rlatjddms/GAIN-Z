@@ -331,7 +331,7 @@ onBeforeRouteLeave(() => (dirty.value && !loadError.value ? dialog.confirm({ tit
   display: flex; align-items: center; justify-content: center; border: 1px solid var(--c-line-soft);
 }
 .thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.thumb .pdf { font-size: 0.65rem; font-weight: 900; color: #e03131; }
+.thumb .pdf { font-size: 0.65rem; font-weight: 900; color: var(--c-danger); }
 .page-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .page-info strong { font-size: 0.85rem; font-weight: 800; }
 .page-info span { font-size: 0.72rem; color: var(--c-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -341,14 +341,14 @@ onBeforeRouteLeave(() => (dirty.value && !loadError.value ? dialog.confirm({ tit
   font-family: inherit; font-weight: 900; color: var(--c-text-2);
 }
 .icon:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
-.icon.danger:hover:not(:disabled) { border-color: #ffa8a8; color: #e03131; }
+.icon.danger:hover:not(:disabled) { border-color: #ffa8a8; color: var(--c-danger); }
 .icon:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field.wide { grid-column: 1 / -1; }
 .field > span { font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }
-.field em { font-style: normal; color: #e03131; }
+.field em { font-style: normal; color: var(--c-danger); }
 .field input, .field select {
   width: 100%; box-sizing: border-box; border: 1px solid var(--c-line); border-radius: 10px; background: #fff;
   padding: 10px 12px; font-family: inherit; font-size: 0.85rem; color: #212529; outline: none;
@@ -356,8 +356,8 @@ onBeforeRouteLeave(() => (dirty.value && !loadError.value ? dialog.confirm({ tit
 .field input:focus, .field select:focus { border-color: var(--c-primary); }
 .tip { margin: 12px 0 0; font-size: 0.72rem; color: var(--c-muted); line-height: 1.5; }
 .hint { margin: 10px 0 0; font-size: 0.75rem; color: #e8590c; font-weight: 700; }
-.error { margin: 10px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
-.loading { padding: 48px; text-align: center; font-size: 0.85rem; color: var(--c-faint); }
+.error { margin: 10px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
+.loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }

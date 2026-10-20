@@ -123,7 +123,7 @@ onBeforeUnmount(() => clearInterval(tick))
 h2 { margin: 8px 0 6px; font-size: 1.1rem; font-weight: 900; }
 .sub { margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--c-text-2); line-height: 1.5; }
 .countdown { margin: 10px 0 0; font-size: 0.78rem; font-weight: 800; color: #e8590c; font-variant-numeric: tabular-nums; }
-.error { margin: 10px 0 0; font-size: 0.78rem; font-weight: 700; color: #e03131; }
+.error { margin: 10px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 .actions { display: flex; gap: 8px; margin-top: 20px; }
 .btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }

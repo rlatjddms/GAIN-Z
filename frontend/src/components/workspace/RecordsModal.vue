@@ -174,7 +174,7 @@ const allDone = computed(() => store.records.length > 0 && store.records.every((
 .detail-text strong { font-size: 1rem; font-weight: 900; }
 .detail-text p { margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--c-text-2); line-height: 1.5; }
 .detail-text .condition { color: var(--c-muted); }
-.acquired { font-size: 0.72rem; font-weight: 800; color: #2f9e44; }
+.acquired { font-size: 0.72rem; font-weight: 800; color: var(--c-success); }
 .progress { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
 .progress span { font-size: 0.72rem; font-weight: 800; color: var(--c-text-2); white-space: nowrap; }
 .bar { flex: 1; height: 8px; border-radius: 999px; background: var(--c-line); overflow: hidden; }
@@ -202,8 +202,8 @@ const allDone = computed(() => store.records.length > 0 && store.records.every((
 .mini-bar { width: 70%; height: 4px; border-radius: 999px; background: var(--c-line); overflow: hidden; }
 .mini-bar span { display: block; height: 100%; background: var(--c-faint); }
 
-.error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
-.loading { margin: 0; padding: 24px 0; text-align: center; font-size: 0.85rem; color: var(--c-faint); font-weight: 700; }
+.error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
+.loading { margin: 0; padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-active .modal, .modal-leave-active .modal { transition: transform 0.2s; }

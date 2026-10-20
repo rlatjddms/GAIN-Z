@@ -193,7 +193,7 @@ async function save() {
 input:checked + .switch { background: var(--c-primary); }
 input:checked + .switch::after { transform: translateX(15px); }
 input:focus-visible + .switch { outline: 3px solid var(--c-primary-line); outline-offset: 3px; }
-.error { color: #d94841; background: #fff5f5; border-radius: 10px; padding: 12px; font-size: 12px; line-height: 1.6; }
+.error { padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .notice-schedule { margin: 14px 0 0 48px; }
 .period-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
 .period-row > span { flex: none; white-space: nowrap; color: #7b8491; font-size: 12px; }

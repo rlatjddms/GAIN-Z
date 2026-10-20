@@ -217,7 +217,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .see-all:hover { background: var(--c-bg); color: var(--c-primary-text); }
 
 .state { margin: 0; padding: 28px 16px; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--c-faint); }
-.state.error { color: #e03131; }
+.state.error { color: var(--c-danger); }
 
 .panel-enter-active, .panel-leave-active { transition: opacity 0.12s, transform 0.12s; }
 .panel-enter-from, .panel-leave-to { opacity: 0; transform: translateY(-4px); }

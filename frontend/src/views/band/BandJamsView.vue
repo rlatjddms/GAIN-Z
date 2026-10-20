@@ -11,10 +11,10 @@
           <button class="btn add-jam" :disabled="busy || recording" @click="openForm(null)">+ 잼 만들기</button>
           <!-- 셋리스트 목록과 같은 도구: 즐겨찾기만 보기, 여러 개 골라 지우기 (만든 멤버·리더만 지울 수 있어서 그 잼만 고를 수 있음) -->
           <div v-if="jams.length" class="list-tools">
-            <button class="text-btn" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly"><Star :size="14" :stroke-width="2.2" :fill="favoritesOnly ? 'currentColor' : 'none'" /> 즐겨찾기</button>
-            <button class="text-btn" :disabled="recording" @click="selecting = !selecting; checkedIds = []">{{ selecting ? '선택 취소' : '선택' }}</button>
+            <button class="chip" :class="{ on: favoritesOnly }" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly"><Star :size="14" :stroke-width="2.2" :fill="favoritesOnly ? 'currentColor' : 'none'" /> 즐겨찾기</button>
+            <button class="chip" :class="{ on: selecting }" :disabled="recording" @click="selecting = !selecting; checkedIds = []">{{ selecting ? '선택 취소' : '선택' }}</button>
           </div>
-          <div v-if="selecting" class="bulk-tools"><span>{{ checkedIds.length }}개 선택</span><button class="text-btn danger" :disabled="!checkedIds.length || busy" @click="askDelete({ kind: 'bulk', ids: [...checkedIds] })">선택 삭제</button></div>
+          <div v-if="selecting" class="bulk-tools"><span>{{ checkedIds.length }}개 선택</span><button class="chip danger" :disabled="!checkedIds.length || busy" @click="askDelete({ kind: 'bulk', ids: [...checkedIds] })">선택 삭제</button></div>
           <ul v-if="visibleJams.length" class="jam-list">
             <li v-for="item in visibleJams" :key="item.id" class="jam-row">
               <input v-if="selecting" v-model="checkedIds" type="checkbox" :value="item.id" :disabled="!item.canManage"
@@ -606,14 +606,14 @@ onBeforeUnmount(() => {
 .page,.page *,.jam-dialog,.jam-dialog * { box-sizing:border-box; }
 .page { display:flex; flex-direction:column; gap:16px; }
 .muted { color:var(--c-muted); font-size:.8rem; line-height:1.7; }
-.save-error,.status { margin:0; padding:10px 14px; border-radius:10px; font-size:.8rem; background:var(--c-primary-soft); color:var(--c-text-2); }
-.save-error { color:#c92a2a; background:#fff5f5; }
+.status { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-primary-soft); color: var(--c-primary-text); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
+.save-error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .workspace { display:grid; grid-template-columns:250px minmax(0,1fr); gap:20px; align-items:start; }
 .sidebar,.detail { min-width:0; }
 .detail :deep(.ws-card-head) { align-items:center; flex-wrap:wrap; }
 .detail :deep(.ws-card-head h3) { min-width:0; overflow-wrap:anywhere; flex:1 1 160px; }
 button:disabled { opacity:.4; cursor:default; }
-.danger { color:#e03131; }
+.danger { color:var(--c-danger); }
 button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); outline-offset:2px; }
 .add-jam { width:100%; margin-bottom:12px; background:var(--c-bg); border-style:dashed; }
 .jam-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
@@ -647,7 +647,7 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .track-name { display:flex; flex-direction:column; gap:3px; min-width:120px; flex:1 1 140px; }
 .track-name strong { font-size:.8rem; color:#343a40; overflow-wrap:anywhere; }
 .track-name small { font-size:.7rem; color:var(--c-muted); }
-.track-error { color:#e03131 !important; }
+.track-error { color:var(--c-danger) !important; }
 .track-controls { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; }
 .toggle { width:30px; height:30px; border:1px solid var(--c-line); border-radius:8px; background:#fff; color:var(--c-muted); font-family:inherit; font-weight:800; font-size:.75rem; cursor:pointer; }
 .toggle.on { background:#ff6b6b; border-color:#ff6b6b; color:#fff; }
@@ -656,7 +656,7 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .volume input { width:120px; accent-color:var(--c-primary); }
 .offset input { width:96px; border:1px solid var(--c-line); padding:5px 8px; border-radius:8px; font-family:inherit; font-size:.76rem; color:#343a40; outline:none; }
 .remove { border:0; background:transparent; color:var(--c-faint); font-size:20px; cursor:pointer; padding:2px 6px; }
-.remove:hover:not(:disabled) { color:#e03131; }
+.remove:hover:not(:disabled) { color:var(--c-danger); }
 .nudge { display:flex; align-items:flex-end; flex-wrap:wrap; gap:6px; }
 .nudge .btn { min-height:30px; padding:5px 9px; }
 .take-hint { flex-basis:100%; margin:0; font-size:.7rem; color:var(--c-muted); }
@@ -671,12 +671,12 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .latency input { width:100%; accent-color:var(--c-primary); }
 .latency small { font-size:.7rem; color:var(--c-muted); }
 .record-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
-.record { color:#e03131; border-color:#ffc9c9; }
-.record.on { background:#e03131; border-color:#e03131; color:#fff; }
+.record { color:var(--c-danger); border-color:#ffc9c9; }
+.record.on { background:var(--c-danger); border-color:var(--c-danger); color:#fff; }
 /* 공통 .btn 회색 hover 대신 녹음 색을 유지한다 */
-.record:hover:not(:disabled) { background:#fff5f5; }
+.record:hover:not(:disabled) { background:var(--c-danger-soft); }
 .record.on:hover:not(:disabled) { background:#c92a2a; border-color:#c92a2a; }
-.rec-time { font-size:.78rem; color:#e03131; font-weight:700; font-variant-numeric:tabular-nums; }
+.rec-time { font-size:.78rem; color:var(--c-danger); font-weight:700; font-variant-numeric:tabular-nums; }
 .jam-dialog { width:min(420px, calc(100vw - 32px)); border:0; border-radius:var(--radius-xl); padding:24px; font-family:var(--font-sans); color:var(--c-text); box-shadow:var(--shadow-lg); }
 .jam-dialog::backdrop { background:rgba(15,23,42,.45); }
 .jam-dialog h3 { margin:0 0 14px; font-size:1rem; }

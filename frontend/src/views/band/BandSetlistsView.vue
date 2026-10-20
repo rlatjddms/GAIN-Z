@@ -9,8 +9,8 @@
       <div class="workspace" :inert="busy" :aria-busy="busy">
         <WsCard :title="`셋리스트 ${lists.length}`" class="sidebar">
             <button class="btn add-list" :disabled="busy" @click="openCreate">+ 셋리스트 만들기</button>
-            <div class="list-tools"><button class="text-btn" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly"><Star :size="14" :stroke-width="2.2" :fill="favoritesOnly ? 'currentColor' : 'none'" /> 즐겨찾기</button><button class="text-btn" @click="selecting = !selecting; checkedIds = []">{{ selecting ? '선택 취소' : '선택' }}</button></div>
-            <div v-if="selecting" class="bulk-tools"><span>{{ checkedIds.length }}개 선택</span><button class="text-btn danger" :disabled="!checkedIds.length || busy" @click="askDelete(checkedIds)">선택 삭제</button></div>
+            <div class="list-tools"><button class="chip" :class="{ on: favoritesOnly }" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly"><Star :size="14" :stroke-width="2.2" :fill="favoritesOnly ? 'currentColor' : 'none'" /> 즐겨찾기</button><button class="chip" :class="{ on: selecting }" @click="selecting = !selecting; checkedIds = []">{{ selecting ? '선택 취소' : '선택' }}</button></div>
+            <div v-if="selecting" class="bulk-tools"><span>{{ checkedIds.length }}개 선택</span><button class="chip danger" :disabled="!checkedIds.length || busy" @click="askDelete(checkedIds)">선택 삭제</button></div>
             <SmoothReorder v-if="visibleLists.length" :items="visibleLists" :disabled="busy || selecting || favoritesOnly" class="list-nav" @reorder="reorderLists">
               <template #default="{ item: list, start, move }">
                 <div class="list-entry" :class="{ active: selectedId === list.id }">
@@ -362,8 +362,8 @@ onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', be
 .page { display:flex; flex-direction:column; gap:16px; }
 .muted { color:var(--c-muted); font-size:.8rem; line-height:1.7; }
 .notice { margin:0; color:var(--c-muted); font-size:.75rem; line-height:1.6; }
-.save-error,.status { margin:0; padding:10px 14px; border-radius:10px; font-size:.8rem; background:var(--c-primary-soft); color:var(--c-text-2); }
-.save-error { color:#c92a2a; background:#fff5f5; }
+.status { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-primary-soft); color: var(--c-primary-text); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
+.save-error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .workspace { display:grid; grid-template-columns:250px minmax(0,1fr); gap:20px; align-items:start; }
 .sidebar,.detail { min-width:0; }
 .sidebar :deep(.ws-card-head) { gap:4px; }
@@ -371,7 +371,7 @@ onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', be
 .detail :deep(.ws-card-head h3) { min-width:0; overflow-wrap:anywhere; flex:1 1 160px; }
 .detail :deep(.actions) { flex-wrap:wrap; gap:8px; }
 button:disabled { opacity:.4; cursor:default; }
-.danger { color:#e03131; }
+.danger { color:var(--c-danger); }
 button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); outline-offset:2px; }
 .add-list { width:100%; margin-bottom:12px; color:var(--c-text-2); background:var(--c-bg); border-style:dashed; }
 .list-tools,.bulk-tools { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; font-size:.73rem; color:var(--c-muted); }

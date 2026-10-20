@@ -128,7 +128,7 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 .menu-item svg { color: var(--c-faint); flex: none; }
 .menu-item:hover, .menu-item.on { background: var(--c-primary-soft); color: var(--c-primary-text); }
 .menu-item:hover svg, .menu-item.on svg { color: var(--c-primary-text); }
-.menu-item.logout:hover { background: #fff5f5; color: #fa5252; }
+.menu-item.logout:hover { background: var(--c-danger-soft); color: #fa5252; }
 .menu-item.logout:hover svg { color: #fa5252; }
 .menu-divider { height: 1px; background: var(--c-line-soft); margin: 4px 6px; }
 .menu-enter-active, .menu-leave-active { transition: opacity 0.12s, transform 0.12s; }

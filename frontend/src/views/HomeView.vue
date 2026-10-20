@@ -530,7 +530,7 @@ button::-moz-focus-inner { border: 0 !important; }
 .tool-btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 .band-scene { margin-top: 16px; border-radius: 18px; overflow: hidden; border: 1px solid var(--c-line-soft); }
 .scene-hint { margin: 8px 0 0; text-align: center; font-size: 0.72rem; color: var(--c-faint); font-weight: 600; }
-.scene-hint.bad { color: #e03131; font-weight: 700; }
+.scene-hint.bad { color: var(--c-danger); font-weight: 700; }
 
 .member-list { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .m-item { text-align: center; padding: 8px 12px; border-radius: 12px; background: var(--c-bg); min-width: 88px; }

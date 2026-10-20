@@ -37,7 +37,7 @@
             <div class="field">
               <span class="label">성별</span>
               <div class="chips">
-                <button v-for="g in GENDER_OPTIONS" :key="g.value" class="chip" :class="{ on: draft.gender === g.value }" @click="draft.gender = g.value">{{ g.label }}</button>
+                <button v-for="g in GENDER_OPTIONS" :key="g.value" class="pick" :class="{ on: draft.gender === g.value }" @click="draft.gender = g.value">{{ g.label }}</button>
               </div>
             </div>
 
@@ -431,8 +431,8 @@ onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 �
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 16px; }
-.saved { font-size: 0.8rem; font-weight: 800; color: #2b8a3e; }
-.error { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fff5f5; color: #e03131; font-size: 0.8rem; font-weight: 700; }
+.saved { font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
+.error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
 .preview { display: flex; flex-direction: column; gap: 8px; }
@@ -467,12 +467,12 @@ onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 �
 .hint { margin: 0; font-size: 0.78rem; color: var(--c-faint); }
 
 .chips { display: flex; gap: 8px; }
-.chip, .opt, .item, .stage {
+.pick, .opt, .item, .stage {
   border: 1px solid var(--c-line); background: #fff; cursor: pointer; font-family: inherit; color: var(--c-text-2);
   transition: border-color 0.15s, background 0.15s;
 }
-.chip { padding: 8px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 800; }
-.chip.on, .opt.on, .item.on, .stage.on { border-color: var(--c-primary); background: var(--c-primary-soft); color: var(--c-primary-text); }
+.pick { padding: 8px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 800; }
+.pick.on, .opt.on, .item.on, .stage.on { border-color: var(--c-primary); background: var(--c-primary-soft); color: var(--c-primary-text); }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 .opt {

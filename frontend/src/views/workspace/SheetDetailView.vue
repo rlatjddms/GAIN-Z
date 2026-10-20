@@ -270,13 +270,13 @@ figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight
 .memo:focus { border-color: var(--c-primary); }
 .memo-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .memo-foot .count { font-size: 0.7rem; color: var(--c-faint); font-weight: 700; margin-right: auto; }
-.saved { color: #2f9e44; font-weight: 800; font-size: 0.72rem; }
+.saved { font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
 .muted { margin: 0; font-size: 0.78rem; color: var(--c-muted); line-height: 1.6; }
 .text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; text-decoration: none; }
 
 .empty { margin: 0; padding: 32px; text-align: center; font-size: 0.85rem; color: var(--c-faint); }
-.loading { padding: 48px; text-align: center; font-size: 0.85rem; color: var(--c-faint); }
-.error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
+.error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }

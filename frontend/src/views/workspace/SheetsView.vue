@@ -214,18 +214,11 @@ onMounted(load)
 
 
 .filters { display: flex; gap: 6px; align-items: center; }
-.chip {
-  border: 1px solid var(--c-line); background: #fff; color: var(--c-muted); font-family: inherit; cursor: pointer;
-  font-size: 0.7rem; font-weight: 800; padding: 5px 10px; border-radius: 8px;
-}
-.chip.on { background: var(--c-primary-soft); border-color: var(--c-primary-line); color: var(--c-primary-text); }
 .sort {
   border: 1px solid var(--c-line); background: #fff; color: var(--c-text-2); font-family: inherit;
-  font-size: 0.7rem; font-weight: 800; padding: 5px 6px; border-radius: 8px; cursor: pointer;
+  font-size: 0.75rem; font-weight: 800; padding: 5px 8px; border-radius: var(--radius-pill); cursor: pointer;
 }
 
-.chip:disabled { opacity: 0.4; cursor: not-allowed; }
-.chip.danger:not(:disabled) { color: #e03131; border-color: #ffc9c9; background: #fff5f5; }
 
 .select-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
@@ -246,7 +239,7 @@ input[type='checkbox'] { width: 18px; height: 18px; margin: 0; accent-color: var
   flex: none; width: 46px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid var(--c-line-soft);
   background: var(--c-bg); display: flex; align-items: center; justify-content: center;
 }
-.cover-text { font-size: 0.65rem; font-weight: 900; color: #e03131; }
+.cover-text { font-size: 0.65rem; font-weight: 900; color: var(--c-danger); }
 .key-badge {
   flex: none; padding: 5px 8px; border-radius: 8px; text-align: center; white-space: nowrap;
   background: var(--c-bg); color: var(--c-text-2); font-weight: 900; font-size: 0.75rem;
@@ -263,8 +256,8 @@ input[type='checkbox'] { width: 18px; height: 18px; margin: 0; accent-color: var
 .star.on { color: #fab005; }
 .star:hover { color: #fab005; }
 
-.loading { padding: 32px; text-align: center; font-size: 0.85rem; color: var(--c-faint); }
-.error { margin: 0 0 12px; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
+.error { margin: 0 0 12px; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 .text-btn { border: none; background: none; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; }
 
 

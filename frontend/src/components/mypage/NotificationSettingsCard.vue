@@ -111,8 +111,8 @@ ul { list-style: none; margin: 0; padding: 0; }
 }
 .switch.on .knob { transform: translateX(18px); }
 
-.error { margin: 8px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
-.loading { padding: 12px 0; font-size: 0.85rem; color: var(--c-faint); }
+.error { margin: 8px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
+.loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 
 @media (max-width: 480px) {
   .row { padding-left: 0; }

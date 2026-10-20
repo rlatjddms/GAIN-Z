@@ -173,7 +173,7 @@ defineExpose({
   flex: none; border: 1px solid var(--c-line); background: #fff; border-radius: 10px; padding: 7px 11px; cursor: pointer;
   font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-muted); white-space: nowrap;
 }
-.head-btn.danger:hover:not(:disabled) { color: #e03131; border-color: #ffc9c9; background: #fff5f5; }
+.head-btn.danger:hover:not(:disabled) { color: var(--c-danger); border-color: #ffc9c9; background: var(--c-danger-soft); }
 .head-btn.primary { color: var(--c-primary-text); border-color: var(--c-primary-line); background: var(--c-primary-soft); }
 .head-btn.primary:hover:not(:disabled) { background: var(--c-primary); color: #fff; border-color: var(--c-primary); }
 .head-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -195,10 +195,10 @@ h3 { margin: 0 0 12px; font-size: 0.85rem; font-weight: 800; color: var(--c-text
 .band-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
 .band-name { min-width: 0; font-size: 0.88rem; font-weight: 900; color: #343a40; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .part { font-size: 0.75rem; font-weight: 700; color: var(--c-muted); }
-.badge { flex: none; font-size: 0.68rem; font-weight: 800; color: #2f9e44; background: #ebfbee; padding: 3px 8px; border-radius: 999px; }
+.badge { flex: none; font-size: 0.68rem; font-weight: 800; color: var(--c-success); background: #ebfbee; padding: 3px 8px; border-radius: 999px; }
 
-.error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
-.loading, .empty { margin: 0; padding: 8px 0; font-size: 0.85rem; color: var(--c-faint); font-weight: 700; }
+.error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
+.loading, .empty { margin: 0; padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }

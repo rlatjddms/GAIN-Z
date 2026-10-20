@@ -105,7 +105,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 .field input:focus { border-color: var(--c-primary); background: #fff; }
 .hint { margin: 6px 0 0; font-size: 0.72rem; font-weight: 700; line-height: 1.5; }
 .hint.bad { color: #e8590c; }
-.error { margin: 12px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.error { margin: 12px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 .actions { display: flex; gap: 8px; margin-top: 20px; }
 .btn { flex: 1; min-height: 44px; font-size: 0.88rem; }

@@ -346,7 +346,7 @@ const unfriend = async (friend) => {
   flex: none; border: 1px solid var(--c-line); background: #fff; border-radius: 10px; padding: 7px 11px; cursor: pointer;
   font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-muted); white-space: nowrap; transition: 0.15s;
 }
-.remove-btn:hover:not(:disabled) { color: #e03131; border-color: #ffc9c9; background: #fff5f5; }
+.remove-btn:hover:not(:disabled) { color: var(--c-danger); border-color: #ffc9c9; background: var(--c-danger-soft); }
 .remove-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .person.clickable {
   flex: 1; min-width: 0; border: none; background: none; cursor: pointer; text-align: left; font-family: inherit;
@@ -359,8 +359,8 @@ const unfriend = async (friend) => {
 .actions { display: flex; gap: 4px; }
 
 
-.field-error { margin: 8px 0 0; font-size: 0.72rem; font-weight: 700; color: #e03131; }
-.saved { margin: 8px 0 0; font-size: 0.75rem; font-weight: 800; color: #2f9e44; }
-.error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
-.loading, .empty { padding: 12px 0; margin: 0; font-size: 0.85rem; color: var(--c-faint); font-weight: 700; }
+.field-error { margin: 8px 0 0; font-size: 0.75rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
+.saved { margin: 8px 0 0; font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
+.error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
+.loading, .empty { margin: 0; padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 </style>

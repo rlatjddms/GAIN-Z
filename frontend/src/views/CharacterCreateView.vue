@@ -627,7 +627,7 @@ const handleSubmit = async () => {
 .edit-badge {
   font-size: 0.72rem;
   font-weight: 800;
-  background: #fff5f5;
+  background: var(--c-danger-soft);
   color: #fa5252;
   border: 1px solid #ffe3e3;
   padding: 3px 10px;
@@ -1019,8 +1019,8 @@ const handleSubmit = async () => {
 }
 
 .nav-btn-cancel:hover:not(:disabled) {
-  background: #fff5f5;
-  color: #e03131;
+  background: var(--c-danger-soft);
+  color: var(--c-danger);
   border-color: #ffa8a8;
 }
 

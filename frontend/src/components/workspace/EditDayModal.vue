@@ -17,7 +17,7 @@
             </label>
           </div>
           <div class="quick">
-            <button v-for="q in QUICK" :key="q" class="chip" :disabled="saving" @click="addMinutes(q)">+{{ q }}분</button>
+            <button v-for="q in QUICK" :key="q" class="btn small" :disabled="saving" @click="addMinutes(q)">+{{ q }}분</button>
           </div>
 
           <p class="note">지금 기록: {{ durationText(currentSeconds) }}</p>
@@ -106,14 +106,10 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 }
 .inputs span { flex: none; white-space: nowrap; font-size: 0.85rem; font-weight: 800; color: var(--c-muted); }
 .quick { display: flex; gap: 6px; margin-top: 10px; }
-.chip {
-  flex: 1; border: 1px solid var(--c-line); background: #fff; color: var(--c-text-2); cursor: pointer; font-family: inherit;
-  font-size: 0.75rem; font-weight: 800; padding: 7px 0; border-radius: 9px;
-}
-.chip:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
+.quick .btn { flex: 1; }
 
 .note { margin: 14px 0 0; font-size: 0.75rem; color: var(--c-faint); line-height: 1.5; }
-.error { margin: 8px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
+.error { margin: 8px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 .actions { display: flex; gap: 8px; margin-top: 18px; }
 .btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
