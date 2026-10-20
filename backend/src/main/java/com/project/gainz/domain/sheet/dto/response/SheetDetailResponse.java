@@ -8,7 +8,7 @@ import com.project.gainz.global.common.enums.InstrumentType;
 
 import java.util.List;
 
-// 악보 본문 (올린 파일 장들 + AI가 만든 마디별 악보 + 예전에 직접 쓴 코드 악보)
+// 악보 본문 (올린 파일 장들 + 마디별 악보 + 코드 붙여넣기로 만든 코드 악보)
 public record SheetDetailResponse(
         Long id,
         String title,

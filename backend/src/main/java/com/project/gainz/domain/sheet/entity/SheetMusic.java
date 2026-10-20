@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-// 악보 한 곡. 올린 악보 파일(SheetPage), AI가 만든 마디별 악보(TabData), 예전에 직접 쓴 코드 악보(content)를 담는다.
+// 악보 한 곡. 올린 악보 파일(SheetPage), 마디별 악보(TabData), 코드 붙여넣기로 만든 코드 악보(content)를 담는다.
 // owner가 없으면 모두가 볼 수 있는 공용 악보, 있으면 그 사람이 만든 악보 (만든 사람만 고칠 수 있다)
 @Entity
 @Getter
@@ -46,7 +46,7 @@ public class SheetMusic extends BaseEntity {
     @Column(nullable = false)
     private String artist;
 
-    // 원곡 음원 (AI 악보만 있음)
+    // 원곡 음원 (지금은 쓰지 않음)
     private String originalAudioUrl;
 
     private Integer bpm;
@@ -94,6 +94,11 @@ public class SheetMusic extends BaseEntity {
         this.instrumentType = instrumentType;
         this.sheetTypes.clear();
         this.sheetTypes.add(sheetType);
+    }
+
+    // 코드 악보 글 바꾸기 (코드 붙여넣기로 만든 악보, #157)
+    public void updateContent(String content) {
+        this.content = content;
     }
 
     public boolean isShared() {

@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 // 올리는 악보의 곡 정보 (올리기·고치기 공용)
+// content: 코드 붙여넣기로 만든 코드 악보 글 ([C]가사 형식, #157). 파일 악보는 생략
 public record SheetRequest(
 
         @NotBlank(message = "곡 제목을 입력해 주세요.")
@@ -30,8 +31,13 @@ public record SheetRequest(
         InstrumentType instrumentType,
 
         @NotNull(message = "악보 종류를 골라 주세요.")
-        SheetType sheetType
+        SheetType sheetType,
+
+        @Size(max = SheetRequest.MAX_CONTENT, message = "코드 악보는 20000자까지 저장할 수 있습니다.")
+        String content
 ) {
+    public static final int MAX_CONTENT = 20000;
+
     // 으뜸음(A~G) + 올림/내림(#, b) + 단조(m)
     public static final String KEY_PATTERN = "^[A-G][#b]?m?$";
 
