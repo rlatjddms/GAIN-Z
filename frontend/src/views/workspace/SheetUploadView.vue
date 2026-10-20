@@ -25,7 +25,7 @@
       <WsCard v-if="mode === 'chords'" title="코드 붙여넣기">
         <textarea v-model="chordText" class="chord-input" rows="14" spellcheck="false" :disabled="busy"
                   :placeholder="CHORD_PLACEHOLDER" />
-        <p class="tip">코드 사이트에서 가사 위에 코드가 있는 부분을 복사해 붙여 넣으세요. 코드 줄은 아래 가사의 같은 칸에 붙이고, [Verse]·Chorus: 같은 줄은 구간 이름이 돼요. 바뀐 결과를 아래에서 확인하고, 이상한 곳은 붙여 넣은 글을 고쳐 주세요.</p>
+        <p class="tip">[C]처럼 코드를 그 가사 앞에 넣어 쓰고, # 으로 시작하는 줄은 구간 이름이 돼요. 코드 사이트에서 가사 위에 코드가 있는 부분을 그대로 붙여 넣어도 이 형식으로 바꿔 줘요. 결과를 아래에서 확인하고, 이상한 곳은 글을 고쳐 주세요.</p>
         <div class="chord-preview">
           <ChordSheet :content="chordContent" :original-key="form.originalKey || null" empty-text="붙여 넣으면 여기에 코드 악보가 보여요." />
         </div>
@@ -208,17 +208,18 @@ const tabText = ref('')
 const originalTab = ref('')
 const tabResult = computed(() => importTabText(tabText.value))
 const tabRows = computed(() => toTabRows(tabResult.value.measures))
-// 입력칸 예시 (코드 사이트에서 복사해 오는 모양 그대로)
+// 입력칸 예시: 코드를 가사 앞에 [C]처럼 넣는 형식 (저작권 없는 민요 아리랑)
 const CHORD_PLACEHOLDER = [
-  '[Verse]',
-  'C              G',
-  '오늘도 합주실 문을 열고',
-  'Am             F',
-  '천천히 첫 음을 맞춰 봐',
+  '# Intro',
+  '[C] [G] [Am] [F]',
   '',
-  '[Chorus]',
-  'F       G       C',
-  '다 같이 크게 불러 봐',
+  '# Verse',
+  '[C]아리랑 아리랑 [F]아라리[C]요',
+  '[C]아리랑 고개로 [G]넘어간[C]다',
+  '',
+  '# Chorus',
+  '[F]나를 버리고 [C]가시는 님은',
+  '[G]십 리도 못 가서 [C]발병 난다',
 ].join(String.fromCharCode(10))
 const TAB_PLACEHOLDER = [
   '[Intro]',
