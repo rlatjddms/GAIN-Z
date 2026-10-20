@@ -108,7 +108,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; color: var(--c-dange
 .error { margin: 12px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 .actions { display: flex; gap: 8px; margin-top: 20px; }
-.btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
+.btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 /* 휴대폰: 아래에서 올라오는 시트로 (#124) */

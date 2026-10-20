@@ -107,7 +107,7 @@ h2 { position: relative; margin: 4px 0 8px; font-size: 1.3rem; font-weight: 900;
 .desc { margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--c-text-2); line-height: 1.5; }
 .condition { margin: 6px 0 0; font-size: 0.75rem; font-weight: 700; color: var(--c-faint); }
 .actions { display: flex; gap: 8px; margin-top: 20px; }
-.btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
+.btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
 @keyframes spin-in {
   from { transform: scale(0.4) rotate(-180deg); opacity: 0; }
   to { transform: scale(1) rotate(0); opacity: 1; }

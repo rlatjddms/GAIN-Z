@@ -1,7 +1,11 @@
 <template>
   <header class="main-header">
     <div class="header-inner">
-      <div class="header-left">
+      <!-- 휴대폰의 하위 화면은 로고 대신 뒤로 가기 화살표 (앱처럼) -->
+      <div class="header-left" :class="{ 'has-back': backTo }">
+        <router-link v-if="backTo" :to="backTo" class="header-back" :aria-label="`${backLabel}(으)로 돌아가기`">
+          <ChevronLeft :size="24" :stroke-width="2.4" />
+        </router-link>
         <router-link to="/home" class="logo" aria-label="GAIN-Z 홈"><AppLogo :pixel="3" /></router-link>
       </div>
 
@@ -48,6 +52,13 @@ import { useAuthStore } from '../stores/auth'
 import ProfileAvatar from './ProfileAvatar.vue'
 import AppLogo from './AppLogo.vue'
 import NotificationBell from './NotificationBell.vue'
+import { ChevronLeft } from 'lucide-vue-next'
+
+defineProps({
+  // 하위 화면에서 돌아갈 곳. 있으면 휴대폰 헤더 왼쪽에 로고 대신 뒤로 가기 화살표
+  backTo: { type: [String, Object], default: null },
+  backLabel: { type: String, default: '홈' },
+})
 
 const router = useRouter()
 const route = useRoute()
@@ -103,6 +114,7 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 .header-center { display: flex; justify-content: center; }
 .header-right { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
 .logo { display: inline-flex; align-items: center; text-decoration: none; }
+.header-back { display: none; }
 
 .profile-menu { position: relative; }
 .user-info {
@@ -141,5 +153,11 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
   .header-right { gap: 6px; }
   .user-info { padding: 3px; }
   .name, .caret { display: none; }
+  .has-back .logo { display: none; }
+  .has-back .header-back {
+    display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-left: -8px;
+    border-radius: 12px; color: var(--c-text-2); text-decoration: none;
+  }
+  .has-back .header-back:active { background: var(--c-line-soft); }
 }
 </style>

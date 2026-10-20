@@ -246,6 +246,7 @@ const stageStyle = computed(() => ({
   .character-stage { color: var(--c-text); display: flex; flex-direction: column; }
   .stage-head, .exp-area { position: static; transform: none; margin: 0 auto; }
   .stage-head { order: 1; width: auto; align-self: stretch; box-sizing: border-box; padding: 12px 12px 8px; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; }
+  /* 음악(왼쪽 끝)과 옷장(오른쪽 끝)이 카드 양쪽 끝에서 같은 12px 안쪽에 맞도록 위·아래 줄 좌우 여백을 같게 */
   .character-stage > :deep(.scene) { order: 3; }
   .exp-area { order: 4; }
   .level-tag, .tier-badge {
@@ -255,7 +256,7 @@ const stageStyle = computed(() => ({
   .level-tag { font-weight: 800; min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; line-height: 28px; }
   .tier-badge { flex: none; }
   .tier-badge { box-shadow: none; }
-  .exp-area { width: auto; align-self: stretch; padding: 10px 16px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; align-items: center; }
+  .exp-area { width: auto; align-self: stretch; margin: 0; padding: 10px 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; align-items: center; }
   .exp-bar { grid-column: 1; }
   .exp-text { grid-column: 1; text-align: left; }
   .exp-area > :deep(*:not(.exp-bar):not(.exp-text)) { grid-column: 2; grid-row: 1 / span 2; }

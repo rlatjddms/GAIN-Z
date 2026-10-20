@@ -103,7 +103,7 @@ const goWardrobe = () => {
 .what b { font-size: 0.88rem; font-weight: 900; color: #343a40; }
 .next { margin: 10px 0 0; font-size: 0.72rem; font-weight: 700; color: var(--c-faint); }
 .actions { margin-top: 18px; display: flex; gap: 8px; }
-.btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
+.btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
 @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }

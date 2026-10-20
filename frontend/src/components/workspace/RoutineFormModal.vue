@@ -195,7 +195,7 @@ h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
 .error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 .actions { display: flex; gap: 8px; margin-top: 4px; }
-.btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
+.btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
 .btn.danger { flex: none; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
