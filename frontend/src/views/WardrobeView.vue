@@ -76,15 +76,15 @@
               <div class="grid">
                 <button v-for="i in INSTRUMENT_OPTIONS" :key="i.value" class="opt" :class="{ on: draft.instrumentType === i.value }" @click="draft.instrumentType = i.value">
                   <span class="opt-thumb">
-                    <PixelSprite :parts="[['instrument', i.value]]" :colors="looks" :box="34" exact :label="i.label" />
+                    <PixelSprite :parts="[['instrument', i.value]]" :colors="looks" :box="34 * (i.thumb || 1)" exact :label="i.label" />
                   </span>{{ i.label }}
                 </button>
               </div>
               <!-- 악기 종류(밴드 포지션)는 그대로, 그림에서만 내려놓기 -->
               <label class="toggle">
                 <input type="checkbox" :checked="!draft.instrumentHidden" @change="draft.instrumentHidden = !$event.target.checked">
-                <span>캐릭터가 악기를 들고 있기</span>
-                <small>끄면 옷이 잘 보여요. 밴드에서 맡은 악기는 그대로예요.</small>
+                <span>악기 표시</span>
+                <small>끄면 옷이 잘 보여요 (맡은 악기는 그대로)</small>
               </label>
             </div>
 

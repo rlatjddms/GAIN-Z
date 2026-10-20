@@ -40,11 +40,12 @@ export const HAIR_COLOR_PRESETS = [
   '#3B82F6', // 코발트 블루
 ]
 
+// thumb: 고르기 썸네일 크기 비율 (세로로 긴 마이크는 꽉 채우면 커 보여서 작게)
 export const INSTRUMENT_OPTIONS = [
   { value: 'GUITAR', label: '일렉기타', emoji: '🎸' },
   { value: 'BASS', label: '베이스', emoji: '🎸' },
   { value: 'DRUM', label: '드럼', emoji: '🥁' },
-  { value: 'VOCAL', label: '보컬', emoji: '🎤' },
+  { value: 'VOCAL', label: '보컬', emoji: '🎤', thumb: 0.72 },
   { value: 'KEYBOARD', label: '건반', emoji: '🎹' },
 ]
 
