@@ -1,7 +1,11 @@
 <template>
   <header class="main-header">
     <div class="header-inner">
-      <div class="header-left">
+      <!-- 휴대폰의 하위 화면은 로고 대신 뒤로 가기 화살표 (앱처럼) -->
+      <div class="header-left" :class="{ 'has-back': backTo }">
+        <router-link v-if="backTo" :to="backTo" class="header-back" :aria-label="`${backLabel}(으)로 돌아가기`">
+          <ChevronLeft :size="24" :stroke-width="2.4" />
+        </router-link>
         <router-link to="/home" class="logo" aria-label="GAIN-Z 홈"><AppLogo :pixel="3" /></router-link>
       </div>
 
@@ -48,6 +52,13 @@ import { useAuthStore } from '../stores/auth'
 import ProfileAvatar from './ProfileAvatar.vue'
 import AppLogo from './AppLogo.vue'
 import NotificationBell from './NotificationBell.vue'
+import { ChevronLeft } from 'lucide-vue-next'
+
+defineProps({
+  // 하위 화면에서 돌아갈 곳. 있으면 휴대폰 헤더 왼쪽에 로고 대신 뒤로 가기 화살표
+  backTo: { type: [String, Object], default: null },
+  backLabel: { type: String, default: '홈' },
+})
 
 const router = useRouter()
 const route = useRoute()
@@ -103,6 +114,7 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 .header-center { display: flex; justify-content: center; }
 .header-right { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
 .logo { display: inline-flex; align-items: center; text-decoration: none; }
+.header-back { display: none; }
 
 .profile-menu { position: relative; }
 .user-info {
@@ -134,9 +146,20 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 .menu-enter-active, .menu-leave-active { transition: opacity 0.12s, transform 0.12s; }
 .menu-enter-from, .menu-leave-to { opacity: 0; transform: translateY(-4px); }
 .name { font-weight: 700; font-size: 0.9rem; color: var(--c-text-2); }
+/* 휴대폰: 헤더를 낮추고 로고를 2배 크기로, 이름은 숨기고 사진만 */
 @media (max-width: 640px) {
-  .header-inner { padding: 0 16px; }
-  .user-info { padding-right: 6px; }
-  .name { display: none; }
+  .header-inner { padding: 0 12px; height: 56px; grid-template-columns: auto 1fr auto; gap: 8px; }
+  .logo :deep(.app-logo) { width: auto; height: 14px; }
+  .header-right { gap: 6px; }
+  /* 휴대폰: SOLO/BAND 토글이 작아지는 만큼 프로필 버튼도 조금 작게 (사진 30px + 둘레 2px = 34px, 알림 버튼과 같음) */
+  .user-info { padding: 2px; }
+  .user-info :deep(.profile-avatar) { width: 30px !important; height: 30px !important; }
+  .name, .caret { display: none; }
+  .has-back .logo { display: none; }
+  .has-back .header-back {
+    display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-left: -8px;
+    border-radius: 12px; color: var(--c-text-2); text-decoration: none;
+  }
+  .has-back .header-back:active { background: var(--c-line-soft); }
 }
 </style>

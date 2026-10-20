@@ -159,10 +159,11 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .noti { position: relative; }
+/* 크기만 프로필 버튼(사진 32px + 둘레 4px = 40px)과 같게. 모양은 투명 바탕·연한 글자색 그대로 */
 .noti-btn {
   position: relative; background: none; border: none; color: var(--c-faint); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  padding: 6px; border-radius: 8px; transition: 0.2s;
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  width: 40px; height: 40px; padding: 0; border-radius: 8px; transition: 0.2s;
 }
 .noti-btn:hover, .noti-btn.on { color: var(--c-primary-text); background: var(--c-primary-soft); }
 .badge {
@@ -224,5 +225,12 @@ ul { list-style: none; margin: 0; padding: 0; }
 
 @media (hover: none) {
   .remove { opacity: 1; }
+}
+/* 휴대폰: 종 아래가 아니라 화면 폭에 맞춰 헤더 바로 아래에 */
+@media (max-width: 640px) {
+  /* 휴대폰: 헤더 오른쪽 버튼은 프로필 버튼과 같은 34px */
+  .noti-btn { width: 34px; height: 34px; }
+  .noti-btn svg { width: 19px; height: 19px; }
+  .panel { position: fixed; top: 64px; left: 12px; right: 12px; width: auto; max-width: none; max-height: calc(100dvh - 80px); }
 }
 </style>

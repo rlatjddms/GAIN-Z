@@ -86,5 +86,5 @@ audio { width: 100%; margin-bottom: 8px; }
 .play-badge svg { background: #15203999; padding: 7px; border-radius: 50%; }
 .tile .media-frame { height: 124px; border-radius: 0; }
 .tile img { object-fit: cover; }
-@media(max-width: 600px) { .media-frame { height: 160px; } }
+@media (max-width: 640px) { .media-frame { height: 160px; } }
 </style>

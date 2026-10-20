@@ -74,7 +74,7 @@
         <p v-if="visibilityError" class="field-error">{{ visibilityError }}</p>
       </WsCard>
 
-      <WsCard title="계정 설정">
+      <WsCard title="계정 설정" class="account-card">
         <div class="settings">
           <button v-if="isLocal" class="setting" @click="passwordOpen = true">
             <span>비밀번호 바꾸기</span><span class="chev">›</span>
@@ -285,8 +285,11 @@ const onWithdrawn = async () => {
 #notification-settings { scroll-margin-top: 80px; }
 .page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* 한 줄로 쌓일 때: 계정 설정(비밀번호·로그아웃·탈퇴)은 맨 아래로 */
 @media (max-width: 860px) {
-  .page { grid-template-columns: minmax(0, 1fr); }
+  .page { display: flex; flex-direction: column; align-items: stretch; }
+  .col { display: contents; }
+  .account-card { order: 1; }
 }
 
 .photo { display: flex; align-items: center; gap: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--c-line-soft); }
@@ -338,4 +341,12 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
 .saved { margin: 10px 0 0; font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
 .error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 .loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
+/* 휴대폰: 사진·칸 이름 폭을 줄여 비율을 맞춘다 */
+@media (max-width: 640px) {
+  .page, .col { gap: 12px; }
+  .photo { gap: 14px; }
+  .photo :deep(.profile-avatar) { width: 64px !important; height: 64px !important; }
+  .row { grid-template-columns: 60px minmax(0, 1fr); gap: 10px; padding: 10px 0; }
+  .setting { padding: 11px 2px; }
+}
 </style>

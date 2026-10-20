@@ -114,7 +114,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .error { margin: 8px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 .loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 
-@media (max-width: 480px) {
+@media (max-width: 420px) {
   .row { padding-left: 0; }
 }
 </style>

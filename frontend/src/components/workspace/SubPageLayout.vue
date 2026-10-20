@@ -1,11 +1,12 @@
 <template>
   <div class="sub-app">
-    <AppHeader>
+    <AppHeader :back-to="backTo" :back-label="backLabel">
       <div class="page-pill">{{ pill }}</div>
     </AppHeader>
 
     <main class="sub-body">
-      <router-link :to="backTo" class="back"><ArrowLeft :size="15" :stroke-width="2.4" /> {{ backLabel }}</router-link>
+      <!-- 넓은 화면: 돌아갈 곳이 홈이 아닐 때만 (홈은 로고로 간다). 휴대폰은 헤더 왼쪽 화살표로 -->
+      <router-link v-if="backTo !== '/home'" :to="backTo" class="back"><ArrowLeft :size="15" :stroke-width="2.4" /> {{ backLabel }}</router-link>
       <PageHeader v-if="title" :title="title" :name="name" :subtitle="subtitle" class="head">
         <template v-if="$slots.actions" #actions><slot name="actions" /></template>
         <template v-if="$slots.below" #below><slot name="below" /></template>
@@ -17,6 +18,7 @@
 
 <script setup>
 // 홈에서 들어가는 상세 페이지 공통 틀 (#134): 헤더 + 뒤로 가기 + 페이지 머리말. 폭은 모든 페이지가 1040px
+// 뒤로 가기 (#124): 넓은 화면은 상위 화면이 홈이 아닐 때만 본문 위에, 휴대폰은 헤더 왼쪽 화살표
 import { ArrowLeft } from 'lucide-vue-next'
 import AppHeader from '../AppHeader.vue'
 import PageHeader from '../ui/PageHeader.vue'
@@ -54,7 +56,12 @@ defineProps({
 .back:hover { color: var(--c-primary-text); }
 .head { margin-bottom: 20px; }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .sub-body { padding: 16px 16px 40px; }
+}
+@media (max-width: 640px) {
+  .page-pill { padding: 6px 12px; font-size: 0.72rem; }
+  .back { display: none; }
+  .head { margin-bottom: 16px; }
 }
 </style>

@@ -249,7 +249,7 @@ const handleSignup = async () => {
 .input-with-btn { display: flex; gap: 8px; }
 
 .gz-input {
-  width: 100%; padding: 18px 20px; border: 1.5px solid #eceff2; border-radius: 12px;
+  width: 100%; padding: 14px 18px; border: 1.5px solid #eceff2; border-radius: 12px;
   font-size: 0.95rem; background: #fff; transition: all 0.2s; color: var(--c-text); outline: none;
 }
 .gz-input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 5%, transparent); }
@@ -268,7 +268,7 @@ const handleSignup = async () => {
 .status-msg.success { color: #37b24d; font-weight: 600; }
 
 .signup-btn-main {
-  width: 100%; padding: 18px; background: var(--c-primary); color: #fff; border: none;
+  width: 100%; padding: 14px; background: var(--c-primary); color: #fff; border: none;
   border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer;
   transition: 0.25s ease; margin-top: 35px;
 }
@@ -277,4 +277,13 @@ const handleSignup = async () => {
 
 .signup-footer { margin-top: 45px; font-size: 0.9rem; color: #a0a8b1; }
 .signup-footer a { color: var(--c-primary-text); font-weight: 700; text-decoration: none; margin-left: 8px; }
+/* 휴대폰: 카드가 화면 끝에 붙지 않게 바깥 여백, 안쪽 여백은 줄인다 (#124) */
+@media (max-width: 640px) {
+  .gain-z-signup-root { height: auto; min-height: 100dvh; padding: 24px 16px; }
+  .signup-card-container { padding: 40px 22px; }
+}
+@media (max-width: 640px) {
+  .gz-input { padding: 12px 14px; }
+  .signup-btn-main { padding: 12px; margin-top: 24px; }
+}
 </style>

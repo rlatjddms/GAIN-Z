@@ -103,7 +103,7 @@ watch(() => [props.mode, props.postId], load, { immediate: true })
 .loading-line { width: 50%; }
 .loading-line.short { width: 30%; }
 .loading-box { height: 150px; margin-top: 28px; }
-@media(max-width: 600px) {
+@media (max-width: 640px) {
   .post-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 28px); border-radius: 18px; }
   .dialog-toolbar { padding: 15px 18px; gap: 10px; }
   .publish { padding: 9px 12px; }

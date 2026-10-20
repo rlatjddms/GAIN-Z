@@ -8,11 +8,69 @@
     <template v-else>
       <p v-if="notice" class="notice" :class="{ bad: noticeBad }">{{ notice }}</p>
 
-      <!-- 넓은 화면: 왼쪽 멤버·배경, 오른쪽 밴드 정보·초대 코드·나가기 -->
+      <!-- 넓은 화면: 왼쪽 밴드 정보·초대 코드·나가기, 오른쪽 멤버·배경
+           휴대폰: 정보 → 초대 코드 → 멤버 → 배경 → 나가기 순서 (칸을 풀고 order로) -->
       <div class="columns">
       <div class="col">
+        <!-- 밴드 정보 -->
+        <section class="card info-card">
+          <h2>밴드 정보</h2>
+          <form v-if="isLeader" @submit.prevent="saveInfo">
+            <label class="field">
+              <span>밴드 이름</span>
+              <input v-model="name" type="text" :maxlength="BAND_NAME_MAX" :disabled="busy">
+            </label>
+            <label class="field">
+              <span>소개</span>
+              <textarea v-model="description" rows="2" :maxlength="BAND_DESCRIPTION_MAX" :disabled="busy"
+                        placeholder="밴드 소개를 입력해주세요"></textarea>
+            </label>
+            <div class="row-end">
+              <button type="submit" class="btn primary" :disabled="busy || !infoChanged || !name.trim()">저장</button>
+            </div>
+          </form>
+          <dl v-else class="info">
+            <dt>이름</dt><dd>{{ band.name }}</dd>
+            <dt>소개</dt><dd>{{ band.description || '소개가 없어요.' }}</dd>
+          </dl>
+        </section>
+
+        <!-- 초대 코드 -->
+        <section class="card invite-card">
+          <h2>초대 코드</h2>
+          <p class="desc">이 코드를 받은 사람은 홈 BAND 탭의 <strong>+</strong> 에서 밴드에 들어올 수 있어요. (최대 {{ MAX_BAND_MEMBERS }}명)</p>
+          <div class="code-row">
+            <span class="code">{{ band.inviteCode }}</span>
+            <button class="btn" :disabled="busy" @click="copyCode">{{ copied ? '복사됨' : '복사' }}</button>
+            <button v-if="isLeader" class="btn" :disabled="busy" @click="regenerate">새 코드 받기</button>
+          </div>
+        </section>
+
+        <!-- 나가기 / 없애기 -->
+        <section class="card danger-zone leave-card">
+          <h2>밴드 나가기{{ isLeader ? ' · 없애기' : '' }}</h2>
+          <template v-if="isLeader">
+            <p class="desc">
+              리더는 다른 멤버에게 리더를 넘긴 뒤에 나갈 수 있어요. 밴드를 없애면 모든 멤버가 밴드에서 빠져요.
+            </p>
+            <div class="row-end">
+              <button class="btn" :disabled="busy || band.members.length > 1"
+                      :title="band.members.length > 1 ? '먼저 리더를 넘겨 주세요' : ''" @click="leave">밴드 나가기</button>
+              <button class="btn danger" :disabled="busy" @click="removeBand">밴드 없애기</button>
+            </div>
+          </template>
+          <template v-else>
+            <p class="desc">나가면 초대 코드로 다시 들어올 수 있어요.</p>
+            <div class="row-end">
+              <button class="btn danger" :disabled="busy" @click="leave">밴드 나가기</button>
+            </div>
+          </template>
+        </section>
+      </div>
+
+      <div class="col">
         <!-- 멤버 -->
-        <section class="card">
+        <section class="card member-card">
           <h2>멤버 <span class="count">{{ band.members.length }} / {{ MAX_BAND_MEMBERS }}</span></h2>
           <ul class="members">
             <li v-for="m in band.members" :key="m.memberId" class="member" :class="{ me: m.me }">
@@ -21,8 +79,8 @@
                                 :outfit="m.character?.currentOutfitSpriteKey || 'DEFAULT'" :scale="2" :animate="false" />
               </div>
               <div class="who" :class="{ clickable: !m.me }" :title="m.me ? '' : '프로필 보기'" @click="openProfile(m)">
-                <strong>
-                  <Crown v-if="m.position === 'LEADER'" class="crown" :size="12" :stroke-width="2.4" aria-label="리더" />{{ m.character?.nickname || '알 수 없는 멤버' }}
+                <strong :title="m.character?.nickname || ''">
+                  <Crown v-if="m.position === 'LEADER'" class="crown" :size="12" :stroke-width="2.4" aria-label="리더" /><span class="nick">{{ m.character?.nickname || '알 수 없는 멤버' }}</span>
                   <em v-if="m.me">나</em>
                   <em v-else-if="friendOf(m) === 'FRIEND'" class="friend">친구</em>
                   <em v-else-if="friendOf(m) === 'SENT'" class="muted">신청함</em>
@@ -59,7 +117,7 @@
         </section>
 
         <!-- 합주실 배경 -->
-        <section class="card">
+        <section class="card stage-card">
           <h2>합주실 배경</h2>
           <p class="desc">{{ isLeader ? '홈 BAND 탭 합주실 무대의 배경이에요. 누르면 바로 바뀌어요.' : '리더가 고른 합주실 배경이에요.' }}</p>
           <div class="stages">
@@ -70,63 +128,6 @@
               <span>{{ st.name }}<Check v-if="currentStage === st.key" class="stage-check" :size="13" :stroke-width="3" /></span>
             </button>
           </div>
-        </section>
-      </div>
-
-      <div class="col">
-        <!-- 밴드 정보 -->
-        <section class="card">
-          <h2>밴드 정보</h2>
-          <form v-if="isLeader" @submit.prevent="saveInfo">
-            <label class="field">
-              <span>밴드 이름</span>
-              <input v-model="name" type="text" :maxlength="BAND_NAME_MAX" :disabled="busy">
-            </label>
-            <label class="field">
-              <span>소개</span>
-              <textarea v-model="description" rows="2" :maxlength="BAND_DESCRIPTION_MAX" :disabled="busy"
-                        placeholder="밴드 소개를 입력해주세요"></textarea>
-            </label>
-            <div class="row-end">
-              <button type="submit" class="btn primary" :disabled="busy || !infoChanged || !name.trim()">저장</button>
-            </div>
-          </form>
-          <dl v-else class="info">
-            <dt>이름</dt><dd>{{ band.name }}</dd>
-            <dt>소개</dt><dd>{{ band.description || '소개가 없어요.' }}</dd>
-          </dl>
-        </section>
-
-        <!-- 초대 코드 -->
-        <section class="card">
-          <h2>초대 코드</h2>
-          <p class="desc">이 코드를 받은 사람은 홈 BAND 탭의 <strong>+</strong> 에서 밴드에 들어올 수 있어요. (최대 {{ MAX_BAND_MEMBERS }}명)</p>
-          <div class="code-row">
-            <span class="code">{{ band.inviteCode }}</span>
-            <button class="btn" :disabled="busy" @click="copyCode">{{ copied ? '복사됨' : '복사' }}</button>
-            <button v-if="isLeader" class="btn" :disabled="busy" @click="regenerate">새 코드 받기</button>
-          </div>
-        </section>
-
-        <!-- 나가기 / 없애기 -->
-        <section class="card danger-zone">
-          <h2>밴드 나가기{{ isLeader ? ' · 없애기' : '' }}</h2>
-          <template v-if="isLeader">
-            <p class="desc">
-              리더는 다른 멤버에게 리더를 넘긴 뒤에 나갈 수 있어요. 밴드를 없애면 모든 멤버가 밴드에서 빠져요.
-            </p>
-            <div class="row-end">
-              <button class="btn" :disabled="busy || band.members.length > 1"
-                      :title="band.members.length > 1 ? '먼저 리더를 넘겨 주세요' : ''" @click="leave">밴드 나가기</button>
-              <button class="btn danger" :disabled="busy" @click="removeBand">밴드 없애기</button>
-            </div>
-          </template>
-          <template v-else>
-            <p class="desc">나가면 초대 코드로 다시 들어올 수 있어요.</p>
-            <div class="row-end">
-              <button class="btn danger" :disabled="busy" @click="leave">밴드 나가기</button>
-            </div>
-          </template>
         </section>
       </div>
       </div>
@@ -356,17 +357,25 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 <style scoped>
 * { box-sizing: border-box; }
 .state { margin: 0; padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
-.columns { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; align-items: start; }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* 한 줄로 쌓일 때: 정보 → 초대 코드 → 멤버 → 배경 → 나가기 */
 @media (max-width: 860px) {
-  .columns { grid-template-columns: minmax(0, 1fr); }
+  /* 카드 폭을 모두 화면 폭에 맞춘다 (넓은 화면용 align-items: start가 남으면 카드마다 내용 길이만큼 달라짐) */
+  .columns { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+  .col { display: contents; }
+  .info-card { order: 1; }
+  .invite-card { order: 2; }
+  .member-card { order: 3; }
+  .stage-card { order: 4; }
+  .leave-card { order: 5; }
 }
 
 .notice { margin: 0 0 16px; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-primary-soft); color: var(--c-primary-text); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .notice.bad { padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 
 .card {
-  background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: 20px 22px;
+  background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: var(--pad-card);
 }
 /* 카드 제목은 WsCard와 같게 */
 .card h2 { margin: 0 0 16px; font-size: 0.9rem; font-weight: 800; color: #343a40; display: flex; align-items: center; gap: 8px; }
@@ -394,15 +403,17 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 }
 
 .members { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+/* 사진 · 이름(길면 …) · 파트 · 더보기를 한 줄에. 이름 칸만 줄어든다 */
 .member {
-  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: var(--c-bg);
-  flex-wrap: wrap;
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: var(--c-bg);
 }
 .member.me { background: var(--c-primary-soft); }
 .avatar { width: 48px; flex-shrink: 0; line-height: 0; }
 .avatar :deep(.pixel-character) { width: 48px !important; height: auto !important; }
-.who { flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 2px; }
-.who strong { font-size: 0.9rem; font-weight: 800; }
+.who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.who strong { display: flex; align-items: center; min-width: 0; font-size: 0.9rem; font-weight: 800; }
+.who strong .nick { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: inherit; color: inherit; }
+.who strong em { flex: none; }
 .who em {
   font-style: normal; font-size: 0.65rem; font-weight: 800; color: var(--c-primary-text); background: #fff;
   border: 1px solid var(--c-primary-line); padding: 1px 6px; border-radius: 6px; margin-left: 4px; vertical-align: 1px;
@@ -466,9 +477,25 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 .stage-option:disabled { cursor: default; }
 .stage-option:disabled:not(.active) { opacity: 0.6; }
 
-@media (max-width: 560px) {
-  .stages { grid-template-columns: 1fr; }
+/* 휴대폰: 배경은 두 줄 그대로 칸만 좁게, 멤버 줄은 사진·파트를 조금 작게 */
+@media (max-width: 640px) {
+  .stages { gap: 8px; }
+  .stage-option { padding: 4px; border-radius: 12px; }
+  .stage-option span { font-size: 0.72rem; }
+  .member { gap: 8px; padding: 8px 10px; }
+  .avatar { width: 40px; }
+  .avatar :deep(.pixel-character) { width: 40px !important; }
+  .part-select { max-width: 96px; padding: 6px 8px; }
 }
 /* 리더 왕관: 홈 밴드 무대와 같은 노란 왕관, 이름과 띄움 */
 .crown { margin-right: 6px; color: #f08c00; vertical-align: -1px; flex: none; }
+/* 휴대폰: 입력칸·초대 코드·카드 사이를 줄여 비율을 맞춘다 */
+@media (max-width: 640px) {
+  .columns { gap: 12px; }
+  .card h2 { margin-bottom: 12px; }
+  .desc { margin-bottom: 10px; }
+  .field input, .field textarea { padding: 9px 12px; border-radius: 10px; }
+  .code { font-size: 1.05rem; letter-spacing: 3px; padding: 6px 12px; border-radius: 10px; }
+  .info { grid-template-columns: 48px 1fr; }
+}
 </style>

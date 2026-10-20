@@ -68,7 +68,7 @@ const STEPS = [
 .text-btn { font-size: 0.75rem; font-weight: 800; color: var(--c-primary-text); text-decoration: none; }
 .empty { margin: 0; padding: 20px 0; text-align: center; font-size: 0.8rem; color: var(--c-faint); }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .steps { grid-template-columns: 1fr; }
 }
 </style>

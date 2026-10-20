@@ -202,4 +202,13 @@ h3 { margin: 0 0 12px; font-size: 0.85rem; font-weight: 800; color: var(--c-text
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
+/* 휴대폰: 아래에서 올라오는 시트로 (#124) */
+@media (max-width: 640px) {
+  .backdrop { align-items: flex-end; padding: 0; }
+  .modal {
+    width: 100%; max-width: none; max-height: 92dvh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}
 </style>

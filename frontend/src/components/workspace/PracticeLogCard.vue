@@ -138,7 +138,7 @@ const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.secon
 
 <style scoped>
 /* 카드 모양·제목은 WsCard와 같게 */
-.data-card { background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: 20px 22px; }
+.data-card { background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: var(--pad-card); }
 .card-title { font-weight: 800; font-size: 0.9rem; margin-bottom: 16px; display: flex; justify-content: space-between; color: #343a40; }
 
 .log-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
@@ -178,6 +178,16 @@ const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.secon
 .g.lv2 { background: color-mix(in srgb, var(--c-primary) 55%, #fff); }
 .g.lv3 { background: color-mix(in srgb, var(--c-primary) 78%, #fff); }
 .g.lv4 { background: var(--c-primary); }
+
+/* 휴대폰: 요약 세 칸이 잘리지 않게 글자·여백을 줄인다 */
+@media (max-width: 640px) {
+  .log-stats { gap: 6px; }
+  .log-stat { padding: 8px 9px; border-radius: 10px; }
+  .log-stat span { font-size: 0.66rem; }
+  .log-stat strong { font-size: 0.85rem; }
+  .grass { gap: 2px; }
+  .g { border-radius: 2px; }
+}
 
 .error { margin: 10px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 </style>

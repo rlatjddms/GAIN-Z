@@ -192,7 +192,7 @@ const handleSocialLogin = (provider) => {
 
 .gz-input {
   width: 100%;
-  padding: 18px 20px;
+  padding: 14px 18px;
   border: 1.5px solid #eceff2;
   border-radius: 12px;
   font-size: 0.95rem;
@@ -251,7 +251,7 @@ const handleSocialLogin = (provider) => {
 
 .login-btn-main {
   width: 100%;
-  padding: 18px;
+  padding: 14px;
   background: var(--c-primary);
   color: #fff;
   border: none;
@@ -302,8 +302,8 @@ const handleSocialLogin = (provider) => {
 }
 
 .social-btn {
-  width: 54px;
-  height: 54px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   border: none;
   cursor: pointer;
@@ -342,5 +342,15 @@ const handleSocialLogin = (provider) => {
   font-weight: 700;
   text-decoration: none;
   margin-left: 8px;
+}
+/* 휴대폰: 카드가 화면 끝에 붙지 않게 바깥 여백, 안쪽 여백은 줄인다 (#124) */
+@media (max-width: 640px) {
+  .gain-z-login-root { height: auto; min-height: 100dvh; padding: 24px 16px; }
+  .login-card-container { padding: 40px 22px; }
+}
+@media (max-width: 640px) {
+  .gz-input { padding: 12px 14px; }
+  .login-btn-main { padding: 12px; }
+  .social-btn { width: 44px; height: 44px; }
 }
 </style>

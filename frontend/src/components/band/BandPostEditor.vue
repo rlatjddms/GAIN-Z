@@ -213,7 +213,7 @@ input:focus-visible + .switch { outline: 3px solid var(--c-primary-line); outlin
 .save-progress > span { display: block; height: 3px; background: var(--c-primary); border-radius: 3px; }
 .save-progress p { color: var(--c-muted); font-size: 11px; margin-top: 8px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
-@media(max-width: 600px) {
+@media (max-width: 640px) {
   .notice-schedule { margin-left: 0; }
   .period-row { gap: 6px; }
   .period-row > span { font-size: 10px; }

@@ -454,7 +454,11 @@ legend span { margin-left:6px; font-weight:400; }
 .setlist-dialog .dialog-actions { margin-top:22px; }
 .delete-description { font-size:.82rem; line-height:1.7; color:var(--c-muted); }
 .sheet-dialog { max-width:340px; }
-@media(max-width:760px) { .workspace { grid-template-columns:1fr; } }
-@media(max-width:480px) { .song-form,.song-fields { grid-template-columns:1fr; } .song-head { padding:12px 10px; gap:7px; } .detail :deep(.actions) { gap:6px; } .song-body { padding:14px; } }
+@media (max-width: 860px) { .workspace { grid-template-columns:1fr; } }
+@media (max-width: 420px) { .song-form,.song-fields { grid-template-columns:1fr; } .song-head { padding:12px 10px; gap:7px; } .detail :deep(.actions) { gap:6px; } .song-body { padding:14px; } }
 @media(prefers-reduced-motion:reduce) { .song-collapse,.chevron { transition:none; } }
+/* 휴대폰: 팝업은 아래에서 올라오는 시트로 (#124) */
+@media (max-width: 640px) {
+  .setlist-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+}
 </style>

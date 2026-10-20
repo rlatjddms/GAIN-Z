@@ -134,13 +134,31 @@ const timeAgo = postTimeAgo
 .skeleton { min-height: 180px; background: linear-gradient(110deg, #fff, #f5f7fa, #fff); }
 .empty { text-align: center; color: var(--c-faint); font-size: 0.85rem; padding: 32px 0; }
 
-@media (max-width: 900px) {
+@media (max-width: 860px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* 휴대폰: 공지는 넓은 화면처럼 한 줄(제목만, 내용 줄임), 글은 두 줄로 나란히 작은 카드 */
 @media (max-width: 640px) {
-  .grid { grid-template-columns: 1fr; }
-  .notice { flex-wrap: wrap; }
-  .notice-body { flex-direction: column; gap: 2px; flex-basis: 100%; order: 3; }
-  .notice-body strong, .notice-body span { white-space: normal; }
+  .notice { gap: 8px; padding: 10px 12px; border-radius: 14px; margin-bottom: 10px; }
+  .notice-tag { font-size: 0.65rem; padding: 2px 6px; }
+  .notice-body span { display: none; }
+  .notice-body strong { font-size: 0.82rem; }
+  .notice-meta { font-size: 0.66rem; }
+  .notice-meta small { display: none; }
+
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .post { padding: 12px; border-radius: 16px; gap: 6px; }
+  .post:hover { transform: none; }
+  .author { gap: 6px; }
+  .author :deep(.profile-avatar) { width: 26px !important; height: 26px !important; }
+  .who strong { font-size: 0.72rem; }
+  .who span { font-size: 0.62rem; }
+  .post h3 { margin-top: 2px; font-size: 0.82rem; }
+  .post-body { min-height: 0; gap: 6px; flex-direction: column; }
+  .post p { font-size: 0.72rem; -webkit-line-clamp: 2; }
+  .thumbnail-wrap { align-self: stretch; }
+  .post footer { padding-top: 4px; font-size: 0.64rem; }
+  .file { padding: 2px 6px; }
+  .skeleton { min-height: 140px; }
 }
 </style>

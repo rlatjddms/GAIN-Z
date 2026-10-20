@@ -6,7 +6,7 @@
       <!-- 넓은 화면: 왼쪽 친구 목록, 오른쪽 친구 추가·신청 -->
       <div class="col">
         <!-- 받은 신청 -->
-        <WsCard v-if="received.length" :title="`받은 신청 ${received.length}`">
+        <WsCard v-if="received.length" class="received-card" :title="`받은 신청 ${received.length}`">
           <ul class="people">
             <li v-for="r in received" :key="r.requestId" class="person">
               <ProfileAvatar :src="r.user.profileImageUrl" :size="44" :alt="`${r.user.name} 프로필 사진`" />
@@ -23,7 +23,7 @@
         </WsCard>
 
         <!-- 친구 목록 -->
-        <WsCard :title="`내 친구 ${friends.length}`">
+        <WsCard class="friends-card" :title="`내 친구 ${friends.length}`">
           <p v-if="loadError" class="error">{{ loadError }}</p>
           <div v-else-if="!loaded" class="loading">불러오는 중…</div>
           <p v-else-if="!friends.length" class="empty">아직 친구가 없어요. 친구 코드로 신청해 보세요!</p>
@@ -45,7 +45,7 @@
 
       <div class="col">
         <!-- 내 친구 코드 + 코드로 신청 -->
-        <WsCard title="친구 추가">
+        <WsCard title="친구 추가" class="add-card">
           <div class="code-box">
             <span class="label">내 친구 코드</span>
             <div class="code-row">
@@ -75,7 +75,7 @@
         </WsCard>
 
         <!-- 보낸 신청 (수락 대기) -->
-        <WsCard v-if="sent.length" :title="`수락 대기 ${sent.length}`">
+        <WsCard v-if="sent.length" class="sent-card" :title="`수락 대기 ${sent.length}`">
           <ul class="people">
             <li v-for="r in sent" :key="r.requestId" class="person">
               <ProfileAvatar :src="r.user.profileImageUrl" :size="44" :alt="`${r.user.name} 프로필 사진`" />
@@ -91,7 +91,7 @@
         </WsCard>
 
         <!-- 같은 밴드 멤버 (추천): 코드 없이 바로 신청 -->
-        <WsCard v-if="mateRows.length" :title="`같은 밴드 멤버 ${mateRows.length}`">
+        <WsCard v-if="mateRows.length" class="mates-card" :title="`같은 밴드 멤버 ${mateRows.length}`">
           <ul class="people">
             <li v-for="m in mateRows" :key="m.userId" class="person">
               <ProfileAvatar :src="m.profileImageUrl" :size="44" :alt="`${m.name} 프로필 사진`" />
@@ -316,10 +316,16 @@ const unfriend = async (friend) => {
 .page { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .page > .error { grid-column: 1 / -1; }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* 한 줄로 쌓일 때: 친구 추가 → 받은 신청 → 내 친구 → 수락 대기 → 같은 밴드 멤버(맨 아래) */
 @media (max-width: 860px) {
-  .page { grid-template-columns: minmax(0, 1fr); }
-  /* 좁은 화면: 친구 추가를 맨 위로 */
-  .col:last-child { order: -1; }
+  .page { display: flex; flex-direction: column; align-items: stretch; }
+  .col { display: contents; }
+  .page > .error { order: 0; }
+  .add-card { order: 1; }
+  .received-card { order: 2; }
+  .friends-card { order: 3; }
+  .sent-card { order: 4; }
+  .mates-card { order: 5; }
 }
 
 .code-box { padding-bottom: 16px; border-bottom: 1px solid var(--c-line-soft); }

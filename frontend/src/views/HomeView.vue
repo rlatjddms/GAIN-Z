@@ -12,22 +12,24 @@
 
         <template v-if="!isBandMode">
           <CharacterStage :character="authStore.character">
-            <!-- 요즘 듣는 음악: 누르면 등록·수정 팝업, 링크가 있으면 옆 아이콘으로 새 탭 -->
-            <div class="music-chip" :class="{ empty: !myMusic }">
-              <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
-                <span class="note"><Music :size="13" :stroke-width="2.5" /></span>
-                <span class="music-text">{{ myMusic ? `${myMusic.title} · ${myMusic.artist}` : '요즘 듣는 음악 등록' }}</span>
+            <!-- 요즘 듣는 음악: 레벨·칭호 줄 왼쪽 끝. 누르면 등록·수정, 링크가 있으면 옆 아이콘으로 새 탭 -->
+            <template #head-start>
+              <div class="music-chip" :class="{ empty: !myMusic }">
+                <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
+                  <span class="note"><Music :size="13" :stroke-width="2.5" /></span>
+                  <span class="music-text">{{ myMusic ? myMusic.title : '요즘 듣는 음악 등록' }}<span v-if="myMusic" class="music-artist"> · {{ myMusic.artist }}</span></span>
+                </button>
+                <a v-if="myMusicUrl" class="music-link" :href="myMusicUrl" target="_blank" rel="noopener noreferrer" title="새 탭에서 듣기">
+                  <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+              </div>
+            </template>
+            <!-- 옷장: 경험치 줄 오른쪽 끝 -->
+            <template #exp-end>
+              <button class="edit-char-btn" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
+                <Shirt :size="13" :stroke-width="2.5" /> 옷장
               </button>
-              <a v-if="myMusicUrl" class="music-link" :href="myMusicUrl" target="_blank" rel="noopener noreferrer" title="새 탭에서 듣기">
-                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-              </a>
-            </div>
-            <button class="edit-char-btn" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
-              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 3l3 2 3-2 5 3-2 4-2-1v12H8V9L6 10 4 6z"></path>
-              </svg>
-              옷장
-            </button>
+            </template>
           </CharacterStage>
 
           <section class="quick-grid grid-3">
@@ -103,8 +105,8 @@
             <h2>아직 들어간 밴드가 없어요</h2>
             <p class="empty-text">밴드를 새로 만들거나, 리더에게 받은 초대 코드로 가입해 보세요.</p>
             <div class="empty-actions">
-              <button class="pill-btn primary" @click="openStart('create')">밴드 만들기</button>
-              <button class="pill-btn" @click="openStart('join')">초대 코드로 가입</button>
+              <button class="btn primary" @click="openStart('create')">밴드 만들기</button>
+              <button class="btn" @click="openStart('join')">초대 코드로 가입</button>
             </div>
           </section>
 
@@ -115,7 +117,7 @@
                 <p>{{ activeBand.members.length }}명의 멤버가 참여 중<template v-if="activeBand.description"> · {{ activeBand.description }}</template></p>
               </div>
               <div class="band-tools">
-                <button class="tool-btn" @click="router.push(`/bands/${activeBand.id}/settings`)"><Settings :size="14" :stroke-width="2.2" /> 밴드 설정</button>
+                <button class="btn small" @click="router.push(`/bands/${activeBand.id}/settings`)"><Settings :size="14" :stroke-width="2.2" /> 밴드 설정</button>
               </div>
             </div>
 
@@ -164,7 +166,7 @@
 </template>
 
 <script setup>
-import { Crown, Music, Settings } from 'lucide-vue-next'
+import { Crown, Music, Settings, Shirt } from 'lucide-vue-next'
 import PixelIcon from '../components/PixelIcon.vue'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -470,7 +472,7 @@ button::-moz-focus-inner { border: 0 !important; }
 
 /* 데이터 카드 */
 /* 카드 모양·제목은 WsCard와 같게 */
-.data-card { background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: 20px 22px; }
+.data-card { background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: var(--pad-card); }
 .card-title { font-weight: 800; font-size: 0.9rem; margin-bottom: 16px; display: flex; justify-content: space-between; color: #343a40; }
 .card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
 .card-title.link:hover { color: var(--c-primary-text); }
@@ -508,13 +510,6 @@ button::-moz-focus-inner { border: 0 !important; }
 .empty-icon { color: var(--c-faint); display: flex; justify-content: center; }
 .empty-text { margin: 0; font-size: 0.85rem; color: var(--c-muted); }
 .empty-actions { display: flex; justify-content: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
-.pill-btn {
-  border: 1px solid #dee2e6; background: #fff; color: var(--c-text-2); border-radius: 12px; padding: 10px 18px;
-  font-family: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; transition: 0.2s;
-}
-.pill-btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
-.pill-btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.pill-btn.primary:hover { background: var(--c-primary-strong); color: #fff; }
 .text-btn { margin-left: 8px; border: none; background: none; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; }
 
 .band-room { padding: 24px; text-align: left; }
@@ -522,12 +517,6 @@ button::-moz-focus-inner { border: 0 !important; }
 .band-info h2 { margin: 0 0 4px; font-size: 1.4rem; font-weight: 800; }
 .band-info p { margin: 0; font-size: 0.82rem; color: var(--c-muted); }
 .band-tools { display: flex; gap: 6px; flex-wrap: wrap; }
-.tool-btn {
-  border: 1px solid var(--c-line); background: #fff; border-radius: 10px; padding: 7px 12px; cursor: pointer;
-  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); display: flex; align-items: center; gap: 6px;
-  transition: 0.2s;
-}
-.tool-btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 .band-scene { margin-top: 16px; border-radius: 18px; overflow: hidden; border: 1px solid var(--c-line-soft); }
 .scene-hint { margin: 8px 0 0; text-align: center; font-size: 0.72rem; color: var(--c-faint); font-weight: 600; }
 .scene-hint.bad { color: var(--c-danger); font-weight: 700; }
@@ -546,7 +535,7 @@ button::-moz-focus-inner { border: 0 !important; }
 .band-menus { margin-bottom: 0; }
 
 .edit-char-btn {
-  position: absolute;
+  position: absolute; z-index: 4;
   bottom: 16px;
   right: 20px;
   background: #ffffff;
@@ -595,8 +584,48 @@ button::-moz-focus-inner { border: 0 !important; }
   border-color: var(--c-primary);
 }
 
-/* 좁은 화면: 무대 아래 경험치와 겹치지 않게 옷장 버튼을 무대 밑으로 */
+/* 휴대폰: 바로가기 카드는 한 줄에 나란히(아이콘 위·이름 아래), 아래 카드는 한 줄씩(연습 로그 먼저)
+   여백을 줄이고 밴드 탭은 옆으로 밀어서 본다 */
 @media (max-width: 640px) {
-  .edit-char-btn { position: static; margin: 0 auto 12px; }
+  .tab-switcher button { padding: 6px 14px; font-size: 0.8rem; }
+  .main-body { padding: 16px 12px 32px; }
+  .quick-grid { gap: 8px; margin-bottom: 12px; }
+  .quick-grid .card-btn { flex-direction: column; justify-content: center; gap: 8px; padding: 14px 6px; text-align: center; }
+  .quick-grid .c-icon { width: 40px; height: 40px; border-radius: 12px; }
+  .quick-grid .c-text strong { font-size: 0.68rem; letter-spacing: -0.01em; margin-bottom: 0; }
+  .quick-grid .c-text span { display: none; }
+  .footer-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .footer-grid > :last-child { order: -1; }
+  .stage { padding: 40px 16px; margin-bottom: 12px; }
+  .band-room { padding: 16px; }
+  .band-info h2 { font-size: 1.15rem; }
+  .band-tabs-row { gap: 8px; }
+  .band-tabs-left { overflow-x: auto; scrollbar-width: none; min-width: 0; }
+  .band-tabs-left::-webkit-scrollbar { display: none; }
+  /* 밴드 이름 탭은 위아래를 얇게 */
+  .band-tabs-left button { flex: none; padding: 6px 12px; font-size: 0.8rem; white-space: nowrap; }
+  .band-tabs-left button.active { padding-bottom: 7px; }
+  .band-tabs-left .add-band-tab { padding: 6px 12px; }
+  .match-make-btn { flex: none; padding: 6px 10px; }
+  .match-make-btn .btn-lbl { display: none; }
+  .m-item { min-width: 0; padding: 8px 10px; }
+}
+/* 터치 화면에서는 눌렀을 때 카드가 떠오르지 않게 */
+@media (hover: none) {
+  .card-btn:hover { transform: none; box-shadow: none; }
+}
+
+/* 넓은 화면: 음악은 레벨·칭호 줄 왼쪽 끝, 옷장은 경험치 줄 오른쪽 끝 (무대 위에 얹힘) */
+.music-chip { top: 50%; left: 20px; transform: translateY(-50%); }
+.edit-char-btn { top: 50%; bottom: auto; right: 20px; transform: translateY(-50%); }
+/* 휴대폰: 둘 다 흰 바탕 줄 안. 음악은 줄 왼쪽 끝(남는 폭만큼 줄어듦), 옷장은 경험치 줄 오른쪽 끝 */
+@media (max-width: 640px) {
+  .music-chip { position: static; transform: none; height: 28px; max-width: 100%; min-width: 0; }
+  .music-main { gap: 4px; padding: 0 6px 0 3px; font-size: 0.72rem; }
+  .music-chip .note { width: 20px; height: 20px; }
+  .music-link { width: 20px; height: 20px; margin-right: 3px; }
+  /* 좁은 칸이라 가수 이름은 빼고 제목만 */
+  .music-artist { display: none; }
+  .edit-char-btn { position: static; transform: none; white-space: nowrap; height: 28px; padding: 0 10px; gap: 4px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; box-shadow: none; }
 }
 </style>

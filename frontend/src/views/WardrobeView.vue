@@ -1,5 +1,5 @@
 <template>
-  <SubPageLayout title="WARDROBE" name="옷장" subtitle="바꾼 모습은 저장해야 반영돼요">
+  <SubPageLayout title="DRESS ROOM" name="옷장" subtitle="바꾼 모습은 저장해야 반영돼요">
     <template #actions>
       <span v-if="savedMessage" class="saved">{{ savedMessage }}</span>
       <button class="btn" :disabled="!dirty || saving" @click="reset">되돌리기</button>
@@ -10,10 +10,10 @@
 
       <div class="layout">
         <!-- 미리보기: 바꾼 모습이 바로 보인다 -->
-        <div class="preview">
+        <div ref="previewBox" class="preview">
           <!-- 무대 가운데(캐릭터 쪽)만 카메라처럼 잘라 보여 준다. 배율은 무대 전체와 같다 -->
           <!-- 배경 탭에서는 무대 전체를 보여 주고, 올린 소품을 끌어 옮길 수 있다 -->
-          <CharacterStage v-if="preview" :character="preview" bare :view-width="tab === 'stage' ? 208 : PREVIEW_VIEW_WIDTH"
+          <CharacterStage v-if="preview" class="preview-stage" :style="previewStyle" :character="preview" bare :view-width="previewViewWidth"
                           :decor-editable="tab === 'stage'" @decor-move="moveDecor" />
           <p class="preview-caption">{{ STAGE_NAMES[draft.stageBackground] }} 무대 · {{ clothes.find((o) => o.id === draft.outfitId)?.name || '기본 의상' }} · {{ BOTTOMS.find((b) => b.key === draft.bottom)?.name || '청바지' }}</p>
         </div>
@@ -247,7 +247,7 @@
 
 <script setup>
 import PixelIcon from '../components/PixelIcon.vue'
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import CharacterStage from '../components/CharacterStage.vue'
@@ -279,6 +279,24 @@ const TABS = [
 ]
 // 미리보기는 무대(208칸) 중 가운데 96칸만 보여 준다 → 왼쪽 칸에 크게, 한 화면에 들어가게
 const PREVIEW_VIEW_WIDTH = 96
+const previewViewWidth = computed(() => (tab.value === 'stage' ? 208 : PREVIEW_VIEW_WIDTH))
+// 미리보기 배율을 0.5배 단위로 맞춘다. 화면 폭에 따라 3.4배·3.57배처럼 끝수가 생기면
+// 잘린 가장자리에 옆 소품(커튼·조명)이 반 칸씩 보였다 안 보였다 해서, 폭을 '보이는 칸 × 배율'로 딱 떨어지게 한다
+const previewBox = ref(null)
+const previewBoxWidth = ref(0)
+const previewStyle = computed(() => {
+  const vw = previewViewWidth.value
+  // 휴대폰은 미리보기가 위에 붙어 있으니 너무 커지지 않게 300px 안에서
+  const avail = window.innerWidth <= 640 ? Math.min(previewBoxWidth.value, 300) : previewBoxWidth.value
+  const scale = Math.floor((avail / vw) * 2) / 2
+  return scale >= 1 ? { width: `${vw * scale}px` } : null
+})
+let previewObserver = null
+onMounted(() => {
+  previewObserver = new ResizeObserver(([entry]) => { previewBoxWidth.value = entry.contentRect.width })
+  if (previewBox.value) previewObserver.observe(previewBox.value)
+})
+onBeforeUnmount(() => previewObserver?.disconnect())
 const STAGE_NAMES = { ROOKIE: '방구석', RISING: '동네 클럽', PRO: '투어 공연장', LEGEND: '전설의 무대', LISTENING_ROOM: '리스닝 룸' }
 // 레코드 수집 보상: 무대 잠금 안내
 const stageLockText = (b) => (b.key === 'LISTENING_ROOM' ? '레코드 12개를 모두 모으면' : `Lv.${b.requiredLevel}에 해금`)
@@ -435,7 +453,8 @@ onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 �
 .error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
-.preview { display: flex; flex-direction: column; gap: 8px; }
+.preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.preview-stage { width: 100%; max-width: 100%; }
 .preview-caption { margin: 0; text-align: center; font-size: 0.78rem; font-weight: 800; color: var(--c-muted); }
 
 /* 넓은 화면: 옷장 전체가 한 화면에 들어오고, 긴 목록은 오른쪽 칸 안에서만 스크롤 */
@@ -444,8 +463,17 @@ onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 �
   .panel { height: 100%; display: flex; flex-direction: column; }
   .tab-body { flex: 1; min-height: 0; overflow-y: auto; }
 }
+/* 좁은 화면: 미리보기가 위, 고르는 칸이 아래. 아래를 스크롤해도 미리보기는 헤더 밑에 붙어 있다 */
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
+  .preview {
+    position: sticky; top: 64px; z-index: 5;
+    margin: 0 -16px; padding: 8px 16px 10px; background: var(--c-bg);
+    box-shadow: 0 8px 12px -12px rgba(15, 23, 42, 0.25);
+  }
+}
+@media (max-width: 640px) {
+  .preview { top: 56px; }
 }
 
 .panel { background: #fff; border: 1px solid var(--c-line); border-radius: 20px; overflow: hidden; }
@@ -455,7 +483,11 @@ onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 �
   font-size: 0.9rem; font-weight: 800; color: var(--c-faint); border-bottom: 2px solid transparent;
 }
 .tabs button.on { color: var(--c-primary-text); border-bottom-color: var(--c-primary); }
-.tab-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 18px; }
+.tab-body { padding: var(--pad-card); display: flex; flex-direction: column; gap: 18px; }
+@media (max-width: 640px) {
+  .tabs button { padding: 11px 0; font-size: 0.85rem; }
+  .tab-body { gap: 14px; }
+}
 
 .field { display: flex; flex-direction: column; gap: 8px; }
 .label { font-size: 0.75rem; font-weight: 800; color: var(--c-muted); }
