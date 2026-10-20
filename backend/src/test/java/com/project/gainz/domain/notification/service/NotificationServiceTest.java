@@ -290,9 +290,13 @@ class NotificationServiceTest {
         when(notificationRepository.findPage(eq(ME), any(), eq(true), any(Pageable.class)))
                 .thenAnswer(inv -> new SliceImpl<>(List.of(), inv.getArgument(3), false));
 
-        notificationService.list(ME, 0, 20, NotificationCategory.JAM, true);
+        notificationService.list(ME, 0, 20, NotificationCategory.BAND, true);
 
-        verify(notificationRepository).findPage(ME, EnumSet.of(NotificationType.SETLIST_ASSIGN, NotificationType.JAM_NEW,
+        // 밴드에는 커뮤니티·합주 알림도 들어간다
+        verify(notificationRepository).findPage(ME, EnumSet.of(NotificationType.BAND_JOIN, NotificationType.BAND_KICKED,
+                NotificationType.BAND_LEADER, NotificationType.BAND_DISBAND, NotificationType.BAND_LEAVE,
+                NotificationType.BAND_INVITE, NotificationType.BAND_ACCEPT, NotificationType.NOTICE, NotificationType.COMMENT,
+                NotificationType.REPLY, NotificationType.MENTION, NotificationType.SETLIST_ASSIGN, NotificationType.JAM_NEW,
                 NotificationType.JAM_TRACK), true, PageRequest.of(0, 20));
     }
 
