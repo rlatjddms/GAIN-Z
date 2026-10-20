@@ -121,12 +121,12 @@ export function shiftTable(colors, chosen) {
   return table
 }
 
-// 아이템 한 장을 그린다: 기준색 치환 + 고른 아이템 색 (기본 색이면 그림 그대로)
+// 아이템 한 장을 그린다: 기준색 치환 + 고른 아이템 색 (그림의 바탕색과 같으면 그림 그대로)
 // spec: ITEM_COLORS의 항목, chosen: 고른 색
 export function paintSprite(imageData, colors, spec, chosen) {
   const base = spec?.key && chosen ? { ...colors, outfitColor: chosen } : colors
   const canvas = recolorSprite(imageData, base)
-  if (!spec?.colors || !chosen || chosen.toLowerCase() === spec.presets[0].toLowerCase()) return canvas
+  if (!spec?.colors || !chosen || chosen.toLowerCase() === spec.colors[0].toLowerCase()) return canvas
   const table = shiftTable(spec.colors, chosen)
   const ctx = canvas.getContext('2d')
   const out = ctx.getImageData(0, 0, canvas.width, canvas.height)

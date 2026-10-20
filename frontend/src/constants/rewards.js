@@ -70,8 +70,8 @@ export const REWARD_OUTFITS = [
 // 무대 꾸미기 효과: 5레벨 보상 중 배경이 없는 Lv.5·15·25와 마지막 Lv.30 (components/StageEffect.vue)
 export const STAGE_EFFECTS = [
   { key: 'SPARKLE', name: '반짝이', icon: '✨', level: 5 },
-  { key: 'SPOTLIGHT', name: '스포트라이트', icon: '🔦', level: 15 },
-  { key: 'SMOKE', name: '스모크', icon: '🌫️', level: 25 },
+  { key: 'SMOKE', name: '스모크', icon: '🌫️', level: 15 },
+  { key: 'SPOTLIGHT', name: '스포트라이트', icon: '🔦', level: 25 },
   { key: 'FIREWORKS', name: '불꽃놀이', icon: '🎆', level: 30 },
 ]
 
