@@ -474,25 +474,71 @@ button::-moz-focus-inner { border: 0 !important; }
 .card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
 .card-title.link:hover { color: var(--c-primary-text); }
 .record-count { font-size: 0.75rem; color: #adb5bd; }
-/* 유리 진열장: 밝은 금속 테두리, 살짝 푸른 유리, 비스듬한 반사선 두 줄, 모서리가 초록빛인 유리 선반 */
+/* 유리 진열장 (픽셀 느낌): 각진 테두리, 평평한 유리색, 4px 칸으로 계단진 반사선 두 줄, 세 줄 유리 선반 */
 .shelf {
   position: relative; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; gap: 12px;
-  padding: 16px 12px 12px; border-radius: 12px;
-  background: linear-gradient(160deg, rgba(214, 232, 242, 0.6) 0%, rgba(246, 250, 252, 0.95) 45%, rgba(222, 236, 244, 0.7) 100%);
-  border: 3px solid #cfd6dd;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.95), inset 0 10px 18px -12px rgba(110, 145, 170, 0.45), 0 2px 0 #b8c1ca;
+  padding: 14px 12px 10px;
+  background: #eef6fa;
+  border: 3px solid #7d8f9c;
+  box-shadow: inset 0 0 0 3px #d6e4ec;
 }
 .shelf::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(115deg, transparent 0 16%, rgba(255, 255, 255, 0.75) 16% 21%, transparent 21% 27%,
-    rgba(255, 255, 255, 0.5) 27% 29%, transparent 29% 100%);
+  content: ''; position: absolute; left: 18%; bottom: 12px; width: 4px; height: 4px; background: #fff;
+  opacity: 0.85; pointer-events: none;
+  box-shadow:
+    4px -4px #fff,
+    8px -8px #fff,
+    12px -12px #fff,
+    16px -16px #fff,
+    20px -20px #fff,
+    24px -24px #fff,
+    28px -28px #fff,
+    32px -32px #fff,
+    36px -36px #fff,
+    40px -40px #fff,
+    44px -44px #fff,
+    48px -48px #fff,
+    52px -52px #fff,
+    56px -56px #fff,
+    60px -60px #fff,
+    64px -64px #fff,
+    68px -68px #fff,
+    72px -72px #fff,
+    76px -76px #fff,
+    80px -80px #fff,
+    84px -84px #fff,
+    88px -88px #fff,
+    92px -92px #fff,
+    96px -96px #fff,
+    14px -0px #fff,
+    18px -4px #fff,
+    22px -8px #fff,
+    26px -12px #fff,
+    30px -16px #fff,
+    34px -20px #fff,
+    38px -24px #fff,
+    42px -28px #fff,
+    46px -32px #fff,
+    50px -36px #fff,
+    54px -40px #fff,
+    58px -44px #fff,
+    62px -48px #fff,
+    66px -52px #fff,
+    70px -56px #fff,
+    74px -60px #fff,
+    78px -64px #fff,
+    82px -68px #fff,
+    86px -72px #fff,
+    90px -76px #fff,
+    94px -80px #fff,
+    98px -84px #fff,
+    102px -88px #fff,
+    106px -92px #fff;
 }
 .shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
 .shelf-board {
-  height: 5px; margin-top: 2px; border-radius: 1px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(178, 214, 206, 0.85));
-  border-bottom: 1px solid rgba(110, 160, 150, 0.75);
-  box-shadow: 0 3px 4px -2px rgba(60, 90, 100, 0.28);
+  height: 6px; margin-top: 2px;
+  background: linear-gradient(#ffffff 0 2px, #b7d6dc 2px 4px, #7fa9b0 4px 6px);
 }
 .shelf:hover .shelf-items { transform: translateY(-2px); }
 .shelf-items { transition: transform 0.2s; }
