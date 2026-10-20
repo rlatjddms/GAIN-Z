@@ -1,7 +1,6 @@
 <template>
-  <SubPageLayout title="WORK BENCH" name="악보 보관함" subtitle="갖고 있는 악보와 AI로 만든 악보를 모아 봐요">
+  <SubPageLayout title="WORK BENCH" name="악보 보관함" subtitle="갖고 있는 악보를 모아 두고 다른 키로도 쳐 봐요">
     <template #actions>
-      <router-link to="/transcribe" class="btn"><Sparkles :size="14" :stroke-width="2.2" /> AI로 악보 만들기</router-link>
       <router-link to="/sheets/new" class="btn primary">+ 악보 올리기</router-link>
     </template>
   <div class="page">
@@ -91,7 +90,7 @@
 
       <EmptyState v-else-if="favoriteOnly" icon="star" title="즐겨찾기한 악보가 없어요" text="악보 옆 별을 누르면 여기 모아 볼 수 있어요." />
       <EmptyState v-else icon="folder" title="아직 담아 둔 악보가 없어요">
-        갖고 있는 악보 사진·스캔·PDF를 올려 보세요. 메모를 남기고, 다른 키로 칠 코드도 알려 드려요.<br>AI로 만든 악보도 여기에 모여요.
+        갖고 있는 악보 사진·스캔·PDF를 올려 보세요. 메모를 남기고, 다른 키로 칠 코드도 알려 드려요.
         <template #actions><router-link to="/sheets/new" class="btn primary">+ 첫 악보 올리기</router-link></template>
       </EmptyState>
     </WsCard>
@@ -100,7 +99,7 @@
 </template>
 
 <script setup>
-import { Sparkles, Star, StickyNote } from 'lucide-vue-next'
+import { Star, StickyNote } from 'lucide-vue-next'
 import PixelIcon from '../../components/PixelIcon.vue'
 import { ref, computed, watch, onMounted } from 'vue'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'

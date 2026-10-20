@@ -31,7 +31,7 @@
             <button class="btn small" @click="wide = !wide">{{ wide ? '메모 보이기' : '악보만 크게' }}</button>
           </div>
 
-          <!-- 마디 악보(AI가 만든 타브·코드): 보는 키로 옮겨서 그린다 -->
+          <!-- 마디 악보(타브·코드): 보는 키로 옮겨서 그린다 -->
           <MeasureSheet
             v-if="tabs.length"
             :tabs="tabs"
