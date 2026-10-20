@@ -1,23 +1,27 @@
 // 알림 종류·영역·시간 표시 (헤더 알림함과 알림 페이지가 함께 쓴다)
 
 // 걸러 보기 탭. value는 백엔드 NotificationCategory와 같다
+// 걸러 보기 탭 (#145): 밴드 안에서 생기는 커뮤니티·합주 알림도 '밴드'로 묶는다. 백엔드 NotificationCategory와 같다
 export const NOTIFICATION_CATEGORIES = [
   { value: 'FRIEND', label: '친구' },
   { value: 'BAND', label: '밴드' },
-  { value: 'COMMUNITY', label: '커뮤니티' },
-  { value: 'JAM', label: '합주' },
   { value: 'RECORD', label: '레코드' },
 ]
 
-const CATEGORY_OF_TYPE = {
+// 알림 종류 → 아이콘 (탭은 묶였어도 아이콘은 커뮤니티 말풍선·합주 음표로 구분한다)
+const ICON_OF_TYPE = {
   FRIEND_REQUEST: 'FRIEND', FRIEND_ACCEPT: 'FRIEND',
   NOTICE: 'COMMUNITY', COMMENT: 'COMMUNITY', REPLY: 'COMMUNITY', MENTION: 'COMMUNITY',
   SETLIST_ASSIGN: 'JAM', JAM_NEW: 'JAM', JAM_TRACK: 'JAM',
   RECORD: 'RECORD',
 }
+export const iconOf = (type) => ICON_OF_TYPE[type] || 'BAND'
 
-// 알림 종류 → 영역 (나머지는 밴드)
-export const categoryOf = (type) => CATEGORY_OF_TYPE[type] || 'BAND'
+// 알림 종류 → 걸러 보기 탭 (친구·레코드 말고는 모두 밴드)
+export const categoryOf = (type) => {
+  const icon = iconOf(type)
+  return icon === 'FRIEND' || icon === 'RECORD' ? icon : 'BAND'
+}
 
 // '방금', '5분 전', '3시간 전', '2일 전', '10월 3일'
 export function agoText(at) {
