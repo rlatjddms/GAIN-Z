@@ -15,7 +15,7 @@ const WEB = path.join(__dirname, 'web');
 const SPRITES = path.join(ROOT, 'frontend', 'src', 'assets', 'sprites');
 const PALETTE_JS = path.join(ROOT, 'frontend', 'src', 'pixel', 'palette.js');
 // 프론트 pixel/palette.js의 LAYER_ORDER와 같은 레이어 (하의·소품은 레벨 보상)
-const LAYERS = ['body', 'bottom', 'shoes', 'outfit', 'neck', 'hair', 'earrings', 'glasses', 'hat', 'instrument'];
+const LAYERS = ['body', 'bottom', 'shoes', 'outfit', 'waist', 'neck', 'hair', 'earrings', 'hat', 'glasses', 'instrument'];
 const W = 24, H = 32;
 
 // ---------- 정적 파일 (디스크에서 매번 읽음: 코드 고치면 새로고침으로 반영) ----------

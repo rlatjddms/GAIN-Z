@@ -41,8 +41,10 @@ const spec = computed(() => {
     body,
     outfit,
     // 소품: 캐릭터 응답의 shoes·neck·glasses·hat (없으면 안 그림)
-    bottom: c.bottom || null,
-    shoes: c.shoes || null,
+    // 하의·신발은 늘 입는다 (고른 적 없으면 기본 청바지·신발)
+    bottom: c.bottom || 'JEANS',
+    shoes: c.shoes || 'BASIC_SHOES',
+    waist: c.waist || null,
     neck: c.neck || null,
     earrings: c.earrings || null,
     glasses: c.glasses || null,
@@ -86,7 +88,7 @@ function draw() {
 async function rebuild() {
   const token = ++loadToken
   const s = spec.value
-  const names = { body: s.body, outfit: s.outfit, hair: s.hair, instrument: s.instrument, bottom: s.bottom, shoes: s.shoes, neck: s.neck, earrings: s.earrings, glasses: s.glasses, hat: s.hat }
+  const names = { body: s.body, outfit: s.outfit, hair: s.hair, instrument: s.instrument, bottom: s.bottom, shoes: s.shoes, waist: s.waist, neck: s.neck, earrings: s.earrings, glasses: s.glasses, hat: s.hat }
 
   const loaded = await Promise.all(
     LAYER_ORDER.map(async (layer) => {

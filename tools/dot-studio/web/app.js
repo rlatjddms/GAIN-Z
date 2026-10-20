@@ -8,7 +8,7 @@ const $$ = (s) => [...document.querySelectorAll(s)];
 const CELL = 32;
 
 const LAYER_LABEL = {
-  body: '몸', bottom: '하의', shoes: '신발', outfit: '의상', neck: '목', hair: '머리',
+  body: '몸', bottom: '하의', shoes: '신발', outfit: '의상', waist: '허리', neck: '목', hair: '머리',
   earrings: '귀걸이', glasses: '안경', hat: '모자', instrument: '악기',
 };
 const pvSelectId = (layer) => 'pv' + layer[0].toUpperCase() + layer.slice(1);

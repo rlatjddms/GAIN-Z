@@ -3,44 +3,48 @@
 import { MAX_LEVEL } from './levelTier'
 
 // 소품 착용 자리. folder = 스프라이트 폴더, field = 캐릭터 응답의 필드 이름
+// required: 늘 하나는 입는 자리 (안 고른 캐릭터는 defaultKey)
 export const ACCESSORY_SLOTS = [
   { key: 'HAT', label: '모자', folder: 'hat', field: 'hat' },
   { key: 'GLASSES', label: '안경', folder: 'glasses', field: 'glasses' },
   { key: 'EARRINGS', label: '귀걸이', folder: 'earrings', field: 'earrings' },
   { key: 'NECK', label: '목', folder: 'neck', field: 'neck' },
-  { key: 'SHOES', label: '신발', folder: 'shoes', field: 'shoes' },
+  { key: 'WAIST', label: '허리', folder: 'waist', field: 'waist' },
+  { key: 'SHOES', label: '신발', folder: 'shoes', field: 'shoes', required: true, defaultKey: 'BASIC_SHOES' },
 ]
 
+// level 1 = 처음부터 가진 기본 아이템
 export const ACCESSORIES = [
+  { key: 'BASIC_SHOES', slot: 'SHOES', name: '기본 신발', level: 1 },
   { key: 'SNEAKERS', slot: 'SHOES', name: '운동화', level: 2 },
   { key: 'BEANIE', slot: 'HAT', name: '비니', level: 3 },
   { key: 'ROUND_GLASSES', slot: 'GLASSES', name: '동그란 안경', level: 6 },
-  { key: 'HEADPHONES', slot: 'NECK', name: '헤드폰', level: 7 },
-  { key: 'HIGH_TOPS', slot: 'SHOES', name: '하이탑', level: 8 },
   { key: 'CAP', slot: 'HAT', name: '볼캡', level: 9 },
   { key: 'SUNGLASSES', slot: 'GLASSES', name: '선글라스', level: 12 },
-  { key: 'PICK_NECKLACE', slot: 'NECK', name: '피크 목걸이', level: 13 },
+  { key: 'HEADPHONES', slot: 'NECK', name: '헤드폰', level: 13 },
   { key: 'STUD_EARRINGS', slot: 'EARRINGS', name: '스터드 귀걸이', level: 14 },
-  { key: 'BUCKET_HAT', slot: 'HAT', name: '버킷햇', level: 16 },
+  { key: 'BELT', slot: 'WAIST', name: '체인 벨트', level: 16 },
   { key: 'HOOP_EARRINGS', slot: 'EARRINGS', name: '링 귀걸이', level: 18 },
   { key: 'STAR_GLASSES', slot: 'GLASSES', name: '별 선글라스', level: 19 },
-  { key: 'COMBAT_BOOTS', slot: 'SHOES', name: '워커', level: 21 },
+  { key: 'HIGH_TOPS', slot: 'SHOES', name: '하이탑', level: 21 },
   { key: 'STAR_EARRINGS', slot: 'EARRINGS', name: '별 귀걸이', level: 22 },
   { key: 'CHAIN', slot: 'NECK', name: '체인 목걸이', level: 24 },
   { key: 'HEART_GLASSES', slot: 'GLASSES', name: '하트 선글라스', level: 26 },
-  { key: 'GOLD_SNEAKERS', slot: 'SHOES', name: '골드 운동화', level: 27 },
+  { key: 'COMBAT_BOOTS', slot: 'SHOES', name: '워커', level: 27 },
   { key: 'CROWN', slot: 'HAT', name: '왕관', level: 28 },
 ]
 
-// 하의: 5레벨마다 상의와 한 벌로 받는다. 안 입으면 몸 그림의 기본 청바지
-export const BOTTOM_SLOT = { key: 'BOTTOM', label: '하의', folder: 'bottom', field: 'bottom' }
+// 하의: 늘 하나는 입는다 (기본은 청바지). 5레벨마다 상의와 한 벌, 치마는 Lv.8
+export const BOTTOM_SLOT = { key: 'BOTTOM', label: '하의', folder: 'bottom', field: 'bottom', required: true, defaultKey: 'JEANS' }
 export const BOTTOMS = [
+  { key: 'JEANS', slot: 'BOTTOM', name: '청바지', level: 1 },
   { key: 'JOGGERS', slot: 'BOTTOM', name: '조거 팬츠', level: 5 },
+  { key: 'SKIRT', slot: 'BOTTOM', name: '치마', level: 8 },
   { key: 'RIPPED_JEANS', slot: 'BOTTOM', name: '찢어진 청바지', level: 10 },
   { key: 'CARGO_PANTS', slot: 'BOTTOM', name: '카고 바지', level: 15 },
   { key: 'LEATHER_PANTS', slot: 'BOTTOM', name: '가죽 바지', level: 20 },
   { key: 'SUIT_PANTS', slot: 'BOTTOM', name: '정장 바지', level: 25 },
-  { key: 'SEQUIN_PANTS', slot: 'BOTTOM', name: '반짝이 바지', level: 30 },
+  { key: 'GOLD_STRIPE_PANTS', slot: 'BOTTOM', name: '금줄 바지', level: 30 },
 ]
 
 // 레벨로 얻는 헤어스타일 (처음부터 고를 수 있는 머리는 characterOptions.js에 level 1)
@@ -52,14 +56,15 @@ export const REWARD_HAIR_STYLES = [
   { key: 'AFRO', name: '아프로', level: 29 },
 ]
 
-// 5레벨마다 상의 (spriteKey = 의상 스프라이트 이름)
+// 레벨 보상 상의 (spriteKey = 의상 스프라이트 이름). 5레벨마다 + 크롭티는 Lv.7
 export const REWARD_OUTFITS = [
   { key: 'HOODIE', name: '후드티', level: 5 },
+  { key: 'CROP', name: '크롭티', level: 7 },
   { key: 'BAND_TEE', name: '밴드 티셔츠', level: 10 },
   { key: 'DENIM_JACKET', name: '데님 재킷', level: 15 },
   { key: 'LEATHER_JACKET', name: '가죽 재킷', level: 20 },
   { key: 'STAGE_SUIT', name: '무대 정장', level: 25 },
-  { key: 'SEQUIN_JACKET', name: '반짝이 재킷', level: 30 },
+  { key: 'GOLD_TRIM_JACKET', name: '금장 재킷', level: 30 },
 ]
 
 // 무대 꾸미기 효과: 5레벨 보상 중 배경이 없는 Lv.5·15·25와 마지막 Lv.30 (components/StageEffect.vue)
@@ -75,6 +80,9 @@ export const STAGE_REWARDS = [
   { key: 'PRO', name: '투어 공연장', level: 20 },
   { key: 'LEGEND', name: '전설의 무대', level: 30 },
 ]
+
+// 입고 있는 아이템 (늘 입는 자리는 비어 있으면 기본 아이템)
+export const wornIn = (slot, character) => character?.[slot.field] || (slot.required ? slot.defaultKey : null)
 
 export const slotOf = (key) => (key === BOTTOM_SLOT.key ? BOTTOM_SLOT : ACCESSORY_SLOTS.find((s) => s.key === key))
 

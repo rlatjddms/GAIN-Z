@@ -19,7 +19,7 @@
         <div class="preview">
           <!-- 무대 가운데(캐릭터 쪽)만 카메라처럼 잘라 보여 준다. 배율은 무대 전체와 같다 -->
           <CharacterStage v-if="preview" :character="preview" bare :view-width="PREVIEW_VIEW_WIDTH" />
-          <p class="preview-caption">{{ STAGE_NAMES[draft.stageBackground] }} 무대 · {{ clothes.find((o) => o.id === draft.outfitId)?.name || '기본 의상' }} · {{ BOTTOMS.find((b) => b.key === draft.bottom)?.name || '기본 청바지' }}</p>
+          <p class="preview-caption">{{ STAGE_NAMES[draft.stageBackground] }} 무대 · {{ clothes.find((o) => o.id === draft.outfitId)?.name || '기본 의상' }} · {{ BOTTOMS.find((b) => b.key === draft.bottom)?.name || '청바지' }}</p>
         </div>
 
         <section class="panel">
@@ -90,7 +90,7 @@
 
           <!-- 의상: 상의(성별마다 다른 그림)와 하의를 따로 고른다. 썸네일은 옷만 -->
           <div v-else-if="tab === 'outfit'" class="tab-body">
-            <p class="hint">5레벨마다 상의와 하의를 한 벌씩 얻어요.</p>
+            <p class="hint">5레벨마다 상의와 하의를 한 벌씩 얻어요. 크롭티는 Lv.7, 치마는 Lv.8이에요.</p>
             <p v-if="wardrobeError" class="warn">{{ wardrobeError }}</p>
             <div class="field">
               <span class="label">상의</span>
@@ -113,13 +113,6 @@
             <div class="field">
               <span class="label">하의</span>
               <div class="items small">
-                <button class="item" :class="{ on: !draft.bottom }" @click="draft.bottom = null">
-                  <span class="item-thumb sprite">
-                    <PixelSprite :parts="[['body', draft.gender === 'MALE' ? 'MALE' : 'FEMALE']]" :region="LEGS_REGION" :box="44" label="기본 청바지" />
-                  </span>
-                  <strong>기본 청바지</strong>
-                  <small>{{ !draft.bottom ? '입는 중' : '입기' }}</small>
-                </button>
                 <button
                   v-for="b in BOTTOMS" :key="b.key" class="item"
                   :class="{ on: draft.bottom === b.key, locked: !unlocked(b.level) }"
@@ -137,13 +130,13 @@
             </div>
           </div>
 
-          <!-- 소품: 자리(모자·안경·목·신발)마다 하나씩 -->
+          <!-- 소품: 자리마다 하나씩. 신발처럼 늘 입는 자리는 '없음'이 없다 -->
           <div v-else-if="tab === 'accessory'" class="tab-body">
             <p class="hint">레벨이 오를 때마다 소품이나 헤어스타일을 하나씩 얻어요.</p>
             <div v-for="slot in ACCESSORY_SLOTS" :key="slot.key" class="field">
               <span class="label">{{ slot.label }}</span>
               <div class="items small">
-                <button class="item" :class="{ on: !draft[slot.field] }" @click="draft[slot.field] = null">
+                <button v-if="!slot.required" class="item" :class="{ on: !draft[slot.field] }" @click="draft[slot.field] = null">
                   <span class="item-thumb none">없음</span>
                   <small>{{ !draft[slot.field] ? '쓰는 중' : '벗기' }}</small>
                 </button>
@@ -232,9 +225,9 @@ import {
   GENDER_OPTIONS, HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS,
   INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS, nicknameProblem,
 } from '../constants/characterOptions'
-import { DEFAULT_COLORS, HEAD_REGION, LEGS_REGION } from '../pixel/palette'
+import { DEFAULT_COLORS, HEAD_REGION } from '../pixel/palette'
 import { outfitSpriteName } from '../pixel/sprites'
-import { ACCESSORY_SLOTS, ACCESSORIES, BOTTOMS, BOTTOM_SLOT, STAGE_EFFECTS } from '../constants/rewards'
+import { ACCESSORY_SLOTS, ACCESSORIES, BOTTOMS, BOTTOM_SLOT, STAGE_EFFECTS, wornIn } from '../constants/rewards'
 
 const TABS = [
   { key: 'look', label: '외형' },
@@ -255,9 +248,10 @@ const original = ref(null)
 const draft = reactive({
   nickname: '', gender: 'MALE', skinColor: DEFAULT_COLORS.skinColor, hairStyle: 'SHORT_CUT', hairColor: '#111827',
   instrumentType: 'GUITAR', instrumentColor: '#B91C1C', outfitId: null, stageBackground: null,
-  stageEffect: null, bottom: null, hat: null, glasses: null, earrings: null, neck: null, shoes: null,
+  stageEffect: null, bottom: 'JEANS', hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: 'BASIC_SHOES',
 })
-const ACCESSORY_FIELDS = [BOTTOM_SLOT, ...ACCESSORY_SLOTS].map((s) => s.field)
+const WEAR_SLOTS = [BOTTOM_SLOT, ...ACCESSORY_SLOTS]
+const ACCESSORY_FIELDS = WEAR_SLOTS.map((s) => s.field)
 const WARDROBE_KEYS = ['outfitId', 'stageBackground', 'stageEffect', ...ACCESSORY_FIELDS]
 
 const outfits = ref([])
@@ -273,7 +267,7 @@ const snapshot = (c, wardrobe) => ({
   // 고른 적 없으면 레벨로 얻은 가장 큰 무대 (서버도 같은 규칙으로 돌려준다)
   stageBackground: wardrobe?.stageBackground ?? c.stageBackground ?? getLevelTier(c.level ?? 1).key,
   stageEffect: c.stageEffect ?? null,
-  ...Object.fromEntries(ACCESSORY_FIELDS.map((f) => [f, c[f] ?? null])),
+  ...Object.fromEntries(WEAR_SLOTS.map((s) => [s.field, wornIn(s, c)])),
 })
 
 onMounted(async () => {

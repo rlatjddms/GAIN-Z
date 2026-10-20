@@ -151,7 +151,7 @@ const character = reactive({
   hairColor: '#EC4899',
   instrumentColor: '#B91C1C',
   outfitColor: '#FFFFFF',
-  bottom: null, hat: null, glasses: null, earrings: null, neck: null, shoes: null,
+  bottom: null, hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: null,
 })
 </script>
 
