@@ -107,8 +107,9 @@ public class SheetService {
         return WorkspaceDetailResponse.of(item, pages, List.of(), userId);
     }
 
-    // 코드 붙여넣기로 코드 악보 만들기 (#157): 파일 없이 코드 글(content)만. 종류는 늘 CHORD, 만들면 바로 내 보관함에 담김
-    public WorkspaceDetailResponse createChordSheet(Long userId, SheetRequest request) {
+    // 글 악보 만들기: 파일 없이 글(content)만. 만들면 바로 내 보관함에 담김
+    // 코드 붙여넣기(#157)는 CHORD, 타브 붙여넣기·직접 쓰기(#166)는 TAB. 다른 종류는 코드 악보로 본다
+    public WorkspaceDetailResponse createTextSheet(Long userId, SheetRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         String content = requireContent(request.content());
@@ -122,13 +123,13 @@ public class SheetService {
                 .bpm(request.bpm())
                 .content(content)
                 .instrumentType(request.instrumentType())
-                .sheetTypes(List.of(SheetType.CHORD))
+                .sheetTypes(List.of(textSheetType(request.sheetType())))
                 .build());
         UserWorkspace item = userWorkspaceRepository.save(UserWorkspace.builder().user(user).sheetMusic(sheet).build());
         return WorkspaceDetailResponse.of(item, List.of(), List.of(), userId);
     }
 
-    // 내가 올린 악보의 곡 정보를 고친다. content를 보내면 코드 악보 글도 바꾼다 (보내지 않으면 그대로)
+    // 내가 올린 악보의 곡 정보를 고친다. content를 보내면 글 악보(코드·타브) 글도 바꾼다 (보내지 않으면 그대로)
     public SheetDetailResponse updateSheet(Long userId, Long sheetId, SheetRequest request) {
         SheetMusic sheet = findOwnSheet(userId, sheetId);
         sheet.updateInfo(request.title().trim(), request.artistOrEmpty(), blankToNull(request.originalKey()), request.bpm(),
@@ -139,11 +140,16 @@ public class SheetService {
         return detail(sheet, userId);
     }
 
+    private static SheetType textSheetType(SheetType requested) {
+        return requested == SheetType.TAB ? SheetType.TAB : SheetType.CHORD;
+    }
+
+    // 앞뒤 빈 줄만 지운다. 타브는 칸 위치가 박이라서 첫 줄 앞 공백(코드 줄 맞춤)을 남긴다
     private static String requireContent(String content) {
         if (content == null || content.isBlank()) {
             throw new BusinessException(ErrorCode.SHEET_CONTENT_REQUIRED);
         }
-        return content.strip();
+        return content.replaceFirst("^(?:[ \\t]*\\r?\\n)+", "").stripTrailing();
     }
 
     // 장을 뒤에 더 붙인다

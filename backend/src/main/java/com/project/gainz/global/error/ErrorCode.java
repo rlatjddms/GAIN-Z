@@ -75,7 +75,7 @@ public enum ErrorCode {
     SHEET_PAGE_NOT_FOUND(404, "S010", "존재하지 않는 악보 장입니다."),
     SHEET_LAST_PAGE(400, "S011", "마지막 한 장은 지울 수 없습니다."),
     SHEET_FILE_STORAGE_FAILED(500, "S012", "악보 파일을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."),
-    SHEET_CONTENT_REQUIRED(400, "S013", "코드 악보 내용을 붙여 넣어 주세요."),
+    SHEET_CONTENT_REQUIRED(400, "S013", "악보 내용을 붙여 넣어 주세요."),
     ANNOTATION_TOO_LARGE(400, "S014", "필기가 너무 많아 저장하지 못했습니다. 일부를 지우고 다시 써 주세요."),
     INVALID_ANNOTATION(400, "S015", "필기 형식이 올바르지 않습니다."),
 

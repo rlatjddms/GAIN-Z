@@ -179,37 +179,57 @@ class SheetServiceTest {
         verify(sheetMusicRepository, never()).save(any());
     }
 
-    /* ---------- 코드 붙여넣기 (#157) ---------- */
+    /* ---------- 글 악보: 코드 붙여넣기 (#157)·타브 붙여넣기 (#166) ---------- */
 
-    private SheetRequest chordReq(String content) {
-        return new SheetRequest(" 밤편지 ", "아이유", "C", null, InstrumentType.GUITAR, SheetType.TAB, content);
+    private SheetRequest textReq(SheetType type, String content) {
+        return new SheetRequest(" 밤편지 ", "아이유", "C", null, InstrumentType.GUITAR, type, content);
+    }
+
+    private SheetMusic createTextSheetAndCapture(SheetRequest request) {
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(mock(User.class)));
+        when(sheetMusicRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(userWorkspaceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        WorkspaceDetailResponse result = sheetService.createTextSheet(USER_ID, request);
+
+        ArgumentCaptor<SheetMusic> captor = ArgumentCaptor.forClass(SheetMusic.class);
+        verify(sheetMusicRepository).save(captor.capture());
+        assertThat(result.sheet().pages()).isEmpty();
+        verify(fileStorage, never()).store(any());
+        return captor.getValue();
     }
 
     @Test
     void 코드_글로_악보를_만들면_파일_없이_코드_악보로_보관함에_담긴다() {
-        User me = mock(User.class);
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(me));
-        when(sheetMusicRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(userWorkspaceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        SheetMusic saved = createTextSheetAndCapture(textReq(SheetType.CHORD, "\n# 1절\n[C]이 밤 [G]그날의\n"));
 
-        WorkspaceDetailResponse result = sheetService.createChordSheet(USER_ID, chordReq("\n# 1절\n[C]이 밤 [G]그날의\n"));
-
-        ArgumentCaptor<SheetMusic> captor = ArgumentCaptor.forClass(SheetMusic.class);
-        verify(sheetMusicRepository).save(captor.capture());
-        SheetMusic saved = captor.getValue();
         assertThat(saved.getTitle()).isEqualTo("밤편지");
         assertThat(saved.getContent()).isEqualTo("# 1절\n[C]이 밤 [G]그날의");
-        // 요청 종류와 상관없이 코드 악보
         assertThat(saved.getSheetTypes()).containsExactly(SheetType.CHORD);
-        assertThat(result.sheet().pages()).isEmpty();
-        verify(fileStorage, never()).store(any());
+    }
+
+    @Test
+    void 타브_글로_악보를_만들면_타브_악보가_되고_첫_줄_앞_공백은_남긴다() {
+        String tab = "  C\ne|--0--|\nB|--1--|\nG|--0--|\nD|--2--|\nA|--3--|\nE|-----|";
+
+        SheetMusic saved = createTextSheetAndCapture(textReq(SheetType.TAB, "\n" + tab + "\n\n"));
+
+        assertThat(saved.getContent()).isEqualTo(tab);
+        assertThat(saved.getSheetTypes()).containsExactly(SheetType.TAB);
+    }
+
+    @Test
+    void 코드나_타브가_아닌_종류로_글_악보를_만들면_코드_악보로_본다() {
+        SheetMusic saved = createTextSheetAndCapture(textReq(SheetType.SCORE, "[C]이 밤"));
+
+        assertThat(saved.getSheetTypes()).containsExactly(SheetType.CHORD);
     }
 
     @Test
     void 코드_글이_비어_있으면_만들지_않는다() {
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(mock(User.class)));
 
-        assertThatThrownBy(() -> sheetService.createChordSheet(USER_ID, chordReq("   ")))
+        assertThatThrownBy(() -> sheetService.createTextSheet(USER_ID, textReq(SheetType.CHORD, "   ")))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.SHEET_CONTENT_REQUIRED);
         verify(sheetMusicRepository, never()).save(any());

@@ -65,13 +65,13 @@ public class SheetController {
         return ResponseEntity.ok(ApiResponse.success(sheetService.uploadSheet(principal.getUserId(), request, files)));
     }
 
-    // 코드 붙여넣기로 코드 악보 만들기 (JSON, 파일 없음). 만들면 바로 내 보관함에 담김 (#157)
-    @PostMapping("/chords")
-    public ResponseEntity<ApiResponse<WorkspaceDetailResponse>> createChordSheet(
+    // 글 악보 만들기 (JSON, 파일 없음): 코드 붙여넣기(#157)·타브 붙여넣기(#166). 만들면 바로 내 보관함에 담김
+    @PostMapping("/text")
+    public ResponseEntity<ApiResponse<WorkspaceDetailResponse>> createTextSheet(
             @Valid @RequestBody SheetRequest request,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        return ResponseEntity.ok(ApiResponse.success(sheetService.createChordSheet(principal.getUserId(), request)));
+        return ResponseEntity.ok(ApiResponse.success(sheetService.createTextSheet(principal.getUserId(), request)));
     }
 
     // 내가 올린 악보의 곡 정보 고치기 (코드 악보는 content도 같이)
