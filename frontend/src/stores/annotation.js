@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { getAnnotations, saveAnnotation } from '../api/sheet'
+import { apiErrorMessage } from '../api/practice'
 
 // 악보 위 필기 (#167): 올린 장(사진·PDF 쪽) 위에 펜·형광펜으로 쓴 내 필기
 // 원본 파일은 그대로 두고, 장(PDF는 쪽)마다 필기 JSON을 따로 저장한다
@@ -40,6 +41,7 @@ export const useAnnotationStore = defineStore('annotation', {
     history: [],        // 되돌리기: [[{ key, before }]] (한 번에 바뀐 면들)
     dirty: [],          // 아직 저장하지 않은 면
     status: 'idle',     // idle | saving | saved | error
+    message: '',        // 서버가 저장을 거절한 까닭 (error일 때)
   }),
 
   getters: {
@@ -114,6 +116,7 @@ export const useAnnotationStore = defineStore('annotation', {
     markDirty(key) {
       if (!this.dirty.includes(key)) this.dirty.push(key)
       this.status = 'saving'
+      this.message = ''
       clearTimeout(saveTimer)
       saveTimer = setTimeout(() => this.flush(), SAVE_DELAY)
     },
@@ -132,12 +135,14 @@ export const useAnnotationStore = defineStore('annotation', {
           await saveAnnotation(sheetId, s.pageId, s.pdfPage, data)
         }
         if (this.sheetId === sheetId && !this.dirty.length) this.status = 'saved'
-      } catch {
+      } catch (e) {
         if (this.sheetId !== sheetId) return
-        // 남겨 두고 잠시 뒤 다시 저장
         for (const key of keys) if (!this.dirty.includes(key)) this.dirty.push(key)
         this.status = 'error'
-        saveTimer = setTimeout(() => this.flush(), RETRY_DELAY)
+        const code = e?.response?.status
+        // 서버가 거절한 필기(너무 큼 등)는 다시 보내도 같아서, 다음에 고칠 때까지 기다린다. 그 밖엔 잠시 뒤 다시 저장
+        this.message = code >= 400 && code < 500 && code !== 408 && code !== 429 ? apiErrorMessage(e) : ''
+        if (!this.message) saveTimer = setTimeout(() => this.flush(), RETRY_DELAY)
       }
     },
   },

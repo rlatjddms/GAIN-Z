@@ -42,7 +42,10 @@ const toolList = [
   { key: 'eraser', label: '지우개', icon: Eraser },
 ]
 
-const statusText = computed(() => ({ saving: '저장 중…', saved: '저장됨', error: '저장 못 함 · 다시 시도해요' }[store.status] || ''))
+const statusText = computed(() => {
+  if (store.status === 'error') return store.message || '저장 못 함 · 다시 시도해요'
+  return { saving: '저장 중…', saved: '저장됨' }[store.status] || ''
+})
 
 const clearAll = async () => {
   const ok = await dialog.confirm({ title: '필기 모두 지우기', text: '이 악보에 쓴 내 필기를 모두 지울까요? 되돌리기로 다시 살릴 수 있어요.', okText: '모두 지우기', danger: true })
