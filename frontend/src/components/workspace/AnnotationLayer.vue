@@ -18,28 +18,35 @@
 
     <!-- 글자 입력칸: 누른 자리에 뜨고, Enter나 다른 곳을 누르면 붙는다.
          휴대폰 자판은 누르는 순간 바로 포커스해야 떠서, 글자 도구일 때는 늘 만들어 두고 숨겨 둔다 -->
-    <input
-      v-if="active && store.tool === 'text'"
-      ref="input"
-      :value="editing ? editing.text : ''"
-      class="note-input"
-      :class="{ idle: !editing }"
-      :style="inputStyle"
-      :tabindex="editing ? 0 : -1"
-      @input="editing && (editing.text = $event.target.value)"
-      maxlength="80"
-      enterkeyhint="done"
-      aria-label="필기 글자"
-      @pointerdown.stop
-      @keydown.enter.prevent="commitText"
-      @keydown.esc.prevent="editing = null"
-      @blur="commitText"
-    >
+    <div v-if="active && store.tool === 'text'" class="note-editor" :class="{ idle: !editing }" :style="editorStyle" @pointerdown.stop>
+      <!-- 쓰는 글자 크기 조절·지우기 (눌러도 입력칸 포커스를 뺏지 않음) -->
+      <div v-if="editing" class="note-tools" @pointerdown.prevent="toolPress = true">
+        <button type="button" aria-label="글자 작게" title="글자 작게" :disabled="sizeIndex <= 0" @click="resize(-1)">A<sup>−</sup></button>
+        <button type="button" aria-label="글자 크게" title="글자 크게" :disabled="sizeIndex >= TOOLS.text.sizes.length - 1" @click="resize(1)">A<sup>+</sup></button>
+        <button type="button" class="del" aria-label="이 글자 지우기" title="이 글자 지우기" @click="removeText"><X :size="14" :stroke-width="2.6" /></button>
+      </div>
+      <input
+        ref="input"
+        :value="editing ? editing.text : ''"
+        class="note-input"
+        :style="inputStyle"
+        :tabindex="editing ? 0 : -1"
+        :size="inputSize"
+        maxlength="80"
+        enterkeyhint="done"
+        aria-label="필기 글자"
+        @input="editing && (editing.text = $event.target.value)"
+        @keydown.enter.prevent="commitText"
+        @keydown.esc.prevent="editing = null"
+        @blur="onBlur"
+      >
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { X } from 'lucide-vue-next'
 import { useAnnotationStore, surfaceKey, SURFACE_WIDTH, TOOLS } from '../../stores/annotation'
 
 const props = defineProps({
@@ -117,17 +124,53 @@ const input = ref(null)
 const layerWidth = ref(0)
 
 // 입력칸을 글자가 그려질 자리·크기에 맞춘다
+const editorStyle = computed(() => {
+  const e = editing.value
+  if (!e) return null
+  return { left: `${(e.x / SURFACE_WIDTH) * 100}%`, top: `${((e.y - e.s) / height.value) * 100}%` }
+})
 const inputStyle = computed(() => {
   const e = editing.value
   if (!e) return null
-  const scale = layerWidth.value / SURFACE_WIDTH
-  return {
-    left: `${(e.x / SURFACE_WIDTH) * 100}%`,
-    top: `${((e.y - e.s) / height.value) * 100}%`,
-    fontSize: `${Math.max(e.s * scale, 12)}px`,
-    color: e.c,
-  }
+  return { fontSize: `${Math.max((e.s * layerWidth.value) / SURFACE_WIDTH, 12)}px`, color: e.c }
 })
+
+// 쓴 만큼 늘어나는 입력칸 (한글은 두 칸으로 셈)
+const inputSize = computed(() => Math.max([...(editing.value?.text || '')].reduce((n, ch) => n + (ch.charCodeAt(0) > 0x2e80 ? 2 : 1), 0) + 2, 6))
+
+// 글자 크기: 정해 둔 단계 중 가까운 것에서 한 단계씩. 고른 크기는 다음 글자에도 쓴다
+const sizeIndex = computed(() => {
+  const sizes = TOOLS.text.sizes
+  const s = editing.value?.s ?? store.textSize
+  return sizes.reduce((best, v, i) => (Math.abs(v - s) < Math.abs(sizes[best] - s) ? i : best), 0)
+})
+const resize = (d) => {
+  const e = editing.value
+  if (!e) return
+  const next = TOOLS.text.sizes[Math.min(Math.max(sizeIndex.value + d, 0), TOOLS.text.sizes.length - 1)]
+  e.s = next
+  store.textSize = next
+  toolPress.value = false
+  input.value?.focus()
+}
+
+// 이 글자 지우기 (새로 쓰던 글자면 그냥 닫기)
+const removeText = () => {
+  const e = editing.value
+  toolPress.value = false
+  editing.value = null
+  if (!e || e.index === -1) return
+  const list = [...strokes.value]
+  list.splice(e.index, 1)
+  surfaceChange(list)
+}
+
+// 크기·지우기 버튼을 누르는 동안 입력칸이 포커스를 잃어도 붙이지 않는다 (휴대폰)
+const toolPress = ref(false)
+const onBlur = () => {
+  if (toolPress.value) return
+  commitText()
+}
 
 const startText = (e, at) => {
   layerWidth.value = e.currentTarget.getBoundingClientRect().width
@@ -135,7 +178,7 @@ const startText = (e, at) => {
   const index = strokes.value.findIndex((s) => s.t === 'text' && hits({ ...s }, at))
   if (index !== -1) editing.value = { ...strokes.value[index], index }
   else {
-    const size = TOOLS.text.size
+    const size = store.textSize
     editing.value = { index: -1, x: at[0], y: round(at[1] + size / 2), s: size, c: store.color, text: '' }
   }
   input.value?.focus()
@@ -148,8 +191,9 @@ const commitText = () => {
   const text = e.text.trim()
   const list = [...strokes.value]
   if (e.index !== -1) {
-    if (text === list[e.index].text) return
-    if (text) list[e.index] = { ...list[e.index], text }
+    const before = list[e.index]
+    if (text === before.text && e.s === before.s) return
+    if (text) list[e.index] = { ...before, text, s: e.s }
     else list.splice(e.index, 1)
   } else if (text) {
     list.push({ t: 'text', c: e.c, s: e.s, x: e.x, y: e.y, text })
@@ -229,9 +273,24 @@ svg {
 /* 글자: 악보 줄 위에서도 읽히게 흰 테두리 */
 .note { font-family: 'Pretendard', sans-serif; font-weight: 800; stroke: #fff; stroke-width: 4; paint-order: stroke; }
 
-.note-input.idle { left: 0; top: 0; width: 1px; min-width: 0; opacity: 0; pointer-events: none; }
+.note-editor { position: absolute; max-width: 90%; }
+.note-editor.idle { left: 0; top: 0; width: 1px; opacity: 0; pointer-events: none; }
+.note-editor.idle .note-input { min-width: 0; width: 1px; }
+.note-tools {
+  position: absolute; bottom: calc(100% + 4px); left: 0; display: flex; gap: 2px; padding: 2px;
+  background: var(--c-surface); border: 1px solid var(--c-line); border-radius: 8px; box-shadow: var(--shadow-sm);
+}
+.note-tools button {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 26px; padding: 0 4px;
+  border: 0; border-radius: 6px; background: transparent; cursor: pointer;
+  font: 800 0.8rem 'Pretendard', sans-serif; color: var(--c-text-2);
+}
+.note-tools button sup { font-size: 0.65em; }
+.note-tools button:hover:not(:disabled) { background: var(--c-line-soft); }
+.note-tools button:disabled { opacity: 0.35; cursor: default; }
+.note-tools .del { color: var(--c-danger); }
 .note-input {
-  position: absolute; min-width: 6em; max-width: 90%; padding: 0 2px; margin: 0;
+  display: block; max-width: 100%; padding: 0 2px; margin: 0;
   font-family: 'Pretendard', sans-serif; font-weight: 800; line-height: 1.25;
   background: rgba(255, 255, 255, 0.9); border: 1px dashed currentColor; border-radius: 4px; outline: none;
 }
