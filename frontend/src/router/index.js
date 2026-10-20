@@ -142,6 +142,18 @@ const router = createRouter({
   routes
 })
 
+// 브라우저 탭 제목: '연습 기록장 · GAIN-Z'
+const TITLES = {
+  login: '로그인', signup: '회원가입', home: '홈', practice: '연습 기록장', sheets: '악보 보관함',
+  'sheet-new': '악보 만들기', 'sheet-detail': '악보', 'sheet-edit': '악보 고치기', transcribe: 'AI 악보 만들기',
+  wardrobe: '옷장', mypage: '마이페이지', notifications: '알림', friends: '친구',
+  'band-setlists': '셋리스트', 'band-jams': '레이어 잼', 'band-settings': '밴드 설정', 'character-create': '캐릭터 만들기',
+}
+router.afterEach((to) => {
+  const title = TITLES[to.name]
+  document.title = title ? `${title} · GAIN-Z` : 'GAIN-Z'
+})
+
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
