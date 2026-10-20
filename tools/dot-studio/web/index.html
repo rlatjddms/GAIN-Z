@@ -78,10 +78,8 @@
       <div class="side-head">미리보기 <span class="live"><i></i>실제 색</span></div>
       <canvas id="pvCanvas" width="192" height="264"></canvas>
       <div class="pv-controls">
-        <label>몸 <select id="pvBody"></select></label>
-        <label>의상 <select id="pvOutfit"></select></label>
-        <label>머리 <select id="pvHair"></select></label>
-        <label>악기 <select id="pvInstrument"></select></label>
+        <!-- 레이어마다 고르는 칸은 app.js가 LAYER_ORDER대로 만든다 -->
+        <div id="pvLayerSelects" class="pv-layers"></div>
         <label>피부색 <input type="color" id="pvSkinColor" value="#F8D7B5"></label>
         <label>머리색 <input type="color" id="pvHairColor" value="#EC4899"></label>
         <label>악기색 <input type="color" id="pvInstrumentColor" value="#B91C1C"></label>

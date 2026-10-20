@@ -7,7 +7,20 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const CELL = 32;
 
-const LAYER_LABEL = { body: '몸', outfit: '의상', hair: '머리', instrument: '악기' };
+const LAYER_LABEL = {
+  body: '몸', bottom: '하의', shoes: '신발', outfit: '의상', waist: '허리', neck: '목', hair: '머리',
+  earrings: '귀걸이', glasses: '안경', hat: '모자', instrument: '악기',
+};
+const pvSelectId = (layer) => 'pv' + layer[0].toUpperCase() + layer.slice(1);
+
+// 미리보기에서 레이어마다 그림을 고르는 칸 (레이어가 늘어도 자동으로 생김)
+for (const layer of LAYER_ORDER) {
+  const label = document.createElement('label');
+  label.textContent = `${LAYER_LABEL[layer] || layer} `;
+  const sel = document.createElement('select'); sel.id = pvSelectId(layer);
+  label.appendChild(sel);
+  $('#pvLayerSelects').appendChild(label);
+}
 const KEY_LABEL = {
   SKIN: '피부', SKIN_LIGHT: '피부 밝음', SKIN_SHADOW: '피부 그림자', SKIN_LINE: '피부 선',
   HAIR: '머리', HAIR_LIGHT: '머리 밝음', HAIR_DARK: '머리 그림자', HAIR_LINE: '머리 선',
@@ -428,11 +441,11 @@ function renderUsed() {
 function renderLayerTabs() {
   const box = $('#layerTabs'); box.innerHTML = '';
   for (const layer of LAYER_ORDER) {
-    const b = document.createElement('button'); b.textContent = LAYER_LABEL[layer]; b.classList.toggle('on', layer === S.layer);
+    const b = document.createElement('button'); b.textContent = LAYER_LABEL[layer] || layer; b.classList.toggle('on', layer === S.layer);
     b.onclick = () => selectLayer(layer);
     box.appendChild(b);
   }
-  $('#layerLabel').textContent = LAYER_LABEL[S.layer];
+  $('#layerLabel').textContent = LAYER_LABEL[S.layer] || S.layer;
 }
 function renderList() {
   const ul = $('#sprites'); ul.innerHTML = '';
@@ -554,7 +567,7 @@ setInterval(() => { pvFrame++; drawPreview(); }, 500);
 
 function syncPvSelects() {
   for (const layer of LAYER_ORDER) {
-    const sel = $('#pv' + layer[0].toUpperCase() + layer.slice(1));
+    const sel = $('#' + pvSelectId(layer));
     sel.innerHTML = '';
     const names = [...(S.sprites[layer] || [])];
     if (S.name && layer === S.layer && !names.includes(S.name)) names.push(S.name);
@@ -564,7 +577,7 @@ function syncPvSelects() {
   }
 }
 for (const layer of LAYER_ORDER) {
-  $('#pv' + layer[0].toUpperCase() + layer.slice(1)).addEventListener('change', (e) => { S.pv[layer] = e.target.value || null; drawPaint(); drawPreview(); });
+  $('#' + pvSelectId(layer)).addEventListener('change', (e) => { S.pv[layer] = e.target.value || null; drawPaint(); drawPreview(); });
 }
 for (const k of ['skinColor', 'hairColor', 'instrumentColor', 'outfitColor']) {
   $('#pv' + k[0].toUpperCase() + k.slice(1)).addEventListener('input', (e) => { S.pv[k] = e.target.value; drawPaint(); drawPreview(); });

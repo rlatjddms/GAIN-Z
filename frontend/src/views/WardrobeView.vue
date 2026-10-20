@@ -19,7 +19,7 @@
         <div class="preview">
           <!-- 무대 가운데(캐릭터 쪽)만 카메라처럼 잘라 보여 준다. 배율은 무대 전체와 같다 -->
           <CharacterStage v-if="preview" :character="preview" bare :view-width="PREVIEW_VIEW_WIDTH" />
-          <p class="preview-caption">{{ STAGE_NAMES[draft.stageBackground] }} 무대 · {{ clothes.find((o) => o.id === draft.outfitId)?.name || '기본 의상' }}</p>
+          <p class="preview-caption">{{ STAGE_NAMES[draft.stageBackground] }} 무대 · {{ clothes.find((o) => o.id === draft.outfitId)?.name || '기본 의상' }} · {{ BOTTOMS.find((b) => b.key === draft.bottom)?.name || '청바지' }}</p>
         </div>
 
         <section class="panel">
@@ -53,8 +53,15 @@
             <div class="field">
               <span class="label">헤어 스타일</span>
               <div class="grid">
-                <button v-for="h in HAIR_STYLE_OPTIONS" :key="h.value" class="opt" :class="{ on: draft.hairStyle === h.value }" @click="draft.hairStyle = h.value">
-                  <span class="emoji">{{ h.emoji }}</span>{{ h.label }}
+                <button v-for="h in HAIR_STYLE_OPTIONS" :key="h.value" class="opt"
+                        :class="{ on: draft.hairStyle === h.value, locked: !unlocked(h.level) }"
+                        :disabled="!unlocked(h.level)" :title="unlocked(h.level) ? '' : `Lv.${h.level}에 해금`"
+                        @click="draft.hairStyle = h.value">
+                  <span class="opt-thumb">
+                    <PixelSprite :parts="[['body', draft.gender === 'MALE' ? 'MALE' : 'FEMALE'], ['hair', h.value]]" :colors="looks" :region="HEAD_REGION" :box="48" :label="h.label" />
+                    <i v-if="!unlocked(h.level)">🔒</i>
+                  </span>{{ h.label }}
+                  <small v-if="!unlocked(h.level)" class="lv">Lv.{{ h.level }}</small>
                 </button>
               </div>
             </div>
@@ -68,9 +75,17 @@
               <span class="label">악기</span>
               <div class="grid">
                 <button v-for="i in INSTRUMENT_OPTIONS" :key="i.value" class="opt" :class="{ on: draft.instrumentType === i.value }" @click="draft.instrumentType = i.value">
-                  <span class="emoji">{{ i.emoji }}</span>{{ i.label }}
+                  <span class="opt-thumb">
+                    <PixelSprite :parts="[['instrument', i.value]]" :colors="looks" :box="34 * (i.thumb || 1)" exact :label="i.label" />
+                  </span>{{ i.label }}
                 </button>
               </div>
+              <!-- 악기 종류(밴드 포지션)는 그대로, 그림에서만 내려놓기 -->
+              <label class="toggle">
+                <input type="checkbox" :checked="!draft.instrumentHidden" @change="draft.instrumentHidden = !$event.target.checked">
+                <span>악기 표시</span>
+                <small>끄면 옷이 잘 보여요 (맡은 악기는 그대로)</small>
+              </label>
             </div>
 
             <div class="field">
@@ -79,46 +94,93 @@
             </div>
           </div>
 
-          <!-- 의상 (상의는 성별마다 다른 그림) -->
+          <!-- 의상: 상의(성별마다 다른 그림)와 하의를 따로 고른다. 썸네일은 옷만 -->
           <div v-else-if="tab === 'outfit'" class="tab-body">
-            <p class="hint">레벨이 오르거나 업적을 달성하면 새 옷이 여기에 생겨요.</p>
+            <p class="hint">5레벨마다 상의와 하의를 한 벌씩 얻어요. 크롭티는 Lv.7, 치마는 Lv.8이에요.</p>
             <p v-if="wardrobeError" class="warn">{{ wardrobeError }}</p>
-            <div class="items">
-              <button
-                v-for="o in clothes" :key="o.id" class="item"
-                :class="{ on: draft.outfitId === o.id, locked: !o.owned }"
-                :disabled="!o.owned"
-                @click="draft.outfitId = o.id"
-              >
-                <span class="item-thumb">
-                  <PixelCharacter :character="{ ...preview, currentOutfitSpriteKey: o.spriteKey }" :outfit="o.spriteKey || 'DEFAULT'" :scale="2" :animate="false" />
-                  <i v-if="!o.owned">🔒</i>
-                </span>
-                <strong>{{ o.name }}</strong>
-                <small>{{ o.owned ? (draft.outfitId === o.id ? '입는 중' : '입기') : `Lv.${o.requiredLevel}에 해금` }}</small>
-              </button>
+            <div class="field">
+              <span class="label">상의</span>
+              <div class="items small">
+                <button
+                  v-for="o in clothes" :key="o.id" class="item"
+                  :class="{ on: draft.outfitId === o.id, locked: !o.owned }"
+                  :disabled="!o.owned"
+                  @click="draft.outfitId = o.id"
+                >
+                  <span class="item-thumb sprite">
+                    <PixelSprite :parts="[['outfit', outfitSpriteName(o.spriteKey, draft.gender)]]" :item-colors="draft.itemColors" :box="44" :label="o.name" />
+                    <i v-if="!o.owned">🔒</i>
+                  </span>
+                  <strong>{{ o.name }}</strong>
+                  <small>{{ o.owned ? (draft.outfitId === o.id ? '입는 중' : '입기') : `Lv.${o.requiredLevel}에 해금` }}</small>
+                </button>
+              </div>
+              <div v-if="isColorable(wornTop.key)" class="item-color">
+                <span>{{ wornTop.name }} 색</span>
+                <ColorSwatches :model-value="itemColorOf(wornTop.key, draft.itemColors)" :presets="ITEM_COLORS[wornTop.key].presets"
+                               :label="`${wornTop.name} 색`" @update:model-value="setItemColor(wornTop.key, $event)" />
+              </div>
+            </div>
+            <div class="field">
+              <span class="label">하의</span>
+              <div class="items small">
+                <button
+                  v-for="b in BOTTOMS" :key="b.key" class="item"
+                  :class="{ on: draft.bottom === b.key, locked: !unlocked(b.level) }"
+                  :disabled="!unlocked(b.level)"
+                  @click="draft.bottom = b.key"
+                >
+                  <span class="item-thumb sprite">
+                    <PixelSprite :parts="[['bottom', b.key]]" :item-colors="draft.itemColors" :box="44" :label="b.name" />
+                    <i v-if="!unlocked(b.level)">🔒</i>
+                  </span>
+                  <strong>{{ b.name }}</strong>
+                  <small>{{ unlocked(b.level) ? (draft.bottom === b.key ? '입는 중' : '입기') : `Lv.${b.level}에 해금` }}</small>
+                </button>
+              </div>
+              <div v-if="isColorable(draft.bottom)" class="item-color">
+                <span>{{ nameOf(draft.bottom) }} 색</span>
+                <ColorSwatches :model-value="itemColorOf(draft.bottom, draft.itemColors)" :presets="ITEM_COLORS[draft.bottom].presets"
+                               :label="`${nameOf(draft.bottom)} 색`" @update:model-value="setItemColor(draft.bottom, $event)" />
+              </div>
             </div>
           </div>
 
-          <!-- 악세서리 (추가 예정) -->
+          <!-- 소품: 자리마다 하나씩. 신발처럼 늘 입는 자리는 '없음'이 없다 -->
           <div v-else-if="tab === 'accessory'" class="tab-body">
-            <div v-if="!accessories.length" class="empty">
-              <span class="empty-icon">🧢</span>
-              <strong>아직 악세서리가 없어요</strong>
-              <p>모자·안경 같은 악세서리가 곧 추가될 예정이에요.</p>
-            </div>
-            <div v-else class="items">
-              <div v-for="o in accessories" :key="o.id" class="item" :class="{ locked: !o.owned }">
-                <span class="item-thumb">{{ o.owned ? '🧢' : '🔒' }}</span>
-                <strong>{{ o.name }}</strong>
-                <small>{{ o.owned ? '곧 착용할 수 있어요' : `Lv.${o.requiredLevel}에 해금` }}</small>
+            <p class="hint">레벨이 오를 때마다 소품이나 헤어스타일을 하나씩 얻어요.</p>
+            <div v-for="slot in ACCESSORY_SLOTS" :key="slot.key" class="field">
+              <span class="label">{{ slot.label }}</span>
+              <div class="items small">
+                <button v-if="!slot.required" class="item" :class="{ on: !draft[slot.field] }" @click="draft[slot.field] = null">
+                  <span class="item-thumb none">없음</span>
+                  <small>{{ !draft[slot.field] ? '쓰는 중' : '벗기' }}</small>
+                </button>
+                <button
+                  v-for="a in accessoriesOf(slot.key)" :key="a.key" class="item"
+                  :class="{ on: draft[slot.field] === a.key, locked: !unlocked(a.level) }"
+                  :disabled="!unlocked(a.level)"
+                  @click="draft[slot.field] = a.key"
+                >
+                  <span class="item-thumb sprite">
+                    <PixelSprite :parts="[[slot.folder, a.key]]" :item-colors="draft.itemColors" :box="44" :label="a.name" />
+                    <i v-if="!unlocked(a.level)">🔒</i>
+                  </span>
+                  <strong>{{ a.name }}</strong>
+                  <small>{{ unlocked(a.level) ? (draft[slot.field] === a.key ? '쓰는 중' : '쓰기') : `Lv.${a.level}에 해금` }}</small>
+                </button>
+              </div>
+              <div v-if="isColorable(draft[slot.field])" class="item-color">
+                <span>{{ nameOf(draft[slot.field]) }} 색</span>
+                <ColorSwatches :model-value="itemColorOf(draft[slot.field], draft.itemColors)" :presets="ITEM_COLORS[draft[slot.field]].presets"
+                               :label="`${nameOf(draft[slot.field])} 색`" @update:model-value="setItemColor(draft[slot.field], $event)" />
               </div>
             </div>
           </div>
 
           <!-- 배경: 레벨로 얻은 무대는 계속 간직하고 그중 하나를 고른다 -->
           <div v-else class="tab-body">
-            <p class="hint">레벨이 오르면 새 무대를 얻어요. 얻은 무대는 언제든 다시 고를 수 있어요.</p>
+            <p class="hint">Lv.10·20·30에 새 무대를 얻어요. 얻은 무대는 언제든 다시 고를 수 있어요.</p>
             <p v-if="wardrobeError" class="warn">{{ wardrobeError }}</p>
             <div class="stages">
               <button
@@ -128,7 +190,7 @@
                 @click="draft.stageBackground = b.key"
               >
                 <span class="thumb">
-                  <StageScene :character="preview" :stage-key="b.key" :animate="false" />
+                  <StageScene :character="preview" :stage-key="b.key" :effect="null" :animate="false" />
                   <i v-if="!b.unlocked">🔒</i>
                 </span>
                 <strong>{{ STAGE_NAMES[b.key] }}</strong>
@@ -137,9 +199,27 @@
             </div>
 
             <div class="sub-section">
-              <span class="label">꾸미기 효과</span>
-              <div class="empty small">
-                <strong>✨ 반짝이 같은 무대 효과가 곧 추가될 예정이에요</strong>
+              <span class="label">무대 효과</span>
+              <p class="hint">5레벨마다 의상과 함께 무대 배경이나 효과를 얻어요.</p>
+              <div class="stages">
+                <button class="stage" :class="{ on: !draft.stageEffect }" @click="draft.stageEffect = null">
+                  <span class="thumb"><StageScene :character="preview" :stage-key="draft.stageBackground" :effect="null" :animate="false" /></span>
+                  <strong>효과 없음</strong>
+                  <small>{{ !draft.stageEffect ? '사용 중' : '고르기' }}</small>
+                </button>
+                <button
+                  v-for="e in STAGE_EFFECTS" :key="e.key" class="stage"
+                  :class="{ on: draft.stageEffect === e.key, locked: !unlocked(e.level) }"
+                  :disabled="!unlocked(e.level)"
+                  @click="draft.stageEffect = e.key"
+                >
+                  <span class="thumb">
+                    <StageScene :character="preview" :stage-key="draft.stageBackground" :effect="e.key" :animate="false" />
+                    <i v-if="!unlocked(e.level)">🔒</i>
+                  </span>
+                  <strong>{{ e.icon }} {{ e.name }}</strong>
+                  <small>{{ unlocked(e.level) ? (draft.stageEffect === e.key ? '사용 중' : '고르기') : `Lv.${e.level}에 해금` }}</small>
+                </button>
               </div>
             </div>
           </div>
@@ -156,6 +236,7 @@ import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import ColorSwatches from '../components/ColorSwatches.vue'
 import PixelCharacter from '../components/PixelCharacter.vue'
+import PixelSprite from '../components/PixelSprite.vue'
 import StageScene from '../components/StageScene.vue'
 import { useAuthStore } from '../stores/auth'
 import { getWardrobe, updateWardrobe, updateAppearance } from '../api/character'
@@ -165,12 +246,15 @@ import {
   GENDER_OPTIONS, HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS,
   INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS, nicknameProblem,
 } from '../constants/characterOptions'
-import { DEFAULT_COLORS } from '../pixel/palette'
+import { DEFAULT_COLORS, HEAD_REGION } from '../pixel/palette'
+import { outfitSpriteName } from '../pixel/sprites'
+import { ACCESSORY_SLOTS, ACCESSORIES, BOTTOMS, BOTTOM_SLOT, STAGE_EFFECTS, wornIn } from '../constants/rewards'
+import { ITEM_COLORS, isColorable, itemColorOf } from '../constants/itemColors'
 
 const TABS = [
   { key: 'look', label: '외형' },
   { key: 'outfit', label: '의상' },
-  { key: 'accessory', label: '악세서리' },
+  { key: 'accessory', label: '소품' },
   { key: 'stage', label: '배경' },
 ]
 // 미리보기는 무대(208칸) 중 가운데 96칸만 보여 준다 → 왼쪽 칸에 크게, 한 화면에 들어가게
@@ -186,7 +270,11 @@ const original = ref(null)
 const draft = reactive({
   nickname: '', gender: 'MALE', skinColor: DEFAULT_COLORS.skinColor, hairStyle: 'SHORT_CUT', hairColor: '#111827',
   instrumentType: 'GUITAR', instrumentColor: '#B91C1C', outfitId: null, stageBackground: null,
+  itemColors: {}, instrumentHidden: false, stageEffect: null, bottom: 'JEANS', hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: 'BASIC_SHOES',
 })
+const WEAR_SLOTS = [BOTTOM_SLOT, ...ACCESSORY_SLOTS]
+const ACCESSORY_FIELDS = WEAR_SLOTS.map((s) => s.field)
+const WARDROBE_KEYS = ['outfitId', 'stageBackground', 'stageEffect', 'instrumentHidden', ...ACCESSORY_FIELDS]
 
 const outfits = ref([])
 const backgrounds = ref([])
@@ -200,6 +288,10 @@ const snapshot = (c, wardrobe) => ({
   outfitId: wardrobe?.outfits?.find((o) => o.equipped)?.id ?? c.currentOutfitId ?? null,
   // 고른 적 없으면 레벨로 얻은 가장 큰 무대 (서버도 같은 규칙으로 돌려준다)
   stageBackground: wardrobe?.stageBackground ?? c.stageBackground ?? getLevelTier(c.level ?? 1).key,
+  stageEffect: c.stageEffect ?? null,
+  instrumentHidden: !!c.instrumentHidden,
+  itemColors: { ...(c.itemColors || {}) },
+  ...Object.fromEntries(WEAR_SLOTS.map((s) => [s.field, wornIn(s, c)])),
 })
 
 onMounted(async () => {
@@ -219,12 +311,32 @@ onMounted(async () => {
 
 const appearanceDirty = computed(() => !!original.value && APPEARANCE_KEYS.some((k) => draft[k] !== original.value[k]))
 const wardrobeDirty = computed(() => !!original.value && wardrobeLoaded.value
-  && (draft.outfitId !== original.value.outfitId || draft.stageBackground !== original.value.stageBackground))
+  && (WARDROBE_KEYS.some((k) => draft[k] !== original.value[k])
+    || JSON.stringify(draft.itemColors) !== JSON.stringify(original.value.itemColors)))
 const dirty = computed(() => appearanceDirty.value || wardrobeDirty.value)
 const nicknameError = computed(() => (appearanceDirty.value ? nicknameProblem(draft.nickname) : ''))
 
 const clothes = computed(() => outfits.value.filter((o) => o.category === 'CLOTHES'))
-const accessories = computed(() => outfits.value.filter((o) => o.category === 'ACCESSORY'))
+
+// 레벨 보상: 레벨이 닿으면 가진 것 (레벨은 내려가지 않는다)
+const level = computed(() => authStore.character?.level ?? 1)
+const unlocked = (required) => !required || level.value >= required
+const accessoriesOf = (slot) => ACCESSORIES.filter((a) => a.slot === slot)
+// 아이템 색: 입고 있는 아이템마다 추천 색이나 직접 고른 색 (기본 색이면 저장하지 않음)
+const wornTop = computed(() => {
+  const o = clothes.value.find((c) => c.id === draft.outfitId)
+  return { key: o?.spriteKey || 'DEFAULT', name: o?.name || '기본 의상' }
+})
+const nameOf = (key) => [...BOTTOMS, ...ACCESSORIES].find((i) => i.key === key)?.name || ''
+const setItemColor = (key, color) => {
+  const next = { ...draft.itemColors }
+  if (color.toLowerCase() === ITEM_COLORS[key].presets[0].toLowerCase()) delete next[key]
+  else next[key] = color
+  draft.itemColors = next
+}
+
+// 썸네일 색: 지금 고르는 피부·머리·악기 색
+const looks = computed(() => ({ skinColor: draft.skinColor, hairColor: draft.hairColor, instrumentColor: draft.instrumentColor }))
 
 // 미리보기 캐릭터 = 저장된 캐릭터 + 고르는 중인 값 (입을 옷의 그림 포함)
 const preview = computed(() => {
@@ -250,7 +362,7 @@ const save = async () => {
       await updateAppearance({ ...body, nickname: draft.nickname.trim() })
     }
     if (wardrobeDirty.value) {
-      await updateWardrobe({ outfitId: draft.outfitId, stageBackground: draft.stageBackground })
+      await updateWardrobe({ ...Object.fromEntries(WARDROBE_KEYS.map((k) => [k, draft[k]])), itemColors: draft.itemColors })
     }
     await authStore.fetchCharacter()
     original.value = { ...draft, nickname: draft.nickname.trim() }
@@ -328,7 +440,23 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
   display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 12px;
   font-size: 0.75rem; font-weight: 800;
 }
-.emoji { font-size: 1.3rem; }
+.opt-thumb {
+  position: relative; width: 52px; height: 40px; border-radius: 10px; background: #f8f9fa;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.opt.on .opt-thumb { background: #fff; }
+.opt-thumb i, .item-thumb.sprite i { font-style: normal; }
+.opt-thumb i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(248, 249, 250, 0.75); font-size: 0.9rem; }
+.item-thumb.sprite { align-items: center; }
+.toggle {
+  display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 2px; cursor: pointer;
+  padding: 10px 12px; background: #f8f9fa; border-radius: 12px;
+}
+.toggle input { width: 16px; height: 16px; accent-color: #2d5bff; }
+.toggle span { font-size: 0.82rem; font-weight: 800; color: #495057; }
+.toggle small { grid-column: 2; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
+.item-color { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px; background: #f8f9fa; border-radius: 12px; }
+.item-color > span { font-size: 0.75rem; font-weight: 800; color: #868e96; }
 
 .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .item {
@@ -348,7 +476,14 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .item strong { font-size: 0.85rem; font-weight: 800; }
 .item small { font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
 .item.on small { color: #2d5bff; }
-.item.locked, .stage.locked { cursor: not-allowed; background: #f8f9fa; }
+.item.locked, .stage.locked, .opt.locked { cursor: not-allowed; background: #f8f9fa; }
+.opt.locked { color: #adb5bd; }
+.lv { font-size: 0.65rem; font-weight: 800; color: #adb5bd; }
+.items.small { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.items.small .item { padding: 10px 6px; }
+.items.small .item strong { font-size: 0.78rem; }
+.item-thumb.none { align-items: center; font-size: 0.75rem; font-weight: 800; color: #adb5bd; }
+
 .item.locked strong, .stage.locked strong { color: #adb5bd; }
 
 .stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
