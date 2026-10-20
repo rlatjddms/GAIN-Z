@@ -91,3 +91,15 @@ export async function loadSheetPageUrl(sheetId, pageId) {
   const response = await axiosInstance.get(`/api/v1/sheets/${sheetId}/pages/${pageId}`, { responseType: 'blob' })
   return URL.createObjectURL(response.data)
 }
+
+// 악보 위 내 필기 (#167): [{ pageId, pdfPage, data, updatedAt }] (data = 필기 JSON 글, stores/annotation.js)
+export async function getAnnotations(sheetId) {
+  const response = await axiosInstance.get(`/api/v1/sheets/${sheetId}/annotations`)
+  return response.data.data
+}
+
+// 장(PDF는 쪽) 하나의 필기 저장. 획이 없으면 서버에서 지운다
+export async function saveAnnotation(sheetId, pageId, pdfPage, data) {
+  const response = await axiosInstance.put(`/api/v1/sheets/${sheetId}/pages/${pageId}/annotations/${pdfPage}`, { data })
+  return response.data.data
+}
