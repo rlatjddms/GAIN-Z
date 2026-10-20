@@ -33,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -335,6 +336,36 @@ class CharacterServiceTest {
         CharacterResponse off = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.RISING));
         assertThat(off.earrings()).isNull();
         assertThat(off.stageEffect()).isNull();
+    }
+
+    private WardrobeUpdateRequest withColors(Map<String, String> colors) {
+        return new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, null, colors);
+    }
+
+    @Test
+    void 아이템마다_고른_색을_저장하고_null이면_그대로_둔다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+
+        CharacterResponse saved = characterService.updateWardrobe(USER_ID, withColors(Map.of("HOODIE", "#ffd8a8", "JEANS", "#212529", "DEFAULT", "#343A40")));
+        assertThat(saved.itemColors()).containsEntry("HOODIE", "#ffd8a8").containsEntry("JEANS", "#212529").hasSize(3);
+
+        CharacterResponse kept = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.ROOKIE));
+        assertThat(kept.itemColors()).hasSize(3);
+
+        assertThat(characterService.updateWardrobe(USER_ID, withColors(Map.of())).itemColors()).isEmpty();
+    }
+
+    @Test
+    void 모르는_아이템이나_색_형식이_틀리면_거절한다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, withColors(Map.of("UNKNOWN", "#ffffff"))))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ITEM_COLOR_INVALID);
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, withColors(Map.of("HOODIE", "red"))))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ITEM_COLOR_INVALID);
+        assertThat(character.getItemColors()).isEmpty();
     }
 
     @Test
