@@ -22,7 +22,9 @@ class LevelRewardsTest {
             List<LevelRewards.Type> types = LevelRewards.at(level).stream()
                     .map(LevelRewards.Reward::type)
                     .filter(t -> t != LevelRewards.Type.STAGE && t != LevelRewards.Type.EFFECT).toList();
-            if (level % 5 == 0) {
+            if (level == 13) {
+                assertThat(LevelRewards.at(level)).extracting(LevelRewards.Reward::key).containsExactly("HEADPHONES", "HEAD_HEADPHONES");
+            } else if (level % 5 == 0) {
                 assertThat(types).as("Lv.%d", level).containsExactly(LevelRewards.Type.OUTFIT, LevelRewards.Type.BOTTOM);
             } else {
                 assertThat(types).as("Lv.%d", level).hasSize(1)
