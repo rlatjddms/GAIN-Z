@@ -102,12 +102,17 @@
                   @click="draft.outfitId = o.id"
                 >
                   <span class="item-thumb sprite">
-                    <PixelSprite :parts="[['outfit', outfitSpriteName(o.spriteKey, draft.gender)]]" :box="44" :label="o.name" />
+                    <PixelSprite :parts="[['outfit', outfitSpriteName(o.spriteKey, draft.gender)]]" :item-colors="draft.itemColors" :box="44" :label="o.name" />
                     <i v-if="!o.owned">🔒</i>
                   </span>
                   <strong>{{ o.name }}</strong>
                   <small>{{ o.owned ? (draft.outfitId === o.id ? '입는 중' : '입기') : `Lv.${o.requiredLevel}에 해금` }}</small>
                 </button>
+              </div>
+              <div v-if="isColorable(wornTop.key)" class="item-color">
+                <span>{{ wornTop.name }} 색</span>
+                <ColorSwatches :model-value="itemColorOf(wornTop.key, draft.itemColors)" :presets="ITEM_COLORS[wornTop.key].presets"
+                               :label="`${wornTop.name} 색`" @update:model-value="setItemColor(wornTop.key, $event)" />
               </div>
             </div>
             <div class="field">
@@ -120,12 +125,17 @@
                   @click="draft.bottom = b.key"
                 >
                   <span class="item-thumb sprite">
-                    <PixelSprite :parts="[['bottom', b.key]]" :box="44" :label="b.name" />
+                    <PixelSprite :parts="[['bottom', b.key]]" :item-colors="draft.itemColors" :box="44" :label="b.name" />
                     <i v-if="!unlocked(b.level)">🔒</i>
                   </span>
                   <strong>{{ b.name }}</strong>
                   <small>{{ unlocked(b.level) ? (draft.bottom === b.key ? '입는 중' : '입기') : `Lv.${b.level}에 해금` }}</small>
                 </button>
+              </div>
+              <div v-if="isColorable(draft.bottom)" class="item-color">
+                <span>{{ nameOf(draft.bottom) }} 색</span>
+                <ColorSwatches :model-value="itemColorOf(draft.bottom, draft.itemColors)" :presets="ITEM_COLORS[draft.bottom].presets"
+                               :label="`${nameOf(draft.bottom)} 색`" @update:model-value="setItemColor(draft.bottom, $event)" />
               </div>
             </div>
           </div>
@@ -147,12 +157,17 @@
                   @click="draft[slot.field] = a.key"
                 >
                   <span class="item-thumb sprite">
-                    <PixelSprite :parts="[[slot.folder, a.key]]" :box="44" :label="a.name" />
+                    <PixelSprite :parts="[[slot.folder, a.key]]" :item-colors="draft.itemColors" :box="44" :label="a.name" />
                     <i v-if="!unlocked(a.level)">🔒</i>
                   </span>
                   <strong>{{ a.name }}</strong>
                   <small>{{ unlocked(a.level) ? (draft[slot.field] === a.key ? '쓰는 중' : '쓰기') : `Lv.${a.level}에 해금` }}</small>
                 </button>
+              </div>
+              <div v-if="isColorable(draft[slot.field])" class="item-color">
+                <span>{{ nameOf(draft[slot.field]) }} 색</span>
+                <ColorSwatches :model-value="itemColorOf(draft[slot.field], draft.itemColors)" :presets="ITEM_COLORS[draft[slot.field]].presets"
+                               :label="`${nameOf(draft[slot.field])} 색`" @update:model-value="setItemColor(draft[slot.field], $event)" />
               </div>
             </div>
           </div>
@@ -228,6 +243,7 @@ import {
 import { DEFAULT_COLORS, HEAD_REGION } from '../pixel/palette'
 import { outfitSpriteName } from '../pixel/sprites'
 import { ACCESSORY_SLOTS, ACCESSORIES, BOTTOMS, BOTTOM_SLOT, STAGE_EFFECTS, wornIn } from '../constants/rewards'
+import { ITEM_COLORS, isColorable, itemColorOf } from '../constants/itemColors'
 
 const TABS = [
   { key: 'look', label: '외형' },
@@ -248,7 +264,7 @@ const original = ref(null)
 const draft = reactive({
   nickname: '', gender: 'MALE', skinColor: DEFAULT_COLORS.skinColor, hairStyle: 'SHORT_CUT', hairColor: '#111827',
   instrumentType: 'GUITAR', instrumentColor: '#B91C1C', outfitId: null, stageBackground: null,
-  stageEffect: null, bottom: 'JEANS', hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: 'BASIC_SHOES',
+  itemColors: {}, stageEffect: null, bottom: 'JEANS', hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: 'BASIC_SHOES',
 })
 const WEAR_SLOTS = [BOTTOM_SLOT, ...ACCESSORY_SLOTS]
 const ACCESSORY_FIELDS = WEAR_SLOTS.map((s) => s.field)
@@ -267,6 +283,7 @@ const snapshot = (c, wardrobe) => ({
   // 고른 적 없으면 레벨로 얻은 가장 큰 무대 (서버도 같은 규칙으로 돌려준다)
   stageBackground: wardrobe?.stageBackground ?? c.stageBackground ?? getLevelTier(c.level ?? 1).key,
   stageEffect: c.stageEffect ?? null,
+  itemColors: { ...(c.itemColors || {}) },
   ...Object.fromEntries(WEAR_SLOTS.map((s) => [s.field, wornIn(s, c)])),
 })
 
@@ -287,7 +304,8 @@ onMounted(async () => {
 
 const appearanceDirty = computed(() => !!original.value && APPEARANCE_KEYS.some((k) => draft[k] !== original.value[k]))
 const wardrobeDirty = computed(() => !!original.value && wardrobeLoaded.value
-  && WARDROBE_KEYS.some((k) => draft[k] !== original.value[k]))
+  && (WARDROBE_KEYS.some((k) => draft[k] !== original.value[k])
+    || JSON.stringify(draft.itemColors) !== JSON.stringify(original.value.itemColors)))
 const dirty = computed(() => appearanceDirty.value || wardrobeDirty.value)
 const nicknameError = computed(() => (appearanceDirty.value ? nicknameProblem(draft.nickname) : ''))
 
@@ -297,6 +315,19 @@ const clothes = computed(() => outfits.value.filter((o) => o.category === 'CLOTH
 const level = computed(() => authStore.character?.level ?? 1)
 const unlocked = (required) => !required || level.value >= required
 const accessoriesOf = (slot) => ACCESSORIES.filter((a) => a.slot === slot)
+// 아이템 색: 입고 있는 아이템마다 추천 색이나 직접 고른 색 (기본 색이면 저장하지 않음)
+const wornTop = computed(() => {
+  const o = clothes.value.find((c) => c.id === draft.outfitId)
+  return { key: o?.spriteKey || 'DEFAULT', name: o?.name || '기본 의상' }
+})
+const nameOf = (key) => [...BOTTOMS, ...ACCESSORIES].find((i) => i.key === key)?.name || ''
+const setItemColor = (key, color) => {
+  const next = { ...draft.itemColors }
+  if (color.toLowerCase() === ITEM_COLORS[key].presets[0].toLowerCase()) delete next[key]
+  else next[key] = color
+  draft.itemColors = next
+}
+
 // 썸네일 색: 지금 고르는 피부·머리·악기 색
 const looks = computed(() => ({ skinColor: draft.skinColor, hairColor: draft.hairColor, instrumentColor: draft.instrumentColor }))
 
@@ -324,7 +355,7 @@ const save = async () => {
       await updateAppearance({ ...body, nickname: draft.nickname.trim() })
     }
     if (wardrobeDirty.value) {
-      await updateWardrobe(Object.fromEntries(WARDROBE_KEYS.map((k) => [k, draft[k]])))
+      await updateWardrobe({ ...Object.fromEntries(WARDROBE_KEYS.map((k) => [k, draft[k]])), itemColors: draft.itemColors })
     }
     await authStore.fetchCharacter()
     original.value = { ...draft, nickname: draft.nickname.trim() }
@@ -410,6 +441,8 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 .opt-thumb i, .item-thumb.sprite i { font-style: normal; }
 .opt-thumb i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(248, 249, 250, 0.75); font-size: 0.9rem; }
 .item-thumb.sprite { align-items: center; }
+.item-color { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px; background: #f8f9fa; border-radius: 12px; }
+.item-color > span { font-size: 0.75rem; font-weight: 800; color: #868e96; }
 
 .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .item {

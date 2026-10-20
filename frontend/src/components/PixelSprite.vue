@@ -15,12 +15,15 @@
 // parts: [['hat', 'BEANIE']] 처럼 [레이어, 이름]을 아래 → 위 순서로. 그림이 있는 칸만 잘라서 box 안에 들어가게 정수배로 키운다
 import { ref, computed, watch, onMounted } from 'vue'
 import { SPRITE_WIDTH, SPRITE_HEIGHT } from '../pixel/palette'
-import { loadSpriteData, recolorSprite } from '../pixel/sprites'
+import { loadSpriteData, paintSprite } from '../pixel/sprites'
+import { ITEM_COLORS, itemKeyOf, itemColorOf } from '../constants/itemColors'
 
 const props = defineProps({
   parts: { type: Array, required: true },
   // 기준색을 바꿀 색 (skinColor·hairColor·instrumentColor·outfitColor)
   colors: { type: Object, default: () => ({}) },
+  // 아이템마다 고른 색 (없으면 기본 색)
+  itemColors: { type: Object, default: () => ({}) },
   // 자를 영역 { x, y, w, h }. 없으면 그림이 있는 칸만
   region: { type: Object, default: null },
   // 들어갈 상자 크기(px). 이 안에 맞는 가장 큰 정수배
@@ -38,7 +41,9 @@ async function render() {
   const mine = ++token
   const layers = (await Promise.all(props.parts.map(async ([layer, name]) => {
     const data = name ? await loadSpriteData(layer, name) : null
-    return data ? recolorSprite(data, props.colors) : null
+    if (!data) return null
+    const key = itemKeyOf(name)
+    return paintSprite(data, props.colors, ITEM_COLORS[key], itemColorOf(key, props.itemColors))
   }))).filter(Boolean)
   if (mine !== token) return
 
@@ -76,7 +81,7 @@ function boundsOf(image) {
 }
 
 onMounted(render)
-watch(() => [props.parts, props.colors, props.region, props.box], render, { deep: true })
+watch(() => [props.parts, props.colors, props.itemColors, props.region, props.box], render, { deep: true })
 </script>
 
 <style scoped>

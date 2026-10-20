@@ -78,3 +78,64 @@ export function recolorSprite(imageData, colors) {
   canvas.getContext('2d').putImageData(out, 0, 0)
   return canvas
 }
+
+// ---------- 아이템 색 바꾸기 (constants/itemColors.js) ----------
+const hexToRgb = (hex) => {
+  const n = parseInt(String(hex).replace('#', ''), 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+function rgbToHsl([r, g, b]) {
+  r /= 255; g /= 255; b /= 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2
+  if (max === min) return [0, 0, l]
+  const d = max - min
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+  return [h / 6, s, l]
+}
+function hslToRgb([h, s, l]) {
+  if (!s) return [l, l, l].map((v) => Math.round(v * 255))
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q
+  const f = (t) => {
+    if (t < 0) t += 1
+    if (t > 1) t -= 1
+    if (t < 1 / 6) return p + (q - p) * 6 * t
+    if (t < 1 / 2) return q
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+    return p
+  }
+  return [f(h + 1 / 3), f(h), f(h - 1 / 3)].map((v) => Math.round(v * 255))
+}
+const clamp01 = (v) => Math.max(0, Math.min(1, v))
+
+// 원래 색들 → 고른 색에 맞춘 색. 바탕색과의 밝기 차이(그림자·선)와 채도 비율은 유지하고 색조는 고른 색으로
+export function shiftTable(colors, chosen) {
+  const [, sBase, lBase] = rgbToHsl(hexToRgb(colors[0]))
+  const [hC, sC, lC] = rgbToHsl(hexToRgb(chosen))
+  const table = new Map()
+  for (const c of colors) {
+    const [, s, l] = rgbToHsl(hexToRgb(c))
+    const sat = sBase > 0.05 ? clamp01(sC * (s / sBase)) : sC
+    table.set(hexToRgb(c).join(','), hslToRgb([hC, sat, clamp01(lC + (l - lBase))]))
+  }
+  return table
+}
+
+// 아이템 한 장을 그린다: 기준색 치환 + 고른 아이템 색 (기본 색이면 그림 그대로)
+// spec: ITEM_COLORS의 항목, chosen: 고른 색
+export function paintSprite(imageData, colors, spec, chosen) {
+  const base = spec?.key && chosen ? { ...colors, outfitColor: chosen } : colors
+  const canvas = recolorSprite(imageData, base)
+  if (!spec?.colors || !chosen || chosen.toLowerCase() === spec.presets[0].toLowerCase()) return canvas
+  const table = shiftTable(spec.colors, chosen)
+  const ctx = canvas.getContext('2d')
+  const out = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const d = out.data
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue
+    const t = table.get(`${d[i]},${d[i + 1]},${d[i + 2]}`)
+    if (t) { d[i] = t[0]; d[i + 1] = t[1]; d[i + 2] = t[2] }
+  }
+  ctx.putImageData(out, 0, 0)
+  return canvas
+}

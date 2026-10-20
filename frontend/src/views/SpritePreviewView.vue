@@ -68,6 +68,19 @@
     </section>
 
     <section class="panel">
+      <h2>아이템 추천 색 {{ colorItems.length }}종</h2>
+      <div class="color-items">
+        <div v-for="it in colorItems" :key="it.key" class="color-item">
+          <figure v-for="c in it.presets" :key="c">
+            <PixelSprite :parts="[[it.layer, it.file]]" :item-colors="{ [it.key]: c }" :box="44" />
+            <figcaption :style="{ color: c }">●</figcaption>
+          </figure>
+          <span>{{ it.key }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>무대 효과 {{ STAGE_EFFECTS.length }}종</h2>
       <div class="fx-grid">
         <figure v-for="e in STAGE_EFFECTS" :key="e.key">
@@ -132,7 +145,9 @@ import PixelSprite from '../components/PixelSprite.vue'
 import StageScene from '../components/StageScene.vue'
 import { HEAD_REGION } from '../pixel/palette'
 import { listSprites } from '../pixel/sprites'
-import { ACCESSORY_SLOTS as WEAR_SLOTS, BOTTOM_SLOT, STAGE_EFFECTS } from '../constants/rewards'
+import { ACCESSORY_SLOTS as WEAR_SLOTS, BOTTOM_SLOT, STAGE_EFFECTS, ACCESSORIES, BOTTOMS, slotOf } from '../constants/rewards'
+import { ITEM_COLORS } from '../constants/itemColors'
+import { outfitSpriteName } from '../pixel/sprites'
 
 // 하의도 소품처럼 자리 하나로 보여 준다
 const ACCESSORY_SLOTS = [BOTTOM_SLOT, ...WEAR_SLOTS]
@@ -142,6 +157,14 @@ const instruments = listSprites('instrument')
 // 의상 파일은 <이름>_<성별>.png → 이름만
 const outfits = [...new Set(listSprites('outfit').map((n) => n.replace(/_(MALE|FEMALE)$/, '')))]
 const outfit = ref('DEFAULT')
+
+// 색을 바꿀 수 있는 아이템과 추천 색 (그림 폴더·파일 찾기)
+const colorItems = Object.entries(ITEM_COLORS).map(([key, spec]) => {
+  const item = [...ACCESSORIES, ...BOTTOMS].find((i) => i.key === key)
+  return item
+    ? { key, presets: spec.presets, layer: slotOf(item.slot).folder, file: key }
+    : { key, presets: spec.presets, layer: 'outfit', file: outfitSpriteName(key, 'MALE') }
+})
 
 const character = reactive({
   gender: 'FEMALE',
@@ -170,6 +193,11 @@ select, input[type=color] { font: inherit; padding: 6px 8px; border: 1px solid #
 input[type=color] { width: 60px; height: 34px; padding: 2px; }
 .grid { display: flex; flex-wrap: wrap; gap: 14px; }
 figure { margin: 0; background: #f8f9fa; border-radius: 12px; padding: 12px 10px 8px; text-align: center; }
+.color-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.color-item { display: flex; align-items: center; gap: 6px; background: #f8f9fa; border-radius: 12px; padding: 8px; }
+.color-item figure { padding: 4px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 52px; min-height: 52px; }
+.color-item figcaption { margin: 0; font-size: 0.8rem; }
+.color-item > span { font-size: 0.62rem; font-weight: 800; color: #868e96; word-break: break-all; }
 .fx-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .fx-grid figure { padding: 0 0 8px; overflow: hidden; }
 .thumbs figure { min-width: 64px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }

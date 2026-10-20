@@ -13,7 +13,8 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { SPRITE_WIDTH, SPRITE_HEIGHT, LAYER_ORDER, DEFAULT_COLORS } from '../pixel/palette'
-import { loadSpriteData, recolorSprite, spriteUrl, outfitSpriteName } from '../pixel/sprites'
+import { loadSpriteData, paintSprite, spriteUrl, outfitSpriteName } from '../pixel/sprites'
+import { ITEM_COLORS, itemKeyOf, itemColorOf } from '../constants/itemColors'
 
 const props = defineProps({
   // 백엔드 CharacterResponse 와 같은 모양. 없으면 기본 캐릭터.
@@ -57,6 +58,8 @@ const spec = computed(() => {
       instrumentColor: c.instrumentColor || DEFAULT_COLORS.instrumentColor,
       outfitColor: c.outfitColor || DEFAULT_COLORS.outfitColor,
     },
+    // 아이템마다 고른 색 { HOODIE: '#ffd8a8', ... } (constants/itemColors.js)
+    itemColors: c.itemColors || {},
   }
 })
 
@@ -95,7 +98,10 @@ async function rebuild() {
       const name = names[layer]
       if (!name || !spriteUrl(layer, name)) return null
       const data = await loadSpriteData(layer, name)
-      return data ? { layer, canvas: recolorSprite(data, s.colors) } : null
+      if (!data) return null
+      // 아이템이면 고른 색으로 (몸·머리·악기는 표에 없어서 기준색만 바뀐다)
+      const key = itemKeyOf(name)
+      return { layer, canvas: paintSprite(data, s.colors, ITEM_COLORS[key], itemColorOf(key, s.itemColors)) }
     })
   )
   if (token !== loadToken) return

@@ -8,9 +8,10 @@ export async function getWardrobe() {
 }
 
 // 옷장 저장: 입을 의상(보유한 것만), 무대 배경(해금한 것만, null이면 레벨에 맞춰 자동),
-// 하의·소품(자리마다 하나)·무대 효과 (null이면 안 씀. 레벨이 닿은 것만) → 갱신된 캐릭터
-export async function updateWardrobe({ outfitId, stageBackground, stageEffect, bottom, hat, glasses, earrings, neck, waist, shoes }) {
-  const response = await axiosInstance.put('/api/v1/characters/me/wardrobe', { outfitId, stageBackground, stageEffect, bottom, hat, glasses, earrings, neck, waist, shoes })
+// 하의·소품(자리마다 하나)·무대 효과 (null이면 안 씀. 레벨이 닿은 것만),
+// itemColors: 아이템마다 고른 색 { HOODIE: '#ffd8a8' } (기본 색인 아이템은 빼고 보냄) → 갱신된 캐릭터
+export async function updateWardrobe({ outfitId, stageBackground, stageEffect, bottom, hat, glasses, earrings, neck, waist, shoes, itemColors }) {
+  const response = await axiosInstance.put('/api/v1/characters/me/wardrobe', { outfitId, stageBackground, stageEffect, bottom, hat, glasses, earrings, neck, waist, shoes, itemColors })
   return response.data.data
 }
 
