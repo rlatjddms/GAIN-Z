@@ -9,7 +9,7 @@ import jakarta.persistence.Converter;
 import java.util.ArrayList;
 import java.util.List;
 
-// 방 꾸미기 배치 [{ "key": "TURNTABLE", "x": 46 }] ↔ JSON 문자열. 모르는 소품이나 읽지 못한 값은 건너뛴다
+// 방 꾸미기 배치 [{ "key": "TURNTABLE", "x": 46, "y": 58 }] ↔ JSON 문자열 (y는 없을 수 있음). 모르는 소품이나 읽지 못한 값은 건너뛴다
 @Converter
 public class DecorLayoutConverter implements AttributeConverter<List<DecorPlacement>, String> {
 
@@ -32,7 +32,9 @@ public class DecorLayoutConverter implements AttributeConverter<List<DecorPlacem
         try {
             for (JsonNode node : MAPPER.readTree(json)) {
                 try {
-                    out.add(new DecorPlacement(DecorItem.valueOf(node.path("key").asText()), node.path("x").asInt()));
+                    JsonNode y = node.get("y");
+                    out.add(new DecorPlacement(DecorItem.valueOf(node.path("key").asText()), node.path("x").asInt(),
+                            y == null || y.isNull() ? null : y.asInt()));
                 } catch (IllegalArgumentException ignored) {
                     // 목록에서 빠진 소품
                 }

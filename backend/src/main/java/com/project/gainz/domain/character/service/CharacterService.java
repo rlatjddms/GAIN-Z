@@ -214,11 +214,12 @@ public class CharacterService {
         return CharacterResponse.from(character);
     }
 
-    // 소품 배치: 모은 세트의 소품만, 같은 소품은 한 번, 자리는 무대 안
+    // 소품 배치: 모은 세트의 소품만, 같은 소품은 한 번, 자리(x·y)는 무대 안
     private static void validateDecorLayout(List<DecorPlacement> layout, Set<RecordType> records) {
         Set<DecorItem> seen = new HashSet<>();
         for (DecorPlacement p : layout) {
-            if (p == null || p.key() == null || !seen.add(p.key()) || p.x() < DecorItem.MIN_X || p.x() > DecorItem.MAX_X) {
+            boolean yOk = p != null && (p.y() == null || (p.y() >= DecorItem.MIN_Y && p.y() <= DecorItem.MAX_Y));
+            if (p == null || p.key() == null || !seen.add(p.key()) || p.x() < DecorItem.MIN_X || p.x() > DecorItem.MAX_X || !yOk) {
                 throw new BusinessException(ErrorCode.DECOR_LAYOUT_INVALID);
             }
             if (!p.key().getSet().isCompletedBy(records)) {

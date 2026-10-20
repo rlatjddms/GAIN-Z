@@ -14,6 +14,9 @@ public enum DecorItem {
     // 무대 가로 208칸 중 소품 그림(24칸) 왼쪽 끝이 놓일 수 있는 범위
     public static final int MIN_X = 0;
     public static final int MAX_X = 208 - 24;
+    // 그림 바닥 줄이 놓일 수 있는 범위 (무대 세로 72칸, 그림 높이 32칸)
+    public static final int MIN_Y = 32;
+    public static final int MAX_Y = 72;
 
     private final RoomDecor set;
     private final String label;
