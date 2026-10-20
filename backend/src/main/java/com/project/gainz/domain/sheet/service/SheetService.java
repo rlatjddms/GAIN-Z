@@ -8,6 +8,7 @@ import com.project.gainz.domain.sheet.dto.response.WorkspaceDetailResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceItemResponse;
 import com.project.gainz.domain.band.repository.SetlistItemRepository;
 import com.project.gainz.domain.sheet.entity.SheetMusic;
+import com.project.gainz.domain.sheet.enums.SheetType;
 import com.project.gainz.domain.sheet.entity.SheetPage;
 import com.project.gainz.domain.sheet.entity.UserWorkspace;
 import com.project.gainz.domain.sheet.repository.SheetMusicRepository;
@@ -98,12 +99,43 @@ public class SheetService {
         return WorkspaceDetailResponse.of(item, pages, List.of(), userId);
     }
 
-    // 내가 올린 악보의 곡 정보만 고친다
+    // 코드 붙여넣기로 코드 악보 만들기 (#157): 파일 없이 코드 글(content)만. 종류는 늘 CHORD, 만들면 바로 내 보관함에 담김
+    public WorkspaceDetailResponse createChordSheet(Long userId, SheetRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        String content = requireContent(request.content());
+        checkWorkspaceLimit(userId);
+
+        SheetMusic sheet = sheetMusicRepository.save(SheetMusic.builder()
+                .owner(user)
+                .title(request.title().trim())
+                .artist(request.artistOrEmpty())
+                .originalKey(blankToNull(request.originalKey()))
+                .bpm(request.bpm())
+                .content(content)
+                .instrumentType(request.instrumentType())
+                .sheetTypes(List.of(SheetType.CHORD))
+                .build());
+        UserWorkspace item = userWorkspaceRepository.save(UserWorkspace.builder().user(user).sheetMusic(sheet).build());
+        return WorkspaceDetailResponse.of(item, List.of(), List.of(), userId);
+    }
+
+    // 내가 올린 악보의 곡 정보를 고친다. content를 보내면 코드 악보 글도 바꾼다 (보내지 않으면 그대로)
     public SheetDetailResponse updateSheet(Long userId, Long sheetId, SheetRequest request) {
         SheetMusic sheet = findOwnSheet(userId, sheetId);
         sheet.updateInfo(request.title().trim(), request.artistOrEmpty(), blankToNull(request.originalKey()), request.bpm(),
                 request.instrumentType(), request.sheetType());
+        if (request.content() != null) {
+            sheet.updateContent(requireContent(request.content()));
+        }
         return detail(sheet, userId);
+    }
+
+    private static String requireContent(String content) {
+        if (content == null || content.isBlank()) {
+            throw new BusinessException(ErrorCode.SHEET_CONTENT_REQUIRED);
+        }
+        return content.strip();
     }
 
     // 장을 뒤에 더 붙인다
