@@ -1,6 +1,6 @@
 <template>
   <SubPageLayout :back-to="editing ? `/sheets/${itemId}` : '/sheets'" :back-label="editing ? '악보' : '악보 보관함'"
-                 :title="editing ? 'EDIT SHEET' : 'UPLOAD SHEET'" :name="editing ? '악보 정보 수정' : '악보 올리기'"
+                 :title="editing ? 'EDIT SHEET' : 'NEW SHEET'" :name="editing ? '악보 정보 수정' : '악보 생성하기'"
                  :subtitle="editing ? (mode === 'chords' ? '코드 악보와 곡 정보를 고칠 수 있어요' : mode === 'tab' ? '타브 글과 곡 정보를 고칠 수 있어요' : '곡 정보를 고치거나 장을 더 올리고 지울 수 있어요') : '악보 사진·PDF를 올리거나, 코드 사이트에서 복사한 코드·타브를 붙여 넣으세요'">
     <template #actions>
       <button class="btn primary" :disabled="!canSave" @click="save">
@@ -24,8 +24,8 @@
       <!-- 코드 붙여넣기: 가사 위 코드 글 → [C]가사 형식, 바로 미리보기 -->
       <WsCard v-if="mode === 'chords'" title="코드 붙여넣기">
         <textarea v-model="chordText" class="chord-input" rows="14" spellcheck="false" :disabled="busy"
-                  placeholder="코드 사이트에서 '가사 위에 코드'가 있는 부분을 복사해 붙여 넣으세요.&#10;&#10;[Verse 1]&#10;C        G&#10;이 밤 그날의 반딧불을" />
-        <p class="tip">코드 줄은 아래 가사의 같은 칸에 붙이고, [Verse]·Chorus: 같은 줄은 구간 이름이 돼요. 바뀐 결과를 아래에서 확인하고, 이상한 곳은 붙여 넣은 글을 고쳐 주세요.</p>
+                  :placeholder="CHORD_PLACEHOLDER" />
+        <p class="tip">코드 사이트에서 가사 위에 코드가 있는 부분을 복사해 붙여 넣으세요. 코드 줄은 아래 가사의 같은 칸에 붙이고, [Verse]·Chorus: 같은 줄은 구간 이름이 돼요. 바뀐 결과를 아래에서 확인하고, 이상한 곳은 붙여 넣은 글을 고쳐 주세요.</p>
         <div class="chord-preview">
           <ChordSheet :content="chordContent" :original-key="form.originalKey || null" empty-text="붙여 넣으면 여기에 코드 악보가 보여요." />
         </div>
@@ -208,6 +208,18 @@ const tabText = ref('')
 const originalTab = ref('')
 const tabResult = computed(() => importTabText(tabText.value))
 const tabRows = computed(() => toTabRows(tabResult.value.measures))
+// 입력칸 예시 (코드 사이트에서 복사해 오는 모양 그대로)
+const CHORD_PLACEHOLDER = [
+  '[Verse]',
+  'C              G',
+  '오늘도 합주실 문을 열고',
+  'Am             F',
+  '천천히 첫 음을 맞춰 봐',
+  '',
+  '[Chorus]',
+  'F       G       C',
+  '다 같이 크게 불러 봐',
+].join(String.fromCharCode(10))
 const TAB_PLACEHOLDER = [
   '[Intro]',
   'e|-------0-----|-------3-----|',
