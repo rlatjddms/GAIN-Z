@@ -153,7 +153,8 @@ const editorStyle = computed(() => {
 const inputStyle = computed(() => {
   const e = editing.value
   if (!e) return null
-  return { fontSize: `${Math.max((e.s * layerWidth.value) / SURFACE_WIDTH, 12)}px`, color: e.c }
+  // 붙인 뒤 그려지는 크기와 똑같이 (최소 크기를 두면 붙일 때 작아져 보임)
+  return { fontSize: `${(e.s * layerWidth.value) / SURFACE_WIDTH}px`, color: e.c }
 })
 
 // 쓴 만큼 늘어나는 입력칸 (한글은 두 칸으로 셈)
@@ -183,6 +184,7 @@ const onBlur = () => {
 
 // 끌기: move = 테두리를 끌어 옮기기, resize = 오른쪽 아래 손잡이로 크기 (왼쪽 위는 그대로)
 const MIN_TEXT = 12
+const MIN_SCREEN_TEXT = 16 // 새 글자의 화면 최소 크기(px)
 const MAX_TEXT = 160
 const editorEl = ref(null)
 const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi)
@@ -228,7 +230,8 @@ const startText = (e, at) => {
   const index = strokes.value.findIndex((s) => s.t === 'text' && hits({ ...s }, at))
   if (index !== -1) editing.value = { ...strokes.value[index], index }
   else {
-    const size = store.textSize
+    // 새 글자는 고른 크기로, 좁은 화면·축소해서 볼 때도 화면에서 16px보다 작지 않게
+    const size = Math.max(store.textSize, round((MIN_SCREEN_TEXT * SURFACE_WIDTH) / layerWidth.value))
     editing.value = { index: -1, x: at[0], y: round(at[1] + size / 2), s: size, c: store.color, text: '' }
   }
   input.value?.focus()
