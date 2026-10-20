@@ -8,8 +8,9 @@ import java.util.List;
 public final class JamResponse {
     private JamResponse() {}
 
-    // 목록 카드
-    public record Summary(Long id, String title, int bpm, Song song, int trackCount, String creatorName, LocalDateTime updatedAt) {}
+    // 목록 카드. favorite: 즐겨찾기(밴드 전체), canManage: 보는 사람이 고치거나 지울 수 있는지
+    public record Summary(Long id, String title, int bpm, Song song, int trackCount, String creatorName, LocalDateTime updatedAt,
+                          boolean favorite, boolean canManage) {}
 
     // canManage: 보는 사람이 잼을 고치거나 지울 수 있는지 (만든 멤버·리더)
     public record Jam(Long id, String title, int bpm, Song song, String creatorName, boolean canManage, List<Track> tracks) {}

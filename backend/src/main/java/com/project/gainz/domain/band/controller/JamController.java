@@ -48,6 +48,12 @@ public class JamController {
         return ApiResponse.success(service.update(me.getUserId(), bandId, jamId, request));
     }
 
+    @PatchMapping("/{jamId}/favorite")
+    public ApiResponse<JamResponse.Summary> favorite(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId, @PathVariable Long jamId,
+                                                    @Valid @RequestBody JamRequest.Favorite request) {
+        return ApiResponse.success(service.setFavorite(me.getUserId(), bandId, jamId, request.favorite()));
+    }
+
     @DeleteMapping("/{jamId}")
     public ApiResponse<Void> delete(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId, @PathVariable Long jamId) {
         service.delete(me.getUserId(), bandId, jamId);

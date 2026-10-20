@@ -60,11 +60,23 @@ public class JamService {
 
     @Transactional(readOnly = true)
     public List<Summary> list(Long userId, Long bandId) {
-        requireMember(userId, bandId);
+        BandMember me = requireMember(userId, bandId);
         List<Jam> result = jams.findAllByBandIdOrderByIdDesc(bandId);
         Map<Long, String> names = nicknames(result.stream().map(jam -> jam.getCreator().getId()).toList());
-        return result.stream().map(jam -> new Summary(jam.getId(), jam.getTitle(), jam.getBpm(), song(jam),
-                jam.getTracks().size(), names.get(jam.getCreator().getId()), jam.getUpdatedAt())).toList();
+        return result.stream().map(jam -> summary(jam, me, names)).toList();
+    }
+
+    // 즐겨찾기는 밴드 멤버 누구나 바꿀 수 있다 (셋리스트와 같음)
+    public Summary setFavorite(Long userId, Long bandId, Long jamId, boolean favorite) {
+        BandMember me = requireMember(userId, bandId);
+        Jam jam = findJam(bandId, jamId);
+        jam.changeFavorite(favorite);
+        return summary(jam, me, nicknames(List.of(jam.getCreator().getId())));
+    }
+
+    private Summary summary(Jam jam, BandMember me, Map<Long, String> names) {
+        return new Summary(jam.getId(), jam.getTitle(), jam.getBpm(), song(jam), jam.getTracks().size(),
+                names.get(jam.getCreator().getId()), jam.getUpdatedAt(), jam.isFavorite(), canManage(jam, me));
     }
 
     @Transactional(readOnly = true)

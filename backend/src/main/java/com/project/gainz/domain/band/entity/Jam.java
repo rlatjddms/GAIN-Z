@@ -53,6 +53,9 @@ public class Jam extends BaseEntity {
     private Long setlistItemId;
     private String songTitle;
 
+    // 즐겨찾기 (밴드 전체가 같이 봄). null = 예전 잼 = 아님
+    private Boolean favorite;
+
     @OneToMany(mappedBy = "jam", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id ASC")
     private List<JamTrack> tracks = new ArrayList<>();
@@ -67,6 +70,14 @@ public class Jam extends BaseEntity {
     public void update(String title, Integer bpm) {
         this.title = title;
         this.bpm = bpm;
+    }
+
+    public boolean isFavorite() {
+        return Boolean.TRUE.equals(favorite);
+    }
+
+    public void changeFavorite(boolean favorite) {
+        this.favorite = favorite;
     }
 
     public void linkSong(Long setlistItemId, String songTitle) {
