@@ -1,8 +1,8 @@
 <template>
   <!-- 무대 장면: 배경(208×72)과 캐릭터를 같은 도트 격자에 놓는다. 화면 크기와 상관없이 비율이 같다.
        viewWidth를 주면 가운데(캐릭터 쪽)만 카메라처럼 잘라 보여 준다 (배율은 그대로) -->
-  <div class="scene" :style="{ aspectRatio: `${viewWidth} / ${SCENE_HEIGHT}` }">
-    <div class="world" :style="worldStyle">
+  <div class="scene" :class="{ editing: decorEditable }" :style="{ aspectRatio: `${viewWidth} / ${SCENE_HEIGHT}` }">
+    <div ref="worldRef" class="world" :style="worldStyle">
       <div class="actor" :style="actorStyle" @click="emit('actor-click')">
         <slot name="behind" />
         <PixelCharacter
@@ -13,12 +13,14 @@
         />
         <slot name="above" />
       </div>
-      <!-- 방 꾸미기 소품 (레코드 수집 보상): 왼쪽 바닥에 플레이어, 오른쪽에 보관함 -->
-      <template v-if="decorSet">
-        <img v-for="d in decorItems" :key="d.key" class="decor" :src="d.url" alt="" :style="d.style">
-      </template>
-      <!-- 무대 꾸미기 효과 (캐릭터 뒤) -->
-      <StageEffect :effect="effectKey" />
+      <!-- 방 꾸미기 소품 (레코드 수집 보상): 바닥 줄에 놓고, 편집 중이면 끌어서 좌우로 옮긴다 -->
+      <img
+        v-for="d in decorItems" :key="d.key" class="decor" :src="d.url" :alt="decorEditable ? d.name : ''" :style="d.style"
+        :title="decorEditable ? `${d.name} · 끌어서 옮기기` : null" draggable="false"
+        @pointerdown="startDrag($event, d)" @pointermove="onDrag" @pointerup="endDrag" @pointercancel="endDrag"
+      >
+      <!-- 무대 꾸미기 효과 (여러 개를 겹쳐 켤 수 있다) -->
+      <StageEffect v-for="e in effectKeys" :key="e" :effect="e" />
       <!-- 무대 좌표 위에 얹는 것들 -->
       <slot name="world" />
     </div>
@@ -28,11 +30,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import PixelCharacter from './PixelCharacter.vue'
 import StageEffect from './StageEffect.vue'
 import { LEVEL_TIERS, stageOf } from '../constants/levelTier'
-import { decorSetOf, decorUrl, DECOR_SLOTS } from '../constants/recordRewards'
+import { decorItemOf, decorUrl, DECOR_MAX_X } from '../constants/recordRewards'
 import { SPRITE_WIDTH, SPRITE_HEIGHT, STAGE_WIDTH as SCENE_WIDTH, STAGE_HEIGHT as SCENE_HEIGHT } from '../pixel/palette'
 
 const props = defineProps({
@@ -42,30 +44,59 @@ const props = defineProps({
   animate: { type: Boolean, default: true },
   // 보여 줄 가로 폭 (무대 도트 기준, 최대 208). 작게 주면 가운데만 잘라서 보여 준다
   viewWidth: { type: Number, default: SCENE_WIDTH },
-  // 무대 효과. undefined면 캐릭터가 고른 효과(character.stageEffect), null이면 없음
-  effect: { type: String, default: undefined },
-  // 방 꾸미기 세트 (CASSETTE / CD / LP). undefined면 캐릭터가 고른 것(character.roomDecor), null이면 없음
-  decor: { type: String, default: undefined },
+  // 무대 효과 목록. undefined면 캐릭터가 고른 효과(character.stageEffects), []이면 없음
+  effects: { type: Array, default: undefined },
+  // 방 꾸미기 소품 배치 [{ key, x }]. undefined면 캐릭터의 배치(character.decorLayout), []이면 없음
+  decor: { type: Array, default: undefined },
+  // true면 소품을 끌어서 옮길 수 있다 (옷장 미리보기) → decor-move(key, x)
+  decorEditable: { type: Boolean, default: false },
 })
-const emit = defineEmits(['actor-click'])
+const emit = defineEmits(['actor-click', 'decor-move'])
 
 const stage = computed(() => stageOf(props.stageKey) || LEVEL_TIERS[0])
-const effectKey = computed(() => (props.effect === undefined ? props.character?.stageEffect || null : props.effect))
+const effectKeys = computed(() => {
+  const list = props.effects === undefined ? props.character?.stageEffects : props.effects
+  return Array.isArray(list) ? list : []
+})
 const pct = (v, total) => `${(v / total) * 100}%`
 
-const decorSet = computed(() => decorSetOf(props.decor === undefined ? props.character?.roomDecor : props.decor))
 // 소품 그림은 캐릭터와 같은 24×32 칸이고 바닥 줄에 붙인다
-const decorItems = computed(() => (decorSet.value ? [['player', decorSet.value.player], ['rack', decorSet.value.rack]] : [])
-  .map(([slot, item]) => ({
-    key: item.key,
-    url: decorUrl(item.key),
+const decorLayout = computed(() => {
+  const list = props.decor === undefined ? props.character?.decorLayout : props.decor
+  return Array.isArray(list) ? list : []
+})
+const decorItems = computed(() => decorLayout.value
+  .map((p) => ({ ...p, item: decorItemOf(p.key), url: decorUrl(p.key) }))
+  .filter((d) => d.item && d.url)
+  .map((d) => ({
+    key: d.key,
+    name: d.item.name,
+    x: d.x,
+    url: d.url,
     style: {
-      left: pct(DECOR_SLOTS[slot], SCENE_WIDTH),
+      left: pct(d.x, SCENE_WIDTH),
       top: pct(stage.value.floorY - SPRITE_HEIGHT, SCENE_HEIGHT),
       width: pct(SPRITE_WIDTH, SCENE_WIDTH),
     },
-  }))
-  .filter((d) => d.url))
+  })))
+
+// 끌기: 누른 곳과 그림 왼쪽 끝의 거리를 유지한 채 무대 도트 단위로 옮긴다
+const worldRef = ref(null)
+let drag = null
+const toStageX = (clientX, rect) => ((clientX - rect.left) / rect.width) * SCENE_WIDTH
+const startDrag = (e, d) => {
+  if (!props.decorEditable || !worldRef.value) return
+  e.preventDefault()
+  const rect = worldRef.value.getBoundingClientRect()
+  drag = { key: d.key, offset: toStageX(e.clientX, rect) - d.x, rect }
+  e.currentTarget.setPointerCapture?.(e.pointerId)
+}
+const onDrag = (e) => {
+  if (!drag) return
+  const x = Math.round(Math.min(DECOR_MAX_X, Math.max(0, toStageX(e.clientX, drag.rect) - drag.offset)))
+  emit('decor-move', drag.key, x)
+}
+const endDrag = () => { drag = null }
 
 // 무대 전체(world)는 보이는 폭보다 넓을 수 있고, 가운데를 맞춰 놓는다
 const worldStyle = computed(() => {
@@ -101,7 +132,11 @@ const actorStyle = computed(() => ({
   image-rendering: crisp-edges;
 }
 .actor { position: absolute; line-height: 0; z-index: 2; }
-.decor { position: absolute; z-index: 1; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; }
+.decor { position: absolute; z-index: 1; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; user-select: none; }
+/* 소품 옮기기: 소품을 캐릭터보다 위로 올려 잡기 쉽게, 캐릭터 클릭은 끈다 */
+.editing .decor { pointer-events: auto; cursor: grab; touch-action: none; z-index: 3; outline: 1px dashed rgba(45, 91, 255, 0.7); outline-offset: -1px; }
+.editing .decor:active { cursor: grabbing; }
+.editing .actor { pointer-events: none; }
 /* 캐릭터 캔버스(24×33)를 배경과 같은 배율로 늘린다 */
 .actor :deep(.pixel-character) {
   position: relative;
