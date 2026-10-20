@@ -287,7 +287,7 @@ const onWithdrawn = async () => {
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 /* 한 줄로 쌓일 때: 계정 설정(비밀번호·로그아웃·탈퇴)은 맨 아래로 */
 @media (max-width: 860px) {
-  .page { display: flex; flex-direction: column; }
+  .page { display: flex; flex-direction: column; align-items: stretch; }
   .col { display: contents; }
   .account-card { order: 1; }
 }

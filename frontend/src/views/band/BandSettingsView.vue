@@ -361,7 +361,8 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 /* 한 줄로 쌓일 때: 정보 → 초대 코드 → 멤버 → 배경 → 나가기 */
 @media (max-width: 860px) {
-  .columns { display: flex; flex-direction: column; gap: 16px; }
+  /* 카드 폭을 모두 화면 폭에 맞춘다 (넓은 화면용 align-items: start가 남으면 카드마다 내용 길이만큼 달라짐) */
+  .columns { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
   .col { display: contents; }
   .info-card { order: 1; }
   .invite-card { order: 2; }

@@ -7,8 +7,6 @@
     <div v-if="!bare" class="stage-head">
       <div class="level-tag">Lv.{{ level }} {{ nickname }}</div>
       <div class="tier-badge">{{ tier.name }}</div>
-      <!-- 칭호 옆에 붙일 버튼 (홈 휴대폰 화면의 옷장 버튼) -->
-      <slot name="badge" />
     </div>
 
     <!-- 배경과 캐릭터는 같은 도트 격자 (홈과 옷장 미리보기가 똑같이 보인다) -->
@@ -239,15 +237,14 @@ const stageStyle = computed(() => ({
 }
 
 /* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래로 뺀다
-   순서: 레벨·칭호(·옷장) → 홈이 넣는 한 줄(요즘 듣는 음악, order 2) → 장면 → 경험치
-   레벨·칭호와 옆에 붙는 버튼은 모두 같은 높이의 알약 모양 */
+   순서: 레벨·칭호 → 홈이 넣는 한 줄(음악·옷장, order 2) → 장면 → 경험치. 레벨·칭호는 같은 높이의 알약 모양 */
 @media (max-width: 640px) {
   .character-stage { color: var(--c-text); display: flex; flex-direction: column; }
   .stage-head, .exp-area { position: static; transform: none; margin: 0 auto; }
   .stage-head { order: 1; padding: 12px 12px 8px; gap: 6px; }
   .character-stage > :deep(.scene) { order: 3; }
   .exp-area { order: 4; }
-  .level-tag, .tier-badge, .stage-head :slotted(*) {
+  .level-tag, .tier-badge {
     display: inline-flex; align-items: center; height: 28px; padding: 0 11px; box-sizing: border-box;
     border-radius: 999px; font-size: 0.75rem; line-height: 1;
   }
