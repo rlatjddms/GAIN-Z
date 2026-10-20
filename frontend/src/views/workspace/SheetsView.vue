@@ -263,7 +263,7 @@ input[type='checkbox'] { width: 18px; height: 18px; margin: 0; accent-color: var
 
 .chip, .sort { white-space: nowrap; }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   /* 좁은 화면: 카드 제목 아래로 필터를 내린다 */
   .page :deep(.ws-card-head) { flex-direction: column; align-items: flex-start; }
   .filters { flex-wrap: wrap; }

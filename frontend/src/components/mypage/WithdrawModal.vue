@@ -111,4 +111,13 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; color: var(--c-dange
 .btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
+/* 휴대폰: 아래에서 올라오는 시트로 (#124) */
+@media (max-width: 640px) {
+  .backdrop { align-items: flex-end; padding: 0; }
+  .modal {
+    width: 100%; max-width: none; max-height: 92dvh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}
 </style>

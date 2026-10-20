@@ -210,7 +210,7 @@ const allDone = computed(() => store.records.length > 0 && store.records.every((
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 .modal-enter-from .modal, .modal-leave-to .modal { transform: translateY(12px) scale(0.98); }
 
-@media (max-width: 480px) {
+@media (max-width: 420px) {
   .record-grid { grid-template-columns: repeat(3, 1fr); }
 }
 .rewards { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--c-line-soft); }
@@ -228,4 +228,13 @@ const allDone = computed(() => store.records.length > 0 && store.records.every((
 .reward-state { font-size: 0.7rem; font-weight: 800; color: var(--c-faint); }
 .rewards li.done .reward-state { color: #e67700; }
 .rewards-hint { margin: 8px 0 0; font-size: 0.7rem; color: var(--c-faint); }
+/* 휴대폰: 아래에서 올라오는 시트로 (#124) */
+@media (max-width: 640px) {
+  .backdrop { align-items: flex-end; padding: 0; }
+  .modal {
+    width: 100%; max-width: none; max-height: 92dvh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}
 </style>

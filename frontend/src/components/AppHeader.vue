@@ -134,9 +134,12 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 .menu-enter-active, .menu-leave-active { transition: opacity 0.12s, transform 0.12s; }
 .menu-enter-from, .menu-leave-to { opacity: 0; transform: translateY(-4px); }
 .name { font-weight: 700; font-size: 0.9rem; color: var(--c-text-2); }
+/* 휴대폰: 헤더를 낮추고 로고를 2배 크기로, 이름은 숨기고 사진만 */
 @media (max-width: 640px) {
-  .header-inner { padding: 0 16px; }
-  .user-info { padding-right: 6px; }
-  .name { display: none; }
+  .header-inner { padding: 0 12px; height: 56px; grid-template-columns: auto 1fr auto; gap: 8px; }
+  .logo :deep(.app-logo) { width: auto; height: 14px; }
+  .header-right { gap: 6px; }
+  .user-info { padding: 3px; }
+  .name, .caret { display: none; }
 }
 </style>

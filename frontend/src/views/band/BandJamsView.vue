@@ -712,10 +712,14 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .song-option small { color:var(--c-muted); font-size:.7rem; flex-shrink:0; }
 .song-option:hover,.song-option:focus-visible { background:var(--c-primary-soft); }
 .more { margin:0; font-size:.72rem; }
-@media (max-width:760px) {
+@media (max-width: 860px) {
   .workspace { grid-template-columns:minmax(0,1fr); }
   .track { align-items:flex-start; }
   .volume input { width:100px; }
   .add-ways { grid-template-columns:minmax(0,1fr); }
+}
+/* 휴대폰: 팝업은 아래에서 올라오는 시트로 (#124) */
+@media (max-width: 640px) {
+  .jam-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 }
 </style>

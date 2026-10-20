@@ -85,7 +85,7 @@ const rows = computed(() => {
 .bad { position: absolute; left: 6px; bottom: 5px; font-size: 0.6rem; font-weight: 800; color: var(--c-danger); }
 .cursor { position: absolute; top: 4px; bottom: 4px; width: 2px; margin-left: -1px; background: var(--c-primary); border-radius: 1px; }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
   .chord { font-size: 0.85rem; }
 }
 </style>

@@ -34,7 +34,9 @@ h1 {
 .dot { margin: 0 6px; color: var(--c-faint); }
 .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .page-header { align-items: flex-start; flex-direction: column; }
+  h1 { font-size: 1.2rem; }
+  .subtitle { font-size: 0.8rem; }
 }
 </style>

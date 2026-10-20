@@ -121,7 +121,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 
 .load-error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .today-grid { grid-template-columns: minmax(0, 1fr); }
   .date-title { font-size: 1rem; }
 }

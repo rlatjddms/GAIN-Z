@@ -343,4 +343,9 @@ const handleSocialLogin = (provider) => {
   text-decoration: none;
   margin-left: 8px;
 }
+/* 휴대폰: 카드가 화면 끝에 붙지 않게 바깥 여백, 안쪽 여백은 줄인다 (#124) */
+@media (max-width: 640px) {
+  .gain-z-login-root { height: auto; min-height: 100dvh; padding: 24px 16px; }
+  .login-card-container { padding: 40px 22px; }
+}
 </style>

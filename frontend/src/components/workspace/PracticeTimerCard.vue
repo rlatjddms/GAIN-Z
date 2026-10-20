@@ -216,7 +216,7 @@ const showSaved = (exp) => {
   font: inherit; font-weight: 800; padding: 2px 8px; border-radius: 6px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .timer-display { font-size: 2.4rem; }
 }
 </style>

@@ -225,4 +225,8 @@ ul { list-style: none; margin: 0; padding: 0; }
 @media (hover: none) {
   .remove { opacity: 1; }
 }
+/* 휴대폰: 종 아래가 아니라 화면 폭에 맞춰 헤더 바로 아래에 */
+@media (max-width: 640px) {
+  .panel { position: fixed; top: 64px; left: 12px; right: 12px; width: auto; max-width: none; max-height: calc(100dvh - 80px); }
+}
 </style>

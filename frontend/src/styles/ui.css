@@ -59,3 +59,17 @@
 .chip.on { background: var(--c-primary-soft); border-color: var(--c-primary-line); color: var(--c-primary-text); }
 .chip:disabled { opacity: 0.45; cursor: not-allowed; }
 .chip.danger:not(:disabled) { color: var(--c-danger); border-color: #ffc9c9; background: var(--c-danger-soft); }
+
+/* 손가락으로 누르는 화면 (#124): 버튼·칩·고르기 칸을 누르기 쉬운 높이로 */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .btn.small { min-height: 38px; }
+  .chip { min-height: 34px; padding: 6px 13px; }
+  .segment > button { min-height: 36px; }
+}
+
+/* 휴대폰: 아이폰은 16px보다 작은 입력칸을 누르면 화면을 확대해 버려서 입력 글자를 16px로 맞춘다
+   (화면마다 scoped로 글자 크기를 정해 둬서 !important로 덮는다) */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), select, textarea { font-size: 16px !important; }
+}

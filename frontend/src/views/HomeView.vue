@@ -595,6 +595,33 @@ button::-moz-focus-inner { border: 0 !important; }
   border-color: var(--c-primary);
 }
 
+/* 태블릿: 바로가기 카드 두 줄 */
+@media (max-width: 860px) {
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+}
+/* 휴대폰: 카드는 한 줄씩, 여백을 줄이고 밴드 탭은 옆으로 밀어서 본다 */
+@media (max-width: 640px) {
+  .tab-switcher button { padding: 6px 14px; font-size: 0.8rem; }
+  .main-body { padding: 16px 12px 32px; }
+  .grid-3, .grid-2 { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .grid-3 { margin-bottom: 12px; }
+  .card-btn { padding: 16px 18px; gap: 14px; }
+  .stage { padding: 40px 16px; margin-bottom: 12px; }
+  .band-room { padding: 16px; }
+  .band-info h2 { font-size: 1.15rem; }
+  .band-tabs-row { gap: 8px; }
+  .band-tabs-left { overflow-x: auto; scrollbar-width: none; min-width: 0; }
+  .band-tabs-left::-webkit-scrollbar { display: none; }
+  .band-tabs-left button { flex: none; padding: 10px 14px; white-space: nowrap; }
+  .match-make-btn { flex: none; padding: 10px 12px; }
+  .match-make-btn .btn-lbl { display: none; }
+  .m-item { min-width: 0; padding: 8px 10px; }
+}
+/* 터치 화면에서는 눌렀을 때 카드가 떠오르지 않게 */
+@media (hover: none) {
+  .card-btn:hover { transform: none; box-shadow: none; }
+}
+
 /* 좁은 화면: 무대 아래 경험치와 겹치지 않게 옷장 버튼을 무대 밑으로 */
 @media (max-width: 640px) {
   .edit-char-btn { position: static; margin: 0 auto 12px; }

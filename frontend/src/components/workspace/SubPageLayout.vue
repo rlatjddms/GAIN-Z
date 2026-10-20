@@ -54,7 +54,12 @@ defineProps({
 .back:hover { color: var(--c-primary-text); }
 .head { margin-bottom: 20px; }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .sub-body { padding: 16px 16px 40px; }
+}
+@media (max-width: 640px) {
+  .page-pill { padding: 6px 12px; font-size: 0.72rem; }
+  .back { margin-bottom: 12px; }
+  .head { margin-bottom: 16px; }
 }
 </style>

@@ -134,7 +134,7 @@ const timeAgo = postTimeAgo
 .skeleton { min-height: 180px; background: linear-gradient(110deg, #fff, #f5f7fa, #fff); }
 .empty { text-align: center; color: var(--c-faint); font-size: 0.85rem; padding: 32px 0; }
 
-@media (max-width: 900px) {
+@media (max-width: 860px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {

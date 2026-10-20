@@ -466,7 +466,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 .stage-option:disabled { cursor: default; }
 .stage-option:disabled:not(.active) { opacity: 0.6; }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .stages { grid-template-columns: 1fr; }
 }
 /* 리더 왕관: 홈 밴드 무대와 같은 노란 왕관, 이름과 띄움 */
