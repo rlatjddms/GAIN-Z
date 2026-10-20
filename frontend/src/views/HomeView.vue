@@ -474,13 +474,22 @@ button::-moz-focus-inner { border: 0 !important; }
 .card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
 .card-title.link:hover { color: var(--c-primary-text); }
 .record-count { font-size: 0.75rem; color: #adb5bd; }
-/* 투명 아크릴 받침: 상자 없이 레코드 줄마다 얇은 반투명 받침만. 레코드만 눈에 들어오게 */
-.shelf { cursor: pointer; display: flex; flex-direction: column; gap: 12px; }
+/* 은은한 유리장: 아주 연한 테두리와 살짝 푸른 유리, 부드러운 대각선 반사광 두 줄. 레코드가 먼저 보이게 */
+.shelf {
+  position: relative; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; gap: 12px;
+  padding: 12px 10px 8px;
+  background: linear-gradient(180deg, #f2f7fa 0%, #f9fbfd 100%);
+  border: 1px solid #e3eaef;
+}
+.shelf::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0) 6%, rgba(255, 255, 255, 0.85) 13%, rgba(255, 255, 255, 0) 22%,
+    rgba(255, 255, 255, 0) 25%, rgba(255, 255, 255, 0.6) 28%, rgba(255, 255, 255, 0) 32%);
+}
 .shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
 .shelf-board {
-  height: 4px; margin: 2px 6px 0;
-  background: #eef3f6;
-  box-shadow: 0 1px 0 #dde5ea;
+  height: 3px; margin-top: 2px;
+  background: linear-gradient(#ffffff 0 1px, #dbe7ed 1px 3px);
 }
 .shelf:hover .shelf-items { transform: translateY(-2px); }
 .shelf-items { transition: transform 0.2s; }
