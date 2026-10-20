@@ -109,14 +109,15 @@ function hslToRgb([h, s, l]) {
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
 
 // 원래 색들 → 고른 색에 맞춘 색. 바탕색과의 밝기 차이(그림자·선)와 채도 비율은 유지하고 색조는 고른 색으로
-export function shiftTable(colors, chosen) {
+// 회색 계열 아이템(바탕 채도 0.15 이하)은 모든 색을 고른 색의 채도로 (안 그러면 옅은 무늬만 회색으로 남는다)
+export function shiftTable(colors, chosen, contrast = 1) {
   const [, sBase, lBase] = rgbToHsl(hexToRgb(colors[0]))
   const [hC, sC, lC] = rgbToHsl(hexToRgb(chosen))
   const table = new Map()
   for (const c of colors) {
     const [, s, l] = rgbToHsl(hexToRgb(c))
-    const sat = sBase > 0.05 ? clamp01(sC * (s / sBase)) : sC
-    table.set(hexToRgb(c).join(','), hslToRgb([hC, sat, clamp01(lC + (l - lBase))]))
+    const sat = sBase > 0.15 ? clamp01(sC * (s / sBase)) : sC
+    table.set(hexToRgb(c).join(','), hslToRgb([hC, sat, clamp01(lC + (l - lBase) * contrast)]))
   }
   return table
 }
@@ -127,7 +128,7 @@ export function paintSprite(imageData, colors, spec, chosen) {
   const base = spec?.key && chosen ? { ...colors, outfitColor: chosen } : colors
   const canvas = recolorSprite(imageData, base)
   if (!spec?.colors || !chosen || chosen.toLowerCase() === spec.colors[0].toLowerCase()) return canvas
-  const table = shiftTable(spec.colors, chosen)
+  const table = shiftTable(spec.colors, chosen, spec.contrast)
   const ctx = canvas.getContext('2d')
   const out = ctx.getImageData(0, 0, canvas.width, canvas.height)
   const d = out.data

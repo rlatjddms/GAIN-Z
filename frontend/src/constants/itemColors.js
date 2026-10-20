@@ -1,5 +1,6 @@
 // 아이템 색 바꾸기 (#120). 아이템마다 색을 바꿀 부분의 원래 색과 추천 색
 //   colors: 그림에서 색이 바뀌는 원래 색들. 첫 번째가 바탕색이고, 나머지(그림자·선·밝은 부분)는 바탕색과의 밝기 차이를 그대로 유지한다
+//   contrast: 바탕색과의 밝기 차이를 몇 배로 할지 (기본 1). 회색에서만 보이던 옅은 무늬를 색을 바꿔도 보이게
 //   key: true → 그림을 의상 기준색(노랑 계열)으로 칠한 아이템. 고른 색이 의상색(outfitColor)이 된다
 //   presets: 추천 색. 첫 번째가 기본 색 (colors[0]과 같으면 원래 그림 그대로)
 // 표에 없는 아이템(왕관 등)은 색이 고정. 그림 색을 바꾸면 colors도 같이 바꾼다
@@ -25,7 +26,8 @@ export const ITEM_COLORS = {
   SUIT_PANTS: { colors: ['#6741d9', '#4c2a9e', '#2b1866'], presets: ['#F3EAD3', '#1C2A5A', '#212529'] },
   GOLD_STRIPE_PANTS: { colors: ['#25262b', '#0b0c0e'], presets: ['#25262B', '#1C2A5A', '#7D1A1A'] },
   // 모자
-  BEANIE: { colors: ['#bdc2c4', '#adb5bd', '#9b9ba3', '#caccca'], presets: ['#BDC2C4', '#E03131', '#FCC419'] },
+  // 비니 골 무늬(adb5bd·caccca)는 바탕과 밝기 차이가 작아서 색을 바꾸면 흐려진다 → 차이를 키움
+  BEANIE: { colors: ['#bdc2c4', '#adb5bd', '#9b9ba3', '#caccca'], contrast: 1.5, presets: ['#BDC2C4', '#E03131', '#FCC419'] },
   CAP: { colors: ['#1971c2', '#145a9c', '#0b3d6e'], presets: ['#1971C2', '#E03131', '#212529'] },
   // 안경
   ROUND_GLASSES: { colors: ['#343a40'], presets: ['#343A40', '#C08A52', '#E03131'] },
@@ -38,6 +40,7 @@ export const ITEM_COLORS = {
   STAR_EARRINGS: { colors: ['#fcc419', '#fff3bf'], presets: ['#FCC419', '#CED4DA', '#4DABF7'] },
   // 목·허리
   HEADPHONES: { colors: ['#e03131'], presets: ['#E03131', '#1971C2', '#F8F9FA'] },
+  HEAD_HEADPHONES: { colors: ['#e03131'], presets: ['#E03131', '#1971C2', '#F8F9FA'] },
   CHAIN: { colors: ['#fcc419', '#e67700'], presets: ['#FCC419', '#CED4DA'] },
   BELT: { colors: ['#2b2d31'], presets: ['#2B2D31', '#5C3A1E', '#C92A2A'] },
   // 신발

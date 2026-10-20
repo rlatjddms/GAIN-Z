@@ -21,7 +21,9 @@ export const ACCESSORIES = [
   { key: 'ROUND_GLASSES', slot: 'GLASSES', name: '동그란 안경', level: 6 },
   { key: 'CAP', slot: 'HAT', name: '볼캡', level: 9 },
   { key: 'SUNGLASSES', slot: 'GLASSES', name: '선글라스', level: 12 },
+  // Lv.13 헤드폰은 목에 걸기·머리에 쓰기 두 가지로 받는다
   { key: 'HEADPHONES', slot: 'NECK', name: '헤드폰', level: 13 },
+  { key: 'HEAD_HEADPHONES', slot: 'HAT', name: '헤드폰', level: 13 },
   { key: 'STUD_EARRINGS', slot: 'EARRINGS', name: '스터드 귀걸이', level: 14 },
   { key: 'BELT', slot: 'WAIST', name: '체인 벨트', level: 16 },
   { key: 'HOOP_EARRINGS', slot: 'EARRINGS', name: '링 귀걸이', level: 18 },
