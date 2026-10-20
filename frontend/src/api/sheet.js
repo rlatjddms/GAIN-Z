@@ -33,8 +33,10 @@ export async function removeWorkspaceItem(id) {
   await axiosInstance.delete(`/api/v1/workspace/sheets/${id}`)
 }
 
-const infoBody = ({ title, artist, originalKey, bpm, instrumentType, sheetType }) => ({
+// content: 코드 악보 글 ([C]가사 형식, #157). 코드 악보를 만들거나 고칠 때만 보냄
+const infoBody = ({ title, artist, originalKey, bpm, instrumentType, sheetType, content }) => ({
   title, artist, originalKey: originalKey || null, bpm: bpm || null, instrumentType, sheetType,
+  ...(content !== undefined ? { content } : {}),
 })
 
 // 기본 헤더가 JSON이라 파일 보낼 때는 바꿔 준다 (경계값은 브라우저가 붙임)
@@ -54,6 +56,12 @@ export async function uploadSheet(info, files, onProgress) {
     headers: MULTIPART,
     onUploadProgress: (e) => onProgress?.(e.total ? e.loaded / e.total : 0),
   })
+  return response.data.data
+}
+
+// 코드 붙여넣기로 코드 악보 만들기 (파일 없이 코드 글만, #157) → 보관함 항목 (uploadSheet와 같은 모양)
+export async function createChordSheet(info, content) {
+  const response = await axiosInstance.post('/api/v1/sheets/chords', infoBody({ ...info, sheetType: 'CHORD', content }))
   return response.data.data
 }
 

@@ -1,10 +1,10 @@
 <template>
   <SubPageLayout :back-to="editing ? `/sheets/${itemId}` : '/sheets'" :back-label="editing ? '악보' : '악보 보관함'"
                  :title="editing ? 'EDIT SHEET' : 'UPLOAD SHEET'" :name="editing ? '악보 정보 수정' : '악보 올리기'"
-                 :subtitle="editing ? '곡 정보를 고치거나 장을 더 올리고 지울 수 있어요' : '갖고 있는 악보 사진·스캔·PDF를 올리면 내 보관함에 담겨요'">
+                 :subtitle="editing ? (mode === 'chords' ? '코드 악보와 곡 정보를 고칠 수 있어요' : '곡 정보를 고치거나 장을 더 올리고 지울 수 있어요') : '악보 사진·PDF를 올리거나, 코드 사이트에서 복사한 코드를 붙여 넣으세요'">
     <template #actions>
       <button class="btn primary" :disabled="!canSave" @click="save">
-        {{ saving ? (editing ? '저장 중…' : `올리는 중 ${Math.round(progress * 100)}%`) : (editing ? '저장' : '올리기') }}
+        {{ saving ? (editing || mode === 'chords' ? '저장 중…' : `올리는 중 ${Math.round(progress * 100)}%`) : (editing || mode === 'chords' ? '저장' : '올리기') }}
       </button>
     </template>
   <div class="page">
@@ -12,9 +12,26 @@
     <p v-if="loadError" class="error">{{ loadError }}</p>
     <div v-else-if="editing && !sheet" class="loading">불러오는 중…</div>
 
-    <div v-else class="layout">
+    <template v-else>
+    <!-- 새로 만들 때: 파일 올리기 / 코드 붙여넣기 (#157) -->
+    <div v-if="!editing" class="segment mode-switch" role="tablist" aria-label="악보 만드는 방법">
+      <button role="tab" :aria-selected="mode === 'files'" :class="{ on: mode === 'files' }" @click="setMode('files')">파일 올리기</button>
+      <button role="tab" :aria-selected="mode === 'chords'" :class="{ on: mode === 'chords' }" @click="setMode('chords')">코드 붙여넣기</button>
+    </div>
+
+    <div class="layout">
+      <!-- 코드 붙여넣기: 가사 위 코드 글 → [C]가사 형식, 바로 미리보기 -->
+      <WsCard v-if="mode === 'chords'" title="코드 붙여넣기">
+        <textarea v-model="chordText" class="chord-input" rows="14" spellcheck="false" :disabled="busy"
+                  placeholder="코드 사이트에서 '가사 위에 코드'가 있는 부분을 복사해 붙여 넣으세요.&#10;&#10;[Verse 1]&#10;C        G&#10;이 밤 그날의 반딧불을" />
+        <p class="tip">코드 줄은 아래 가사의 같은 칸에 붙이고, [Verse]·Chorus: 같은 줄은 구간 이름이 돼요. 바뀐 결과를 아래에서 확인하고, 이상한 곳은 붙여 넣은 글을 고쳐 주세요.</p>
+        <div class="chord-preview">
+          <ChordSheet :content="chordContent" :original-key="form.originalKey || null" empty-text="붙여 넣으면 여기에 코드 악보가 보여요." />
+        </div>
+      </WsCard>
+
       <!-- 파일 -->
-      <WsCard :title="editing ? `악보 ${sheet.pages.length}장` : `악보 파일${picked.length ? ` ${picked.length}장` : ''}`">
+      <WsCard v-else :title="editing ? `악보 ${sheet.pages.length}장` : `악보 파일${picked.length ? ` ${picked.length}장` : ''}`">
         <label
           class="drop"
           :class="{ over: dragOver, compact: pageCount > 0 }"
@@ -96,7 +113,7 @@
               <option v-for="o in INSTRUMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.emoji }} {{ o.label }}</option>
             </select>
           </label>
-          <label class="field">
+          <label v-if="mode === 'files'" class="field">
             <span>악보 종류 <em>*</em></span>
             <select v-model="form.sheetType">
               <option v-for="o in SHEET_TYPE_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
@@ -124,6 +141,7 @@
         <p v-if="error" class="error">{{ error }}</p>
       </WsCard>
     </div>
+    </template>
   </div>
   </SubPageLayout>
 </template>
@@ -136,11 +154,14 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
-import { getWorkspaceItem, uploadSheet, updateSheet, addSheetPages, deleteSheetPage } from '../../api/sheet'
+import ChordSheet from '../../components/workspace/ChordSheet.vue'
+import { getWorkspaceItem, uploadSheet, createChordSheet, updateSheet, addSheetPages, deleteSheetPage } from '../../api/sheet'
+import { importChordText } from '../../music/chordImport'
+import { countChords } from '../../music/chordSheet'
 import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import {
-  SHEET_TYPE_OPTIONS, SHEET_FILE_ACCEPT, MAX_SHEET_PAGES, MAX_SHEET_FILE_MB,
+  SHEET_TYPE_OPTIONS, SHEET_FILE_ACCEPT, MAX_SHEET_PAGES, MAX_SHEET_FILE_MB, MAX_CHORD_TEXT,
   sheetFileProblem, fileSizeText, titleFromFileName,
 } from '../../constants/sheet'
 import { MAJOR_KEYS, MINOR_KEYS } from '../../music/transpose'
@@ -162,6 +183,16 @@ const form = reactive({
   originalKey: '',
   bpm: null,
 })
+// 파일 올리기 / 코드 붙여넣기 (고치기는 그 악보에 맞춰 정해짐: 파일 없이 코드 글만 있으면 코드)
+const mode = ref(route.query.mode === 'chords' ? 'chords' : 'files')
+const chordText = ref('')
+const originalChords = ref('')
+const chordContent = computed(() => importChordText(chordText.value))
+const setMode = (m) => {
+  mode.value = m
+  if (m === 'chords') form.sheetType = 'CHORD'
+}
+if (mode.value === 'chords') form.sheetType = 'CHORD'
 // 마지막으로 저장(불러온) 곡 정보. 바뀌었는지 비교용
 const original = ref(JSON.stringify(form))
 const sheet = ref(null)
@@ -188,6 +219,11 @@ onMounted(async () => {
       title: s.title, artist: s.artist || '', instrumentType: s.instrumentType,
       sheetType: s.sheetTypes?.[0] || 'SCORE', originalKey: s.originalKey || '', bpm: s.bpm,
     })
+    if (s.content && !s.pages.length) {
+      mode.value = 'chords'
+      chordText.value = s.content
+      originalChords.value = s.content
+    }
     original.value = JSON.stringify(form)
   } catch (e) {
     loadError.value = `악보를 불러오지 못했어요. ${apiErrorMessage(e)}`
@@ -266,9 +302,13 @@ const removePage = async (page) => {
 }
 
 /* ---------- 저장 ---------- */
-const dirty = computed(() => JSON.stringify(form) !== original.value || (!editing && picked.value.length > 0))
+const dirty = computed(() => JSON.stringify(form) !== original.value
+  || (mode.value === 'chords' ? chordText.value !== originalChords.value : (!editing && picked.value.length > 0)))
 const problem = computed(() => {
-  if (!editing && !picked.value.length) return '악보 파일을 한 장 이상 골라 주세요.'
+  if (mode.value === 'chords') {
+    if (!countChords(chordContent.value)) return '코드가 있는 글을 붙여 넣어 주세요.'
+    if (chordContent.value.length > MAX_CHORD_TEXT) return `코드 악보는 ${MAX_CHORD_TEXT.toLocaleString()}자까지 저장할 수 있어요.`
+  } else if (!editing && !picked.value.length) return '악보 파일을 한 장 이상 골라 주세요.'
   if (!form.title.trim()) return '곡 제목을 입력해 주세요.'
   if (form.bpm !== null && form.bpm !== '' && (form.bpm < 20 || form.bpm > 300)) return 'BPM은 20~300 사이로 입력해 주세요.'
   return ''
@@ -281,7 +321,14 @@ const save = async () => {
   error.value = ''
   const info = { ...form, title: form.title.trim(), artist: form.artist.trim() }
   try {
-    if (editing) {
+    if (mode.value === 'chords') {
+      const content = chordContent.value
+      if (editing) await updateSheet(sheet.value.id, { ...info, content })
+      const item = editing ? null : await createChordSheet(info, content)
+      original.value = JSON.stringify(form)
+      originalChords.value = chordText.value
+      router.replace(`/sheets/${editing ? itemId : item.id}`)
+    } else if (editing) {
       await updateSheet(sheet.value.id, info)
       original.value = JSON.stringify(form)
       router.replace(`/sheets/${itemId}`)
@@ -305,6 +352,14 @@ onBeforeRouteLeave(() => (dirty.value && !loadError.value ? dialog.confirm({ tit
 .page { display: flex; flex-direction: column; gap: 16px; }
 
 
+.mode-switch { margin-bottom: 16px; }
+.chord-input {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 220px; padding: 12px 14px;
+  border: 1px solid var(--c-line); border-radius: 12px; outline: none; background: var(--c-surface);
+  font-family: ui-monospace, Menlo, Consolas, 'D2Coding', monospace; font-size: 0.85rem; line-height: 1.6; color: var(--c-text);
+}
+.chord-input:focus { border-color: var(--c-primary); }
+.chord-preview { margin-top: 12px; padding: 14px 16px; border: 1px dashed var(--c-line); border-radius: 12px; max-height: 420px; overflow-y: auto; }
 .layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .info-card { position: sticky; top: 16px; }
 
