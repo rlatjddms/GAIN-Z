@@ -49,6 +49,32 @@
                 <span v-if="!r.owned" class="mini-bar"><span :style="{ width: `${progressRatio(r.progress) * 100}%` }"></span></span>
               </button>
             </div>
+
+            <!-- 수집 보상: 종류별로 다 모으면 방 꾸미기 세트, 전부 모으면 리스닝 룸 -->
+            <section class="rewards">
+              <h3>수집 보상</h3>
+              <ul>
+                <li v-for="s in setProgress" :key="s.key" :class="{ done: s.done }">
+                  <span class="reward-icons">
+                    <img :src="decorUrl(s.player.key)" alt=""><img :src="decorUrl(s.rack.key)" alt="">
+                  </span>
+                  <span class="reward-text">
+                    <b>{{ s.label }} {{ s.owned }} / {{ s.total }}</b>
+                    <small>{{ s.player.name }} + {{ s.rack.name }}</small>
+                  </span>
+                  <span class="reward-state">{{ s.done ? '받음' : '모으는 중' }}</span>
+                </li>
+                <li :class="{ done: allDone }">
+                  <span class="reward-icons"><img :src="listeningThumb" alt="" class="room"></span>
+                  <span class="reward-text">
+                    <b>전부 {{ store.ownedCount }} / {{ store.total || 12 }}</b>
+                    <small>리스닝 룸 무대</small>
+                  </span>
+                  <span class="reward-state">{{ allDone ? '받음' : '모으는 중' }}</span>
+                </li>
+              </ul>
+              <p class="rewards-hint">받은 보상은 옷장 배경 탭에서 고를 수 있어요.</p>
+            </section>
           </template>
         </section>
       </div>
@@ -62,6 +88,8 @@ import RecordIcon from './RecordIcon.vue'
 import { useRecordsStore } from '../../stores/records'
 import { apiErrorMessage } from '../../api/practice'
 import { RECORD_RARITIES, rarityOf, progressText, progressRatio } from '../../constants/records'
+import { ROOM_DECOR_SETS, decorUrl } from '../../constants/recordRewards'
+import listeningThumb from '../../assets/stages/listening.png'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -102,6 +130,14 @@ watch(() => props.open, (v) => {
   else window.removeEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+
+// 종류별 수집 현황 → 방 꾸미기 세트
+const setProgress = computed(() => ROOM_DECOR_SETS.map((set) => {
+  const ofRarity = store.records.filter((r) => r.rarity === set.rarity)
+  const owned = ofRarity.filter((r) => r.owned).length
+  return { ...set, label: rarityOf(set.rarity).label, owned, total: ofRarity.length, done: ofRarity.length > 0 && owned === ofRarity.length }
+}))
+const allDone = computed(() => store.records.length > 0 && store.records.every((r) => r.owned))
 </script>
 
 <style scoped>
@@ -176,4 +212,19 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 @media (max-width: 480px) {
   .record-grid { grid-template-columns: repeat(3, 1fr); }
 }
+.rewards { margin-top: 16px; padding-top: 14px; border-top: 1px solid #f1f3f5; }
+.rewards h3 { margin: 0 0 8px; font-size: 0.8rem; font-weight: 900; color: #495057; }
+.rewards ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.rewards li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; background: #f8f9fa; opacity: 0.75; }
+.rewards li.done { background: #fff9db; opacity: 1; }
+.reward-icons { display: flex; align-items: flex-end; gap: 2px; width: 64px; flex-shrink: 0; }
+.reward-icons img { width: 30px; image-rendering: pixelated; }
+.reward-icons img.room { width: 64px; border-radius: 4px; }
+.rewards li:not(.done) .reward-icons img { filter: grayscale(1); opacity: 0.6; }
+.reward-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.reward-text b { font-size: 0.8rem; font-weight: 900; color: #343a40; }
+.reward-text small { font-size: 0.7rem; font-weight: 700; color: #868e96; }
+.reward-state { font-size: 0.7rem; font-weight: 800; color: #adb5bd; }
+.rewards li.done .reward-state { color: #e67700; }
+.rewards-hint { margin: 8px 0 0; font-size: 0.7rem; color: #adb5bd; }
 </style>

@@ -13,6 +13,10 @@
         />
         <slot name="above" />
       </div>
+      <!-- 방 꾸미기 소품 (레코드 수집 보상): 왼쪽 바닥에 플레이어, 오른쪽에 보관함 -->
+      <template v-if="decorSet">
+        <img v-for="d in decorItems" :key="d.key" class="decor" :src="d.url" alt="" :style="d.style">
+      </template>
       <!-- 무대 꾸미기 효과 (캐릭터 뒤) -->
       <StageEffect :effect="effectKey" />
       <!-- 무대 좌표 위에 얹는 것들 -->
@@ -27,7 +31,8 @@
 import { computed } from 'vue'
 import PixelCharacter from './PixelCharacter.vue'
 import StageEffect from './StageEffect.vue'
-import { LEVEL_TIERS } from '../constants/levelTier'
+import { LEVEL_TIERS, stageOf } from '../constants/levelTier'
+import { decorSetOf, decorUrl, DECOR_SLOTS } from '../constants/recordRewards'
 import { SPRITE_WIDTH, SPRITE_HEIGHT, STAGE_WIDTH as SCENE_WIDTH, STAGE_HEIGHT as SCENE_HEIGHT } from '../pixel/palette'
 
 const props = defineProps({
@@ -39,12 +44,28 @@ const props = defineProps({
   viewWidth: { type: Number, default: SCENE_WIDTH },
   // 무대 효과. undefined면 캐릭터가 고른 효과(character.stageEffect), null이면 없음
   effect: { type: String, default: undefined },
+  // 방 꾸미기 세트 (CASSETTE / CD / LP). undefined면 캐릭터가 고른 것(character.roomDecor), null이면 없음
+  decor: { type: String, default: undefined },
 })
 const emit = defineEmits(['actor-click'])
 
-const stage = computed(() => LEVEL_TIERS.find((t) => t.key === props.stageKey) || LEVEL_TIERS[0])
+const stage = computed(() => stageOf(props.stageKey) || LEVEL_TIERS[0])
 const effectKey = computed(() => (props.effect === undefined ? props.character?.stageEffect || null : props.effect))
 const pct = (v, total) => `${(v / total) * 100}%`
+
+const decorSet = computed(() => decorSetOf(props.decor === undefined ? props.character?.roomDecor : props.decor))
+// 소품 그림은 캐릭터와 같은 24×32 칸이고 바닥 줄에 붙인다
+const decorItems = computed(() => (decorSet.value ? [['player', decorSet.value.player], ['rack', decorSet.value.rack]] : [])
+  .map(([slot, item]) => ({
+    key: item.key,
+    url: decorUrl(item.key),
+    style: {
+      left: pct(DECOR_SLOTS[slot], SCENE_WIDTH),
+      top: pct(stage.value.floorY - SPRITE_HEIGHT, SCENE_HEIGHT),
+      width: pct(SPRITE_WIDTH, SCENE_WIDTH),
+    },
+  }))
+  .filter((d) => d.url))
 
 // 무대 전체(world)는 보이는 폭보다 넓을 수 있고, 가운데를 맞춰 놓는다
 const worldStyle = computed(() => {
@@ -80,6 +101,7 @@ const actorStyle = computed(() => ({
   image-rendering: crisp-edges;
 }
 .actor { position: absolute; line-height: 0; z-index: 2; }
+.decor { position: absolute; z-index: 1; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; }
 /* 캐릭터 캔버스(24×33)를 배경과 같은 배율로 늘린다 */
 .actor :deep(.pixel-character) {
   position: relative;

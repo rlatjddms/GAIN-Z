@@ -81,6 +81,20 @@
     </section>
 
     <section class="panel">
+      <h2>방 꾸미기 세트 · 리스닝 룸 (레코드 수집 보상)</h2>
+      <div class="fx-grid">
+        <figure v-for="set in ROOM_DECOR_SETS" :key="set.key">
+          <StageScene :character="character" :stage-key="set.key === 'LP' ? 'RISING' : 'ROOKIE'" :decor="set.key" :effect="null" />
+          <figcaption>{{ set.name }}</figcaption>
+        </figure>
+        <figure>
+          <StageScene :character="character" stage-key="LISTENING_ROOM" decor="LP" :effect="null" />
+          <figcaption>리스닝 룸 + LP 세트</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>무대 효과 {{ STAGE_EFFECTS.length }}종</h2>
       <div class="fx-grid">
         <figure v-for="e in STAGE_EFFECTS" :key="e.key">
@@ -147,6 +161,7 @@ import { HEAD_REGION } from '../pixel/palette'
 import { listSprites } from '../pixel/sprites'
 import { ACCESSORY_SLOTS as WEAR_SLOTS, BOTTOM_SLOT, STAGE_EFFECTS, ACCESSORIES, BOTTOMS, slotOf } from '../constants/rewards'
 import { ITEM_COLORS } from '../constants/itemColors'
+import { ROOM_DECOR_SETS } from '../constants/recordRewards'
 import { outfitSpriteName } from '../pixel/sprites'
 
 // 하의도 소품처럼 자리 하나로 보여 준다

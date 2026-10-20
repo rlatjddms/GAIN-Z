@@ -11,9 +11,10 @@ export async function getWardrobe() {
 // 하의·소품(자리마다 하나)·무대 효과 (null이면 안 씀. 레벨이 닿은 것만),
 // itemColors: 아이템마다 고른 색 { HOODIE: '#ffd8a8' } (기본 색인 아이템은 빼고 보냄),
 // instrumentHidden: 그림에서 악기를 내려놓기 → 갱신된 캐릭터
-export async function updateWardrobe({ outfitId, stageBackground, stageEffect, bottom, hat, glasses, earrings, neck, waist, shoes, itemColors, instrumentHidden }) {
+// roomDecor: 방 꾸미기 세트 (CASSETTE / CD / LP, null이면 없음. 그 종류 레코드를 다 모은 것만)
+export async function updateWardrobe({ outfitId, stageBackground, stageEffect, roomDecor, bottom, hat, glasses, earrings, neck, waist, shoes, itemColors, instrumentHidden }) {
   const response = await axiosInstance.put('/api/v1/characters/me/wardrobe', {
-    outfitId, stageBackground, stageEffect, bottom, hat, glasses, earrings, neck, waist, shoes, itemColors, instrumentHidden,
+    outfitId, stageBackground, stageEffect, roomDecor, bottom, hat, glasses, earrings, neck, waist, shoes, itemColors, instrumentHidden,
   })
   return response.data.data
 }

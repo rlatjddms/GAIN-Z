@@ -39,6 +39,7 @@ import {
   MAX_LEVEL,
   clampLevel,
   getLevelTier,
+  stageOf,
   getNextTier,
   getRequiredExp,
   getExpProgress,
@@ -78,7 +79,7 @@ const expLabel = computed(() => {
 const character = computed(() => props.character)
 
 // 옷장에서 고른 무대 배경 (아직 모르면 레벨에 맞는 무대). 글자색도 배경에 맞춘다
-const bgTier = computed(() => LEVEL_TIERS.find((t) => t.key === props.character?.stageBackground) || tier.value)
+const bgTier = computed(() => stageOf(props.character?.stageBackground) || tier.value)
 
 const stageStyle = computed(() => ({
   '--accent': bgTier.value.accent,

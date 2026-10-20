@@ -180,7 +180,7 @@
 
           <!-- 배경: 레벨로 얻은 무대는 계속 간직하고 그중 하나를 고른다 -->
           <div v-else class="tab-body">
-            <p class="hint">Lv.10·20·30에 새 무대를 얻어요. 얻은 무대는 언제든 다시 고를 수 있어요.</p>
+            <p class="hint">Lv.10·20·30에 새 무대를 얻고, 레코드를 모두 모으면 리스닝 룸을 얻어요. 얻은 무대는 언제든 다시 고를 수 있어요.</p>
             <p v-if="wardrobeError" class="warn">{{ wardrobeError }}</p>
             <div class="stages">
               <button
@@ -190,12 +190,37 @@
                 @click="draft.stageBackground = b.key"
               >
                 <span class="thumb">
-                  <StageScene :character="preview" :stage-key="b.key" :effect="null" :animate="false" />
+                  <StageScene :character="preview" :stage-key="b.key" :effect="null" :decor="null" :animate="false" />
                   <i v-if="!b.unlocked">🔒</i>
                 </span>
                 <strong>{{ STAGE_NAMES[b.key] }}</strong>
-                <small>{{ b.unlocked ? (draft.stageBackground === b.key ? '사용 중' : '고르기') : `Lv.${b.requiredLevel}에 해금` }}</small>
+                <small>{{ b.unlocked ? (draft.stageBackground === b.key ? '사용 중' : '고르기') : stageLockText(b) }}</small>
               </button>
+            </div>
+
+            <div class="sub-section">
+              <span class="label">방 꾸미기</span>
+              <p class="hint">레코드를 종류별로 모두 모으면 플레이어와 보관함 세트를 얻어요.</p>
+              <div class="stages">
+                <button class="stage" :class="{ on: !draft.roomDecor }" @click="draft.roomDecor = null">
+                  <span class="thumb"><StageScene :character="preview" :stage-key="draft.stageBackground" :effect="null" :decor="null" :animate="false" /></span>
+                  <strong>꾸미기 없음</strong>
+                  <small>{{ !draft.roomDecor ? '사용 중' : '고르기' }}</small>
+                </button>
+                <button
+                  v-for="set in ROOM_DECOR_SETS" :key="set.key" class="stage"
+                  :class="{ on: draft.roomDecor === set.key, locked: !decorUnlocked(set.key) }"
+                  :disabled="!decorUnlocked(set.key)"
+                  @click="draft.roomDecor = set.key"
+                >
+                  <span class="thumb">
+                    <StageScene :character="preview" :stage-key="draft.stageBackground" :effect="null" :decor="set.key" :animate="false" />
+                    <i v-if="!decorUnlocked(set.key)">🔒</i>
+                  </span>
+                  <strong>{{ set.name }}</strong>
+                  <small>{{ decorUnlocked(set.key) ? (draft.roomDecor === set.key ? '사용 중' : '고르기') : decorLockText(set) }}</small>
+                </button>
+              </div>
             </div>
 
             <div class="sub-section">
@@ -203,7 +228,7 @@
               <p class="hint">5레벨마다 의상과 함께 무대 배경이나 효과를 얻어요.</p>
               <div class="stages">
                 <button class="stage" :class="{ on: !draft.stageEffect }" @click="draft.stageEffect = null">
-                  <span class="thumb"><StageScene :character="preview" :stage-key="draft.stageBackground" :effect="null" :animate="false" /></span>
+                  <span class="thumb"><StageScene :character="preview" :stage-key="draft.stageBackground" :effect="null" :decor="null" :animate="false" /></span>
                   <strong>효과 없음</strong>
                   <small>{{ !draft.stageEffect ? '사용 중' : '고르기' }}</small>
                 </button>
@@ -214,7 +239,7 @@
                   @click="draft.stageEffect = e.key"
                 >
                   <span class="thumb">
-                    <StageScene :character="preview" :stage-key="draft.stageBackground" :effect="e.key" :animate="false" />
+                    <StageScene :character="preview" :stage-key="draft.stageBackground" :effect="e.key" :decor="null" :animate="false" />
                     <i v-if="!unlocked(e.level)">🔒</i>
                   </span>
                   <strong>{{ e.icon }} {{ e.name }}</strong>
@@ -250,6 +275,8 @@ import { DEFAULT_COLORS, HEAD_REGION } from '../pixel/palette'
 import { outfitSpriteName } from '../pixel/sprites'
 import { ACCESSORY_SLOTS, ACCESSORIES, BOTTOMS, BOTTOM_SLOT, STAGE_EFFECTS, wornIn } from '../constants/rewards'
 import { ITEM_COLORS, isColorable, itemColorOf } from '../constants/itemColors'
+import { ROOM_DECOR_SETS } from '../constants/recordRewards'
+import { rarityOf } from '../constants/records'
 
 const TABS = [
   { key: 'look', label: '외형' },
@@ -259,7 +286,10 @@ const TABS = [
 ]
 // 미리보기는 무대(208칸) 중 가운데 96칸만 보여 준다 → 왼쪽 칸에 크게, 한 화면에 들어가게
 const PREVIEW_VIEW_WIDTH = 96
-const STAGE_NAMES = { ROOKIE: '방구석', RISING: '동네 클럽', PRO: '투어 공연장', LEGEND: '전설의 무대' }
+const STAGE_NAMES = { ROOKIE: '방구석', RISING: '동네 클럽', PRO: '투어 공연장', LEGEND: '전설의 무대', LISTENING_ROOM: '리스닝 룸' }
+// 레코드 수집 보상: 무대 잠금 안내
+const stageLockText = (b) => (b.key === 'LISTENING_ROOM' ? '레코드 12개를 모두 모으면' : `Lv.${b.requiredLevel}에 해금`)
+const decorLockText = (set) => `${rarityOf(set.rarity).label}를 모두 모으면`
 
 const authStore = useAuthStore()
 const tab = ref('look')
@@ -270,14 +300,17 @@ const original = ref(null)
 const draft = reactive({
   nickname: '', gender: 'MALE', skinColor: DEFAULT_COLORS.skinColor, hairStyle: 'SHORT_CUT', hairColor: '#111827',
   instrumentType: 'GUITAR', instrumentColor: '#B91C1C', outfitId: null, stageBackground: null,
-  itemColors: {}, instrumentHidden: false, stageEffect: null, bottom: 'JEANS', hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: 'BASIC_SHOES',
+  itemColors: {}, instrumentHidden: false, stageEffect: null, roomDecor: null, bottom: 'JEANS', hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: 'BASIC_SHOES',
 })
 const WEAR_SLOTS = [BOTTOM_SLOT, ...ACCESSORY_SLOTS]
 const ACCESSORY_FIELDS = WEAR_SLOTS.map((s) => s.field)
-const WARDROBE_KEYS = ['outfitId', 'stageBackground', 'stageEffect', 'instrumentHidden', ...ACCESSORY_FIELDS]
+const WARDROBE_KEYS = ['outfitId', 'stageBackground', 'stageEffect', 'roomDecor', 'instrumentHidden', ...ACCESSORY_FIELDS]
 
 const outfits = ref([])
 const backgrounds = ref([])
+// 방 꾸미기 세트 잠금 여부 [{ key, unlocked }] (레코드 수집 보상, 서버가 판단)
+const decorSets = ref([])
+const decorUnlocked = (key) => decorSets.value.some((s) => s.key === key && s.unlocked)
 const wardrobeLoaded = ref(false)
 const wardrobeError = ref('')
 
@@ -289,6 +322,7 @@ const snapshot = (c, wardrobe) => ({
   // 고른 적 없으면 레벨로 얻은 가장 큰 무대 (서버도 같은 규칙으로 돌려준다)
   stageBackground: wardrobe?.stageBackground ?? c.stageBackground ?? getLevelTier(c.level ?? 1).key,
   stageEffect: c.stageEffect ?? null,
+  roomDecor: c.roomDecor ?? null,
   instrumentHidden: !!c.instrumentHidden,
   itemColors: { ...(c.itemColors || {}) },
   ...Object.fromEntries(WEAR_SLOTS.map((s) => [s.field, wornIn(s, c)])),
@@ -301,6 +335,7 @@ onMounted(async () => {
     wardrobe = await getWardrobe()
     outfits.value = wardrobe.outfits || []
     backgrounds.value = wardrobe.backgrounds || []
+    decorSets.value = wardrobe.decorSets || []
     wardrobeLoaded.value = true
   } catch (e) {
     wardrobeError.value = `의상·배경 목록을 불러오지 못했어요. ${apiErrorMessage(e)}`
