@@ -121,12 +121,16 @@ public class Character extends BaseEntity {
     @Convert(converter = AccessoryConverter.class)
     private Accessory shoes;
 
+    @Column(length = 30)
+    @Convert(converter = AccessoryConverter.class)
+    private Accessory waist;
+
     // 고른 무대 효과 (레벨 보상, 없으면 null)
     @Column(length = 30)
     @Convert(converter = StageEffectConverter.class)
     private StageEffect stageEffect;
 
-    // 입고 있는 레벨 보상 하의 (null이면 몸 그림의 기본 청바지)
+    // 입고 있는 하의 (null이면 기본 청바지. 예전 캐릭터)
     @Column(length = 30)
     @Convert(converter = AccessoryConverter.class)
     private Accessory bottom;
@@ -192,9 +196,19 @@ public class Character extends BaseEntity {
             case GLASSES -> this.glasses = accessory;
             case EARRINGS -> this.earrings = accessory;
             case NECK -> this.neck = accessory;
+            case WAIST -> this.waist = accessory;
             case SHOES -> this.shoes = accessory;
             case BOTTOM -> this.bottom = accessory;
         }
+    }
+
+    // 입고 있는 하의·신발 (고른 적 없으면 기본 청바지·신발)
+    public Accessory getWornBottom() {
+        return bottom != null ? bottom : Accessory.defaultFor(AccessorySlot.BOTTOM);
+    }
+
+    public Accessory getWornShoes() {
+        return shoes != null ? shoes : Accessory.defaultFor(AccessorySlot.SHOES);
     }
 
     // 옷장: 무대 효과 고르기 (null이면 끄기, 해금 여부는 서비스에서 확인)

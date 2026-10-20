@@ -162,8 +162,11 @@ public class CharacterService {
         accessories.put(AccessorySlot.GLASSES, request.glasses());
         accessories.put(AccessorySlot.EARRINGS, request.earrings());
         accessories.put(AccessorySlot.NECK, request.neck());
+        accessories.put(AccessorySlot.WAIST, request.waist());
         accessories.put(AccessorySlot.SHOES, request.shoes());
         accessories.put(AccessorySlot.BOTTOM, request.bottom());
+        // 늘 입는 자리(하의·신발)를 비우면 기본 아이템
+        accessories.replaceAll((slot, accessory) -> accessory != null ? accessory : Accessory.defaultFor(slot));
         accessories.forEach((slot, accessory) -> {
             if (accessory == null) return;
             if (accessory.getSlot() != slot) throw new BusinessException(ErrorCode.ACCESSORY_SLOT_MISMATCH);

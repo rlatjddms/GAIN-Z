@@ -7,6 +7,7 @@ public enum AccessorySlot {
     GLASSES,  // 안경
     EARRINGS, // 귀걸이
     NECK,     // 목
-    SHOES,    // 신발
-    BOTTOM    // 하의 (안 입으면 몸 그림의 기본 청바지)
+    WAIST,    // 허리 (벨트)
+    SHOES,    // 신발 (늘 하나는 신음, 기본 BASIC_SHOES)
+    BOTTOM    // 하의 (늘 하나는 입음, 기본 JEANS. 몸 그림은 속옷 차림)
 }

@@ -59,6 +59,13 @@ public class OutfitItem extends BaseEntity {
         this.spriteKey = DEFAULT_SPRITE_KEY;
     }
 
+    // 레벨 보상 의상의 이름·그림이 바뀌었을 때 (예: SEQUIN_JACKET → GOLD_TRIM_JACKET)
+    public void changeLevelReward(String name, String spriteKey, int requiredLevel) {
+        this.name = name;
+        this.spriteKey = spriteKey;
+        this.requiredLevel = requiredLevel;
+    }
+
     public boolean isDefault() {
         return DEFAULT_NAME.equals(name) && DEFAULT_SPRITE_KEY.equals(spriteKey);
     }

@@ -22,7 +22,7 @@ public final class LevelRewards {
             if (o.getRequiredLevel() == level) out.add(new Reward(level, Type.OUTFIT, o.name(), o.getLabel(), null));
         }
         for (Accessory a : Accessory.values()) {
-            if (a.getSlot() == AccessorySlot.BOTTOM && a.getRequiredLevel() == level) {
+            if (a.getSlot() == AccessorySlot.BOTTOM && a.getRequiredLevel() == level && level > 1) {
                 out.add(new Reward(level, Type.BOTTOM, a.name(), a.getLabel(), a.getSlot()));
             }
         }
@@ -33,7 +33,7 @@ public final class LevelRewards {
             if (e.getRequiredLevel() == level) out.add(new Reward(level, Type.EFFECT, e.name(), e.getLabel(), null));
         }
         for (Accessory a : Accessory.values()) {
-            if (a.getSlot() != AccessorySlot.BOTTOM && a.getRequiredLevel() == level) {
+            if (a.getSlot() != AccessorySlot.BOTTOM && a.getRequiredLevel() == level && level > 1) {
                 out.add(new Reward(level, Type.ACCESSORY, a.name(), a.getLabel(), a.getSlot()));
             }
         }

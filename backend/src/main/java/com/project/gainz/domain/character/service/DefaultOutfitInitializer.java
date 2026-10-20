@@ -12,10 +12,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 // 서버가 뜰 때 의상 데이터를 맞춰 둔다.
 // 1) 기본 의상(누구나 처음부터 가진 옷): 스프라이트 키가 DEFAULT인 의상이 없으면, 예전에 넣어 둔 Lv.1 의상을 기본 의상으로 바꾸고 그것도 없으면 새로 만든다
-// 2) 레벨 보상 의상(LevelOutfit): 스프라이트 키로 찾아 없는 것만 만든다
+// 2) 레벨 보상 의상(LevelOutfit): 이름이 바뀐 예전 행은 고쳐 쓰고, 스프라이트 키로 찾아 없는 것만 만든다
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -52,7 +53,17 @@ public class DefaultOutfitInitializer implements ApplicationRunner {
         outfitItemRepository.save(outfit);
     }
 
+    // 예전 이름 → 지금 레벨 의상. 예전 행을 고쳐 써서 그 옷을 입던 캐릭터도 그대로 새 옷을 입는다
+    private static final Map<String, LevelOutfit> RENAMED = Map.of("SEQUIN_JACKET", LevelOutfit.GOLD_TRIM_JACKET);
+
     private void ensureLevelOutfits() {
+        RENAMED.forEach((oldKey, outfit) -> outfitItemRepository.findFirstBySpriteKey(oldKey)
+                .filter(old -> outfitItemRepository.findFirstBySpriteKey(outfit.getSpriteKey()).isEmpty())
+                .ifPresent(old -> {
+                    old.changeLevelReward(outfit.getLabel(), outfit.getSpriteKey(), outfit.getRequiredLevel());
+                    outfitItemRepository.save(old);
+                    log.info("레벨 보상 의상 이름 변경: {} → {}", oldKey, outfit.getSpriteKey());
+                }));
         List<OutfitItem> missing = Arrays.stream(LevelOutfit.values())
                 .filter(o -> outfitItemRepository.findFirstBySpriteKey(o.getSpriteKey()).isEmpty())
                 .map(o -> OutfitItem.builder()
