@@ -575,7 +575,7 @@ const handleSubmit = async () => {
 .preview-badge {
   display: inline-block;
   background: var(--c-primary-soft);
-  border: 1px solid #cce0ff;
+  border: 1px solid var(--c-primary-line);
   padding: 6px 16px;
   border-radius: 20px;
   font-size: 0.72rem;
@@ -682,8 +682,8 @@ const handleSubmit = async () => {
 }
 
 .step-dot.complete .dot-inner {
-  background: #e7f5ff;
-  border-color: #3b82f6;
+  background: var(--c-primary-soft);
+  border-color: var(--c-primary);
   color: var(--c-primary-text);
 }
 

@@ -92,7 +92,7 @@ watch(() => [props.mode, props.postId], load, { immediate: true })
 .close-button { display: grid; place-items: center; width: 32px; height: 32px; border: none; border-radius: 9px; background: #f6f7f9; color: #868e96; cursor: pointer; }
 .close-button:hover { background: #edf0f4; color: #212529; }
 .publish { display: flex; align-items: center; gap: 8px; background: var(--c-primary); color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
-.publish:hover { background: #214ce8; }
+.publish:hover { background: var(--c-primary-strong); }
 .publish:disabled { background: #edf0f6; color: #adb5bd; cursor: default; }
 .dialog-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
 .load-state { padding: 32px; min-height: 280px; color: #868e96; font-size: 13px; }

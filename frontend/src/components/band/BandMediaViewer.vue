@@ -62,14 +62,14 @@ watch(index, load, { immediate: true })
 header { display: flex; align-items: center; gap: 10px; padding: 18px 24px; background: #1a202b; flex: none; }
 header > div { flex: 1; min-width: 0; } header strong { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } header span { display: block; margin-top: 5px; color: #a5b0c2; font-size: 12px; }
 button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: #f3f5fa; background: #2b3444; border: 1px solid #465167; border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 12px; cursor: pointer; }
-button:disabled { opacity: .35; cursor: default; } button:focus-visible { outline: 2px solid #a6bcff; outline-offset: 3px; }
+button:disabled { opacity: .35; cursor: default; } button:focus-visible { outline: 2px solid var(--c-primary-line); outline-offset: 3px; }
 .stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; overflow: auto; padding: 20px 64px; }
 .image-button { display: flex; padding: 0; width: 100%; height: 100%; border: 0; background: none; cursor: zoom-in; }
 .image-button img { width: 100%; height: 100%; }
 img, video { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
 .zoomed { display: block; }.zoomed .image-button { display: block; width: 200%; height: 200%; cursor: zoom-out; }.zoomed img { max-width: none; max-height: none; }
 .previous, .next { position: absolute; top: 50%; font-size: 32px; width: 42px; height: 54px; z-index: 2; }.previous { left: 12px; }.next { right: 12px; }
-footer { flex: none; padding: 12px 20px 20px; text-align: center; color: #a5b0c2; font-size: 11px; } nav { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; } nav button[aria-current] { background: var(--c-primary); border-color: #7191ff; }
+footer { flex: none; padding: 12px 20px 20px; text-align: center; color: #a5b0c2; font-size: 11px; } nav { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; } nav button[aria-current] { background: var(--c-primary); border-color: color-mix(in srgb, var(--c-primary) 55%, #fff); }
 .error { color: #ffb4b4; padding: 8px 24px; margin: 0; font-size: 12px; }
 @media(max-width: 600px) { header { padding: 12px; gap: 6px; } header button { padding: 9px 7px; font-size: 10px; } header button svg { width: 15px; } .stage { padding: 12px 42px; } .previous,.next { width: 30px; height: 44px; padding: 0; }.previous { left: 4px; }.next { right: 4px; } footer { padding-bottom: 16px; } }
 </style>

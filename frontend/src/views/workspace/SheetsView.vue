@@ -224,7 +224,7 @@ onMounted(load)
 }
 a.btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 .btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-a.btn.primary:hover { color: #fff; background: #1f4ae0; }
+a.btn.primary:hover { color: #fff; background: var(--c-primary-strong); }
 
 .filters { display: flex; gap: 6px; align-items: center; }
 .chip {
@@ -252,7 +252,7 @@ input[type='checkbox'] { width: 18px; height: 18px; margin: 0; accent-color: var
 .list li { display: flex; align-items: center; gap: 4px; border: 1px solid #f1f3f5; border-radius: 14px; transition: border-color 0.15s, background 0.15s; }
 .list li:hover { border-color: var(--c-primary-line); }
 .list.selecting li { padding-left: 12px; }
-.list li.checked { border-color: var(--c-primary-line); background: #f8faff; }
+.list li.checked { border-color: var(--c-primary-line); background: var(--c-primary-soft); }
 .list.selecting .row { padding-right: 12px; }
 .row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 8px 6px 8px 8px; text-decoration: none; color: inherit; }
 .cover {

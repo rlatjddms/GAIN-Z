@@ -277,9 +277,9 @@ watch(tab, () => { stopSelect(); reload() }, { immediate: true })
 ul { list-style: none; margin: 0; padding: 0; }
 .item { display: flex; align-items: center; gap: 4px; border-radius: 14px; padding-left: 6px; }
 .item:hover { background: #f8f9fa; }
-.item.unread { background: #f5f8ff; }
+.item.unread { background: var(--c-primary-soft); }
 .item.unread:hover { background: var(--c-primary-soft); }
-.item.checked { background: #e7efff; }
+.item.checked { background: var(--c-primary-soft); }
 .check { flex: none; margin-left: 4px; }
 .item-main {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 6px; border: none; background: none;

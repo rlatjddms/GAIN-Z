@@ -170,7 +170,7 @@ function removeComment(comment) {
 .author-info time { display: block; font-size: 11px; color: #868e96; margin-top: 6px; }
 .post-title { margin: 0 0 20px; font-size: 25px; font-weight: 800; line-height: 1.5; letter-spacing: -.6px; overflow-wrap: anywhere; }
 .post-content { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.9; color: #495057; margin: 0 0 24px; }
-.notice-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--c-primary-text); background: #eff3ff; border-radius: 6px; padding: 4px 7px; font-size: 10px; font-weight: 800; margin-bottom: 10px; }
+.notice-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--c-primary-text); background: var(--c-primary-soft); border-radius: 6px; padding: 4px 7px; font-size: 10px; font-weight: 800; margin-bottom: 10px; }
 .more-menu { position: relative; margin-left: auto; flex: none; }
 .more-menu summary { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: #526071; cursor: pointer; list-style: none; }
 .more-menu summary::-webkit-details-marker { display: none; }
@@ -201,7 +201,7 @@ function removeComment(comment) {
 .empty-comments { padding: 8px 0 20px; }
 .comment-composer { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; }
 .composer-box { flex: 1; min-width: 0; border: 1px solid #e3e7ee; background: #fff; border-radius: 13px; padding: 12px 14px; }
-.composer-box:focus-within { border-color: #a7b9ff; box-shadow: 0 0 0 3px var(--c-primary)06; }
+.composer-box:focus-within { border-color: var(--c-primary-line); box-shadow: 0 0 0 3px var(--c-primary)06; }
 .composer-box :deep(textarea) { width: 100%; padding: 0; border: 0; outline: none; resize: vertical; min-height: 42px; font-family: inherit; font-size: 12px; color: #343a40; line-height: 1.7; background: transparent; }
 .composer-box :deep(textarea)::placeholder { color: #adb5bd; }
 .composer-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }

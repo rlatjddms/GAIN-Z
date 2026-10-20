@@ -463,7 +463,7 @@ button::-moz-focus-inner { border: 0 !important; }
   cursor: pointer; transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); text-align: left;
 }
 .card-btn:hover { border-color: var(--c-primary); transform: translateY(-4px); box-shadow: 0 10px 20px color-mix(in srgb, var(--c-primary) 6%, transparent); }
-.c-icon { font-size: 1.8rem; background: #f1f5ff; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 14px; }
+.c-icon { font-size: 1.8rem; background: var(--c-primary-soft); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 14px; }
 .c-text strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
 .c-text span { font-size: 0.75rem; color: #868e96; }
 
@@ -499,7 +499,7 @@ button::-moz-focus-inner { border: 0 !important; }
 }
 .pill-btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 .pill-btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.pill-btn.primary:hover { background: #1f47e0; color: #fff; }
+.pill-btn.primary:hover { background: var(--c-primary-strong); color: #fff; }
 .text-btn { margin-left: 8px; border: none; background: none; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; }
 
 .band-room { padding: 24px; text-align: left; }

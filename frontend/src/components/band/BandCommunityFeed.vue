@@ -75,7 +75,7 @@ const timeAgo = postTimeAgo
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .head-actions { display: flex; gap: 8px; }
 .mine-btn { border: 1px solid #dce2ed; background: white; color: #53627a; border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-.mine-btn[aria-pressed=true] { background: var(--c-primary-soft); border-color: #8ea7ff; color: var(--c-primary-text); }
+.mine-btn[aria-pressed=true] { background: var(--c-primary-soft); border-color: color-mix(in srgb, var(--c-primary) 55%, #fff); color: var(--c-primary-text); }
 .title { font-weight: 800; font-size: 0.85rem; color: #495057; display: flex; align-items: center; gap: 8px; }
 .write-btn {
   display: flex; align-items: center; gap: 7px;

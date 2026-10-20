@@ -384,7 +384,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 }
 .btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn.primary:hover:not(:disabled) { background: #1f47e0; color: #fff; }
+.btn.primary:hover:not(:disabled) { background: var(--c-primary-strong); color: #fff; }
 .btn.danger { border-color: #ffc9c9; color: #e03131; }
 .btn.danger:hover:not(:disabled) { background: #fff5f5; border-color: #e03131; color: #e03131; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -407,7 +407,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 .who strong { font-size: 0.9rem; font-weight: 800; }
 .who em {
   font-style: normal; font-size: 0.65rem; font-weight: 800; color: var(--c-primary-text); background: #fff;
-  border: 1px solid #c5d3ff; padding: 1px 6px; border-radius: 6px; margin-left: 4px; vertical-align: 1px;
+  border: 1px solid var(--c-primary-line); padding: 1px 6px; border-radius: 6px; margin-left: 4px; vertical-align: 1px;
 }
 .who em.friend { color: #2f9e44; border-color: #b2f2bb; }
 .who em.muted { color: #868e96; border-color: #dee2e6; }
@@ -444,7 +444,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
   font-family: inherit; font-size: 0.72rem; font-weight: 800; color: #495057;
 }
 .mini:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
-.mini.primary { color: var(--c-primary-text); border-color: #d0dcff; background: var(--c-primary-soft); }
+.mini.primary { color: var(--c-primary-text); border-color: var(--c-primary-line); background: var(--c-primary-soft); }
 .mini.danger { color: #e03131; }
 
 .mini.danger:hover:not(:disabled) { border-color: #e03131; color: #e03131; }
@@ -462,7 +462,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
   image-rendering: pixelated; image-rendering: crisp-edges;
 }
 .stage-option span { font-size: 0.78rem; font-weight: 800; color: #495057; }
-.stage-option:hover:not(:disabled) { border-color: #a5b8ff; }
+.stage-option:hover:not(:disabled) { border-color: var(--c-primary-line); }
 .stage-option.active { border-color: var(--c-primary); }
 .stage-option.active span { color: var(--c-primary-text); }
 .stage-option:disabled { cursor: default; }

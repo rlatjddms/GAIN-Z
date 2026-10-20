@@ -186,7 +186,7 @@ const showSaved = (exp) => {
   font-weight: 900; font-size: 1rem; padding: 14px; border-radius: 14px;
   transition: background 0.15s, transform 0.1s;
 }
-.toggle:hover:not(:disabled) { background: #1f47e0; }
+.toggle:hover:not(:disabled) { background: var(--c-primary-strong); }
 .toggle:active:not(:disabled) { transform: scale(0.98); }
 .toggle.running { background: #1a1a1a; }
 .toggle.running:hover:not(:disabled) { background: #343a40; }

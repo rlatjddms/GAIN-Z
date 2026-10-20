@@ -188,7 +188,7 @@ onBeforeUnmount(() => {
 ul { list-style: none; margin: 0; padding: 0; }
 .item { display: flex; align-items: flex-start; border-radius: 12px; }
 .item:hover { background: #f8f9fa; }
-.item.unread { background: #f5f8ff; }
+.item.unread { background: var(--c-primary-soft); }
 .item.unread:hover { background: var(--c-primary-soft); }
 .item-main {
   flex: 1; min-width: 0; display: flex; gap: 10px; padding: 10px 4px 10px 10px; border: none; background: none;

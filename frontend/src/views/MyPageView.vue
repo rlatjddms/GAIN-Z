@@ -336,7 +336,7 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
 .btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .btn.small { padding: 7px 10px; font-size: 0.75rem; }
 .btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn.primary:hover:not(:disabled) { color: #fff; background: #1f4ae0; }
+.btn.primary:hover:not(:disabled) { color: #fff; background: var(--c-primary-strong); }
 .btn.ghost { border-color: transparent; color: #868e96; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: 0.75rem; }

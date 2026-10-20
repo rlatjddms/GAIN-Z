@@ -37,7 +37,7 @@ const safeUrl = computed(() => (!props.compact && /^https?:\/\//i.test(props.mus
   background: #fff; border: 1px solid #e9ecef; border-radius: 16px; padding: 12px 16px;
   color: #343a40; text-decoration: none; transition: border-color 0.15s, background 0.15s;
 }
-.profile-music.link:hover { border-color: var(--c-primary); background: #f8faff; }
+.profile-music.link:hover { border-color: var(--c-primary); background: var(--c-primary-soft); }
 .note {
   flex: none; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   background: var(--c-primary); color: #fff; font-size: 0.95rem; font-weight: 900;

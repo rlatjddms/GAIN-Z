@@ -572,14 +572,14 @@ onBeforeUnmount(() => {
 .btn { display:inline-flex; justify-content:center; align-items:center; min-height:34px; border:1px solid #e9ecef; background:#fff; color:#495057; font-family:inherit; font-size:.76rem; font-weight:700; line-height:1.4; padding:8px 12px; border-radius:9px; cursor:pointer; text-align:center; }
 .btn.primary { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
 .btn:hover:not(:disabled) { background:#f8f9fa; }
-.btn.primary:hover:not(:disabled) { background:#244de0; }
+.btn.primary:hover:not(:disabled) { background:var(--c-primary-strong); }
 button:disabled { opacity:.4; cursor:default; }
 .danger { color:#e03131; }
 button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset:2px; }
 .add-jam { width:100%; margin-bottom:12px; background:#f8f9fa; border-style:dashed; }
 .jam-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
 .jam-link { width:100%; display:flex; flex-direction:column; gap:5px; padding:10px 12px; text-align:left; border:1px solid #e9ecef; border-radius:12px; background:#fff; font-family:inherit; color:#343a40; cursor:pointer; overflow-wrap:anywhere; }
-.jam-link.active { background:#f8faff; border-color:#dce3f5; }
+.jam-link.active { background:var(--c-primary-soft); border-color:#dce3f5; }
 .jam-link strong { font-size:.79rem; }
 .jam-link span,.jam-link small { color:#868e96; font-size:.7rem; }
 .empty { display:flex; flex-direction:column; align-items:center; text-align:center; padding:36px 14px; border:1px dashed #e9ecef; border-radius:14px; gap:8px; }

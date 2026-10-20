@@ -54,7 +54,7 @@ const STEPS = [
 .page-head p { margin: 0; font-size: 0.85rem; font-weight: 700; color: #adb5bd; }
 
 .dropzone {
-  border: 2px dashed var(--c-primary-line); background: #f8faff; border-radius: 16px; padding: 36px 20px;
+  border: 2px dashed var(--c-primary-line); background: var(--c-primary-soft); border-radius: 16px; padding: 36px 20px;
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
 }
 .drop-icon { font-size: 2rem; margin-bottom: 4px; }

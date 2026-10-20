@@ -262,7 +262,7 @@ onBeforeRouteLeave(() => (memoDirty.value ? window.confirm('저장하지 않은 
 .btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .btn.small { padding: 7px 12px; font-size: 0.75rem; border-radius: 10px; }
 .btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn.primary:hover:not(:disabled) { color: #fff; background: #1f4ae0; }
+.btn.primary:hover:not(:disabled) { color: #fff; background: var(--c-primary-strong); }
 .btn.star.on { color: #e67700; border-color: #ffe066; background: #fff9db; }
 .btn.danger:hover:not(:disabled) { border-color: #ffa8a8; color: #e03131; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }

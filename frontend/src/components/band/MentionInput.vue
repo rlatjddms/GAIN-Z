@@ -51,7 +51,7 @@ defineExpose({ focus: () => input.value?.focus() })
 textarea { box-sizing: border-box; width: 100%; font: inherit; color: inherit; }
 .suggestions { position: relative; z-index: 12; margin: 5px 0; max-height: 190px; overflow: auto; border: 1px solid #dce3f0; background: white; border-radius: 12px; padding: 5px; box-shadow: 0 6px 20px #17243b12; }
 .suggestions button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px; border: 0; border-radius: 7px; background: white; color: #344054; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
-.suggestions button[aria-selected=true], .suggestions button:hover { background: #eff3ff; }
+.suggestions button[aria-selected=true], .suggestions button:hover { background: var(--c-primary-soft); }
 .at { color: var(--c-primary-text); font-weight: 800; }
 small { margin-left: auto; color: #7b8495; }
 </style>

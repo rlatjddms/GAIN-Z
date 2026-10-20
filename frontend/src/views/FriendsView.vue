@@ -358,7 +358,7 @@ const unfriend = async (friend) => {
 .btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .btn.small { padding: 7px 10px; font-size: 0.75rem; }
 .btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn.primary:hover:not(:disabled) { color: #fff; background: #1f4ae0; }
+.btn.primary:hover:not(:disabled) { color: #fff; background: var(--c-primary-strong); }
 .btn.ghost { border-color: transparent; color: #868e96; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
