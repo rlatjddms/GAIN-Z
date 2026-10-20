@@ -5,6 +5,8 @@
     :style="stageStyle"
   >
     <div v-if="!bare" class="stage-head">
+      <!-- 레벨·칭호 줄 맨 왼쪽에 붙일 것 (홈: 요즘 듣는 음악) -->
+      <slot name="head-start" />
       <div class="level-tag">Lv.{{ level }} {{ nickname }}</div>
       <div class="tier-badge">{{ tier.name }}</div>
     </div>
@@ -27,6 +29,8 @@
         <div class="exp-fill" :style="{ width: `${progress}%` }"></div>
       </div>
       <div class="exp-text">{{ expLabel }}</div>
+      <!-- 경험치 줄 맨 오른쪽에 붙일 것 (홈 휴대폰: 옷장 버튼) -->
+      <slot name="exp-end" />
     </div>
 
     <slot />
@@ -237,20 +241,24 @@ const stageStyle = computed(() => ({
 }
 
 /* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래로 뺀다
-   순서: 레벨·칭호 → 홈이 넣는 한 줄(음악·옷장, order 2) → 장면 → 경험치. 레벨·칭호는 같은 높이의 알약 모양 */
+   순서: 레벨·칭호 줄(맨 왼쪽에 head-start) → 장면 → 경험치 줄(맨 오른쪽에 exp-end). 레벨·칭호는 같은 높이의 알약 모양 */
 @media (max-width: 640px) {
   .character-stage { color: var(--c-text); display: flex; flex-direction: column; }
   .stage-head, .exp-area { position: static; transform: none; margin: 0 auto; }
-  .stage-head { order: 1; padding: 12px 12px 8px; gap: 6px; }
+  .stage-head { order: 1; width: auto; align-self: stretch; box-sizing: border-box; padding: 12px 12px 8px; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; }
   .character-stage > :deep(.scene) { order: 3; }
   .exp-area { order: 4; }
   .level-tag, .tier-badge {
     display: inline-flex; align-items: center; height: 28px; padding: 0 11px; box-sizing: border-box;
     border-radius: 999px; font-size: 0.75rem; line-height: 1;
   }
-  .level-tag { font-weight: 800; }
+  .level-tag { font-weight: 800; min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; line-height: 28px; }
+  .tier-badge { flex: none; }
   .tier-badge { box-shadow: none; }
-  .exp-area { width: auto; padding: 10px 16px 14px; }
+  .exp-area { width: auto; align-self: stretch; padding: 10px 16px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; align-items: center; }
+  .exp-bar { grid-column: 1; }
+  .exp-text { grid-column: 1; text-align: left; }
+  .exp-area > :deep(*:not(.exp-bar):not(.exp-text)) { grid-column: 2; grid-row: 1 / span 2; }
   .exp-text { text-shadow: none; }
   .speech-bubble { white-space: normal; width: max-content; max-width: 180px; }
 }

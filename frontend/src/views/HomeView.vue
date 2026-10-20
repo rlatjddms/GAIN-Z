@@ -12,10 +12,8 @@
 
         <template v-if="!isBandMode">
           <CharacterStage :character="authStore.character">
-            <!-- 요즘 듣는 음악: 누르면 등록·수정 팝업, 링크가 있으면 옆 아이콘으로 새 탭 -->
-            <!-- 넓은 화면: 음악은 무대 왼쪽 위, 옷장은 오른쪽 아래 (칸 없이 각자 자리)
-                 휴대폰: 레벨·칭호 아래 한 줄에 음악과 옷장을 나란히 -->
-            <div class="stage-actions">
+            <!-- 요즘 듣는 음악: 레벨·칭호 줄 맨 왼쪽. 누르면 등록·수정 팝업, 링크가 있으면 옆 아이콘으로 새 탭 -->
+            <template #head-start>
               <div class="music-chip" :class="{ empty: !myMusic }">
                 <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
                   <span class="note"><Music :size="13" :stroke-width="2.5" /></span>
@@ -25,10 +23,16 @@
                   <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                 </a>
               </div>
-              <button class="edit-char-btn" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
+            </template>
+            <!-- 옷장: 넓은 화면은 무대 오른쪽 아래, 휴대폰은 경험치 줄 맨 오른쪽 -->
+            <button class="edit-char-btn wide-only" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
+              <Shirt :size="13" :stroke-width="2.5" /> 옷장
+            </button>
+            <template #exp-end>
+              <button class="edit-char-btn phone-only" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
                 <Shirt :size="13" :stroke-width="2.5" /> 옷장
               </button>
-            </div>
+            </template>
           </CharacterStage>
 
           <section class="quick-grid grid-3">
@@ -627,12 +631,14 @@ button::-moz-focus-inner { border: 0 !important; }
   .card-btn:hover { transform: none; box-shadow: none; }
 }
 
-/* 넓은 화면은 칸 없이 음악·옷장이 각자 자리(절대 위치)에 */
-.stage-actions { display: contents; }
-/* 휴대폰: 레벨·칭호 아래 한 줄에 음악·옷장을 같은 높이(28px) 흰 알약으로 */
+/* 넓은 화면: 음악은 레벨·칭호 줄 왼쪽 끝(무대 왼쪽), 옷장은 무대 오른쪽 아래 */
+.music-chip { top: 50%; transform: translateY(-50%); }
+.edit-char-btn.phone-only { display: none; }
+/* 휴대폰: 음악은 레벨·칭호 줄 맨 왼쪽(남는 폭만큼 줄어듦), 옷장은 경험치 줄 맨 오른쪽. 모두 28px 알약 */
 @media (max-width: 640px) {
-  .stage-actions { order: 2; display: flex; justify-content: center; align-items: center; gap: 6px; padding: 0 16px 10px; min-width: 0; }
-  .music-chip { position: static; max-width: none; min-width: 0; flex: 0 1 auto; height: 28px; }
+  .music-chip { position: static; transform: none; max-width: none; min-width: 0; flex: 0 1 auto; height: 28px; margin-right: auto; }
+  .edit-char-btn.wide-only { display: none; }
+  .edit-char-btn.phone-only { display: inline-flex; }
   .music-main { padding: 0 11px 0 4px; font-size: 0.75rem; }
   .music-chip .note { width: 20px; height: 20px; }
   .music-link { width: 22px; height: 22px; }
