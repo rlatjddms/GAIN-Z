@@ -32,7 +32,7 @@
             </template>
           </CharacterStage>
 
-          <section class="quick-grid grid-3">
+          <section class="quick-grid grid-2 solo-menus">
             <button class="card-btn" @click="router.push('/practice')">
               <div class="c-icon"><PixelIcon name="clock" :size="24" /></div>
               <div class="c-text"><strong>ROUTINE TRACKER</strong><span>연습 루틴 및 기록장</span></div>
@@ -40,10 +40,6 @@
             <button class="card-btn" @click="router.push('/sheets')">
               <div class="c-icon"><PixelIcon name="folder" :size="24" /></div>
               <div class="c-text"><strong>WORK BENCH</strong><span>악보 편집 및 보관함</span></div>
-            </button>
-            <button class="card-btn" @click="router.push('/transcribe')">
-              <div class="c-icon"><PixelIcon name="file" :size="24" /></div>
-              <div class="c-text"><strong>AI TRANSCRIBER</strong><span>코드 / 오선보 / 타브 악보</span></div>
             </button>
           </section>
 
@@ -457,7 +453,7 @@ button::-moz-focus-inner { border: 0 !important; }
 .match-make-btn .btn-lbl { color: var(--c-primary-text); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; }
 
 /* 그리드 & 카드 */
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.solo-menus { margin-bottom: 24px; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
 .card-btn {
