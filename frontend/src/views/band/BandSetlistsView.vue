@@ -1,6 +1,6 @@
 <template>
   <SubPageLayout pill="BAND" :back-to="{ path: '/home', query: { band: $route.params.id } }" back-label="합주실"
-                 :title="band ? 'SETLIST' : ''" name="셋리스트" :subtitle="band ? `${band.name} · 함께 준비할 곡과 합주 메모를 모아요` : ''">
+                 :title="band ? 'BAND SETLIST' : ''" name="셋리스트" :subtitle="band ? `${band.name} · 함께 준비할 곡과 합주 메모를 모아요` : ''">
     <p v-if="error" role="alert">{{ error }} <button class="btn" @click="loadBand">다시 불러오기</button></p>
     <p v-else-if="!band" class="muted">셋리스트를 불러오는 중…</p>
     <div v-else class="page">

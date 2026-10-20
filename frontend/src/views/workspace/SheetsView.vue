@@ -1,5 +1,5 @@
 <template>
-  <SubPageLayout title="SHEET LIBRARY" name="악보 보관함" subtitle="갖고 있는 악보와 AI로 만든 악보를 모아 봐요">
+  <SubPageLayout title="WORK BENCH" name="악보 보관함" subtitle="갖고 있는 악보와 AI로 만든 악보를 모아 봐요">
     <template #actions>
       <router-link to="/transcribe" class="btn"><Sparkles :size="14" :stroke-width="2.2" /> AI로 악보 만들기</router-link>
       <router-link to="/sheets/new" class="btn primary">+ 악보 올리기</router-link>

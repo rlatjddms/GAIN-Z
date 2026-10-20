@@ -49,7 +49,7 @@
 
     <section class="panel">
       <h2>공통 UI (#134)</h2>
-      <PageHeader title="PRACTICE LOG" name="연습 기록장" subtitle="타이머로 연습 시간을 재고, 루틴을 체크해요">
+      <PageHeader title="ROUTINE TRACKER" name="연습 기록장" subtitle="타이머로 연습 시간을 재고, 루틴을 체크해요">
         <template #actions><button class="btn">보조</button><button class="btn primary">+ 주요 버튼</button></template>
       </PageHeader>
       <div class="ui-row">

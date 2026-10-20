@@ -1,5 +1,5 @@
 <template>
-  <SubPageLayout title="PRACTICE LOG" name="연습 기록장" subtitle="타이머로 연습 시간을 재고, 루틴을 체크해요">
+  <SubPageLayout title="ROUTINE TRACKER" name="연습 기록장" subtitle="타이머로 연습 시간을 재고, 루틴을 체크해요">
     <!-- 제목 아래에 날짜 고르기 -->
     <template #below>
     <div class="head-actions">

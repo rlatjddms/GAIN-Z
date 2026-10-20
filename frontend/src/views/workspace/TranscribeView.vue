@@ -1,5 +1,5 @@
 <template>
-  <SubPageLayout title="AI TRANSCRIBE" name="AI 악보 만들기" subtitle="음원을 올리면 내 악기에 맞는 악보를 만들어 줘요">
+  <SubPageLayout title="AI TRANSCRIBER" name="AI 악보 만들기" subtitle="음원을 올리면 내 악기에 맞는 악보를 만들어 줘요">
     <div class="page">
 
       <!-- 음원 업로드·분석: #52(기술 조사)·#53에서 연결 -->
