@@ -88,7 +88,7 @@ class SheetServiceTest {
     }
 
     private SheetRequest req(String title) {
-        return new SheetRequest(title, " 아이유 ", "G", 92, InstrumentType.GUITAR, SheetType.TAB);
+        return new SheetRequest(title, " 아이유 ", "G", 92, InstrumentType.GUITAR, SheetType.TAB, null);
     }
 
     private MultipartFile file(String name) {
@@ -175,6 +175,55 @@ class SheetServiceTest {
         verify(sheetMusicRepository, never()).save(any());
     }
 
+    /* ---------- 코드 붙여넣기 (#157) ---------- */
+
+    private SheetRequest chordReq(String content) {
+        return new SheetRequest(" 밤편지 ", "아이유", "C", null, InstrumentType.GUITAR, SheetType.TAB, content);
+    }
+
+    @Test
+    void 코드_글로_악보를_만들면_파일_없이_코드_악보로_보관함에_담긴다() {
+        User me = mock(User.class);
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(me));
+        when(sheetMusicRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(userWorkspaceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        WorkspaceDetailResponse result = sheetService.createChordSheet(USER_ID, chordReq("\n# 1절\n[C]이 밤 [G]그날의\n"));
+
+        ArgumentCaptor<SheetMusic> captor = ArgumentCaptor.forClass(SheetMusic.class);
+        verify(sheetMusicRepository).save(captor.capture());
+        SheetMusic saved = captor.getValue();
+        assertThat(saved.getTitle()).isEqualTo("밤편지");
+        assertThat(saved.getContent()).isEqualTo("# 1절\n[C]이 밤 [G]그날의");
+        // 요청 종류와 상관없이 코드 악보
+        assertThat(saved.getSheetTypes()).containsExactly(SheetType.CHORD);
+        assertThat(result.sheet().pages()).isEmpty();
+        verify(fileStorage, never()).store(any());
+    }
+
+    @Test
+    void 코드_글이_비어_있으면_만들지_않는다() {
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(mock(User.class)));
+
+        assertThatThrownBy(() -> sheetService.createChordSheet(USER_ID, chordReq("   ")))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.SHEET_CONTENT_REQUIRED);
+        verify(sheetMusicRepository, never()).save(any());
+    }
+
+    @Test
+    void 곡_정보를_고칠_때_코드_글을_보내면_바꾸고_안_보내면_그대로_둔다() {
+        SheetMusic mine = sheet(10L, user(USER_ID), "코드 악보");
+        mine.updateContent("[C]예전");
+        when(sheetMusicRepository.findById(10L)).thenReturn(Optional.of(mine));
+
+        sheetService.updateSheet(USER_ID, 10L, new SheetRequest("코드 악보", null, "C", null, InstrumentType.GUITAR, SheetType.CHORD, null));
+        assertThat(mine.getContent()).isEqualTo("[C]예전");
+
+        sheetService.updateSheet(USER_ID, 10L, new SheetRequest("코드 악보", null, "C", null, InstrumentType.GUITAR, SheetType.CHORD, "[G]새 글 "));
+        assertThat(mine.getContent()).isEqualTo("[G]새 글");
+    }
+
     /* ---------- 곡 정보·장 고치기 ---------- */
 
     @Test
@@ -183,7 +232,7 @@ class SheetServiceTest {
         when(sheetMusicRepository.findById(10L)).thenReturn(Optional.of(mine));
 
         SheetDetailResponse result = sheetService.updateSheet(USER_ID, 10L,
-                new SheetRequest("새 제목", null, "", null, InstrumentType.BASS, SheetType.TAB));
+                new SheetRequest("새 제목", null, "", null, InstrumentType.BASS, SheetType.TAB, null));
 
         assertThat(result.title()).isEqualTo("새 제목");
         assertThat(result.originalKey()).isNull();
