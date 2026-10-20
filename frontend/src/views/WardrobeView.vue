@@ -14,7 +14,7 @@
       </div>
       <p v-if="error" class="error">{{ error }}</p>
 
-      <div class="layout">
+      <div class="layout" :class="{ wide: tab === 'stage' }">
         <!-- 미리보기: 바꾼 모습이 바로 보인다 -->
         <div class="preview">
           <!-- 무대 가운데(캐릭터 쪽)만 카메라처럼 잘라 보여 준다. 배율은 무대 전체와 같다 -->
@@ -202,7 +202,7 @@
 
             <div class="sub-section">
               <span class="label">방 꾸미기</span>
-              <p class="hint">레코드를 종류별로 모두 모으면 소품을 얻어요. 올린 소품은 위 미리보기에서 끌어서 옮길 수 있어요.</p>
+              <p class="hint">레코드를 종류별로 모두 모으면 소품을 얻어요. 올린 소품은 위 미리보기에서 끌어서 어디든 옮길 수 있어요. 캐릭터 발보다 아래에 두면 캐릭터 앞에 보여요.</p>
               <div class="items small">
                 <button
                   v-for="d in ROOM_DECOR_ITEMS" :key="d.key" class="item"
@@ -318,8 +318,8 @@ const toggleDecor = (item) => {
     ? draft.decorLayout.filter((d) => d.key !== item.key)
     : [...draft.decorLayout, { key: item.key, x: item.defaultX }]
 }
-const moveDecor = (key, x) => {
-  draft.decorLayout = draft.decorLayout.map((d) => (d.key === key ? { ...d, x } : d))
+const moveDecor = (key, x, y) => {
+  draft.decorLayout = draft.decorLayout.map((d) => (d.key === key ? { ...d, x, y } : d))
 }
 // 무대 효과: 여러 개를 켜고 끈다 (표 순서대로)
 const toggleEffect = (key) => {
@@ -460,6 +460,10 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
 }
+/* 배경 탭: 무대를 크게 보도록 미리보기를 위에 꽉 차게, 목록은 그 아래 */
+.layout.wide { grid-template-columns: minmax(0, 1fr); height: auto; }
+.layout.wide .panel { height: auto; }
+.layout.wide .tab-body { overflow: visible; }
 
 .panel { background: #fff; border: 1px solid #e9ecef; border-radius: 20px; overflow: hidden; }
 .tabs { display: flex; border-bottom: 1px solid #f1f3f5; }
@@ -539,7 +543,7 @@ onBeforeRouteLeave(() => (dirty.value ? window.confirm('저장하지 않은 변�
 
 .item.locked strong, .stage.locked strong { color: #adb5bd; }
 
-.stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .stage { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 10px; border-radius: 14px; text-align: left; }
 .thumb { position: relative; display: block; border-radius: 9px; overflow: hidden; line-height: 0; }
 .thumb i { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.55); font-style: normal; line-height: 1; }

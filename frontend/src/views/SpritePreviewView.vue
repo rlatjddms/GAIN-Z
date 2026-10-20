@@ -93,8 +93,8 @@
         </figure>
         <figure>
           <StageScene :character="character" stage-key="ROOKIE" :decor="dragLayout" :effects="[]" decor-editable
-                      @decor-move="(key, x) => { dragLayout = dragLayout.map((d) => (d.key === key ? { ...d, x } : d)) }" />
-          <figcaption>끌어서 옮기기 시험 ({{ dragLayout.map((d) => `${d.key} x${d.x}`).join(', ') }})</figcaption>
+                      @decor-move="(key, x, y) => { dragLayout = dragLayout.map((d) => (d.key === key ? { ...d, x, y } : d)) }" />
+          <figcaption>끌어서 옮기기 시험 ({{ dragLayout.map((d) => `${d.key} x${d.x} y${d.y ?? '바닥'}`).join(', ') }})</figcaption>
         </figure>
       </div>
     </section>

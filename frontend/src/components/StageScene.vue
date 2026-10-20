@@ -34,7 +34,7 @@ import { computed, ref } from 'vue'
 import PixelCharacter from './PixelCharacter.vue'
 import StageEffect from './StageEffect.vue'
 import { LEVEL_TIERS, stageOf } from '../constants/levelTier'
-import { decorItemOf, decorUrl, DECOR_MAX_X } from '../constants/recordRewards'
+import { decorItemOf, decorUrl, DECOR_MAX_X, DECOR_MIN_Y, DECOR_MAX_Y } from '../constants/recordRewards'
 import { SPRITE_WIDTH, SPRITE_HEIGHT, STAGE_WIDTH as SCENE_WIDTH, STAGE_HEIGHT as SCENE_HEIGHT } from '../pixel/palette'
 
 const props = defineProps({
@@ -48,7 +48,7 @@ const props = defineProps({
   effects: { type: Array, default: undefined },
   // 방 꾸미기 소품 배치 [{ key, x }]. undefined면 캐릭터의 배치(character.decorLayout), []이면 없음
   decor: { type: Array, default: undefined },
-  // true면 소품을 끌어서 옮길 수 있다 (옷장 미리보기) → decor-move(key, x)
+  // true면 소품을 끌어서 옮길 수 있다 (옷장 미리보기) → decor-move(key, x, y)
   decorEditable: { type: Boolean, default: false },
 })
 const emit = defineEmits(['actor-click', 'decor-move'])
@@ -68,33 +68,44 @@ const decorLayout = computed(() => {
 const decorItems = computed(() => decorLayout.value
   .map((p) => ({ ...p, item: decorItemOf(p.key), url: decorUrl(p.key) }))
   .filter((d) => d.item && d.url)
-  .map((d) => ({
-    key: d.key,
-    name: d.item.name,
-    x: d.x,
-    url: d.url,
-    style: {
-      left: pct(d.x, SCENE_WIDTH),
-      top: pct(stage.value.floorY - SPRITE_HEIGHT, SCENE_HEIGHT),
-      width: pct(SPRITE_WIDTH, SCENE_WIDTH),
-    },
-  })))
+  .map((d) => {
+    const y = d.y ?? stage.value.floorY
+    return {
+      key: d.key,
+      name: d.item.name,
+      x: d.x,
+      y,
+      url: d.url,
+      style: {
+        left: pct(d.x, SCENE_WIDTH),
+        top: pct(y - SPRITE_HEIGHT, SCENE_HEIGHT),
+        width: pct(SPRITE_WIDTH, SCENE_WIDTH),
+        // 캐릭터 발보다 앞(아래)에 놓은 소품은 캐릭터 앞에
+        zIndex: y > stage.value.floorY ? 3 : 1,
+      },
+    }
+  }))
 
-// 끌기: 누른 곳과 그림 왼쪽 끝의 거리를 유지한 채 무대 도트 단위로 옮긴다
+// 끌기: 누른 곳과 그림의 거리를 유지한 채 무대 도트 단위로 상하좌우 옮긴다
 const worldRef = ref(null)
 let drag = null
-const toStageX = (clientX, rect) => ((clientX - rect.left) / rect.width) * SCENE_WIDTH
+const toStage = (e, rect) => ({
+  x: ((e.clientX - rect.left) / rect.width) * SCENE_WIDTH,
+  y: ((e.clientY - rect.top) / rect.height) * SCENE_HEIGHT,
+})
+const clamp = (v, min, max) => Math.round(Math.min(max, Math.max(min, v)))
 const startDrag = (e, d) => {
   if (!props.decorEditable || !worldRef.value) return
   e.preventDefault()
   const rect = worldRef.value.getBoundingClientRect()
-  drag = { key: d.key, offset: toStageX(e.clientX, rect) - d.x, rect }
+  const p = toStage(e, rect)
+  drag = { key: d.key, dx: p.x - d.x, dy: p.y - d.y, rect }
   e.currentTarget.setPointerCapture?.(e.pointerId)
 }
 const onDrag = (e) => {
   if (!drag) return
-  const x = Math.round(Math.min(DECOR_MAX_X, Math.max(0, toStageX(e.clientX, drag.rect) - drag.offset)))
-  emit('decor-move', drag.key, x)
+  const p = toStage(e, drag.rect)
+  emit('decor-move', drag.key, clamp(p.x - drag.dx, 0, DECOR_MAX_X), clamp(p.y - drag.dy, DECOR_MIN_Y, DECOR_MAX_Y))
 }
 const endDrag = () => { drag = null }
 
@@ -134,7 +145,7 @@ const actorStyle = computed(() => ({
 .actor { position: absolute; line-height: 0; z-index: 2; }
 .decor { position: absolute; z-index: 1; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; user-select: none; }
 /* 소품 옮기기: 소품을 캐릭터보다 위로 올려 잡기 쉽게, 캐릭터 클릭은 끈다 */
-.editing .decor { pointer-events: auto; cursor: grab; touch-action: none; z-index: 3; outline: 1px dashed rgba(45, 91, 255, 0.7); outline-offset: -1px; }
+.editing .decor { pointer-events: auto; cursor: grab; touch-action: none; z-index: 4 !important; outline: 1px dashed rgba(45, 91, 255, 0.7); outline-offset: -1px; }
 .editing .decor:active { cursor: grabbing; }
 .editing .actor { pointer-events: none; }
 /* 캐릭터 캔버스(24×33)를 배경과 같은 배율로 늘린다 */

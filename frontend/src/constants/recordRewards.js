@@ -1,6 +1,7 @@
 // 레코드 수집 보상 (#129). 백엔드 RoomDecor·DecorItem·StageBackground.LISTENING_ROOM과 같은 값
 //   종류(희귀도)별로 레코드를 다 모으면 소품 두 개(플레이어 + 보관함), 12개 전부 모으면 리스닝 룸 무대
-//   소품은 하나씩 무대에 올리고 옷장 미리보기에서 끌어서 자리를 정한다 (decorLayout: [{ key, x }])
+//   소품은 하나씩 무대에 올리고 옷장 미리보기에서 끌어서 자리를 정한다
+//   decorLayout: [{ key, x, y }] — x = 그림 왼쪽 끝, y = 그림 바닥 줄 (없으면 그 무대의 바닥). 바닥보다 아래(앞)면 캐릭터 앞에 그린다
 // 그림: assets/decor/<KEY>.png (24×32, 바닥에 붙여 그림), assets/stages/listening.png
 const decorFiles = import.meta.glob('../assets/decor/*.png', { eager: true, query: '?url', import: 'default' })
 export const decorUrl = (key) => decorFiles[`../assets/decor/${key}.png`] || null
@@ -18,5 +19,7 @@ export const ROOM_DECOR_ITEMS = ROOM_DECOR_SETS.flatMap((s) => [
 ])
 export const decorItemOf = (key) => ROOM_DECOR_ITEMS.find((i) => i.key === key) || null
 export const DECOR_MAX_X = 208 - 24
+export const DECOR_MIN_Y = 32   // 그림 위쪽이 무대 위로 넘지 않게
+export const DECOR_MAX_Y = 72
 
 export const LISTENING_ROOM = { key: 'LISTENING_ROOM', name: '리스닝 룸' }
