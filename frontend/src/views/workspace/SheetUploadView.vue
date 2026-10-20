@@ -90,11 +90,6 @@
             <span>아티스트</span>
             <input v-model="form.artist" maxlength="100" placeholder="아티스트를 입력해 주세요">
           </label>
-          <!-- 아직 악보가 없으면 사거나 찾아서 올리면 된다 -->
-          <div v-if="!editing" class="field wide">
-            <span>이 곡 악보 찾기</span>
-            <SheetSearchLinks :title="form.title" :artist="form.artist" />
-          </div>
           <label class="field">
             <span>악기 <em>*</em></span>
             <select v-model="form.instrumentType">
@@ -141,7 +136,6 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
-import SheetSearchLinks from '../../components/workspace/SheetSearchLinks.vue'
 import { getWorkspaceItem, uploadSheet, updateSheet, addSheetPages, deleteSheetPage } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
