@@ -17,10 +17,10 @@
         <!-- 도구 줄: 평소엔 정리 버튼, 고르는 중엔 선택 동작 -->
         <div class="toolbar">
           <template v-if="!selecting">
-            <button class="tool" :disabled="!items.length" @click="startSelect">선택</button>
+            <button class="btn small" :disabled="!items.length" @click="startSelect">선택</button>
             <span class="spacer"></span>
-            <button class="tool" :disabled="!store.unreadCount || busy" @click="readAll">모두 읽음</button>
-            <button class="tool muted" :disabled="busy" @click="clearRead">읽은 알림 지우기</button>
+            <button class="btn small" :disabled="!store.unreadCount || busy" @click="readAll">모두 읽음</button>
+            <button class="btn small ghost" :disabled="busy" @click="clearRead">읽은 알림 지우기</button>
           </template>
           <template v-else>
             <label class="check-all">
@@ -28,9 +28,9 @@
               <span>{{ selected.size ? `${selected.size}개 선택` : '전체 선택' }}</span>
             </label>
             <span class="spacer"></span>
-            <button class="tool" :disabled="!selected.size || busy" @click="readSelected">읽음</button>
-            <button class="tool danger" :disabled="!selected.size || busy" @click="deleteSelected">지우기</button>
-            <button class="tool muted" :disabled="busy" @click="stopSelect">취소</button>
+            <button class="btn small" :disabled="!selected.size || busy" @click="readSelected">읽음</button>
+            <button class="btn small danger" :disabled="!selected.size || busy" @click="deleteSelected">지우기</button>
+            <button class="btn small ghost" :disabled="busy" @click="stopSelect">취소</button>
           </template>
         </div>
         <p v-if="error" class="error">{{ error }}</p>
@@ -243,15 +243,6 @@ watch(tab, () => { stopSelect(); reload() }, { immediate: true })
 
 .toolbar { display: flex; align-items: center; gap: 6px; padding: 10px 0; }
 .spacer { flex: 1; }
-.tool {
-  border: 1px solid var(--c-line); background: #fff; border-radius: 10px; padding: 6px 11px; cursor: pointer;
-  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); white-space: nowrap;
-}
-.tool:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
-.tool.muted { color: var(--c-muted); }
-.tool.danger { color: var(--c-danger); }
-.tool.danger:hover:not(:disabled) { border-color: #ffc9c9; background: var(--c-danger-soft); color: var(--c-danger); }
-.tool:disabled { opacity: 0.45; cursor: not-allowed; }
 .check-all { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 800; color: var(--c-text-2); cursor: pointer; }
 .check-all input, .check { width: 16px; height: 16px; accent-color: var(--c-primary); cursor: pointer; }
 

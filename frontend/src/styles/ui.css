@@ -62,14 +62,9 @@
 
 /* 손가락으로 누르는 화면 (#124): 버튼·칩·고르기 칸을 누르기 쉬운 높이로 */
 @media (pointer: coarse) {
-  .btn { min-height: 38px; }
+  .btn { min-height: 36px; }
   .btn.small { min-height: 32px; }
   .chip { min-height: 30px; padding: 5px 12px; }
   .segment > button { min-height: 32px; }
-}
-
-/* 휴대폰: 페이지 머리말 오른쪽 버튼(저장·올리기 등)은 작게 */
-@media (max-width: 640px) {
-  .page-header .actions .btn { min-height: 32px; padding: 4px 12px; font-size: 0.78rem; border-radius: 10px; }
 }
 

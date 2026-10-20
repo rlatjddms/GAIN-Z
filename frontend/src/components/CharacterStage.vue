@@ -5,8 +5,6 @@
     :style="stageStyle"
   >
     <div v-if="!bare" class="stage-head">
-      <!-- 레벨·칭호 줄 맨 왼쪽에 붙일 것 (홈: 요즘 듣는 음악) -->
-      <slot name="head-start" />
       <div class="level-tag">Lv.{{ level }} {{ nickname }}</div>
       <div class="tier-badge">{{ tier.name }}</div>
     </div>
@@ -17,6 +15,8 @@
       <template #behind>
         <div v-if="!bare && tier.aura !== 'none'" class="aura" :class="`aura-${tier.aura}`"></div>
       </template>
+      <!-- 장면 모서리에 얹을 것 (홈: 왼쪽 위 요즘 듣는 음악, 오른쪽 아래 옷장) -->
+      <slot name="corners" />
       <template #above>
         <transition name="pop">
           <div v-if="showSpeech" class="speech-bubble">{{ tier.speech }}</div>
@@ -29,8 +29,6 @@
         <div class="exp-fill" :style="{ width: `${progress}%` }"></div>
       </div>
       <div class="exp-text">{{ expLabel }}</div>
-      <!-- 경험치 줄 맨 오른쪽에 붙일 것 (홈 휴대폰: 옷장 버튼) -->
-      <slot name="exp-end" />
     </div>
 
     <slot />
@@ -240,26 +238,20 @@ const stageStyle = computed(() => ({
   .aura { animation: none; }
 }
 
-/* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래로 뺀다
-   순서: 레벨·칭호 줄(맨 왼쪽에 head-start) → 장면 → 경험치 줄(맨 오른쪽에 exp-end). 레벨·칭호는 같은 높이의 알약 모양 */
+/* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래로 뺀다 (레벨·칭호 → 장면 → 경험치)
+   레벨·칭호는 같은 높이의 알약, 가운데 정렬 */
 @media (max-width: 640px) {
   .character-stage { color: var(--c-text); display: flex; flex-direction: column; }
   .stage-head, .exp-area { position: static; transform: none; margin: 0 auto; }
-  .stage-head { order: 1; width: auto; align-self: stretch; box-sizing: border-box; padding: 12px 12px 8px; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; }
-  /* 음악(왼쪽 끝)과 옷장(오른쪽 끝)이 카드 양쪽 끝에서 같은 12px 안쪽에 맞도록 위·아래 줄 좌우 여백을 같게 */
+  .stage-head { order: 1; width: auto; align-self: stretch; box-sizing: border-box; padding: 12px 12px 8px; gap: 6px; }
   .character-stage > :deep(.scene) { order: 3; }
-  .exp-area { order: 4; }
+  .exp-area { order: 4; width: auto; align-self: stretch; padding: 10px 16px 14px; }
   .level-tag, .tier-badge {
     display: inline-flex; align-items: center; height: 28px; padding: 0 11px; box-sizing: border-box;
     border-radius: 999px; font-size: 0.75rem; line-height: 1;
   }
-  .level-tag { font-weight: 800; min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; line-height: 28px; }
-  .tier-badge { flex: none; }
+  .level-tag { font-weight: 800; }
   .tier-badge { box-shadow: none; }
-  .exp-area { width: auto; align-self: stretch; margin: 0; padding: 10px 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; align-items: center; }
-  .exp-bar { grid-column: 1; }
-  .exp-text { grid-column: 1; text-align: left; }
-  .exp-area > :deep(*:not(.exp-bar):not(.exp-text)) { grid-column: 2; grid-row: 1 / span 2; }
   .exp-text { text-shadow: none; }
   .speech-bubble { white-space: normal; width: max-content; max-width: 180px; }
 }

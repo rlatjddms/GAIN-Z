@@ -12,8 +12,8 @@
 
         <template v-if="!isBandMode">
           <CharacterStage :character="authStore.character">
-            <!-- 요즘 듣는 음악: 레벨·칭호 줄 맨 왼쪽. 누르면 등록·수정 팝업, 링크가 있으면 옆 아이콘으로 새 탭 -->
-            <template #head-start>
+            <!-- 장면 모서리: 왼쪽 위 요즘 듣는 음악(누르면 등록·수정, 링크가 있으면 옆 아이콘으로 새 탭), 오른쪽 아래 옷장 -->
+            <template #corners>
               <div class="music-chip" :class="{ empty: !myMusic }">
                 <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
                   <span class="note"><Music :size="13" :stroke-width="2.5" /></span>
@@ -23,13 +23,7 @@
                   <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                 </a>
               </div>
-            </template>
-            <!-- 옷장: 넓은 화면은 무대 오른쪽 아래, 휴대폰은 경험치 줄 맨 오른쪽 -->
-            <button class="edit-char-btn wide-only" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
-              <Shirt :size="13" :stroke-width="2.5" /> 옷장
-            </button>
-            <template #exp-end>
-              <button class="edit-char-btn phone-only" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
+              <button class="edit-char-btn" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
                 <Shirt :size="13" :stroke-width="2.5" /> 옷장
               </button>
             </template>
@@ -108,8 +102,8 @@
             <h2>아직 들어간 밴드가 없어요</h2>
             <p class="empty-text">밴드를 새로 만들거나, 리더에게 받은 초대 코드로 가입해 보세요.</p>
             <div class="empty-actions">
-              <button class="pill-btn primary" @click="openStart('create')">밴드 만들기</button>
-              <button class="pill-btn" @click="openStart('join')">초대 코드로 가입</button>
+              <button class="btn primary" @click="openStart('create')">밴드 만들기</button>
+              <button class="btn" @click="openStart('join')">초대 코드로 가입</button>
             </div>
           </section>
 
@@ -120,7 +114,7 @@
                 <p>{{ activeBand.members.length }}명의 멤버가 참여 중<template v-if="activeBand.description"> · {{ activeBand.description }}</template></p>
               </div>
               <div class="band-tools">
-                <button class="tool-btn" @click="router.push(`/bands/${activeBand.id}/settings`)"><Settings :size="14" :stroke-width="2.2" /> 밴드 설정</button>
+                <button class="btn small" @click="router.push(`/bands/${activeBand.id}/settings`)"><Settings :size="14" :stroke-width="2.2" /> 밴드 설정</button>
               </div>
             </div>
 
@@ -513,13 +507,6 @@ button::-moz-focus-inner { border: 0 !important; }
 .empty-icon { color: var(--c-faint); display: flex; justify-content: center; }
 .empty-text { margin: 0; font-size: 0.85rem; color: var(--c-muted); }
 .empty-actions { display: flex; justify-content: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
-.pill-btn {
-  border: 1px solid #dee2e6; background: #fff; color: var(--c-text-2); border-radius: 12px; padding: 10px 18px;
-  font-family: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; transition: 0.2s;
-}
-.pill-btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
-.pill-btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.pill-btn.primary:hover { background: var(--c-primary-strong); color: #fff; }
 .text-btn { margin-left: 8px; border: none; background: none; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; }
 
 .band-room { padding: 24px; text-align: left; }
@@ -527,12 +514,6 @@ button::-moz-focus-inner { border: 0 !important; }
 .band-info h2 { margin: 0 0 4px; font-size: 1.4rem; font-weight: 800; }
 .band-info p { margin: 0; font-size: 0.82rem; color: var(--c-muted); }
 .band-tools { display: flex; gap: 6px; flex-wrap: wrap; }
-.tool-btn {
-  border: 1px solid var(--c-line); background: #fff; border-radius: 10px; padding: 7px 12px; cursor: pointer;
-  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); display: flex; align-items: center; gap: 6px;
-  transition: 0.2s;
-}
-.tool-btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 .band-scene { margin-top: 16px; border-radius: 18px; overflow: hidden; border: 1px solid var(--c-line-soft); }
 .scene-hint { margin: 8px 0 0; text-align: center; font-size: 0.72rem; color: var(--c-faint); font-weight: 600; }
 .scene-hint.bad { color: var(--c-danger); font-weight: 700; }
@@ -551,7 +532,7 @@ button::-moz-focus-inner { border: 0 !important; }
 .band-menus { margin-bottom: 0; }
 
 .edit-char-btn {
-  position: absolute;
+  position: absolute; z-index: 4;
   bottom: 16px;
   right: 20px;
   background: #ffffff;
@@ -631,20 +612,12 @@ button::-moz-focus-inner { border: 0 !important; }
   .card-btn:hover { transform: none; box-shadow: none; }
 }
 
-/* 넓은 화면: 음악은 레벨·칭호 줄 왼쪽 끝(무대 왼쪽), 옷장은 무대 오른쪽 아래 */
-.music-chip { top: 50%; transform: translateY(-50%); }
-.edit-char-btn.phone-only { display: none; }
-/* 휴대폰: 음악은 레벨·칭호 줄 맨 왼쪽(남는 폭만큼 줄어듦), 옷장은 경험치 줄 맨 오른쪽. 모두 28px 알약 */
+/* 휴대폰: 장면이 작으니 모서리 버튼도 작게, 모서리에 바짝 */
 @media (max-width: 640px) {
-  .music-chip { position: static; transform: none; max-width: none; min-width: 0; flex: 0 1 auto; height: 28px; margin-right: auto; }
-  .edit-char-btn.wide-only { display: none; }
-  .edit-char-btn.phone-only { display: inline-flex; }
-  .music-main { padding: 0 11px 0 4px; font-size: 0.75rem; }
+  .music-chip { top: 8px; left: 8px; height: 26px; max-width: 58%; }
+  .music-main { padding: 0 10px 0 3px; font-size: 0.72rem; }
   .music-chip .note { width: 20px; height: 20px; }
   .music-link { width: 22px; height: 22px; }
-  .edit-char-btn {
-    position: static; flex: none; height: 28px; padding: 0 11px; gap: 4px; box-sizing: border-box;
-    border-radius: 999px; font-size: 0.75rem; font-weight: 800; box-shadow: none;
-  }
+  .edit-char-btn { bottom: 8px; right: 8px; height: 26px; padding: 0 10px; gap: 4px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; }
 }
 </style>

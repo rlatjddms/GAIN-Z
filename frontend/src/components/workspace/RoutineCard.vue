@@ -34,7 +34,7 @@
 
     <div v-if="!loading && !routines.length" class="empty">
       <p>{{ isToday ? '스케일 10회처럼 매일 또는 정한 요일마다 할 연습을 정해 두고 체크해요.' : '이날은 일정에 있는 루틴이 없어요.' }}</p>
-      <button v-if="isToday" class="small primary" @click="openForm(null)">루틴 추가하기</button>
+      <button v-if="isToday" class="btn primary" @click="openForm(null)">루틴 추가하기</button>
     </div>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -170,12 +170,6 @@ const openForm = (r) => {
 }
 .more:hover { background: var(--c-line); color: var(--c-text-2); }
 
-.small {
-  border: 1px solid var(--c-line); background: #fff; color: var(--c-text-2); cursor: pointer; font-family: inherit;
-  font-size: 0.75rem; font-weight: 800; padding: 7px 12px; border-radius: 9px;
-}
-.small.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.small:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .empty { text-align: center; padding: 12px 0 4px; }
 .empty p { margin: 0 0 12px; font-size: 0.8rem; color: var(--c-faint); }
