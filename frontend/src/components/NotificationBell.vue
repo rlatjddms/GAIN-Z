@@ -3,7 +3,7 @@
   <div ref="root" class="noti">
     <button class="noti-btn" :class="{ on: open }" :title="unread ? `안 읽은 알림 ${unread}개` : '알림'"
             aria-haspopup="dialog" :aria-expanded="open" @click="toggle">
-      <svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
         <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
       </svg>
@@ -228,9 +228,9 @@ ul { list-style: none; margin: 0; padding: 0; }
 }
 /* 휴대폰: 종 아래가 아니라 화면 폭에 맞춰 헤더 바로 아래에 */
 @media (max-width: 640px) {
-  .noti-btn { width: 36px; height: 36px; }
-  /* 프로필 사진(32px)과 눈으로 보기에 비슷한 크기 */
-  .noti-btn svg { width: 24px; height: 24px; }
+  /* 휴대폰: SOLO/BAND 토글처럼 헤더 오른쪽 버튼도 작게 (프로필 버튼과 같은 32px) */
+  .noti-btn { width: 32px; height: 32px; }
+  .noti-btn svg { width: 18px; height: 18px; }
   .panel { position: fixed; top: 64px; left: 12px; right: 12px; width: auto; max-width: none; max-height: calc(100dvh - 80px); }
 }
 </style>
