@@ -151,7 +151,8 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
   .header-inner { padding: 0 12px; height: 56px; grid-template-columns: auto 1fr auto; gap: 8px; }
   .logo :deep(.app-logo) { width: auto; height: 14px; }
   .header-right { gap: 6px; }
-  .user-info { padding: 3px; }
+  .user-info { padding: 2px; }
+  .user-info :deep(.profile-avatar) { width: 32px !important; height: 32px !important; }
   .name, .caret { display: none; }
   .has-back .logo { display: none; }
   .has-back .header-back {

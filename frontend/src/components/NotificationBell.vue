@@ -159,10 +159,11 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .noti { position: relative; }
+/* 프로필 사진(32px + 둘레 4px = 40px)과 같은 크기의 동그란 버튼 */
 .noti-btn {
-  position: relative; background: none; border: none; color: var(--c-faint); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  padding: 6px; border-radius: 8px; transition: 0.2s;
+  position: relative; background: var(--c-line-soft); border: none; color: var(--c-text-2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  width: 40px; height: 40px; padding: 0; border-radius: 999px; transition: 0.2s;
 }
 .noti-btn:hover, .noti-btn.on { color: var(--c-primary-text); background: var(--c-primary-soft); }
 .badge {
@@ -227,6 +228,8 @@ ul { list-style: none; margin: 0; padding: 0; }
 }
 /* 휴대폰: 종 아래가 아니라 화면 폭에 맞춰 헤더 바로 아래에 */
 @media (max-width: 640px) {
+  .noti-btn { width: 36px; height: 36px; }
+  .noti-btn svg { width: 18px; height: 18px; }
   .panel { position: fixed; top: 64px; left: 12px; right: 12px; width: auto; max-width: none; max-height: calc(100dvh - 80px); }
 }
 </style>

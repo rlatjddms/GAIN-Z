@@ -12,8 +12,8 @@
 
         <template v-if="!isBandMode">
           <CharacterStage :character="authStore.character">
-            <!-- 장면 모서리: 왼쪽 위 요즘 듣는 음악(누르면 등록·수정, 링크가 있으면 옆 아이콘으로 새 탭), 오른쪽 아래 옷장 -->
-            <template #corners>
+            <!-- 요즘 듣는 음악: 레벨·칭호 줄 왼쪽 끝. 누르면 등록·수정, 링크가 있으면 옆 아이콘으로 새 탭 -->
+            <template #head-start>
               <div class="music-chip" :class="{ empty: !myMusic }">
                 <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
                   <span class="note"><Music :size="13" :stroke-width="2.5" /></span>
@@ -23,6 +23,9 @@
                   <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                 </a>
               </div>
+            </template>
+            <!-- 옷장: 경험치 줄 오른쪽 끝 -->
+            <template #exp-end>
               <button class="edit-char-btn" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
                 <Shirt :size="13" :stroke-width="2.5" /> 옷장
               </button>
@@ -612,12 +615,15 @@ button::-moz-focus-inner { border: 0 !important; }
   .card-btn:hover { transform: none; box-shadow: none; }
 }
 
-/* 휴대폰: 장면이 작으니 모서리 버튼도 작게, 모서리에 바짝 */
+/* 넓은 화면: 음악은 레벨·칭호 줄 왼쪽 끝, 옷장은 경험치 줄 오른쪽 끝 (무대 위에 얹힘) */
+.music-chip { top: 50%; left: 20px; transform: translateY(-50%); }
+.edit-char-btn { top: 50%; bottom: auto; right: 20px; transform: translateY(-50%); }
+/* 휴대폰: 둘 다 흰 바탕 줄 안. 음악은 줄 왼쪽 끝(남는 폭만큼 줄어듦), 옷장은 경험치 줄 오른쪽 끝 */
 @media (max-width: 640px) {
-  .music-chip { top: 8px; left: 8px; height: 26px; max-width: 58%; }
-  .music-main { padding: 0 10px 0 3px; font-size: 0.72rem; }
+  .music-chip { position: static; transform: none; height: 28px; max-width: 32%; min-width: 0; flex: 0 1 auto; }
+  .music-main { padding: 0 10px 0 4px; font-size: 0.72rem; }
   .music-chip .note { width: 20px; height: 20px; }
   .music-link { width: 22px; height: 22px; }
-  .edit-char-btn { bottom: 8px; right: 8px; height: 26px; padding: 0 10px; gap: 4px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; }
+  .edit-char-btn { position: static; transform: none; white-space: nowrap; height: 28px; padding: 0 10px; gap: 4px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; box-shadow: none; }
 }
 </style>

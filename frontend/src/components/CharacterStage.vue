@@ -5,6 +5,8 @@
     :style="stageStyle"
   >
     <div v-if="!bare" class="stage-head">
+      <!-- 레벨·칭호 줄 왼쪽 끝에 붙일 것 (홈: 요즘 듣는 음악) -->
+      <slot name="head-start" />
       <div class="level-tag">Lv.{{ level }} {{ nickname }}</div>
       <div class="tier-badge">{{ tier.name }}</div>
     </div>
@@ -15,8 +17,6 @@
       <template #behind>
         <div v-if="!bare && tier.aura !== 'none'" class="aura" :class="`aura-${tier.aura}`"></div>
       </template>
-      <!-- 장면 모서리에 얹을 것 (홈: 왼쪽 위 요즘 듣는 음악, 오른쪽 아래 옷장) -->
-      <slot name="corners" />
       <template #above>
         <transition name="pop">
           <div v-if="showSpeech" class="speech-bubble">{{ tier.speech }}</div>
@@ -25,10 +25,14 @@
     </StageScene>
 
     <div v-if="!bare" class="exp-area">
-      <div class="exp-bar">
-        <div class="exp-fill" :style="{ width: `${progress}%` }"></div>
+      <div class="exp-main">
+        <div class="exp-bar">
+          <div class="exp-fill" :style="{ width: `${progress}%` }"></div>
+        </div>
+        <div class="exp-text">{{ expLabel }}</div>
       </div>
-      <div class="exp-text">{{ expLabel }}</div>
+      <!-- 경험치 줄 오른쪽 끝에 붙일 것 (홈: 옷장 버튼) -->
+      <slot name="exp-end" />
     </div>
 
     <slot />
@@ -194,10 +198,12 @@ const stageStyle = computed(() => ({
   white-space: nowrap;
 }
 
+/* 경험치 줄은 무대 폭 전체(양 끝에 버튼을 붙일 수 있게), 막대·문구는 가운데 min(420px, 70%) */
 .exp-area {
   bottom: 5%;
-  width: min(420px, 70%);
+  left: 0; right: 0; transform: none;
 }
+.exp-main { width: min(420px, 70%); margin: 0 auto; }
 .exp-bar {
   height: 10px;
   border-radius: 999px;
@@ -238,20 +244,26 @@ const stageStyle = computed(() => ({
   .aura { animation: none; }
 }
 
-/* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래로 뺀다 (레벨·칭호 → 장면 → 경험치)
-   레벨·칭호는 같은 높이의 알약, 가운데 정렬 */
+/* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래(흰 바탕)로 뺀다 (레벨·칭호 줄 → 장면 → 경험치 줄)
+   레벨·칭호 줄: 왼쪽 끝 head-start, 오른쪽에 레벨·칭호 / 경험치 줄: 가운데 막대·문구, 오른쪽 끝 exp-end */
 @media (max-width: 640px) {
   .character-stage { color: var(--c-text); display: flex; flex-direction: column; }
-  .stage-head, .exp-area { position: static; transform: none; margin: 0 auto; }
-  .stage-head { order: 1; width: auto; align-self: stretch; box-sizing: border-box; padding: 12px 12px 8px; gap: 6px; }
+  .stage-head, .exp-area { position: static; transform: none; margin: 0; }
+  .stage-head { order: 1; width: auto; box-sizing: border-box; padding: 12px 12px 8px; gap: 6px; flex-wrap: nowrap; }
   .character-stage > :deep(.scene) { order: 3; }
-  .exp-area { order: 4; width: auto; align-self: stretch; padding: 10px 16px 14px; }
+  .exp-area {
+    order: 4; padding: 10px 12px 14px;
+    display: grid; grid-template-columns: 1fr minmax(0, 54%) 1fr; align-items: center; column-gap: 6px;
+  }
+  .exp-main { grid-column: 2; width: auto; }
+  .exp-area > :deep(*:not(.exp-main)) { grid-column: 3; justify-self: end; }
   .level-tag, .tier-badge {
     display: inline-flex; align-items: center; height: 28px; padding: 0 11px; box-sizing: border-box;
     border-radius: 999px; font-size: 0.75rem; line-height: 1;
   }
-  .level-tag { font-weight: 800; }
-  .tier-badge { box-shadow: none; }
+  /* 왼쪽 끝 음악을 뺀 나머지 폭 가운데에 레벨·칭호 */
+  .level-tag { margin-left: auto; max-width: 36%; font-weight: 800; min-width: 0; display: block; line-height: 28px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tier-badge { flex: none; margin-right: auto; box-shadow: none; }
   .exp-text { text-shadow: none; }
   .speech-bubble { white-space: normal; width: max-content; max-width: 180px; }
 }
