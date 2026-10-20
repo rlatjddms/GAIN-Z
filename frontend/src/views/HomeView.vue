@@ -629,10 +629,17 @@ button::-moz-focus-inner { border: 0 !important; }
   .card-btn:hover { transform: none; box-shadow: none; }
 }
 
-/* 칭호 옆 옷장 버튼은 휴대폰에서만 */
-.edit-char-btn.badge-btn { display: none; position: static; padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; }
+/* 칭호 옆 옷장 버튼은 휴대폰에서만. 휴대폰에서 요즘 듣는 음악은 레벨·칭호 줄 아래 가운데에 같은 높이로 */
+.edit-char-btn.badge-btn {
+  display: none; position: static; gap: 4px; height: 28px; padding: 0 11px; box-sizing: border-box;
+  border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1; box-shadow: none;
+}
 @media (max-width: 640px) {
   .edit-char-btn.wide-only { display: none; }
   .edit-char-btn.badge-btn { display: inline-flex; }
+  .music-chip { position: static; order: 2; align-self: center; max-width: calc(100% - 32px); margin: 0 0 8px; height: 28px; }
+  .music-main { padding: 0 11px 0 4px; font-size: 0.75rem; }
+  .music-chip .note { width: 20px; height: 20px; }
+  .music-link { width: 22px; height: 22px; }
 }
 </style>

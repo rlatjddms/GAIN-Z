@@ -238,11 +238,21 @@ const stageStyle = computed(() => ({
   .aura { animation: none; }
 }
 
-/* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래로 뺀다 */
+/* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래로 뺀다
+   순서: 레벨·칭호(·옷장) → 홈이 넣는 한 줄(요즘 듣는 음악, order 2) → 장면 → 경험치
+   레벨·칭호와 옆에 붙는 버튼은 모두 같은 높이의 알약 모양 */
 @media (max-width: 640px) {
-  .character-stage { color: var(--c-text); }
+  .character-stage { color: var(--c-text); display: flex; flex-direction: column; }
   .stage-head, .exp-area { position: static; transform: none; margin: 0 auto; }
-  .stage-head { padding: 12px 12px 10px; }
+  .stage-head { order: 1; padding: 12px 12px 8px; gap: 6px; }
+  .character-stage > :deep(.scene) { order: 3; }
+  .exp-area { order: 4; }
+  .level-tag, .tier-badge, .stage-head :slotted(*) {
+    display: inline-flex; align-items: center; height: 28px; padding: 0 11px; box-sizing: border-box;
+    border-radius: 999px; font-size: 0.75rem; line-height: 1;
+  }
+  .level-tag { font-weight: 800; }
+  .tier-badge { box-shadow: none; }
   .exp-area { width: auto; padding: 10px 16px 14px; }
   .exp-text { text-shadow: none; }
   .speech-bubble { white-space: normal; width: max-content; max-width: 180px; }
