@@ -4,10 +4,10 @@ import com.project.gainz.domain.user.entity.RefreshToken;
 import com.project.gainz.domain.user.repository.RefreshTokenRepository;
 import com.project.gainz.global.security.jwt.JwtTokenProvider;
 import com.project.gainz.global.security.principal.UserPrincipal;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -32,8 +32,13 @@ class OAuth2SuccessHandlerTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
-    @InjectMocks
     private OAuth2SuccessHandler handler;
+
+    @BeforeEach
+    void setUp() {
+        // 프론트 주소는 설정값으로 받는다 (#174)
+        handler = new OAuth2SuccessHandler(jwtTokenProvider, refreshTokenRepository, "https://gainz.example.com");
+    }
 
     @Test
     void 간편로그인에_성공하면_재발급_토큰을_저장하고_토큰을_넘긴다() throws Exception {
@@ -53,6 +58,8 @@ class OAuth2SuccessHandlerTest {
         verify(refreshTokenRepository).save(saved.capture());
         assertThat(saved.getValue().getEmail()).isEqualTo("kakao@example.com");
         assertThat(saved.getValue().getToken()).isEqualTo("refresh");
-        assertThat(response.getRedirectedUrl()).contains("accessToken=access").contains("refreshToken=refresh");
+        assertThat(response.getRedirectedUrl())
+                .startsWith("https://gainz.example.com/oauth2/redirect?")
+                .contains("accessToken=access").contains("refreshToken=refresh");
     }
 }
