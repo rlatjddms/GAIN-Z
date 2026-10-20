@@ -55,6 +55,7 @@ class CharacterServiceTest {
     @Mock private OutfitItemRepository outfitItemRepository;
     @Mock private UserOutfitRepository userOutfitRepository;
     @Mock private UserRepository userRepository;
+    @Mock private com.project.gainz.domain.record.repository.UserRecordRepository userRecordRepository;
 
     @InjectMocks private CharacterService characterService;
 
@@ -203,7 +204,8 @@ class CharacterServiceTest {
         assertThat(result.backgrounds()).extracting(WardrobeResponse.BackgroundView::key, WardrobeResponse.BackgroundView::unlocked)
                 .containsExactly(
                         Tuple.tuple(StageBackground.ROOKIE, true), Tuple.tuple(StageBackground.RISING, true),
-                        Tuple.tuple(StageBackground.PRO, false), Tuple.tuple(StageBackground.LEGEND, false));
+                        Tuple.tuple(StageBackground.PRO, false), Tuple.tuple(StageBackground.LEGEND, false),
+                        Tuple.tuple(StageBackground.LISTENING_ROOM, false));
         // 새 캐릭터는 방구석으로 시작하고, 레벨이 올라도 고른 배경은 그대로
         assertThat(result.stageBackground()).isEqualTo(StageBackground.ROOKIE);
     }
@@ -383,6 +385,66 @@ class CharacterServiceTest {
 
         WardrobeUpdateRequest show = new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, null, null, false);
         assertThat(characterService.updateWardrobe(USER_ID, show).instrumentHidden()).isFalse();
+    }
+
+    // ---------- 레코드 수집 보상 ----------
+
+    private void givenRecords(com.project.gainz.domain.record.enums.RecordRarity... rarities) {
+        java.util.Set<com.project.gainz.domain.record.enums.RecordRarity> wanted = java.util.Set.of(rarities);
+        List<com.project.gainz.domain.record.entity.UserRecord> owned = java.util.Arrays.stream(com.project.gainz.domain.record.enums.RecordType.values())
+                .filter(t -> rarities.length == 0 || wanted.contains(t.rarity()))
+                .map(t -> new com.project.gainz.domain.record.entity.UserRecord(user, t))
+                .toList();
+        when(userRecordRepository.findAllByUserId(USER_ID)).thenReturn(owned);
+    }
+
+    @Test
+    void 카세트를_다_모으면_카세트_세트를_무대에_놓는다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+        givenRecords(com.project.gainz.domain.record.enums.RecordRarity.COMMON);
+
+        WardrobeUpdateRequest put = new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, null, null, null,
+                com.project.gainz.domain.character.enums.RoomDecor.CASSETTE);
+        assertThat(characterService.updateWardrobe(USER_ID, put).roomDecor()).isEqualTo(com.project.gainz.domain.character.enums.RoomDecor.CASSETTE);
+
+        WardrobeUpdateRequest cd = new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, null, null, null,
+                com.project.gainz.domain.character.enums.RoomDecor.CD);
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, cd))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ROOM_DECOR_LOCKED);
+    }
+
+    @Test
+    void 리스닝_룸은_레코드를_전부_모아야_고를_수_있다() {
+        ReflectionTestUtils.setField(character, "level", 30);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+        givenRecords(com.project.gainz.domain.record.enums.RecordRarity.COMMON, com.project.gainz.domain.record.enums.RecordRarity.RARE);
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.LISTENING_ROOM)))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.STAGE_BACKGROUND_LOCKED);
+
+        givenRecords();
+        assertThat(characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.LISTENING_ROOM)).stageBackground())
+                .isEqualTo(StageBackground.LISTENING_ROOM);
+    }
+
+    @Test
+    void 옷장에_수집_보상_잠금이_보인다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        when(userOutfitRepository.findOutfitItemIdsByUserId(USER_ID)).thenReturn(List.of());
+        when(outfitItemRepository.findAllByOrderByRequiredLevelAscIdAsc()).thenReturn(List.of());
+        givenRecords(com.project.gainz.domain.record.enums.RecordRarity.RARE);
+
+        WardrobeResponse result = characterService.getWardrobe(USER_ID);
+
+        assertThat(result.decorSets()).extracting(WardrobeResponse.DecorSetView::key, WardrobeResponse.DecorSetView::unlocked)
+                .containsExactly(
+                        Tuple.tuple(com.project.gainz.domain.character.enums.RoomDecor.CASSETTE, false),
+                        Tuple.tuple(com.project.gainz.domain.character.enums.RoomDecor.CD, true),
+                        Tuple.tuple(com.project.gainz.domain.character.enums.RoomDecor.LP, false));
+        assertThat(result.backgrounds()).filteredOn(b -> b.key() == StageBackground.LISTENING_ROOM)
+                .extracting(WardrobeResponse.BackgroundView::unlocked).containsExactly(false);
     }
 
     @Test

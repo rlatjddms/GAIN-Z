@@ -151,6 +151,22 @@ class RecordServiceTest {
     /* ---------- 판정·지급 ---------- */
 
     @Test
+    void 카세트를_마저_모으면_방_꾸미기_세트_알림도_보낸다() {
+        // 일반(카세트) 중 7일 연속만 빼고 이미 가진 상태 → 7일 연속을 얻으면 카세트를 다 모음
+        java.util.Arrays.stream(RecordType.values())
+                .filter(t -> t.rarity() == com.project.gainz.domain.record.enums.RecordRarity.COMMON && t != RecordType.STREAK_7)
+                .forEach(this::own);
+        Map<LocalDate, Long> week = new java.util.HashMap<>();
+        for (int i = 0; i < 7; i++) week.put(today.minusDays(i), 600L);
+        practiced(week);
+
+        recordService.check(ME, EnumSet.of(RecordMetric.STREAK_DAYS));
+
+        verify(notificationService).notify(me, NotificationType.RECORD, "MY RECORDS",
+                "카세트를 모두 모았어요! 카세트 데크와 테이프 보관함으로 방을 꾸밀 수 있어요", RecordService.WARDROBE_URL);
+    }
+
+    @Test
     void 달성한_것만_지급하고_알림을_보낸다() {
         // 오늘까지 7일 연속, 모두 합쳐 11시간
         Map<LocalDate, Long> week = new java.util.HashMap<>();
