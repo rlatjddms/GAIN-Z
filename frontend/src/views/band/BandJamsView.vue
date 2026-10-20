@@ -585,7 +585,7 @@ button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset
 .jam-link strong { font-size:.79rem; }
 .jam-link span,.jam-link small { color:#868e96; font-size:.7rem; }
 .empty { display:flex; flex-direction:column; align-items:center; text-align:center; padding:36px 14px; border:1px dashed #e9ecef; border-radius:14px; gap:8px; }
-.empty-icon { font-size:2rem; }
+.empty-icon { color: var(--c-faint); }
 .empty strong { font-size:.9rem; color:#495057; }
 .empty p { margin:0; }
 .jam-meta { margin:0 0 14px; color:#868e96; font-size:.76rem; }

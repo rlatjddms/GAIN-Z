@@ -286,7 +286,7 @@ input[type='checkbox'] { width: 18px; height: 18px; margin: 0; accent-color: var
   border: 2px dashed #e9ecef; border-radius: 16px; padding: 48px 20px;
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
 }
-.empty-icon { font-size: 2rem; margin-bottom: 4px; color: #ced4da; }
+.empty-icon { margin-bottom: 4px; color: var(--c-faint); }
 .empty strong { font-size: 0.95rem; font-weight: 800; color: #495057; }
 .empty p { margin: 0 0 8px; font-size: 0.8rem; color: #adb5bd; line-height: 1.6; }
 

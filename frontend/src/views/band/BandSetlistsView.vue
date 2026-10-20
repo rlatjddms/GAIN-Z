@@ -61,7 +61,7 @@
                 </article>
               </template>
             </SmoothReorder>
-            <div v-else class="empty"><span class="empty-icon"><PixelIcon name="songs" :size="48" /></span><strong>아직 등록한 곡이 없어요</strong><p>곡을 추가하고 곡마다 내용을 저장해 보세요.</p><button class="btn" @click="addSong">+ 첫 곡 추가</button></div>
+            <div v-else class="empty"><span class="empty-icon"><PixelIcon name="music" :size="48" /></span><strong>아직 등록한 곡이 없어요</strong><p>곡을 추가하고 곡마다 내용을 저장해 보세요.</p><button class="btn" @click="addSong">+ 첫 곡 추가</button></div>
           </template>
 
           <div v-else class="empty"><span class="empty-icon"><PixelIcon name="music" :size="48" /></span><strong>우리 밴드의 다음 합주를 준비해요</strong><p>왼쪽 목록에서 셋리스트를 만들어 주세요.</p></div>

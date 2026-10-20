@@ -474,24 +474,25 @@ button::-moz-focus-inner { border: 0 !important; }
 .card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
 .card-title.link:hover { color: var(--c-primary-text); }
 .record-count { font-size: 0.75rem; color: #adb5bd; }
-/* 유리 진열장: 얇은 테두리 안에 투명한 유리 선반, 비스듬한 빛 반사 */
+/* 유리 진열장: 밝은 금속 테두리, 살짝 푸른 유리, 비스듬한 반사선 두 줄, 모서리가 초록빛인 유리 선반 */
 .shelf {
   position: relative; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; gap: 12px;
-  padding: 14px 10px 10px; border-radius: 14px;
-  background: linear-gradient(180deg, #f8fbfd 0%, #ffffff 100%);
-  border: 1px solid #dee2e6;
-  box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 4px #eef1f4;
+  padding: 16px 12px 12px; border-radius: 12px;
+  background: linear-gradient(160deg, rgba(214, 232, 242, 0.6) 0%, rgba(246, 250, 252, 0.95) 45%, rgba(222, 236, 244, 0.7) 100%);
+  border: 3px solid #cfd6dd;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.95), inset 0 10px 18px -12px rgba(110, 145, 170, 0.45), 0 2px 0 #b8c1ca;
 }
 .shelf::after {
-  content: ''; position: absolute; top: -40%; left: -30%; width: 40%; height: 180%;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0) 100%);
-  transform: rotate(20deg); pointer-events: none;
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 0 16%, rgba(255, 255, 255, 0.75) 16% 21%, transparent 21% 27%,
+    rgba(255, 255, 255, 0.5) 27% 29%, transparent 29% 100%);
 }
 .shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
 .shelf-board {
-  height: 3px; border-radius: 2px; margin-top: 2px;
-  background: linear-gradient(180deg, #ffffff 0%, #e3e8ee 100%);
-  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.12);
+  height: 5px; margin-top: 2px; border-radius: 1px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(178, 214, 206, 0.85));
+  border-bottom: 1px solid rgba(110, 160, 150, 0.75);
+  box-shadow: 0 3px 4px -2px rgba(60, 90, 100, 0.28);
 }
 .shelf:hover .shelf-items { transform: translateY(-2px); }
 .shelf-items { transition: transform 0.2s; }

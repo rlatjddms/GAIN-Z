@@ -330,7 +330,7 @@ onBeforeRouteLeave(() => (dirty.value && !loadError.value ? window.confirm('ì €ì
 .drop.compact .drop-icon { display: none; }
 .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .drop input:disabled { cursor: not-allowed; }
-.drop-icon { font-size: 1.8rem; }
+.drop-icon { color: var(--c-faint); }
 .drop strong { font-size: 0.9rem; font-weight: 800; color: #343a40; }
 .drop-sub { font-size: 0.72rem; color: #adb5bd; font-weight: 600; line-height: 1.6; }
 

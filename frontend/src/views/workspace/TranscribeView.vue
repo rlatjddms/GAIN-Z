@@ -58,7 +58,7 @@ const STEPS = [
   border: 2px dashed var(--c-primary-line); background: var(--c-primary-soft); border-radius: 16px; padding: 36px 20px;
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
 }
-.drop-icon { font-size: 2rem; margin-bottom: 4px; }
+.drop-icon { margin-bottom: 4px; color: var(--c-faint); }
 .dropzone strong { font-size: 0.95rem; font-weight: 800; color: #495057; }
 .dropzone p { margin: 0 0 10px; font-size: 0.75rem; font-weight: 700; color: #adb5bd; }
 
