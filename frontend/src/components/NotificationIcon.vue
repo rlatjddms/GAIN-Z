@@ -11,14 +11,14 @@
 
 <script setup>
 import { computed } from 'vue'
-import { categoryOf } from '../constants/notification'
+import { iconOf } from '../constants/notification'
 
 const props = defineProps({
   type: { type: String, required: true },
   size: { type: Number, default: 30 },
 })
 
-const category = computed(() => categoryOf(props.type))
+const category = computed(() => iconOf(props.type))
 const glyph = computed(() => Math.round(props.size / 2))
 </script>
 
