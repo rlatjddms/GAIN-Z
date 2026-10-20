@@ -36,7 +36,8 @@ public record CharacterResponse(
         Accessory waist,
         Accessory shoes,                  // 늘 하나 (기본 BASIC_SHOES)
         Accessory bottom,                 // 늘 하나 (기본 JEANS)
-        Map<String, String> itemColors    // 아이템마다 고른 색 (없는 아이템은 기본 색)
+        Map<String, String> itemColors,   // 아이템마다 고른 색 (없는 아이템은 기본 색)
+        boolean instrumentHidden          // 그림에서 악기를 내려놓았는지
 ) {
     public static CharacterResponse from(Character character) {
         return new CharacterResponse(
@@ -64,7 +65,8 @@ public record CharacterResponse(
                 character.getWaist(),
                 character.getWornShoes(),
                 character.getWornBottom(),
-                character.getItemColors()
+                character.getItemColors(),
+                character.isInstrumentHidden()
         );
     }
 }

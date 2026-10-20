@@ -187,6 +187,7 @@ public class CharacterService {
         character.changeOutfit(outfit);
         character.changeStageBackground(background);
         if (request.itemColors() != null) character.changeItemColors(request.itemColors());
+        if (request.instrumentHidden() != null) character.changeInstrumentHidden(request.instrumentHidden());
         character.changeStageEffect(effect);
         accessories.forEach(character::wear);
         return CharacterResponse.from(character);

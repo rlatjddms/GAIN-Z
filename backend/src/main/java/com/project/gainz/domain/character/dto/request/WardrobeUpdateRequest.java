@@ -27,11 +27,20 @@ public record WardrobeUpdateRequest(
         Accessory waist,
 
         // 아이템마다 고른 색 { "HOODIE": "#ffd8a8" }. null이면 그대로 둠
-        Map<String, String> itemColors
+        Map<String, String> itemColors,
+
+        // 그림에서 악기 내려놓기. null이면 그대로 둠
+        Boolean instrumentHidden
 ) {
     public WardrobeUpdateRequest(Long outfitId, StageBackground stageBackground, Accessory hat, Accessory glasses, Accessory neck,
+                                 Accessory shoes, Accessory bottom, Accessory earrings, StageEffect stageEffect, Accessory waist,
+                                 Map<String, String> itemColors) {
+        this(outfitId, stageBackground, hat, glasses, neck, shoes, bottom, earrings, stageEffect, waist, itemColors, null);
+    }
+
+    public WardrobeUpdateRequest(Long outfitId, StageBackground stageBackground, Accessory hat, Accessory glasses, Accessory neck,
                                  Accessory shoes, Accessory bottom, Accessory earrings, StageEffect stageEffect, Accessory waist) {
-        this(outfitId, stageBackground, hat, glasses, neck, shoes, bottom, earrings, stageEffect, waist, null);
+        this(outfitId, stageBackground, hat, glasses, neck, shoes, bottom, earrings, stageEffect, waist, null, null);
     }
 
     public WardrobeUpdateRequest(Long outfitId, StageBackground stageBackground, Accessory hat, Accessory glasses, Accessory neck,

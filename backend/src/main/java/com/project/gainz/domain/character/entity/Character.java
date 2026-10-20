@@ -127,6 +127,10 @@ public class Character extends BaseEntity {
     @Convert(converter = AccessoryConverter.class)
     private Accessory waist;
 
+    // 그림에서 악기를 내려놓았는지 (악기 종류·밴드 포지션은 그대로). null = 예전 캐릭터 = 들고 있음
+    @Column(name = "instrument_hidden")
+    private Boolean instrumentHidden;
+
     // 아이템마다 고른 색 { "HOODIE": "#ffd8a8" } (없는 아이템은 기본 색)
     @Column(columnDefinition = "TEXT")
     @Convert(converter = ItemColorsConverter.class)
@@ -216,6 +220,15 @@ public class Character extends BaseEntity {
 
     public Accessory getWornShoes() {
         return shoes != null ? shoes : Accessory.defaultFor(AccessorySlot.SHOES);
+    }
+
+    public boolean isInstrumentHidden() {
+        return Boolean.TRUE.equals(instrumentHidden);
+    }
+
+    // 옷장: 악기 들기·내려놓기
+    public void changeInstrumentHidden(boolean hidden) {
+        this.instrumentHidden = hidden;
     }
 
     public Map<String, String> getItemColors() {
