@@ -6,7 +6,7 @@
         <span class="label">원래 키</span>
         <strong>{{ originalKey }}</strong>
       </div>
-      <span class="arrow">→</span>
+      <ArrowRight class="arrow" :size="16" :stroke-width="2.4" />
       <div class="key-control" role="group" aria-label="연습 키 바꾸기">
         <button class="step" aria-label="반음 내리기" @click="emit('change', transposeKey(current, -1))">−</button>
         <div class="key-box now">
@@ -23,7 +23,7 @@
       <span v-if="status" class="saved">{{ status }}</span>
     </p>
 
-    <p v-if="capo" class="capo">🎸 카포 {{ capo }}프렛에 끼우고 악보 코드 그대로 치면 {{ current }} 키예요.</p>
+    <p v-if="capo" class="capo">카포 {{ capo }}프렛에 끼우고 악보 코드 그대로 치면 {{ current }} 키예요.</p>
 
     <table v-if="changed" class="map">
       <thead>
@@ -33,7 +33,7 @@
         <tr v-for="(row, i) in rows" :key="row.degree">
           <td class="degree">{{ row.degree }}</td>
           <td>{{ row.chord }}</td>
-          <td class="arrow">→</td>
+          <td class="arrow"><ArrowRight :size="14" :stroke-width="2.4" /></td>
           <td class="to">{{ target[i].chord }}</td>
         </tr>
       </tbody>
@@ -43,6 +43,7 @@
 </template>
 
 <script setup>
+import { ArrowRight } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { transposeKey, semitonesBetween, diatonicChords, capoFor } from '../../music/transpose'
 

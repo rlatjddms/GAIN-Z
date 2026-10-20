@@ -5,7 +5,7 @@
     </template>
 
     <p v-if="routines.length" class="summary" :class="{ done: allDone }">
-      {{ allDone ? '모두 완료했어요 🎉' : `${doneCount} / ${routines.length} 완료` }}
+      {{ allDone ? '모두 완료했어요' : `${doneCount} / ${routines.length} 완료` }}
     </p>
 
     <p v-if="!editable && routines.length" class="readonly">7일이 지난 날은 볼 수만 있어요.</p>
@@ -17,7 +17,7 @@
           :disabled="!editable"
           :aria-label="r.completed ? '완료 취소' : '완료로 표시'"
           @click="setCount(r, r.completed ? 0 : r.targetCount)"
-        >{{ r.completed ? '✓' : '' }}</button>
+        ><Check v-if="r.completed" :size="14" :stroke-width="3" /></button>
         <div class="body" @dblclick="isToday && openForm(r)">
           <span class="content">{{ r.content }}</span>
           <span class="schedule">{{ scheduleLabel(r) }}</span>
@@ -44,6 +44,7 @@
 </template>
 
 <script setup>
+import { Check } from 'lucide-vue-next'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import WsCard from './WsCard.vue'
 import RoutineFormModal from './RoutineFormModal.vue'

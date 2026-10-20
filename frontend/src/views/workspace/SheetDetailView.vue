@@ -18,7 +18,7 @@
             :class="{ on: item.favorite }"
             :aria-pressed="item.favorite"
             @click="toggleFavorite"
-          >{{ item.favorite ? '★ 즐겨찾기' : '☆ 즐겨찾기' }}</button>
+          ><Star :size="14" :stroke-width="2.2" :fill="item.favorite ? 'currentColor' : 'none'" /> 즐겨찾기</button>
           <router-link v-if="sheet.mine" :to="`/sheets/${item.id}/edit`" class="btn">수정</router-link>
           <button class="btn danger" :disabled="removing" @click="remove">삭제</button>
         </div>
@@ -107,6 +107,7 @@
 </template>
 
 <script setup>
+import { Star } from 'lucide-vue-next'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'

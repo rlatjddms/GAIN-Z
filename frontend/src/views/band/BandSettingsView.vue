@@ -56,7 +56,7 @@
             </div>
             <div class="who" :class="{ clickable: !m.me }" :title="m.me ? '' : '프로필 보기'" @click="openProfile(m)">
               <strong>
-                <span v-if="m.position === 'LEADER'" title="리더">👑 </span>{{ m.character?.nickname || '알 수 없는 멤버' }}
+                <Crown v-if="m.position === 'LEADER'" class="crown" :size="12" :stroke-width="2.4" aria-label="리더" />{{ m.character?.nickname || '알 수 없는 멤버' }}
                 <em v-if="m.me">나</em>
                 <em v-else-if="friendOf(m) === 'FRIEND'" class="friend">친구</em>
                 <em v-else-if="friendOf(m) === 'SENT'" class="muted">신청함</em>
@@ -101,7 +101,7 @@
                   :class="{ active: currentStage === st.key }" :disabled="busy || !isLeader"
                   :aria-pressed="currentStage === st.key" @click="changeStage(st.key)">
             <img :src="st.background" :alt="`${st.name} 배경`">
-            <span>{{ st.name }}<template v-if="currentStage === st.key"> ✓</template></span>
+            <span>{{ st.name }}<Check v-if="currentStage === st.key" class="stage-check" :size="13" :stroke-width="3" /></span>
           </button>
         </div>
       </section>
@@ -132,6 +132,7 @@
 </template>
 
 <script setup>
+import { Crown, Check } from 'lucide-vue-next'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -471,4 +472,6 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 @media (max-width: 560px) {
   .stages { grid-template-columns: 1fr; }
 }
+/* 리더 왕관: 홈 밴드 무대와 같은 노란 왕관, 이름과 띄움 */
+.crown { margin-right: 6px; color: #f08c00; vertical-align: -1px; flex: none; }
 </style>

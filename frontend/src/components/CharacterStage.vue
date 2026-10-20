@@ -72,7 +72,7 @@ const nextTier = computed(() => getNextTier(level.value))
 const progress = computed(() => getExpProgress(level.value, exp.value))
 
 const expLabel = computed(() => {
-  if (level.value >= MAX_LEVEL) return 'MAX LEVEL 🎉 모든 무대를 정복했어요'
+  if (level.value >= MAX_LEVEL) return 'MAX LEVEL · 모든 무대를 정복했어요'
   const required = getRequiredExp(level.value)
   if (rawExp.value < 0) return `EXP 0 / ${required} · 줄인 기록만큼 ${-rawExp.value} EXP를 더 채워야 해요`
   const base = `EXP ${exp.value} / ${required}`

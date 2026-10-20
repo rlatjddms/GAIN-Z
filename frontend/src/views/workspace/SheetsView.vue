@@ -4,7 +4,7 @@
     <div class="page-head">
       <h2>악보 보관함</h2>
       <div class="head-actions">
-        <router-link to="/transcribe" class="btn">✨ AI로 악보 만들기</router-link>
+        <router-link to="/transcribe" class="btn"><Sparkles :size="14" :stroke-width="2.2" /> AI로 악보 만들기</router-link>
         <router-link to="/sheets/new" class="btn primary">+ 악보 올리기</router-link>
       </div>
     </div>
@@ -13,7 +13,7 @@
       <template #actions>
         <div class="filters">
           <button class="chip" :class="{ on: !favoriteOnly }" @click="favoriteOnly = false">전체</button>
-          <button class="chip" :class="{ on: favoriteOnly }" @click="favoriteOnly = true">★ 즐겨찾기</button>
+          <button class="chip" :class="{ on: favoriteOnly }" @click="favoriteOnly = true"><Star :size="13" :stroke-width="2.2" fill="currentColor" /> 즐겨찾기</button>
           <select v-model="sort" class="sort" aria-label="정렬">
             <option value="recent">최근 담은 순</option>
             <option value="title">제목 순</option>
@@ -65,7 +65,7 @@
                 content-type="image/png"
                 thumb
               />
-              <span v-else class="cover-text">{{ item.pageCount ? 'PDF' : '♪' }}</span>
+              <span v-else class="cover-text"><template v-if="item.pageCount">PDF</template><PixelIcon v-else name="music" :size="24" /></span>
             </span>
             <span class="info">
               <strong>{{ item.title }}</strong>
@@ -78,7 +78,7 @@
             <span v-if="item.originalKey" class="key-badge" :class="{ changed: item.customKey }" :title="item.customKey ? `원래 ${item.originalKey} → 연습 ${item.customKey}` : '원래 키'">
               {{ item.customKey ? `${item.originalKey}→${item.customKey}` : item.originalKey }}
             </span>
-            <span v-if="item.hasMemo" class="memo-mark" title="메모 있음">📝</span>
+            <StickyNote v-if="item.hasMemo" class="memo-mark" :size="13" :stroke-width="2.2" aria-label="메모 있음" />
           </a>
           </router-link>
           <button
@@ -88,17 +88,17 @@
             :aria-label="item.favorite ? '즐겨찾기 해제' : '즐겨찾기'"
             :aria-pressed="item.favorite"
             @click="toggleFavorite(item)"
-          >{{ item.favorite ? '★' : '☆' }}</button>
+          ><Star :size="16" :stroke-width="2.2" :fill="item.favorite ? 'currentColor' : 'none'" /></button>
         </li>
       </ul>
 
       <div v-else-if="favoriteOnly" class="empty">
-        <div class="empty-icon">☆</div>
+        <div class="empty-icon"><PixelIcon name="star" :size="48" /></div>
         <strong>즐겨찾기한 악보가 없어요</strong>
         <p>악보 옆 별을 누르면 여기 모아 볼 수 있어요.</p>
       </div>
       <div v-else class="empty">
-        <div class="empty-icon">📂</div>
+        <div class="empty-icon"><PixelIcon name="folder" :size="48" /></div>
         <strong>아직 담아 둔 악보가 없어요</strong>
         <p>갖고 있는 악보 사진·스캔·PDF를 올려 보세요. 메모를 남기고, 다른 키로 칠 코드도 알려 드려요.<br>AI로 만든 악보도 여기에 모여요.</p>
         <router-link to="/sheets/new" class="btn primary">+ 첫 악보 올리기</router-link>
@@ -109,6 +109,8 @@
 </template>
 
 <script setup>
+import { Sparkles, Star, StickyNote } from 'lucide-vue-next'
+import PixelIcon from '../../components/PixelIcon.vue'
 import { ref, computed, watch, onMounted } from 'vue'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
@@ -284,7 +286,7 @@ input[type='checkbox'] { width: 18px; height: 18px; margin: 0; accent-color: var
   border: 2px dashed #e9ecef; border-radius: 16px; padding: 48px 20px;
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
 }
-.empty-icon { font-size: 2rem; margin-bottom: 4px; color: #ced4da; }
+.empty-icon { margin-bottom: 4px; color: var(--c-faint); }
 .empty strong { font-size: 0.95rem; font-weight: 800; color: #495057; }
 .empty p { margin: 0 0 8px; font-size: 0.8rem; color: #adb5bd; line-height: 1.6; }
 

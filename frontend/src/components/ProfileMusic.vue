@@ -6,7 +6,7 @@
     :class="{ compact, link: !!safeUrl }"
     v-bind="safeUrl ? { href: safeUrl, target: '_blank', rel: 'noopener noreferrer', title: '새 탭에서 듣기' } : {}"
   >
-    <span class="note" aria-hidden="true">♪</span>
+    <span class="note" aria-hidden="true"><Music :size="13" :stroke-width="2.5" /></span>
     <span class="text">
       <strong>{{ music.title }}</strong>
       <span class="artist">{{ music.artist }}</span>
@@ -18,6 +18,7 @@
 </template>
 
 <script setup>
+import { Music } from 'lucide-vue-next'
 import { computed } from 'vue'
 
 const props = defineProps({

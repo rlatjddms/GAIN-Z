@@ -8,7 +8,7 @@
               <h2 id="records-title">MY RECORDS <span class="count">{{ store.ownedCount }} / {{ store.total || '—' }}</span></h2>
               <p>업적을 달성하면 음반이 하나씩 쌓여요</p>
             </div>
-            <button class="close" aria-label="닫기" @click="close">✕</button>
+            <button class="close" aria-label="닫기" @click="close"><X :size="18" :stroke-width="2.4" /></button>
           </header>
 
           <div class="legend">
@@ -36,7 +36,7 @@
                   <span>{{ progressText(selected.progress) }}</span>
                 </div>
               </div>
-              <button class="detail-close" aria-label="자세히 닫기" @click="selectedKey = null">✕</button>
+              <button class="detail-close" aria-label="자세히 닫기" @click="selectedKey = null"><X :size="14" :stroke-width="2.4" /></button>
             </section>
 
             <!-- 도감: 얻은 것은 재킷 색, 못 얻은 것은 실루엣과 진행도 -->
@@ -83,6 +83,7 @@
 </template>
 
 <script setup>
+import { X } from 'lucide-vue-next'
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import RecordIcon from './RecordIcon.vue'
 import { useRecordsStore } from '../../stores/records'

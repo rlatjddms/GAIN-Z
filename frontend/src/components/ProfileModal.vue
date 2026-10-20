@@ -30,7 +30,7 @@
 
             <!-- 공개 범위 때문에 못 보는 프로필 -->
             <div v-if="!profile.visible" class="hidden-box">
-              <span class="lock" aria-hidden="true">🔒</span>
+              <span class="lock"><PixelIcon name="lock" :size="36" /></span>
               <p>공개되지 않은 프로필이에요</p>
             </div>
 
@@ -51,7 +51,7 @@
                 <ul v-else class="bands">
                   <li v-for="b in profile.bands" :key="b.bandId" class="band">
                     <span class="band-title">
-                      <span class="band-name"><span v-if="b.position === 'LEADER'" title="리더">👑 </span>{{ b.name }}</span>
+                      <span class="band-name"><Crown v-if="b.position === 'LEADER'" class="crown" :size="12" :stroke-width="2.4" aria-label="리더" />{{ b.name }}</span>
                       <span v-if="b.together" class="badge">같은 밴드</span>
                     </span>
                     <span class="part">{{ partLabel(b.part) }}</span>
@@ -68,6 +68,8 @@
 
 <script setup>
 // 다른 사람 프로필 팝업 (친구 목록·밴드 멤버에서 연다). 공개 범위에 따라 이름·사진만 보일 수 있다
+import { Crown } from 'lucide-vue-next'
+import PixelIcon from '../components/PixelIcon.vue'
 import { ref, watch } from 'vue'
 import ProfileAvatar from './ProfileAvatar.vue'
 import ProfileMusic from './ProfileMusic.vue'

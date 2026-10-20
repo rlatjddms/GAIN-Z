@@ -27,7 +27,7 @@
             <button class="btn danger" :disabled="busy || recording" @click="askDelete({ kind: 'jam' })">삭제</button>
           </template>
           <div v-if="jamLoading" class="muted">잼을 불러오는 중…</div>
-          <div v-else-if="!jam" class="empty"><div class="empty-icon">🎙️</div><strong>잼을 골라 주세요</strong><p>멤버가 올린 트랙을 들으며 내 파트를 녹음해 쌓을 수 있어요.</p></div>
+          <div v-else-if="!jam" class="empty"><div class="empty-icon"><PixelIcon name="mic" :size="48" /></div><strong>잼을 골라 주세요</strong><p>멤버가 올린 트랙을 들으며 내 파트를 녹음해 쌓을 수 있어요.</p></div>
           <template v-else>
             <p class="jam-meta">{{ jam.bpm }} BPM<template v-if="jam.song"> · 셋리스트 <router-link :to="`/bands/${band.id}/setlists?item=${jam.song.setlistItemId}`">{{ jam.song.title }}</router-link></template> · {{ jam.creatorName || '멤버' }}님이 만듦</p>
             <details class="guide">
@@ -42,7 +42,7 @@
 
             <div class="transport" role="group" aria-label="재생">
               <button class="btn primary play" :disabled="recording || !canPlay" :aria-label="playing ? '정지' : '재생'" @click="togglePlay">{{ playing ? '■ 정지' : '▶ 재생' }}</button>
-              <button class="btn" :disabled="recording" aria-label="처음으로" @click="rewind">⏮</button>
+              <button class="btn" :disabled="recording" aria-label="처음으로" @click="rewind"><SkipBack :size="16" :stroke-width="2.4" /></button>
               <span class="time" aria-live="off"><b data-testid="position">{{ formatTime(position) }}</b> / {{ formatTime(totalLength) }}</span>
               <input class="seek" type="range" min="0" :max="Math.max(totalLength, 0.1)" step="0.1" :value="position" :disabled="recording || !totalLength" aria-label="재생 위치" @input="seek(Number($event.target.value))">
               <label class="check" :title="`${jam.bpm} BPM으로 박자마다 틱 소리를 내요. 합친 음원에는 들어가지 않아요.`"><input v-model="metronomeOn" type="checkbox" @change="restart"> 메트로놈</label>
@@ -99,13 +99,13 @@
               <p v-if="trackLimitReached" class="hint">트랙은 잼마다 {{ JAM_MAX_TRACKS }}개까지 쌓을 수 있어요.</p>
               <div class="add-ways">
                 <div class="way">
-                  <strong>📁 음원 파일 올리기</strong>
+                  <strong><FileUp :size="16" :stroke-width="2.2" /> 음원 파일 올리기</strong>
                   <p class="hint">녹음 앱이나 녹음기로 따로 녹음한 MP3·WAV·M4A·OGG·WebM 파일을 30MB까지 올릴 수 있어요.</p>
                   <label class="btn file-picker" :class="{ disabled: fileDisabled }">파일 고르기<input type="file" :accept="JAM_FILE_ACCEPT" :disabled="fileDisabled" aria-label="음원 파일 고르기" @change="pickFile"></label>
                 </div>
                 <div class="way">
-                  <strong>🎙️ 여기서 바로 녹음</strong>
-                  <p class="hint">🎧 이어폰을 끼고 녹음하세요. 스피커로 들으면 반주가 함께 녹음돼요.</p>
+                  <strong><Mic :size="16" :stroke-width="2.2" /> 여기서 바로 녹음</strong>
+                  <p class="hint"><Headphones :size="14" :stroke-width="2.2" /> 이어폰을 끼고 녹음하세요. 스피커로 들으면 반주가 함께 녹음돼요.</p>
                   <button v-if="!micReady" class="btn" :disabled="busy" @click="connectMic">마이크 연결</button>
                   <template v-else>
                     <div class="latency">
@@ -172,6 +172,8 @@
 </template>
 
 <script setup>
+import { SkipBack, FileUp, Mic, Headphones } from 'lucide-vue-next'
+import PixelIcon from '../../components/PixelIcon.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -583,7 +585,7 @@ button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset
 .jam-link strong { font-size:.79rem; }
 .jam-link span,.jam-link small { color:#868e96; font-size:.7rem; }
 .empty { display:flex; flex-direction:column; align-items:center; text-align:center; padding:36px 14px; border:1px dashed #e9ecef; border-radius:14px; gap:8px; }
-.empty-icon { font-size:2rem; }
+.empty-icon { color: var(--c-faint); }
 .empty strong { font-size:.9rem; color:#495057; }
 .empty p { margin:0; }
 .jam-meta { margin:0 0 14px; color:#868e96; font-size:.76rem; }

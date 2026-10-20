@@ -9,7 +9,7 @@
       <!-- 음원 업로드·분석: #52(기술 조사)·#53에서 연결 -->
       <WsCard title="음원 올리기" soon>
         <div class="dropzone">
-          <div class="drop-icon">🎵</div>
+          <div class="drop-icon"><PixelIcon name="music" :size="48" /></div>
           <strong>음원 파일을 끌어다 놓거나 눌러서 고르세요</strong>
           <p>MP3 · WAV · M4A</p>
           <button class="btn primary" disabled>파일 선택</button>
@@ -37,6 +37,7 @@
 </template>
 
 <script setup>
+import PixelIcon from '../../components/PixelIcon.vue'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 
@@ -57,7 +58,7 @@ const STEPS = [
   border: 2px dashed var(--c-primary-line); background: var(--c-primary-soft); border-radius: 16px; padding: 36px 20px;
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
 }
-.drop-icon { font-size: 2rem; margin-bottom: 4px; }
+.drop-icon { margin-bottom: 4px; color: var(--c-faint); }
 .dropzone strong { font-size: 0.95rem; font-weight: 800; color: #495057; }
 .dropzone p { margin: 0 0 10px; font-size: 0.75rem; font-weight: 700; color: #adb5bd; }
 

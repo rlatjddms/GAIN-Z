@@ -5,7 +5,7 @@
     </AppHeader>
 
     <main class="sub-body">
-      <router-link to="/home" class="back">← 홈</router-link>
+      <router-link to="/home" class="back"><ArrowLeft :size="15" :stroke-width="2.4" /> 홈</router-link>
       <slot />
     </main>
   </div>
@@ -13,6 +13,7 @@
 
 <script setup>
 // 홈에서 들어가는 상세 페이지 공통 틀 (헤더 + 홈으로 돌아가기)
+import { ArrowLeft } from 'lucide-vue-next'
 import AppHeader from '../AppHeader.vue'
 
 defineProps({

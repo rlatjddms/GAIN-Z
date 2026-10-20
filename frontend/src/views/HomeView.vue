@@ -15,7 +15,7 @@
             <!-- 요즘 듣는 음악: 누르면 등록·수정 팝업, 링크가 있으면 옆 아이콘으로 새 탭 -->
             <div class="music-chip" :class="{ empty: !myMusic }">
               <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
-                <span class="note">♪</span>
+                <span class="note"><Music :size="13" :stroke-width="2.5" /></span>
                 <span class="music-text">{{ myMusic ? `${myMusic.title} · ${myMusic.artist}` : '요즘 듣는 음악 등록' }}</span>
               </button>
               <a v-if="myMusicUrl" class="music-link" :href="myMusicUrl" target="_blank" rel="noopener noreferrer" title="새 탭에서 듣기">
@@ -32,15 +32,15 @@
 
           <section class="quick-grid grid-3">
             <button class="card-btn" @click="router.push('/practice')">
-              <div class="c-icon">🕒</div>
+              <div class="c-icon"><PixelIcon name="clock" :size="24" /></div>
               <div class="c-text"><strong>ROUTINE TRACKER</strong><span>연습 루틴 및 기록장</span></div>
             </button>
             <button class="card-btn" @click="router.push('/sheets')">
-              <div class="c-icon">📂</div>
+              <div class="c-icon"><PixelIcon name="folder" :size="24" /></div>
               <div class="c-text"><strong>WORK BENCH</strong><span>악보 편집 및 보관함</span></div>
             </button>
             <button class="card-btn" @click="router.push('/transcribe')">
-              <div class="c-icon">📄</div>
+              <div class="c-icon"><PixelIcon name="file" :size="24" /></div>
               <div class="c-text"><strong>AI TRANSCRIBER</strong><span>코드 / 오선보 / 타브 악보</span></div>
             </button>
           </section>
@@ -75,7 +75,7 @@
                 <button v-for="band in bandStore.bands" :key="band.id"
                         :class="{ active: activeBand?.id === band.id }"
                         @click="bandStore.selectedBandId = band.id">
-                  <span v-if="band.myPosition === 'LEADER'" class="crown" title="내가 리더">👑</span>{{ band.name }}
+                  <Crown v-if="band.myPosition === 'LEADER'" class="crown" :size="13" :stroke-width="2.4" aria-label="내가 리더" />{{ band.name }}
                 </button>
                 <button v-if="bandStore.loaded" class="add-band-tab"
                         :disabled="bandStore.bands.length >= MAX_JOINED_BANDS"
@@ -99,7 +99,7 @@
           </section>
 
           <section v-else-if="!activeBand" class="stage band-stage band-empty">
-            <div class="empty-icon">🎸🥁🎤</div>
+            <div class="empty-icon"><PixelIcon name="guitar" :size="48" /></div>
             <h2>아직 들어간 밴드가 없어요</h2>
             <p class="empty-text">밴드를 새로 만들거나, 리더에게 받은 초대 코드로 가입해 보세요.</p>
             <div class="empty-actions">
@@ -115,7 +115,7 @@
                 <p>{{ activeBand.members.length }}명의 멤버가 참여 중<template v-if="activeBand.description"> · {{ activeBand.description }}</template></p>
               </div>
               <div class="band-tools">
-                <button class="tool-btn" @click="router.push(`/bands/${activeBand.id}/settings`)">⚙ 밴드 설정</button>
+                <button class="tool-btn" @click="router.push(`/bands/${activeBand.id}/settings`)"><Settings :size="14" :stroke-width="2.2" /> 밴드 설정</button>
               </div>
             </div>
 
@@ -132,9 +132,9 @@
                    :class="{ me: m.me, held: tagDrag?.id === m.memberId }" :style="tagStyle(m.memberId)"
                    @pointerdown="startTagDrag($event, m.memberId)">
                 <div class="m-name">
-                  <span v-if="m.position === 'LEADER'" title="리더">👑</span>{{ m.character?.nickname || '알 수 없는 멤버' }}
+                  <Crown v-if="m.position === 'LEADER'" class="crown" :size="12" :stroke-width="2.4" aria-label="리더" />{{ m.character?.nickname || '알 수 없는 멤버' }}
                 </div>
-                <div class="m-role">{{ partEmoji(m.part) }} {{ partLabel(m.part) }}<template v-if="m.me"> · 나</template></div>
+                <div class="m-role">{{ partLabel(m.part) }}<template v-if="m.me"> · 나</template></div>
               </div>
             </div>
           </section>
@@ -146,11 +146,11 @@
           <template v-if="activeBand">
             <section class="quick-grid grid-2 band-menus">
               <button class="card-btn" @click="router.push(`/bands/${activeBand.id}/setlists`)">
-                <div class="c-icon">🎶</div>
+                <div class="c-icon"><PixelIcon name="notes" :size="24" /></div>
                 <div class="c-text"><strong>BAND SETLIST</strong><span>파트 분배 및 합주 현황 공유</span></div>
               </button>
               <button class="card-btn" @click="router.push(`/bands/${activeBand.id}/jams`)">
-                <div class="c-icon">🎙️</div>
+                <div class="c-icon"><PixelIcon name="mic" :size="24" /></div>
                 <div class="c-text"><strong>LAYER JAM</strong><span>레이어링 방식 비대면 합주</span></div>
               </button>
             </section>
@@ -164,6 +164,8 @@
 </template>
 
 <script setup>
+import { Crown, Music, Settings } from 'lucide-vue-next'
+import PixelIcon from '../components/PixelIcon.vue'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
@@ -369,7 +371,6 @@ onBeforeUnmount(stopTagListening)
 
 const partOption = (part) => INSTRUMENT_OPTIONS.find((o) => o.value === part)
 const partLabel = (part) => partOption(part)?.label || part
-const partEmoji = (part) => partOption(part)?.emoji || '🎵'
 </script>
 
 <style scoped>
@@ -463,7 +464,7 @@ button::-moz-focus-inner { border: 0 !important; }
   cursor: pointer; transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); text-align: left;
 }
 .card-btn:hover { border-color: var(--c-primary); transform: translateY(-4px); box-shadow: 0 10px 20px color-mix(in srgb, var(--c-primary) 6%, transparent); }
-.c-icon { font-size: 1.8rem; background: var(--c-primary-soft); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 14px; }
+.c-icon { color: var(--c-primary-text); background: var(--c-primary-soft); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 14px; }
 .c-text strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
 .c-text span { font-size: 0.75rem; color: #868e96; }
 
@@ -473,24 +474,37 @@ button::-moz-focus-inner { border: 0 !important; }
 .card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
 .card-title.link:hover { color: var(--c-primary-text); }
 .record-count { font-size: 0.75rem; color: #adb5bd; }
-.shelf { cursor: pointer; display: flex; flex-direction: column; gap: 14px; }
-.shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
+/* 은은한 유리장: 아주 연한 테두리와 살짝 푸른 유리, 부드러운 대각선 반사광 두 줄, 윗면·앞면이 보이는 두꺼운 유리 선반 */
+.shelf {
+  position: relative; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; gap: 12px;
+  padding: 12px 10px 8px;
+  background: linear-gradient(180deg, #f2f7fa 0%, #f9fbfd 100%);
+  border: 1px solid #e3eaef;
+}
+.shelf::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0) 6%, rgba(255, 255, 255, 0.85) 13%, rgba(255, 255, 255, 0) 22%,
+    rgba(255, 255, 255, 0) 25%, rgba(255, 255, 255, 0.6) 28%, rgba(255, 255, 255, 0) 32%);
+}
+.shelf-items { position: relative; z-index: 1; display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
+/* 레코드가 윗면에 살짝 올라앉도록 위로 겹치고, 양옆은 장 안쪽까지 조금 길게 */
 .shelf-board {
-  height: 8px; border-radius: 3px; margin-top: 2px;
-  background: #c08a52; box-shadow: inset 0 -3px 0 #8e6035;
+  height: 9px; margin: -4px -4px 0;
+  background: linear-gradient(#ffffff 0 1px, #e8f1f5 1px 5px, #c9dbe3 5px 8px, #b3c8d2 8px 9px);
+  box-shadow: 0 5px 6px -4px rgba(60, 90, 110, 0.3);
 }
 .shelf:hover .shelf-items { transform: translateY(-2px); }
 .shelf-items { transition: transform 0.2s; }
 
 
 /* 밴드 전용 */
-.crown { margin-right: 4px; font-size: 0.8rem; }
+.crown { margin-right: 4px; color: #f08c00; vertical-align: -1px; }
 .band-tabs-left .add-band-tab { font-weight: 900; font-size: 1rem; padding: 10px 16px; color: var(--c-primary-text); }
 .band-tabs-left .add-band-tab:disabled { color: #ced4da; cursor: not-allowed; }
 
 .band-empty { padding: 56px 24px; }
 .band-empty h2 { margin: 12px 0 6px; font-size: 1.25rem; font-weight: 800; }
-.empty-icon { font-size: 2rem; letter-spacing: 6px; }
+.empty-icon { color: var(--c-faint); display: flex; justify-content: center; }
 .empty-text { margin: 0; font-size: 0.85rem; color: #868e96; }
 .empty-actions { display: flex; justify-content: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
 .pill-btn {

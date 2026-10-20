@@ -5,7 +5,7 @@
       <div v-if="asking || stoppedAt" class="backdrop">
         <section class="modal" role="alertdialog" aria-modal="true" aria-labelledby="timer-guard-title">
           <template v-if="asking">
-            <div class="icon" aria-hidden="true">⏱</div>
+            <div class="icon" aria-hidden="true"><PixelIcon name="clock" :size="36" /></div>
             <h2 id="timer-guard-title">아직 연습 중이에요?</h2>
             <p class="sub">타이머가 {{ durationText(runningSeconds) }} 동안 켜져 있어요.</p>
             <p class="countdown">{{ countdownText }} 뒤에 답이 없으면 {{ clockText(cutoff) }}에 멈춰요</p>
@@ -15,7 +15,7 @@
             </div>
           </template>
           <template v-else>
-            <div class="icon" aria-hidden="true">⏸</div>
+            <div class="icon" aria-hidden="true"><Pause :size="32" :stroke-width="2.4" /></div>
             <h2 id="timer-guard-title">타이머를 멈췄어요</h2>
             <p class="sub">2시간 동안 확인이 없어 {{ clockText(stoppedAt) }}까지만 기록했어요. 더 연습했다면 연습 화면에서 그날 시간을 고칠 수 있어요.</p>
             <p v-if="error" class="error">{{ error }}</p>
@@ -30,6 +30,8 @@
 </template>
 
 <script setup>
+import { Pause } from 'lucide-vue-next'
+import PixelIcon from '../../components/PixelIcon.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { usePracticeTimerStore } from '../../stores/practiceTimer'
 import { usePracticeStore } from '../../stores/practice'
@@ -117,7 +119,7 @@ onBeforeUnmount(() => clearInterval(tick))
   background: #fff; border-radius: 24px; padding: 26px 24px 22px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   font-family: 'Pretendard', sans-serif; color: #1a1a1a;
 }
-.icon { font-size: 2rem; }
+.icon { color: var(--c-primary-text); display: flex; justify-content: center; }
 h2 { margin: 8px 0 6px; font-size: 1.1rem; font-weight: 900; }
 .sub { margin: 0; font-size: 0.85rem; font-weight: 700; color: #495057; line-height: 1.5; }
 .countdown { margin: 10px 0 0; font-size: 0.78rem; font-weight: 800; color: #e8590c; font-variant-numeric: tabular-nums; }

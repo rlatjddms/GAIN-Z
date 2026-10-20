@@ -9,7 +9,7 @@
       <div class="workspace" :inert="busy" :aria-busy="busy">
         <WsCard :title="`셋리스트 ${lists.length}`" class="sidebar">
             <button class="btn add-list" :disabled="busy" @click="openCreate">+ 셋리스트 만들기</button>
-            <div class="list-tools"><button class="text-btn" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly">{{ favoritesOnly ? '★ 즐겨찾기' : '☆ 즐겨찾기' }}</button><button class="text-btn" @click="selecting = !selecting; checkedIds = []">{{ selecting ? '선택 취소' : '선택' }}</button></div>
+            <div class="list-tools"><button class="text-btn" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly"><Star :size="14" :stroke-width="2.2" :fill="favoritesOnly ? 'currentColor' : 'none'" /> 즐겨찾기</button><button class="text-btn" @click="selecting = !selecting; checkedIds = []">{{ selecting ? '선택 취소' : '선택' }}</button></div>
             <div v-if="selecting" class="bulk-tools"><span>{{ checkedIds.length }}개 선택</span><button class="text-btn danger" :disabled="!checkedIds.length || busy" @click="askDelete(checkedIds)">선택 삭제</button></div>
             <SmoothReorder v-if="visibleLists.length" :items="visibleLists" :disabled="busy || selecting || favoritesOnly" class="list-nav" @reorder="reorderLists">
               <template #default="{ item: list, start, move }">
@@ -17,7 +17,7 @@
                   <input v-if="selecting" v-model="checkedIds" type="checkbox" :value="list.id" :aria-label="`${list.title} 선택`">
                   <button v-else-if="!favoritesOnly" class="drag-handle list-handle" :disabled="busy" :aria-label="`${list.title} 셋리스트 순서 변경`" @pointerdown="start" @keydown.up.prevent="move(-1)" @keydown.down.prevent="move(1)">⠿</button>
                   <button class="list-link" :aria-pressed="selectedId === list.id" @click="selectList(list.id)"><strong>{{ list.title }}</strong><span>{{ list.songs.length }}곡</span></button>
-                  <button class="star" :class="{ on: list.favorite }" :disabled="busy" :aria-pressed="list.favorite" :aria-label="`${list.title} 즐겨찾기`" @click="toggleFavorite(list)">{{ list.favorite ? '★' : '☆' }}</button>
+                  <button class="star" :class="{ on: list.favorite }" :disabled="busy" :aria-pressed="list.favorite" :aria-label="`${list.title} 즐겨찾기`" @click="toggleFavorite(list)"><Star :size="16" :stroke-width="2.2" :fill="list.favorite ? 'currentColor' : 'none'" /></button>
                 </div>
               </template>
             </SmoothReorder>
@@ -47,24 +47,24 @@
                     <template v-if="drafts[song.id]">
                       <div class="song-fields"><label>곡 제목<input v-model="song.title" maxlength="120" placeholder="곡 제목을 적어주세요" @keydown.enter.prevent="saveSong(song)"></label><label>아티스트<input v-model="song.artist" maxlength="120" placeholder="아티스트 이름을 적어주세요" @keydown.enter.prevent="saveSong(song)"></label></div>
                       <label class="sheet-field">보관함 악보 연결<select :value="song.sheetId ?? ''" :disabled="sheetsLoading" @change="linkSheet(song, $event.target.value)"><option value="">{{ sheetsLoading ? '악보를 불러오는 중…' : sheetsError || '연결하지 않음' }}</option><option v-for="sheet in sheetOptions(song)" :key="sheet.id" :value="sheet.sheetId">{{ sheet.title }}{{ sheet.artist ? ` · ${sheet.artist}` : '' }}</option></select></label>
-                      <fieldset class="participants"><legend>함께 준비할 멤버 <span>{{ song.memberIds.length }}명</span></legend><div class="member-options"><button v-for="member in band.members" :key="member.memberId" type="button" class="member-option" :class="{ chosen: song.memberIds.includes(member.memberId) }" :aria-pressed="song.memberIds.includes(member.memberId)" @click="toggleMember(song, member.memberId)"><span>{{ member.character?.nickname || '멤버' }}</span><small>{{ partLabel(member.part) }}</small><span v-if="song.memberIds.includes(member.memberId)" aria-hidden="true">✓</span></button></div></fieldset>
+                      <fieldset class="participants"><legend>함께 준비할 멤버 <span>{{ song.memberIds.length }}명</span></legend><div class="member-options"><button v-for="member in band.members" :key="member.memberId" type="button" class="member-option" :class="{ chosen: song.memberIds.includes(member.memberId) }" :aria-pressed="song.memberIds.includes(member.memberId)" @click="toggleMember(song, member.memberId)"><span>{{ member.character?.nickname || '멤버' }}</span><small>{{ partLabel(member.part) }}</small><Check v-if="song.memberIds.includes(member.memberId)" :size="13" :stroke-width="3" aria-hidden="true" /></button></div></fieldset>
                       <label class="memo">합주 메모<textarea v-model="song.memo" rows="2" maxlength="500" placeholder="합주 메모를 적어주세요"></textarea></label>
                     </template>
                     <template v-else>
-                      <div class="read-section"><h4>연결한 악보</h4><template v-if="song.sheetId"><button class="sheet-link" :disabled="busy" @click="openSheet(song)">{{ song.sheetTitle || '악보' }} 보기 →</button></template><p v-else class="muted">연결한 악보가 없어요.</p></div>
+                      <div class="read-section"><h4>연결한 악보</h4><template v-if="song.sheetId"><button class="sheet-link" :disabled="busy" @click="openSheet(song)">{{ song.sheetTitle || '악보' }} 보기 <ChevronRight :size="14" :stroke-width="2.4" /></button></template><p v-else class="muted">연결한 악보가 없어요.</p></div>
                       <div class="read-section"><h4>함께 준비할 멤버</h4><div v-if="song.memberIds.length" class="member-options"><span v-for="id in song.memberIds" :key="id" class="member-tag">{{ memberName(id) }}<small>{{ memberPart(id) }}</small></span></div><p v-else class="muted">선택한 멤버가 없어요.</p></div>
                       <div class="read-section"><h4>합주 메모</h4><p class="read-memo" :class="{ muted: !song.memo }">{{ song.memo || '등록된 메모가 없어요.' }}</p></div>
-                      <div v-if="jamsFor(song.id).length" class="read-section"><h4>레이어 잼</h4><div class="jam-links"><router-link v-for="jam in jamsFor(song.id)" :key="jam.id" :to="`/bands/${band.id}/jams?jam=${jam.id}`" class="btn jam-go">🎙️ {{ jam.title }} <small>트랙 {{ jam.trackCount }}</small></router-link></div></div>
+                      <div v-if="jamsFor(song.id).length" class="read-section"><h4>레이어 잼</h4><div class="jam-links"><router-link v-for="jam in jamsFor(song.id)" :key="jam.id" :to="`/bands/${band.id}/jams?jam=${jam.id}`" class="btn jam-go"><Mic :size="14" :stroke-width="2.2" /> {{ jam.title }} <small>트랙 {{ jam.trackCount }}</small></router-link></div></div>
                     </template>
                     <div class="attachments"><div class="attachment-head"><span>첨부파일 <small>{{ song.files.length }}</small></span><label v-if="drafts[song.id]" class="btn file-picker">+ 파일 첨부<input type="file" multiple :accept="BAND_ATTACHMENT_ACCEPT" :aria-label="`${song.title || '새 곡'} 파일 첨부`" @change="attachFiles(song, $event)"></label></div><p v-if="!song.files.length" class="file-hint">{{ drafts[song.id] ? 'PDF 악보, 사진, 영상, 음원을 10MB까지 첨부할 수 있어요.' : '첨부된 파일이 없어요.' }}</p><ul v-else class="file-list"><li v-for="file in song.files" :key="file.id"><a :href="file.local ? file.url : '#'" :download="file.name" @click="openFile($event, file)">{{ file.name }} <small v-if="file.size">{{ formatSize(file.size) }}</small></a><button v-if="drafts[song.id]" class="remove-file" :aria-label="`${file.name} 첨부 해제`" @click="song.files = song.files.filter(item => item.id !== file.id)">×</button></li></ul></div>
                   </div></div></div>
                 </article>
               </template>
             </SmoothReorder>
-            <div v-else class="empty"><span class="empty-icon">🎶</span><strong>아직 등록한 곡이 없어요</strong><p>곡을 추가하고 곡마다 내용을 저장해 보세요.</p><button class="btn" @click="addSong">+ 첫 곡 추가</button></div>
+            <div v-else class="empty"><span class="empty-icon"><PixelIcon name="music" :size="48" /></span><strong>아직 등록한 곡이 없어요</strong><p>곡을 추가하고 곡마다 내용을 저장해 보세요.</p><button class="btn" @click="addSong">+ 첫 곡 추가</button></div>
           </template>
 
-          <div v-else class="empty"><span class="empty-icon">🎼</span><strong>우리 밴드의 다음 합주를 준비해요</strong><p>왼쪽 목록에서 셋리스트를 만들어 주세요.</p></div>
+          <div v-else class="empty"><span class="empty-icon"><PixelIcon name="music" :size="48" /></span><strong>우리 밴드의 다음 합주를 준비해요</strong><p>왼쪽 목록에서 셋리스트를 만들어 주세요.</p></div>
         </WsCard>
       </div>
     </div>
@@ -77,6 +77,8 @@
 </template>
 
 <script setup>
+import { ChevronRight, Star, Check, Mic } from 'lucide-vue-next'
+import PixelIcon from '../../components/PixelIcon.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -390,7 +392,7 @@ button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset
 .summary b { color:#495057; }
 .summary em { margin-left:8px; color:#868e96; font-size:.7rem; font-style:normal; }
 .empty { display:flex; flex-direction:column; align-items:center; text-align:center; padding:36px 14px; margin-top:16px; border:1px dashed #e9ecef; border-radius:14px; gap:8px; }
-.empty-icon { font-size:2rem; margin-bottom:8px; }
+.empty-icon { margin-bottom:8px; color: var(--c-faint); }
 .empty strong { font-size:.9rem; color:#495057; }
 .empty p { margin:0 0 8px; }
 .edit-toolbar { display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; margin-top:18px; }
