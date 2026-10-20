@@ -63,6 +63,13 @@
         <button class="btn" @click="dialog.prompt({ title: '초대 코드를 복사해 주세요', value: 'AB12CD34', readonly: true, okText: '닫기' })">복사 창</button>
         <button class="btn" @click="dialog.alert({ title: '캐릭터를 만들었어요', text: '합주실로 이동할게요.' })">알림 창</button>
       </div>
+      <div class="ui-row">
+        <div class="segment"><button class="on">공개</button><button>친구만</button><button>비공개</button></div>
+        <div class="segment small"><button class="on">주</button><button>월</button></div>
+        <button class="chip on">전체</button><button class="chip">즐겨찾기</button><button class="chip">선택</button><button class="chip danger">삭제</button>
+      </div>
+      <p class="ui-error">저장하지 못했어요. 잠시 후 다시 시도해 주세요.</p>
+      <p class="ui-ok">파트를 바꿨어요.</p>
       <EmptyState icon="folder" title="아직 담아 둔 악보가 없어요" text="갖고 있는 악보 사진·스캔·PDF를 올려 보세요.">
         <template #actions><button class="btn primary">+ 첫 악보 올리기</button></template>
       </EmptyState>
@@ -240,7 +247,10 @@ const character = reactive({
 </script>
 
 <style scoped>
-.ui-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.ui-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0; }
+.ui-error, .ui-ok { margin: 0 0 8px; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
+.ui-error { background: var(--c-danger-soft); color: var(--c-danger); }
+.ui-ok { background: var(--c-primary-soft); color: var(--c-primary-text); }
 .sprite-preview { max-width: 1040px; margin: 0 auto; padding: 32px 20px 60px; font-family: 'Pretendard', sans-serif; color: #1a1a1a; }
 .head h1 { font-size: 1.4rem; margin: 0 0 6px; }
 .head p { margin: 0 0 24px; color: #666; font-size: 0.9rem; }
