@@ -3,6 +3,7 @@ package com.project.gainz.domain.character.service;
 import com.project.gainz.domain.character.dto.request.WardrobeUpdateRequest;
 import com.project.gainz.domain.character.dto.response.WardrobeResponse;
 import com.project.gainz.domain.character.enums.Accessory;
+import com.project.gainz.domain.character.enums.LevelOutfit;
 import com.project.gainz.domain.character.enums.AccessorySlot;
 import com.project.gainz.domain.character.enums.StageBackground;
 import com.project.gainz.domain.character.enums.StageEffect;
@@ -32,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -178,11 +180,36 @@ public class CharacterService {
             throw new BusinessException(ErrorCode.STAGE_EFFECT_LOCKED);
         }
 
+        if (request.itemColors() != null) {
+            validateItemColors(request.itemColors());
+        }
+
         character.changeOutfit(outfit);
         character.changeStageBackground(background);
+        if (request.itemColors() != null) character.changeItemColors(request.itemColors());
         character.changeStageEffect(effect);
         accessories.forEach(character::wear);
         return CharacterResponse.from(character);
+    }
+
+    private static final Pattern HEX_COLOR = Pattern.compile("^#[0-9A-Fa-f]{6}$");
+    private static final int MAX_ITEM_COLORS = 64;
+
+    // 색을 고를 수 있는 아이템: 기본 의상·레벨 상의(스프라이트 키)와 하의·소품 (가진 것인지는 묻지 않는다)
+    private static boolean isItemKey(String key) {
+        if (OutfitItem.DEFAULT_SPRITE_KEY.equals(key)) return true;
+        for (LevelOutfit o : LevelOutfit.values()) if (o.getSpriteKey().equals(key)) return true;
+        for (Accessory a : Accessory.values()) if (a.name().equals(key)) return true;
+        return false;
+    }
+
+    private void validateItemColors(Map<String, String> colors) {
+        if (colors.size() > MAX_ITEM_COLORS) throw new BusinessException(ErrorCode.ITEM_COLOR_INVALID);
+        colors.forEach((key, color) -> {
+            if (!isItemKey(key) || color == null || !HEX_COLOR.matcher(color).matches()) {
+                throw new BusinessException(ErrorCode.ITEM_COLOR_INVALID);
+            }
+        });
     }
 
     // 레벨 보상 의상은 레벨이 닿으면 가진 것 (예전에 레벨이 오른 사람도). 그 밖에는 받은 기록으로

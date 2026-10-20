@@ -3,6 +3,8 @@ package com.project.gainz.domain.character.dto.request;
 import com.project.gainz.domain.character.enums.Accessory;
 import com.project.gainz.domain.character.enums.StageBackground;
 import com.project.gainz.domain.character.enums.StageEffect;
+
+import java.util.Map;
 import jakarta.validation.constraints.NotNull;
 
 // 옷장 저장: 입을 상의(보유한 것만), 무대 배경(얻은 것만), 무대 효과·하의·자리마다 쓸 소품(레벨이 닿은 것만, null이면 안 씀.
@@ -22,11 +24,19 @@ public record WardrobeUpdateRequest(
         Accessory bottom,
         Accessory earrings,
         StageEffect stageEffect,
-        Accessory waist
+        Accessory waist,
+
+        // 아이템마다 고른 색 { "HOODIE": "#ffd8a8" }. null이면 그대로 둠
+        Map<String, String> itemColors
 ) {
     public WardrobeUpdateRequest(Long outfitId, StageBackground stageBackground, Accessory hat, Accessory glasses, Accessory neck,
+                                 Accessory shoes, Accessory bottom, Accessory earrings, StageEffect stageEffect, Accessory waist) {
+        this(outfitId, stageBackground, hat, glasses, neck, shoes, bottom, earrings, stageEffect, waist, null);
+    }
+
+    public WardrobeUpdateRequest(Long outfitId, StageBackground stageBackground, Accessory hat, Accessory glasses, Accessory neck,
                                  Accessory shoes, Accessory bottom, Accessory earrings, StageEffect stageEffect) {
-        this(outfitId, stageBackground, hat, glasses, neck, shoes, bottom, earrings, stageEffect, null);
+        this(outfitId, stageBackground, hat, glasses, neck, shoes, bottom, earrings, stageEffect, null, null);
     }
 
     // 소품 없이 의상·배경만 고르는 경우

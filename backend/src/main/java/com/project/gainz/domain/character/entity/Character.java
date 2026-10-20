@@ -10,6 +10,8 @@ import com.project.gainz.domain.character.enums.StageEffect;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
+import java.util.Map;
+import java.util.TreeMap;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -125,6 +127,11 @@ public class Character extends BaseEntity {
     @Convert(converter = AccessoryConverter.class)
     private Accessory waist;
 
+    // 아이템마다 고른 색 { "HOODIE": "#ffd8a8" } (없는 아이템은 기본 색)
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = ItemColorsConverter.class)
+    private Map<String, String> itemColors = new TreeMap<>();
+
     // 고른 무대 효과 (레벨 보상, 없으면 null)
     @Column(length = 30)
     @Convert(converter = StageEffectConverter.class)
@@ -209,6 +216,15 @@ public class Character extends BaseEntity {
 
     public Accessory getWornShoes() {
         return shoes != null ? shoes : Accessory.defaultFor(AccessorySlot.SHOES);
+    }
+
+    public Map<String, String> getItemColors() {
+        return itemColors != null ? Map.copyOf(itemColors) : Map.of();
+    }
+
+    // 옷장: 아이템 색 바꾸기 (키·색 검사는 서비스에서)
+    public void changeItemColors(Map<String, String> colors) {
+        this.itemColors = new TreeMap<>(colors);
     }
 
     // 옷장: 무대 효과 고르기 (null이면 끄기, 해금 여부는 서비스에서 확인)

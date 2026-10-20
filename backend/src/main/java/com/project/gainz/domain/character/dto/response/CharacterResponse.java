@@ -5,6 +5,8 @@ import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.StageBackground;
 import com.project.gainz.domain.character.enums.StageEffect;
+
+import java.util.Map;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.character.entity.Character;
 
@@ -33,7 +35,8 @@ public record CharacterResponse(
         Accessory neck,
         Accessory waist,
         Accessory shoes,                  // 늘 하나 (기본 BASIC_SHOES)
-        Accessory bottom                  // 늘 하나 (기본 JEANS)
+        Accessory bottom,                 // 늘 하나 (기본 JEANS)
+        Map<String, String> itemColors    // 아이템마다 고른 색 (없는 아이템은 기본 색)
 ) {
     public static CharacterResponse from(Character character) {
         return new CharacterResponse(
@@ -60,7 +63,8 @@ public record CharacterResponse(
                 character.getNeck(),
                 character.getWaist(),
                 character.getWornShoes(),
-                character.getWornBottom()
+                character.getWornBottom(),
+                character.getItemColors()
         );
     }
 }
