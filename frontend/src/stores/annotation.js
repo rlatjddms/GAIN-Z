@@ -14,7 +14,7 @@ export const SURFACE_WIDTH = 1000
 export const TOOLS = {
   pen: { label: '펜', width: 3, colors: ['#e11d48', '#2563eb', '#111827'] },
   hl: { label: '형광펜', width: 18, colors: ['#facc15', '#4ade80', '#f472b6'] },
-  text: { label: '글자', size: 26, sizes: [18, 26, 36, 50], colors: ['#e11d48', '#2563eb', '#111827'] },
+  text: { label: '글자', size: 26, colors: ['#e11d48', '#2563eb', '#111827'] },
 }
 const MAX_HISTORY = 50
 const SAVE_DELAY = 800

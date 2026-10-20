@@ -17,14 +17,17 @@
     </svg>
 
     <!-- 글자 입력칸: 누른 자리에 뜨고, Enter나 다른 곳을 누르면 붙는다.
-         휴대폰 자판은 누르는 순간 바로 포커스해야 떠서, 글자 도구일 때는 늘 만들어 두고 숨겨 둔다 -->
-    <div v-if="active && store.tool === 'text'" class="note-editor" :class="{ idle: !editing }" :style="editorStyle" @pointerdown.stop>
-      <!-- 쓰는 글자 크기 조절·지우기 (눌러도 입력칸 포커스를 뺏지 않음) -->
-      <div v-if="editing" class="note-tools" @pointerdown.prevent="toolPress = true">
-        <button type="button" aria-label="글자 작게" title="글자 작게" :disabled="sizeIndex <= 0" @click="resize(-1)">A<sup>−</sup></button>
-        <button type="button" aria-label="글자 크게" title="글자 크게" :disabled="sizeIndex >= TOOLS.text.sizes.length - 1" @click="resize(1)">A<sup>+</sup></button>
-        <button type="button" class="del" aria-label="이 글자 지우기" title="이 글자 지우기" @click="removeText"><X :size="14" :stroke-width="2.6" /></button>
-      </div>
+         휴대폰 자판은 누르는 순간 바로 포커스해야 떠서, 글자 도구일 때는 늘 만들어 두고 숨겨 둔다.
+         편집 도구처럼 테두리를 끌면 옮기고, 오른쪽 아래 손잡이를 끌면 크기, 오른쪽 위 ×는 지우기 -->
+    <div
+      v-if="active && store.tool === 'text'"
+      ref="editorEl"
+      class="note-editor"
+      :class="{ idle: !editing }"
+      :style="editorStyle"
+      title="끌어서 옮기기"
+      @pointerdown.stop="startDrag($event, 'move')"
+    >
       <input
         ref="input"
         :value="editing ? editing.text : ''"
@@ -35,11 +38,17 @@
         maxlength="80"
         enterkeyhint="done"
         aria-label="필기 글자"
+        @pointerdown.stop
         @input="editing && (editing.text = $event.target.value)"
         @keydown.enter.prevent="commitText"
         @keydown.esc.prevent="editing = null"
         @blur="onBlur"
       >
+      <template v-if="editing">
+        <button type="button" class="note-del" aria-label="이 글자 지우기" title="이 글자 지우기"
+                @pointerdown.stop.prevent="toolPress = true" @click="removeText"><X :size="12" :stroke-width="3" /></button>
+        <span class="note-resize" title="끌어서 크기 조절" @pointerdown.stop="startDrag($event, 'resize')"></span>
+      </template>
     </div>
   </div>
 </template>
@@ -136,23 +145,7 @@ const inputStyle = computed(() => {
 })
 
 // 쓴 만큼 늘어나는 입력칸 (한글은 두 칸으로 셈)
-const inputSize = computed(() => Math.max([...(editing.value?.text || '')].reduce((n, ch) => n + (ch.charCodeAt(0) > 0x2e80 ? 2 : 1), 0) + 2, 6))
-
-// 글자 크기: 정해 둔 단계 중 가까운 것에서 한 단계씩. 고른 크기는 다음 글자에도 쓴다
-const sizeIndex = computed(() => {
-  const sizes = TOOLS.text.sizes
-  const s = editing.value?.s ?? store.textSize
-  return sizes.reduce((best, v, i) => (Math.abs(v - s) < Math.abs(sizes[best] - s) ? i : best), 0)
-})
-const resize = (d) => {
-  const e = editing.value
-  if (!e) return
-  const next = TOOLS.text.sizes[Math.min(Math.max(sizeIndex.value + d, 0), TOOLS.text.sizes.length - 1)]
-  e.s = next
-  store.textSize = next
-  toolPress.value = false
-  input.value?.focus()
-}
+const inputSize = computed(() => Math.max([...(editing.value?.text || '')].reduce((n, ch) => n + (ch.charCodeAt(0) > 0x2e80 ? 2 : 1), 0) + 1, 4))
 
 // 이 글자 지우기 (새로 쓰던 글자면 그냥 닫기)
 const removeText = () => {
@@ -165,11 +158,52 @@ const removeText = () => {
   surfaceChange(list)
 }
 
-// 크기·지우기 버튼을 누르는 동안 입력칸이 포커스를 잃어도 붙이지 않는다 (휴대폰)
+// 상자를 끌거나 손잡이를 누르는 동안 입력칸이 포커스를 잃어도 붙이지 않는다
 const toolPress = ref(false)
 const onBlur = () => {
   if (toolPress.value) return
   commitText()
+}
+
+// 끌기: move = 테두리를 끌어 옮기기, resize = 오른쪽 아래 손잡이로 크기 (왼쪽 위는 그대로)
+const MIN_TEXT = 12
+const MAX_TEXT = 160
+const editorEl = ref(null)
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi)
+const startDrag = (ev, mode) => {
+  const e = editing.value
+  if (!e || (ev.pointerType === 'mouse' && ev.button !== 0)) return
+  ev.preventDefault() // 입력칸 포커스는 그대로
+  toolPress.value = true
+  const handle = ev.currentTarget
+  handle.setPointerCapture(ev.pointerId)
+  const unit = SURFACE_WIDTH / layerWidth.value // 화면 1px → 면 좌표
+  const start = { x: e.x, y: e.y, s: e.s, cx: ev.clientX, cy: ev.clientY, w: editorEl.value.offsetWidth, h: editorEl.value.offsetHeight }
+  const onMove = (m) => {
+    if (m.pointerId !== ev.pointerId) return
+    const dx = m.clientX - start.cx
+    const dy = m.clientY - start.cy
+    if (mode === 'move') {
+      e.x = round(clamp(start.x + dx * unit, 0, SURFACE_WIDTH - 20))
+      e.y = round(clamp(start.y + dy * unit, e.s, height.value))
+    } else {
+      const ratio = (start.w + start.h + dx + dy) / (start.w + start.h)
+      e.s = round(clamp(start.s * ratio, MIN_TEXT, MAX_TEXT))
+      e.y = round(start.y - start.s + e.s)
+    }
+  }
+  const onUp = (m) => {
+    if (m.pointerId !== ev.pointerId) return
+    handle.removeEventListener('pointermove', onMove)
+    handle.removeEventListener('pointerup', onUp)
+    handle.removeEventListener('pointercancel', onUp)
+    toolPress.value = false
+    if (mode === 'resize') store.textSize = e.s
+    input.value?.focus()
+  }
+  handle.addEventListener('pointermove', onMove)
+  handle.addEventListener('pointerup', onUp)
+  handle.addEventListener('pointercancel', onUp)
 }
 
 const startText = (e, at) => {
@@ -192,8 +226,8 @@ const commitText = () => {
   const list = [...strokes.value]
   if (e.index !== -1) {
     const before = list[e.index]
-    if (text === before.text && e.s === before.s) return
-    if (text) list[e.index] = { ...before, text, s: e.s }
+    if (text === before.text && e.s === before.s && e.x === before.x && e.y === before.y) return
+    if (text) list[e.index] = { ...before, text, s: e.s, x: e.x, y: e.y }
     else list.splice(e.index, 1)
   } else if (text) {
     list.push({ t: 'text', c: e.c, s: e.s, x: e.x, y: e.y, text })
@@ -273,25 +307,33 @@ svg {
 /* 글자: 악보 줄 위에서도 읽히게 흰 테두리 */
 .note { font-family: 'Pretendard', sans-serif; font-weight: 800; stroke: #fff; stroke-width: 4; paint-order: stroke; }
 
-.note-editor { position: absolute; max-width: 90%; }
-.note-editor.idle { left: 0; top: 0; width: 1px; opacity: 0; pointer-events: none; }
+.note-editor {
+  position: absolute; max-width: 92%; margin: -6px 0 0 -8px; padding: 4px 6px;
+  border: 1.5px dashed var(--c-primary); border-radius: 6px; background: rgba(255, 255, 255, 0.8);
+  cursor: move; touch-action: none;
+}
+.note-editor.idle { left: 0; top: 0; width: 1px; margin: 0; padding: 0; border: 0; opacity: 0; pointer-events: none; }
 .note-editor.idle .note-input { min-width: 0; width: 1px; }
-.note-tools {
-  position: absolute; bottom: calc(100% + 4px); left: 0; display: flex; gap: 2px; padding: 2px;
-  background: var(--c-surface); border: 1px solid var(--c-line); border-radius: 8px; box-shadow: var(--shadow-sm);
+/* 오른쪽 위 지우기 동그라미 */
+.note-del {
+  position: absolute; top: -11px; right: -11px; width: 22px; height: 22px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid #fff; border-radius: 50%; background: #111827; color: #fff; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
-.note-tools button {
-  display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 26px; padding: 0 4px;
-  border: 0; border-radius: 6px; background: transparent; cursor: pointer;
-  font: 800 0.8rem 'Pretendard', sans-serif; color: var(--c-text-2);
+.note-del:hover { background: var(--c-danger); }
+/* 오른쪽 아래 크기 손잡이 */
+.note-resize {
+  position: absolute; right: -7px; bottom: -7px; width: 12px; height: 12px;
+  background: #fff; border: 2px solid var(--c-primary); border-radius: 3px; cursor: nwse-resize; touch-action: none;
 }
-.note-tools button sup { font-size: 0.65em; }
-.note-tools button:hover:not(:disabled) { background: var(--c-line-soft); }
-.note-tools button:disabled { opacity: 0.35; cursor: default; }
-.note-tools .del { color: var(--c-danger); }
+@media (pointer: coarse) {
+  .note-del { width: 28px; height: 28px; top: -14px; right: -14px; }
+  .note-resize { width: 20px; height: 20px; right: -11px; bottom: -11px; }
+}
 .note-input {
-  display: block; max-width: 100%; padding: 0 2px; margin: 0;
+  display: block; max-width: 100%; padding: 0; margin: 0; cursor: text;
   font-family: 'Pretendard', sans-serif; font-weight: 800; line-height: 1.25;
-  background: rgba(255, 255, 255, 0.9); border: 1px dashed currentColor; border-radius: 4px; outline: none;
+  background: transparent; border: 0; outline: none;
 }
 </style>
