@@ -1,16 +1,22 @@
 package com.project.gainz.domain.sheet.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.gainz.domain.sheet.dto.request.SheetRequest;
 import com.project.gainz.domain.sheet.dto.request.WorkspaceUpdateRequest;
+import com.project.gainz.domain.sheet.dto.response.AnnotationResponse;
 import com.project.gainz.domain.sheet.dto.response.SheetDetailResponse;
 import com.project.gainz.domain.sheet.dto.response.SheetSummaryResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceDetailResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceItemResponse;
 import com.project.gainz.domain.band.repository.SetlistItemRepository;
+import com.project.gainz.domain.sheet.entity.SheetAnnotation;
 import com.project.gainz.domain.sheet.entity.SheetMusic;
 import com.project.gainz.domain.sheet.enums.SheetType;
 import com.project.gainz.domain.sheet.entity.SheetPage;
 import com.project.gainz.domain.sheet.entity.UserWorkspace;
+import com.project.gainz.domain.sheet.repository.SheetAnnotationRepository;
 import com.project.gainz.domain.sheet.repository.SheetMusicRepository;
 import com.project.gainz.domain.sheet.repository.SheetPageRepository;
 import com.project.gainz.domain.sheet.repository.TabDataRepository;
@@ -32,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 // 악보와 내 악보 보관함.
@@ -56,6 +63,7 @@ public class SheetService {
     private final UserRepository userRepository;
     private final SheetFileStorage fileStorage;
     private final SetlistItemRepository setlistItemRepository;
+    private final SheetAnnotationRepository sheetAnnotationRepository;
 
     /* ---------- 악보 ---------- */
 
@@ -163,6 +171,7 @@ public class SheetService {
         if (pages.size() <= 1) {
             throw new BusinessException(ErrorCode.SHEET_LAST_PAGE);
         }
+        sheetAnnotationRepository.deleteAllBySheetPageIdIn(List.of(target.getId()));
         sheetPageRepository.delete(target);
         List<SheetPage> rest = pages.stream().filter(p -> p != target).toList();
         for (int i = 0; i < rest.size(); i++) {
@@ -179,6 +188,62 @@ public class SheetService {
         SheetPage page = sheetPageRepository.findByIdAndSheetMusicId(pageId, sheetId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SHEET_PAGE_NOT_FOUND));
         return new PageFile(fileStorage.load(page.getStoredName()), page.getContentType(), page.getFileName());
+    }
+
+    /* ---------- 악보 위 필기 (#167) ---------- */
+
+    public static final int MAX_ANNOTATION_LENGTH = 500_000;
+    public static final int MAX_PDF_PAGE = 1000;
+    private static final ObjectMapper JSON = new ObjectMapper();
+
+    // 이 악보의 내 필기 (볼 수 있는 악보만)
+    @Transactional(readOnly = true)
+    public List<AnnotationResponse> getAnnotations(Long userId, Long sheetId) {
+        findViewableSheet(userId, sheetId);
+        return sheetAnnotationRepository.findAllByUserIdAndSheetPageSheetMusicId(userId, sheetId).stream()
+                .map(AnnotationResponse::from)
+                .toList();
+    }
+
+    // 장(PDF는 쪽) 하나의 내 필기를 저장한다. 획이 없으면 지우고 null
+    public AnnotationResponse saveAnnotation(Long userId, Long sheetId, Long pageId, int pdfPage, String data) {
+        findViewableSheet(userId, sheetId);
+        SheetPage page = sheetPageRepository.findByIdAndSheetMusicId(pageId, sheetId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SHEET_PAGE_NOT_FOUND));
+        if (pdfPage < 1 || pdfPage > MAX_PDF_PAGE || (page.isImage() && pdfPage != 1)) {
+            throw new BusinessException(ErrorCode.INVALID_ANNOTATION);
+        }
+        boolean empty = strokeCount(data) == 0;
+
+        Optional<SheetAnnotation> saved = sheetAnnotationRepository.findByUserIdAndSheetPageIdAndPdfPage(userId, pageId, pdfPage);
+        if (empty) {
+            saved.ifPresent(sheetAnnotationRepository::delete);
+            return null;
+        }
+        if (saved.isPresent()) {
+            saved.get().updateData(data);
+            return AnnotationResponse.from(saved.get());
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        return AnnotationResponse.from(sheetAnnotationRepository.save(SheetAnnotation.builder()
+                .user(user).sheetPage(page).pdfPage(pdfPage).data(data).build()));
+    }
+
+    // 필기 JSON의 획 수. { strokes: [...] } 모양이 아니면 거절한다 (그리는 건 프론트가 하니 획 안쪽은 보지 않음)
+    private static int strokeCount(String data) {
+        if (data.length() > MAX_ANNOTATION_LENGTH) {
+            throw new BusinessException(ErrorCode.ANNOTATION_TOO_LARGE);
+        }
+        try {
+            JsonNode strokes = JSON.readTree(data).path("strokes");
+            if (!strokes.isArray()) {
+                throw new BusinessException(ErrorCode.INVALID_ANNOTATION);
+            }
+            return strokes.size();
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(ErrorCode.INVALID_ANNOTATION);
+        }
     }
 
     /* ---------- 보관함 ---------- */
@@ -249,6 +314,7 @@ public class SheetService {
         if (sheet.isOwnedBy(userId) && !userWorkspaceRepository.existsBySheetMusicId(sheet.getId())
                 && !setlistItemRepository.existsBySheetMusicId(sheet.getId())) {
             List<SheetPage> pages = sheetPageRepository.findAllBySheetMusicIdOrderByPageNumberAsc(sheet.getId());
+            sheetAnnotationRepository.deleteAllBySheetPageIdIn(pages.stream().map(SheetPage::getId).toList());
             sheetPageRepository.deleteAll(pages);
             tabDataRepository.deleteAllBySheetMusicId(sheet.getId());
             sheetMusicRepository.delete(sheet);

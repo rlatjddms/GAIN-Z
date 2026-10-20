@@ -1,6 +1,8 @@
 package com.project.gainz.domain.sheet.controller;
 
+import com.project.gainz.domain.sheet.dto.request.AnnotationRequest;
 import com.project.gainz.domain.sheet.dto.request.SheetRequest;
+import com.project.gainz.domain.sheet.dto.response.AnnotationResponse;
 import com.project.gainz.domain.sheet.dto.response.SheetDetailResponse;
 import com.project.gainz.domain.sheet.dto.response.SheetSummaryResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceDetailResponse;
@@ -99,6 +101,28 @@ public class SheetController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(ApiResponse.success(sheetService.deletePage(principal.getUserId(), sheetId, pageId)));
+    }
+
+    // 이 악보의 내 필기 (#167)
+    @GetMapping("/{sheetId}/annotations")
+    public ResponseEntity<ApiResponse<List<AnnotationResponse>>> getAnnotations(
+            @PathVariable Long sheetId,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(sheetService.getAnnotations(principal.getUserId(), sheetId)));
+    }
+
+    // 장(PDF는 쪽 번호 pdfPage, 그림은 1) 하나의 내 필기 저장. 획이 없으면 지우고 data는 null
+    @PutMapping("/{sheetId}/pages/{pageId}/annotations/{pdfPage}")
+    public ResponseEntity<ApiResponse<AnnotationResponse>> saveAnnotation(
+            @PathVariable Long sheetId,
+            @PathVariable Long pageId,
+            @PathVariable int pdfPage,
+            @Valid @RequestBody AnnotationRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                sheetService.saveAnnotation(principal.getUserId(), sheetId, pageId, pdfPage, request.data())));
     }
 
     // 장 파일 (화면에서 바로 보여 주도록 inline, 다른 형식으로 해석하지 않게 nosniff)
