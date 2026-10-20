@@ -33,6 +33,9 @@ const error = ref(false)
 const canvases = {}
 const tasks = {}           // 쪽마다 그리는 중인 작업 (다시 그릴 때 멈춤)
 let doc = null
+let loading = null          // 연 PDF의 불러오기 작업 (닫을 때 이걸로 정리, pdf.js 6에는 doc.destroy가 없음)
+// 닫다가 오류가 나도 화면 이동은 막지 않는다
+const close = (task) => { try { task?.destroy() } catch { /* 이미 닫힘 */ } }
 let renderedWidth = 0
 let token = 0
 
@@ -86,9 +89,10 @@ const open = async () => {
     const [pdfjs, bytes] = await Promise.all([loadPdfjs(), fetch(props.url).then((r) => r.arrayBuffer())])
     if (mine !== token) return
     const task = pdfjs.getDocument({ data: new Uint8Array(bytes), isEvalSupported: false })
-    const opened = await task.promise
-    if (mine !== token) { opened.destroy(); return }
-    doc?.destroy()
+    const opened = await task.promise.catch((e) => { close(task); throw e })
+    if (mine !== token) { close(task); return }
+    close(loading)
+    loading = task
     doc = opened
     const list = []
     for (let n = 1; n <= doc.numPages; n++) {
@@ -118,7 +122,8 @@ onBeforeUnmount(() => {
   token++
   observer?.disconnect()
   clearTimeout(resizeTimer)
-  doc?.destroy()
+  close(loading)
+  loading = null
   doc = null
 })
 </script>
