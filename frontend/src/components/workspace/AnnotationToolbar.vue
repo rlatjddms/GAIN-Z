@@ -1,5 +1,5 @@
 <template>
-  <!-- 필기 도구 (#167): 펜·형광펜·지우개, 색, 되돌리기, 모두 지우기. 저장은 쓸 때마다 알아서 -->
+  <!-- 필기 도구 (#167): 펜·형광펜·글자·지우개, 색, 되돌리기, 모두 지우기. 저장은 쓸 때마다 알아서 -->
   <div class="annotation-toolbar" role="toolbar" aria-label="필기 도구">
     <div class="segment" role="group" aria-label="도구">
       <button v-for="t in toolList" :key="t.key" :class="{ on: store.tool === t.key }" :aria-pressed="store.tool === t.key"
@@ -28,7 +28,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Pen, Highlighter, Eraser, Undo2, Trash2 } from 'lucide-vue-next'
+import { Pen, Highlighter, Type, Eraser, Undo2, Trash2 } from 'lucide-vue-next'
 import { useAnnotationStore, TOOLS } from '../../stores/annotation'
 import { useDialogStore } from '../../stores/dialog'
 
@@ -39,6 +39,7 @@ const dialog = useDialogStore()
 const toolList = [
   { key: 'pen', label: '펜', icon: Pen },
   { key: 'hl', label: '형광펜', icon: Highlighter },
+  { key: 'text', label: '글자', icon: Type },
   { key: 'eraser', label: '지우개', icon: Eraser },
 ]
 

@@ -5,13 +5,16 @@ import { apiErrorMessage } from '../api/practice'
 // 악보 위 필기 (#167): 올린 장(사진·PDF 쪽) 위에 펜·형광펜으로 쓴 내 필기
 // 원본 파일은 그대로 두고, 장(PDF는 쪽)마다 필기 JSON을 따로 저장한다
 //
-// 필기 한 면(surface) = { w: 1000, h, strokes: [{ t: 'pen' | 'hl', c: '#색', s: 굵기, p: [x, y, x, y, …] }] }
+// 필기 한 면(surface) = { w: 1000, h, strokes: [획 또는 글자] }
+//   획:   { t: 'pen' | 'hl', c: '#색', s: 굵기, p: [x, y, x, y, …] }
+//   글자: { t: 'text', c: '#색', s: 글자 크기, x, y(글자 밑줄 자리), text }
 //   좌표는 면 너비를 1000으로 본 값이라, 확대·축소하거나 화면 크기가 달라도 같은 자리에 그려진다
 
 export const SURFACE_WIDTH = 1000
 export const TOOLS = {
   pen: { label: '펜', width: 3, colors: ['#e11d48', '#2563eb', '#111827'] },
   hl: { label: '형광펜', width: 18, colors: ['#facc15', '#4ade80', '#f472b6'] },
+  text: { label: '글자', size: 26, colors: ['#e11d48', '#2563eb', '#111827'] },
 }
 const MAX_HISTORY = 50
 const SAVE_DELAY = 800
@@ -35,8 +38,8 @@ export const useAnnotationStore = defineStore('annotation', {
     sheetId: null,
     loaded: false,
     enabled: false,     // 필기 중이면 장 위에서 그리기 (아니면 스크롤)
-    tool: 'pen',        // pen | hl | eraser
-    colors: { pen: TOOLS.pen.colors[0], hl: TOOLS.hl.colors[0] },
+    tool: 'pen',        // pen | hl | text | eraser
+    colors: { pen: TOOLS.pen.colors[0], hl: TOOLS.hl.colors[0], text: TOOLS.text.colors[0] },
     surfaces: {},       // surfaceKey → { pageId, pdfPage, h, strokes }
     history: [],        // 되돌리기: [[{ key, before }]] (한 번에 바뀐 면들)
     dirty: [],          // 아직 저장하지 않은 면
