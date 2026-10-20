@@ -5,8 +5,8 @@ package com.project.gainz.domain.character.enums;
 public enum StageEffect {
 
     SPARKLE("반짝이", 5),
-    SPOTLIGHT("스포트라이트", 15),
-    SMOKE("스모크", 25),
+    SMOKE("스모크", 15),
+    SPOTLIGHT("스포트라이트", 25),
     FIREWORKS("불꽃놀이", 30);
 
     private final String label;
