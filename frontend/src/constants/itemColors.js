@@ -40,7 +40,8 @@ export const ITEM_COLORS = {
   STAR_EARRINGS: { colors: ['#fcc419', '#fff3bf'], presets: ['#FCC419', '#CED4DA', '#4DABF7'] },
   // 목·허리
   HEADPHONES: { colors: ['#e03131'], presets: ['#E03131', '#1971C2', '#F8F9FA'] },
-  HEAD_HEADPHONES: { colors: ['#e03131'], presets: ['#E03131', '#1971C2', '#F8F9FA'] },
+  // 머리 헤드폰은 회색 이어컵이 바뀌는 부분 (머리띠·선은 고정)
+  HEAD_HEADPHONES: { colors: ['#9b9ba3', '#c0bec3'], presets: ['#9B9BA3', '#E03131', '#1971C2'] },
   CHAIN: { colors: ['#fcc419', '#e67700'], presets: ['#FCC419', '#CED4DA'] },
   BELT: { colors: ['#2b2d31'], presets: ['#2B2D31', '#5C3A1E', '#C92A2A'] },
   // 신발
