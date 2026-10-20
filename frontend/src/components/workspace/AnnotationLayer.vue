@@ -10,7 +10,9 @@
   >
     <svg :viewBox="`0 0 ${SURFACE_WIDTH} ${height}`" preserveAspectRatio="none">
       <template v-for="(s, i) in shown" :key="i">
-        <text v-if="s.t === 'text'" v-show="editing?.index !== i" :x="s.x" :y="s.y" :fill="s.c" :font-size="s.s" class="note">{{ s.text }}</text>
+        <text v-if="s.t === 'text'" v-show="editing?.index !== i" :x="s.x" :y="s.y" :fill="s.c" :font-size="s.s" class="note">
+          <tspan v-for="(line, k) in linesOf(s.text)" :key="k" :x="s.x" :dy="k ? s.s * LINE_HEIGHT : 0">{{ line || NBSP }}</tspan>
+        </text>
         <path v-else :d="pathOf(s.p)" :stroke="s.c" :stroke-width="s.s" :class="s.t === 'hl' ? 'hl' : 'pen'" />
       </template>
       <path v-if="current" :d="pathOf(current.p)" :stroke="current.c" :stroke-width="current.s" :class="current.t === 'hl' ? 'hl' : 'pen'" />
@@ -28,25 +30,28 @@
       title="끌어서 옮기기"
       @pointerdown.stop="startDrag($event, 'move')"
     >
-      <input
+      <!-- Enter는 줄바꿈, 다른 곳을 누르거나 Ctrl(⌘)+Enter로 붙이기 -->
+      <textarea
         ref="input"
         :value="editing ? editing.text : ''"
         class="note-input"
         :style="inputStyle"
         :tabindex="editing ? 0 : -1"
-        :size="inputSize"
-        maxlength="80"
-        enterkeyhint="done"
+        :cols="inputSize.cols"
+        :rows="inputSize.rows"
+        wrap="off"
+        maxlength="300"
         aria-label="필기 글자"
         @pointerdown.stop
         @input="editing && (editing.text = $event.target.value)"
-        @keydown.enter.prevent="commitText"
+        @keydown.enter.ctrl.prevent="commitText"
+        @keydown.enter.meta.prevent="commitText"
         @keydown.esc.prevent="editing = null"
         @blur="onBlur"
-      >
+      ></textarea>
       <template v-if="editing">
         <button type="button" class="note-del" aria-label="이 글자 지우기" title="이 글자 지우기"
-                @pointerdown.stop.prevent="toolPress = true" @click="removeText"><X :size="12" :stroke-width="3" /></button>
+                @pointerdown.stop.prevent="toolPress = true" @click="removeText"><X :size="10" :stroke-width="3" /></button>
         <span class="note-resize" title="끌어서 크기 조절" @pointerdown.stop="startDrag($event, 'resize')"></span>
       </template>
     </div>
@@ -99,10 +104,17 @@ const pathOf = (p) => {
   return `${d}L${p[p.length - 2]} ${p[p.length - 1]}`
 }
 
-// 글자 칸 대략 크기 (한글·한자는 글자 크기만큼, 영문·숫자는 그 0.6배)
+// 글자: 여러 줄 (줄 간격은 글자 크기의 1.25배)
+const LINE_HEIGHT = 1.25
+const NBSP = String.fromCharCode(160) // 빈 줄도 줄 간격을 차지하게
+const linesOf = (text) => (text || '').split(String.fromCharCode(10))
+const isWide = (ch) => ch.charCodeAt(0) > 0x2e80
+
+// 글자 칸 대략 크기 (한글·한자는 글자 크기만큼, 영문·숫자는 그 0.6배). 가장 긴 줄 × 줄 수
 const textBox = (s) => {
-  const width = [...s.text].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2e80 ? s.s : s.s * 0.6), 0)
-  return { left: s.x, right: s.x + width, top: s.y - s.s, bottom: s.y + s.s * 0.25 }
+  const lines = linesOf(s.text)
+  const width = Math.max(...lines.map((line) => [...line].reduce((w, ch) => w + (isWide(ch) ? s.s : s.s * 0.6), 0)))
+  return { left: s.x, right: s.x + width, top: s.y - s.s, bottom: s.y + (lines.length - 1) * s.s * LINE_HEIGHT + s.s * 0.25 }
 }
 
 // 지우개: 닿은 획·글자를 통째로 지운다
@@ -145,7 +157,11 @@ const inputStyle = computed(() => {
 })
 
 // 쓴 만큼 늘어나는 입력칸 (한글은 두 칸으로 셈)
-const inputSize = computed(() => Math.max([...(editing.value?.text || '')].reduce((n, ch) => n + (ch.charCodeAt(0) > 0x2e80 ? 2 : 1), 0) + 1, 4))
+const inputSize = computed(() => {
+  const lines = linesOf(editing.value?.text)
+  const cols = Math.max(...lines.map((line) => [...line].reduce((n, ch) => n + (isWide(ch) ? 2 : 1), 0)))
+  return { cols: Math.max(cols + 1, 4), rows: lines.length }
+})
 
 // 이 글자 지우기 (새로 쓰던 글자면 그냥 닫기)
 const removeText = () => {
@@ -316,24 +332,24 @@ svg {
 .note-editor.idle .note-input { min-width: 0; width: 1px; }
 /* 오른쪽 위 지우기 동그라미 */
 .note-del {
-  position: absolute; top: -11px; right: -11px; width: 22px; height: 22px; padding: 0;
+  position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; padding: 0;
   display: flex; align-items: center; justify-content: center;
-  border: 2px solid #fff; border-radius: 50%; background: #111827; color: #fff; cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--c-line); border-radius: 50%; background: #fff; color: #111827; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
-.note-del:hover { background: var(--c-danger); }
+.note-del:hover { color: var(--c-danger); border-color: var(--c-danger); }
 /* 오른쪽 아래 크기 손잡이 */
 .note-resize {
-  position: absolute; right: -7px; bottom: -7px; width: 12px; height: 12px;
-  background: #fff; border: 2px solid var(--c-primary); border-radius: 3px; cursor: nwse-resize; touch-action: none;
+  position: absolute; right: -5px; bottom: -5px; width: 8px; height: 8px;
+  background: #fff; border: 1.5px solid var(--c-primary); border-radius: 2px; cursor: nwse-resize; touch-action: none;
 }
+/* 손가락 화면: 작게 보여도 누르기 쉽게 누르는 범위만 넓힌다 */
 @media (pointer: coarse) {
-  .note-del { width: 28px; height: 28px; top: -14px; right: -14px; }
-  .note-resize { width: 20px; height: 20px; right: -11px; bottom: -11px; }
+  .note-del::before, .note-resize::before { content: ''; position: absolute; inset: -10px; }
 }
 .note-input {
   display: block; max-width: 100%; padding: 0; margin: 0; cursor: text;
   font-family: 'Pretendard', sans-serif; font-weight: 800; line-height: 1.25;
-  background: transparent; border: 0; outline: none;
+  background: transparent; border: 0; outline: none; resize: none; overflow: hidden; white-space: pre;
 }
 </style>
