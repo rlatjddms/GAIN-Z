@@ -48,6 +48,27 @@
     </section>
 
     <section class="panel">
+      <h2>공통 UI (#134)</h2>
+      <PageHeader title="PRACTICE LOG" name="연습 기록장" subtitle="타이머로 연습 시간을 재고, 루틴을 체크해요">
+        <template #actions><button class="btn">보조</button><button class="btn primary">+ 주요 버튼</button></template>
+      </PageHeader>
+      <div class="ui-row">
+        <button class="btn">기본</button><button class="btn primary">주요</button><button class="btn danger">위험</button>
+        <button class="btn danger solid">위험(채움)</button><button class="btn ghost">글자만</button><button class="btn on">켜짐</button>
+        <button class="btn" disabled>못 누름</button><button class="btn small">작게</button><button class="btn small primary">작게 주요</button>
+      </div>
+      <div class="ui-row">
+        <button class="btn" @click="dialog.confirm({ title: '게시글을 삭제할까요?', okText: '삭제', danger: true })">확인창 (위험)</button>
+        <button class="btn" @click="dialog.confirm({ title: '새 초대 코드를 받을까요?', text: '지금 코드는 더 이상 쓸 수 없어요.', okText: '새 코드 받기' })">확인창</button>
+        <button class="btn" @click="dialog.prompt({ title: '초대 코드를 복사해 주세요', value: 'AB12CD34', readonly: true, okText: '닫기' })">복사 창</button>
+        <button class="btn" @click="dialog.alert({ title: '캐릭터를 만들었어요', text: '합주실로 이동할게요.' })">알림 창</button>
+      </div>
+      <EmptyState icon="folder" title="아직 담아 둔 악보가 없어요" text="갖고 있는 악보 사진·스캔·PDF를 올려 보세요.">
+        <template #actions><button class="btn primary">+ 첫 악보 올리기</button></template>
+      </EmptyState>
+    </section>
+
+    <section class="panel">
       <h2>픽셀 아이콘 {{ pixelIconNames.length }}종 (큰 아이콘)</h2>
       <div class="grid">
         <figure v-for="n in pixelIconNames" :key="n" style="color: var(--c-primary-text)">
@@ -172,6 +193,9 @@ import PixelCharacter from '../components/PixelCharacter.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import PixelSprite from '../components/PixelSprite.vue'
 import PixelIcon from '../components/PixelIcon.vue'
+import PageHeader from '../components/ui/PageHeader.vue'
+import EmptyState from '../components/ui/EmptyState.vue'
+import { useDialogStore } from '../stores/dialog'
 import { PIXEL_ICONS } from '../pixel/icons'
 import StageScene from '../components/StageScene.vue'
 import { HEAD_REGION } from '../pixel/palette'
@@ -187,6 +211,7 @@ import { outfitSpriteName } from '../pixel/sprites'
 // 하의도 소품처럼 자리 하나로 보여 준다
 const ACCESSORY_SLOTS = [BOTTOM_SLOT, ...WEAR_SLOTS]
 
+const dialog = useDialogStore()
 const pixelIconNames = Object.keys(PIXEL_ICONS)
 const hairStyles = listSprites('hair')
 const instruments = listSprites('instrument')
@@ -215,6 +240,7 @@ const character = reactive({
 </script>
 
 <style scoped>
+.ui-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
 .sprite-preview { max-width: 1040px; margin: 0 auto; padding: 32px 20px 60px; font-family: 'Pretendard', sans-serif; color: #1a1a1a; }
 .head h1 { font-size: 1.4rem; margin: 0 0 6px; }
 .head p { margin: 0 0 24px; color: #666; font-size: 0.9rem; }
