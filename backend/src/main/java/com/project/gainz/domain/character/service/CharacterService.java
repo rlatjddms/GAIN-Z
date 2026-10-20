@@ -4,6 +4,8 @@ import com.project.gainz.domain.character.dto.request.WardrobeUpdateRequest;
 import com.project.gainz.domain.character.dto.response.WardrobeResponse;
 import com.project.gainz.domain.character.enums.Accessory;
 import com.project.gainz.domain.character.enums.LevelOutfit;
+import com.project.gainz.domain.character.entity.DecorPlacement;
+import com.project.gainz.domain.character.enums.DecorItem;
 import com.project.gainz.domain.character.enums.RoomDecor;
 import com.project.gainz.domain.record.entity.UserRecord;
 import com.project.gainz.domain.record.enums.RecordType;
@@ -164,15 +166,14 @@ public class CharacterService {
             throw new BusinessException(ErrorCode.OUTFIT_NOT_OWNED);
         }
         StageBackground background = request.stageBackground();
-        RoomDecor decor = request.roomDecor();
+        List<DecorPlacement> layout = request.decorLayout();
         // 레코드 수집 보상(리스닝 룸·방 꾸미기)을 고를 때만 레코드를 읽는다
-        Set<RecordType> records = background.isRecordReward() || decor != null ? ownedRecords(userId) : Set.of();
+        boolean needsRecords = background.isRecordReward() || (layout != null && !layout.isEmpty());
+        Set<RecordType> records = needsRecords ? ownedRecords(userId) : Set.of();
         if (!isUnlocked(background, character, records)) {
             throw new BusinessException(ErrorCode.STAGE_BACKGROUND_LOCKED);
         }
-        if (decor != null && !decor.isCompletedBy(records)) {
-            throw new BusinessException(ErrorCode.ROOM_DECOR_LOCKED);
-        }
+        if (layout != null) validateDecorLayout(layout, records);
 
         Map<AccessorySlot, Accessory> accessories = new EnumMap<>(AccessorySlot.class);
         accessories.put(AccessorySlot.HAT, request.hat());
@@ -190,9 +191,13 @@ public class CharacterService {
             if (!accessory.isUnlockedAt(character.getLevel())) throw new BusinessException(ErrorCode.ACCESSORY_LOCKED);
         });
 
-        StageEffect effect = request.stageEffect();
-        if (effect != null && !effect.isUnlockedAt(character.getLevel())) {
-            throw new BusinessException(ErrorCode.STAGE_EFFECT_LOCKED);
+        List<StageEffect> effects = request.stageEffects();
+        if (effects != null) {
+            for (StageEffect effect : effects) {
+                if (effect == null || !effect.isUnlockedAt(character.getLevel())) {
+                    throw new BusinessException(ErrorCode.STAGE_EFFECT_LOCKED);
+                }
+            }
         }
 
         if (request.itemColors() != null) {
@@ -203,10 +208,23 @@ public class CharacterService {
         character.changeStageBackground(background);
         if (request.itemColors() != null) character.changeItemColors(request.itemColors());
         if (request.instrumentHidden() != null) character.changeInstrumentHidden(request.instrumentHidden());
-        character.changeStageEffect(effect);
-        character.changeRoomDecor(decor);
+        if (effects != null) character.changeStageEffects(effects.stream().distinct().toList());
+        if (layout != null) character.changeDecorLayout(layout);
         accessories.forEach(character::wear);
         return CharacterResponse.from(character);
+    }
+
+    // 소품 배치: 모은 세트의 소품만, 같은 소품은 한 번, 자리는 무대 안
+    private static void validateDecorLayout(List<DecorPlacement> layout, Set<RecordType> records) {
+        Set<DecorItem> seen = new HashSet<>();
+        for (DecorPlacement p : layout) {
+            if (p == null || p.key() == null || !seen.add(p.key()) || p.x() < DecorItem.MIN_X || p.x() > DecorItem.MAX_X) {
+                throw new BusinessException(ErrorCode.DECOR_LAYOUT_INVALID);
+            }
+            if (!p.key().getSet().isCompletedBy(records)) {
+                throw new BusinessException(ErrorCode.ROOM_DECOR_LOCKED);
+            }
+        }
     }
 
     private Set<RecordType> ownedRecords(Long userId) {

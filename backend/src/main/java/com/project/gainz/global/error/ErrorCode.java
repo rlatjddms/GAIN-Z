@@ -47,7 +47,8 @@ public enum ErrorCode {
     ACCESSORY_SLOT_MISMATCH(400, "C009", "그 자리에 쓸 수 없는 소품입니다."),
     STAGE_EFFECT_LOCKED(400, "C010", "아직 해금하지 않은 무대 효과입니다."),
     ITEM_COLOR_INVALID(400, "C011", "아이템 색이 올바르지 않습니다."),
-    ROOM_DECOR_LOCKED(400, "C012", "아직 모으지 않은 방 꾸미기 세트입니다."),
+    ROOM_DECOR_LOCKED(400, "C012", "아직 모으지 않은 방 꾸미기 소품입니다."),
+    DECOR_LAYOUT_INVALID(400, "C013", "방 꾸미기 배치가 올바르지 않습니다."),
 
     /* Practice (연습) */
     PRACTICE_DAY_LIMIT_EXCEEDED(400, "P001", "하루 연습 시간은 24시간을 넘을 수 없습니다."),

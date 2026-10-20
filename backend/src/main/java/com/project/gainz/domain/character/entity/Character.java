@@ -6,11 +6,12 @@ import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.LevelPolicy;
 import com.project.gainz.domain.character.enums.StageBackground;
-import com.project.gainz.domain.character.enums.RoomDecor;
 import com.project.gainz.domain.character.enums.StageEffect;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.common.entity.BaseEntity;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import jakarta.persistence.Column;
@@ -104,10 +105,10 @@ public class Character extends BaseEntity {
     @Column(length = 20)
     private StageBackground stageBackground;
 
-    // 무대에 놓은 방 꾸미기 세트 (레코드 수집 보상, 없으면 null)
-    @Column(length = 20)
-    @Convert(converter = RoomDecorConverter.class)
-    private RoomDecor roomDecor;
+    // 무대에 올린 방 꾸미기 소품과 자리 [{ key, x }] (레코드 수집 보상)
+    @Column(name = "decor_layout", columnDefinition = "TEXT")
+    @Convert(converter = DecorLayoutConverter.class)
+    private List<DecorPlacement> decorLayout = new ArrayList<>();
 
     // 쓰고 있는 레벨 보상 소품 (자리마다 하나, 없으면 null)
     @Column(length = 30)
@@ -146,7 +147,12 @@ public class Character extends BaseEntity {
     // 고른 무대 효과 (레벨 보상, 없으면 null)
     @Column(length = 30)
     @Convert(converter = StageEffectConverter.class)
-    private StageEffect stageEffect;
+    private StageEffect stageEffect;     // 예전(효과 하나만 고르던 때) 값. 지금은 stageEffects
+
+    // 켜 둔 무대 효과 (여러 개)
+    @Column(name = "stage_effects", length = 100)
+    @Convert(converter = StageEffectsConverter.class)
+    private List<StageEffect> stageEffects = new ArrayList<>();
 
     // 입고 있는 하의 (null이면 기본 청바지. 예전 캐릭터)
     @Column(length = 30)
@@ -233,9 +239,13 @@ public class Character extends BaseEntity {
         return Boolean.TRUE.equals(instrumentHidden);
     }
 
-    // 옷장: 방 꾸미기 세트 고르기 (null이면 없음, 모은 여부는 서비스에서 확인)
-    public void changeRoomDecor(RoomDecor decor) {
-        this.roomDecor = decor;
+    public List<DecorPlacement> getDecorLayout() {
+        return decorLayout != null ? List.copyOf(decorLayout) : List.of();
+    }
+
+    // 옷장: 방 꾸미기 소품 배치 (모은 여부·자리 범위는 서비스에서 확인)
+    public void changeDecorLayout(List<DecorPlacement> layout) {
+        this.decorLayout = new ArrayList<>(layout);
     }
 
     // 옷장: 악기 들기·내려놓기
@@ -253,8 +263,15 @@ public class Character extends BaseEntity {
     }
 
     // 옷장: 무대 효과 고르기 (null이면 끄기, 해금 여부는 서비스에서 확인)
-    public void changeStageEffect(StageEffect effect) {
-        this.stageEffect = effect;
+    public void changeStageEffects(List<StageEffect> effects) {
+        this.stageEffects = new ArrayList<>(effects);
+        this.stageEffect = null;
+    }
+
+    // 켜 둔 무대 효과. 예전에 하나만 골라 둔 캐릭터는 그 효과
+    public List<StageEffect> getStageEffects() {
+        if (stageEffects != null && !stageEffects.isEmpty()) return List.copyOf(stageEffects);
+        return stageEffect != null ? List.of(stageEffect) : List.of();
     }
 
     // 지금 무대 배경. 아직 고른 적 없으면 레벨로 얻은 가장 큰 무대
