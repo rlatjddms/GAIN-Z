@@ -17,7 +17,7 @@ class LevelRewardsTest {
     }
 
     @Test
-    void 다섯_레벨마다_상의_하의_한_벌이고_그_사이는_소품이나_헤어_하나() {
+    void 다섯_레벨마다_상의_하의_한_벌이고_그_사이는_하나씩() {
         for (int level = 2; level <= LevelPolicy.MAX_LEVEL; level++) {
             List<LevelRewards.Type> types = LevelRewards.at(level).stream()
                     .map(LevelRewards.Reward::type)
@@ -26,7 +26,7 @@ class LevelRewardsTest {
                 assertThat(types).as("Lv.%d", level).containsExactly(LevelRewards.Type.OUTFIT, LevelRewards.Type.BOTTOM);
             } else {
                 assertThat(types).as("Lv.%d", level).hasSize(1)
-                        .first().isIn(LevelRewards.Type.ACCESSORY, LevelRewards.Type.HAIR);
+                        .first().isIn(LevelRewards.Type.ACCESSORY, LevelRewards.Type.HAIR, LevelRewards.Type.OUTFIT, LevelRewards.Type.BOTTOM);
             }
         }
     }
@@ -37,11 +37,25 @@ class LevelRewardsTest {
         assertThat(LevelRewards.at(10)).extracting(LevelRewards.Reward::key).containsExactly("BAND_TEE", "RIPPED_JEANS", "RISING");
         assertThat(LevelRewards.at(15)).extracting(LevelRewards.Reward::key).containsExactly("DENIM_JACKET", "CARGO_PANTS", "SPOTLIGHT");
         assertThat(LevelRewards.at(30)).extracting(LevelRewards.Reward::key)
-                .containsExactly("SEQUIN_JACKET", "SEQUIN_PANTS", "LEGEND", "FIREWORKS");
+                .containsExactly("GOLD_TRIM_JACKET", "GOLD_STRIPE_PANTS", "LEGEND", "FIREWORKS");
         for (int level = 5; level <= LevelPolicy.MAX_LEVEL; level += 5) {
             assertThat(LevelRewards.at(level)).as("Lv.%d", level).extracting(LevelRewards.Reward::type)
                     .containsAnyOf(LevelRewards.Type.STAGE, LevelRewards.Type.EFFECT);
         }
+    }
+
+    @Test
+    void 크롭티는_Lv7_치마는_Lv8() {
+        assertThat(LevelRewards.at(7)).extracting(LevelRewards.Reward::key).containsExactly("CROP");
+        assertThat(LevelRewards.at(8)).extracting(LevelRewards.Reward::key).containsExactly("SKIRT");
+    }
+
+    @Test
+    void 기본_청바지_신발은_보상이_아니다() {
+        assertThat(Accessory.JEANS.isUnlockedAt(1)).isTrue();
+        assertThat(Accessory.BASIC_SHOES.isUnlockedAt(1)).isTrue();
+        assertThat(LevelRewards.between(0, LevelPolicy.MAX_LEVEL)).extracting(LevelRewards.Reward::key)
+                .doesNotContain("JEANS", "BASIC_SHOES");
     }
 
     @Test

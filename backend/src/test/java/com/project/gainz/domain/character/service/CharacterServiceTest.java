@@ -293,16 +293,16 @@ class CharacterServiceTest {
         givenBasicOutfit();
 
         CharacterResponse result = characterService.updateWardrobe(USER_ID,
-                new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, Accessory.CAP, Accessory.ROUND_GLASSES, null, Accessory.HIGH_TOPS));
+                new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, Accessory.CAP, Accessory.ROUND_GLASSES, null, Accessory.SNEAKERS));
 
         assertThat(result.hat()).isEqualTo(Accessory.CAP);
         assertThat(result.glasses()).isEqualTo(Accessory.ROUND_GLASSES);
         assertThat(result.neck()).isNull();
-        assertThat(result.shoes()).isEqualTo(Accessory.HIGH_TOPS);
+        assertThat(result.shoes()).isEqualTo(Accessory.SNEAKERS);
     }
 
     @Test
-    void 레벨이_닿은_하의를_입고_null이면_기본_청바지로() {
+    void 레벨이_닿은_하의를_입고_비우면_기본_청바지와_신발() {
         ReflectionTestUtils.setField(character, "level", 15);
         when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
         givenBasicOutfit();
@@ -315,7 +315,10 @@ class CharacterServiceTest {
                 new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, Accessory.LEATHER_PANTS)))
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCESSORY_LOCKED);
 
-        assertThat(characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.ROOKIE)).bottom()).isNull();
+        CharacterResponse basic = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.ROOKIE));
+        assertThat(basic.bottom()).isEqualTo(Accessory.JEANS);
+        assertThat(basic.shoes()).isEqualTo(Accessory.BASIC_SHOES);
+        assertThat(character.getBottom()).isEqualTo(Accessory.JEANS);
     }
 
     @Test
@@ -332,6 +335,28 @@ class CharacterServiceTest {
         CharacterResponse off = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.RISING));
         assertThat(off.earrings()).isNull();
         assertThat(off.stageEffect()).isNull();
+    }
+
+    @Test
+    void 벨트는_허리_자리에_쓴다() {
+        ReflectionTestUtils.setField(character, "level", 16);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+
+        CharacterResponse result = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
+                1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, Accessory.BELT));
+
+        assertThat(result.waist()).isEqualTo(Accessory.BELT);
+    }
+
+    @Test
+    void 예전_캐릭터는_기본_청바지와_신발을_입은_것으로_보인다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+
+        CharacterResponse result = characterService.getCharacter(USER_ID);
+
+        assertThat(result.bottom()).isEqualTo(Accessory.JEANS);
+        assertThat(result.shoes()).isEqualTo(Accessory.BASIC_SHOES);
     }
 
     @Test

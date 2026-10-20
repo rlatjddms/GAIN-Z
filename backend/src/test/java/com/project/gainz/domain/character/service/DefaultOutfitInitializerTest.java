@@ -64,9 +64,22 @@ class DefaultOutfitInitializerTest {
         ArgumentCaptor<List<OutfitItem>> captor = ArgumentCaptor.forClass(List.class);
         verify(outfitItemRepository).saveAll(captor.capture());
         assertThat(captor.getValue()).extracting(OutfitItem::getSpriteKey)
-                .containsExactly("BAND_TEE", "DENIM_JACKET", "LEATHER_JACKET", "STAGE_SUIT", "SEQUIN_JACKET");
-        assertThat(captor.getValue()).extracting(OutfitItem::getRequiredLevel).containsExactly(10, 15, 20, 25, 30);
-        assertThat(LevelOutfit.values()).hasSize(6);
+                .containsExactly("CROP", "BAND_TEE", "DENIM_JACKET", "LEATHER_JACKET", "STAGE_SUIT", "GOLD_TRIM_JACKET");
+        assertThat(captor.getValue()).extracting(OutfitItem::getRequiredLevel).containsExactly(7, 10, 15, 20, 25, 30);
+        assertThat(LevelOutfit.values()).hasSize(7);
+    }
+
+    @Test
+    void 이름이_바뀐_예전_레벨_의상은_고쳐_쓴다() {
+        OutfitItem sequin = OutfitItem.builder().name("반짝이 재킷").category(OutfitCategory.CLOTHES).requiredLevel(30).spriteKey("SEQUIN_JACKET").build();
+        when(outfitItemRepository.findFirstBySpriteKey(any())).thenReturn(Optional.empty());
+        when(outfitItemRepository.findFirstBySpriteKey("SEQUIN_JACKET")).thenReturn(Optional.of(sequin));
+
+        initializer.run(null);
+
+        assertThat(sequin.getSpriteKey()).isEqualTo("GOLD_TRIM_JACKET");
+        assertThat(sequin.getName()).isEqualTo("금장 재킷");
+        verify(outfitItemRepository).save(sequin);
     }
 
     @Test
