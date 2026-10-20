@@ -35,7 +35,7 @@ class LevelRewardsTest {
     void 다섯_레벨마다_무대_배경이나_효과가_함께() {
         assertThat(LevelRewards.at(5)).extracting(LevelRewards.Reward::key).containsExactly("HOODIE", "JOGGERS", "SPARKLE");
         assertThat(LevelRewards.at(10)).extracting(LevelRewards.Reward::key).containsExactly("BAND_TEE", "RIPPED_JEANS", "RISING");
-        assertThat(LevelRewards.at(15)).extracting(LevelRewards.Reward::key).containsExactly("DENIM_JACKET", "CARGO_PANTS", "SPOTLIGHT");
+        assertThat(LevelRewards.at(15)).extracting(LevelRewards.Reward::key).containsExactly("DENIM_JACKET", "CARGO_PANTS", "SMOKE");
         assertThat(LevelRewards.at(30)).extracting(LevelRewards.Reward::key)
                 .containsExactly("GOLD_TRIM_JACKET", "GOLD_STRIPE_PANTS", "LEGEND", "FIREWORKS");
         for (int level = 5; level <= LevelPolicy.MAX_LEVEL; level += 5) {

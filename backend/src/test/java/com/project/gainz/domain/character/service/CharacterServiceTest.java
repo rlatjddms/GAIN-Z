@@ -329,9 +329,9 @@ class CharacterServiceTest {
         givenBasicOutfit();
 
         CharacterResponse on = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
-                1L, StageBackground.RISING, null, null, null, null, null, Accessory.STUD_EARRINGS, StageEffect.SPOTLIGHT));
+                1L, StageBackground.RISING, null, null, null, null, null, Accessory.STUD_EARRINGS, StageEffect.SMOKE));
         assertThat(on.earrings()).isEqualTo(Accessory.STUD_EARRINGS);
-        assertThat(on.stageEffect()).isEqualTo(StageEffect.SPOTLIGHT);
+        assertThat(on.stageEffect()).isEqualTo(StageEffect.SMOKE);
 
         CharacterResponse off = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.RISING));
         assertThat(off.earrings()).isNull();
@@ -397,7 +397,7 @@ class CharacterServiceTest {
         givenBasicOutfit();
 
         assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
-                1L, StageBackground.ROOKIE, null, null, null, null, null, null, StageEffect.SMOKE)))
+                1L, StageBackground.ROOKIE, null, null, null, null, null, null, StageEffect.SPOTLIGHT)))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.STAGE_EFFECT_LOCKED);
         assertThat(character.getStageEffect()).isNull();
