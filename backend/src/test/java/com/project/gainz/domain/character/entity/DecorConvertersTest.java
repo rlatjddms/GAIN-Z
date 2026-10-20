@@ -15,7 +15,9 @@ class DecorConvertersTest {
         DecorLayoutConverter converter = new DecorLayoutConverter();
         String json = converter.convertToDatabaseColumn(List.of(new DecorPlacement(DecorItem.TURNTABLE, 46)));
 
-        assertThat(json).isEqualTo("[{\"key\":\"TURNTABLE\",\"x\":46}]");
+        assertThat(json).isEqualTo("[{\"key\":\"TURNTABLE\",\"x\":46,\"y\":null}]");
+        assertThat(converter.convertToEntityAttribute("[{\"key\":\"LP_SHELF\",\"x\":10,\"y\":66}]"))
+                .containsExactly(new DecorPlacement(DecorItem.LP_SHELF, 10, 66));
         assertThat(converter.convertToEntityAttribute("[{\"key\":\"TURNTABLE\",\"x\":46},{\"key\":\"GONE\",\"x\":1}]"))
                 .containsExactly(new DecorPlacement(DecorItem.TURNTABLE, 46));
         assertThat(converter.convertToEntityAttribute("broken")).isEmpty();

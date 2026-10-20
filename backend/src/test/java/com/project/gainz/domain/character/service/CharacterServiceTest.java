@@ -415,8 +415,8 @@ class CharacterServiceTest {
         givenRecords(com.project.gainz.domain.record.enums.RecordRarity.COMMON);
 
         CharacterResponse placed = characterService.updateWardrobe(USER_ID,
-                withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.CASSETTE_DECK, 150)));
-        assertThat(placed.decorLayout()).containsExactly(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.CASSETTE_DECK, 150));
+                withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.CASSETTE_DECK, 150, 70)));
+        assertThat(placed.decorLayout()).containsExactly(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.CASSETTE_DECK, 150, 70));
 
         // 안 보내면 그대로, 빈 목록이면 모두 내림
         assertThat(characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.ROOKIE)).decorLayout()).hasSize(2);
@@ -433,6 +433,8 @@ class CharacterServiceTest {
         givenRecords(com.project.gainz.domain.record.enums.RecordRarity.COMMON);
 
         assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 185))))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DECOR_LAYOUT_INVALID);
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 10, 20))))
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DECOR_LAYOUT_INVALID);
         assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID,
                 withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.TAPE_RACK, 40))))
