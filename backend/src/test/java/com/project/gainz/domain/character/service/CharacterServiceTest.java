@@ -6,6 +6,8 @@ import com.project.gainz.domain.character.dto.response.CharacterResponse;
 import com.project.gainz.domain.character.dto.response.ExperienceResult;
 import com.project.gainz.domain.character.dto.response.WardrobeResponse;
 import com.project.gainz.domain.character.entity.Character;
+import com.project.gainz.domain.character.entity.DecorPlacement;
+import com.project.gainz.domain.character.enums.DecorItem;
 import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.entity.UserOutfit;
 import com.project.gainz.domain.character.enums.Accessory;
@@ -325,19 +327,23 @@ class CharacterServiceTest {
     }
 
     @Test
-    void 귀걸이와_무대_효과를_고르고_null이면_끈다() {
+    void 귀걸이와_무대_효과_여러_개를_고른다() {
         ReflectionTestUtils.setField(character, "level", 16);
         when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
         givenBasicOutfit();
 
         CharacterResponse on = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
-                1L, StageBackground.RISING, null, null, null, null, null, Accessory.STUD_EARRINGS, StageEffect.SMOKE));
+                1L, StageBackground.RISING, null, null, null, null, null, Accessory.STUD_EARRINGS, List.of(StageEffect.SMOKE, StageEffect.SPARKLE)));
         assertThat(on.earrings()).isEqualTo(Accessory.STUD_EARRINGS);
-        assertThat(on.stageEffect()).isEqualTo(StageEffect.SMOKE);
+        assertThat(on.stageEffects()).containsExactly(StageEffect.SMOKE, StageEffect.SPARKLE);
 
-        CharacterResponse off = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.RISING));
-        assertThat(off.earrings()).isNull();
-        assertThat(off.stageEffect()).isNull();
+        // 효과 목록을 안 보내면 그대로, 빈 목록이면 모두 끔
+        CharacterResponse kept = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.RISING));
+        assertThat(kept.earrings()).isNull();
+        assertThat(kept.stageEffects()).hasSize(2);
+        CharacterResponse off = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
+                1L, StageBackground.RISING, null, null, null, null, null, null, List.of()));
+        assertThat(off.stageEffects()).isEmpty();
     }
 
     private WardrobeUpdateRequest withColors(Map<String, String> colors) {
@@ -398,20 +404,48 @@ class CharacterServiceTest {
         when(userRecordRepository.findAllByUserId(USER_ID)).thenReturn(owned);
     }
 
+    private WardrobeUpdateRequest withDecor(DecorPlacement... placements) {
+        return new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, null, null, null, List.of(placements));
+    }
+
     @Test
-    void 카세트를_다_모으면_카세트_세트를_무대에_놓는다() {
+    void 카세트를_다_모으면_카세트_소품을_원하는_자리에_놓는다() {
         when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
         givenBasicOutfit();
         givenRecords(com.project.gainz.domain.record.enums.RecordRarity.COMMON);
 
-        WardrobeUpdateRequest put = new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, null, null, null,
-                com.project.gainz.domain.character.enums.RoomDecor.CASSETTE);
-        assertThat(characterService.updateWardrobe(USER_ID, put).roomDecor()).isEqualTo(com.project.gainz.domain.character.enums.RoomDecor.CASSETTE);
+        CharacterResponse placed = characterService.updateWardrobe(USER_ID,
+                withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.CASSETTE_DECK, 150)));
+        assertThat(placed.decorLayout()).containsExactly(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.CASSETTE_DECK, 150));
 
-        WardrobeUpdateRequest cd = new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, null, null, null,
-                com.project.gainz.domain.character.enums.RoomDecor.CD);
-        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, cd))
+        // 안 보내면 그대로, 빈 목록이면 모두 내림
+        assertThat(characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.ROOKIE)).decorLayout()).hasSize(2);
+        assertThat(characterService.updateWardrobe(USER_ID, withDecor()).decorLayout()).isEmpty();
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, withDecor(new DecorPlacement(DecorItem.CD_RACK, 10))))
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ROOM_DECOR_LOCKED);
+    }
+
+    @Test
+    void 무대_밖이나_같은_소품_두_번은_거절한다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+        givenRecords(com.project.gainz.domain.record.enums.RecordRarity.COMMON);
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 185))))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DECOR_LAYOUT_INVALID);
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID,
+                withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.TAPE_RACK, 40))))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DECOR_LAYOUT_INVALID);
+        assertThat(character.getDecorLayout()).isEmpty();
+    }
+
+    @Test
+    void 예전에_효과_하나만_고른_캐릭터는_그_효과가_켜져_있다() {
+        ReflectionTestUtils.setField(character, "stageEffect", StageEffect.SPARKLE);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+
+        assertThat(characterService.getCharacter(USER_ID).stageEffects()).containsExactly(StageEffect.SPARKLE);
     }
 
     @Test
@@ -476,10 +510,10 @@ class CharacterServiceTest {
         givenBasicOutfit();
 
         assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
-                1L, StageBackground.ROOKIE, null, null, null, null, null, null, StageEffect.SPOTLIGHT)))
+                1L, StageBackground.ROOKIE, null, null, null, null, null, null, List.of(StageEffect.SPOTLIGHT))))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.STAGE_EFFECT_LOCKED);
-        assertThat(character.getStageEffect()).isNull();
+        assertThat(character.getStageEffects()).isEmpty();
     }
 
     @Test
