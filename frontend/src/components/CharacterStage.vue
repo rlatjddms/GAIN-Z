@@ -97,11 +97,11 @@ const stageStyle = computed(() => ({
   position: relative;
   z-index: 1;
   margin-bottom: 24px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--c-line);
   border-radius: 28px;
   background: #fff;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
-  color: var(--stage-text, #1a1a1a);
+  color: var(--stage-text, var(--c-text));
   text-align: center;
   overflow: hidden;
 }
@@ -184,7 +184,7 @@ const stageStyle = computed(() => ({
   transform: translateX(-50%);
   padding: 8px 16px;
   border-radius: 14px;
-  background: #1a1a1a;
+  background: var(--c-text);
   color: #fff;
   font-size: 0.85rem;
   font-weight: 500;
@@ -238,7 +238,7 @@ const stageStyle = computed(() => ({
 
 /* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래로 뺀다 */
 @media (max-width: 640px) {
-  .character-stage { color: #1a1a1a; }
+  .character-stage { color: var(--c-text); }
   .stage-head, .exp-area { position: static; transform: none; margin: 0 auto; }
   .stage-head { padding: 12px 12px 10px; }
   .exp-area { width: auto; padding: 10px 16px 14px; }

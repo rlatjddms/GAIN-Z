@@ -71,11 +71,11 @@ video { background: #242832; }
 .media-placeholder { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #a2adbf; font-size: 11px; }
 .media-placeholder button { border: 0; border-radius: 6px; background: #e9edf4; color: #68788f; padding: 6px 10px; font: inherit; cursor: pointer; }
 .file-row { display: flex; align-items: center; gap: 10px; padding: 9px 2px 0; }
-.file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #868e96; }
-.file-row a, .file-row button { color: #868e96; display: grid; place-items: center; width: 26px; height: 26px; background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: var(--c-muted); }
+.file-row a, .file-row button { color: var(--c-muted); display: grid; place-items: center; width: 26px; height: 26px; background: none; border: 0; border-radius: 6px; cursor: pointer; }
 .file-row a:hover, .file-row button:hover { color: var(--c-primary-text); background: var(--c-primary-soft); }
 .file-row.document { border: 1px solid #e9edf2; border-radius: 12px; padding: 12px 14px; }
-.document .file-name { color: #495057; font-size: 12px; font-weight: 700; }
+.document .file-name { color: var(--c-text-2); font-size: 12px; font-weight: 700; }
 .document-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: #f1f4f9; color: #8290a7; }
 audio { width: 100%; margin-bottom: 8px; }
 .file-error { color: #d94841; font-size: 11px; }

@@ -116,21 +116,16 @@ onBeforeUnmount(() => clearInterval(tick))
 }
 .modal {
   width: 100%; max-width: 360px; box-sizing: border-box; text-align: center;
-  background: #fff; border-radius: 24px; padding: 26px 24px 22px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  font-family: 'Pretendard', sans-serif; color: #1a1a1a;
+  background: var(--c-surface); border-radius: var(--radius-xl); padding: 26px 24px 22px; box-shadow: var(--shadow-lg);
+  font-family: 'Pretendard', sans-serif; color: var(--c-text);
 }
 .icon { color: var(--c-primary-text); display: flex; justify-content: center; }
 h2 { margin: 8px 0 6px; font-size: 1.1rem; font-weight: 900; }
-.sub { margin: 0; font-size: 0.85rem; font-weight: 700; color: #495057; line-height: 1.5; }
+.sub { margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--c-text-2); line-height: 1.5; }
 .countdown { margin: 10px 0 0; font-size: 0.78rem; font-weight: 800; color: #e8590c; font-variant-numeric: tabular-nums; }
 .error { margin: 10px 0 0; font-size: 0.78rem; font-weight: 700; color: #e03131; }
 .actions { display: flex; gap: 8px; margin-top: 20px; }
-.btn {
-  flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
-  font-weight: 800; font-size: 0.85rem; padding: 11px; border-radius: 12px; font-family: inherit;
-}
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 </style>

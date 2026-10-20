@@ -259,6 +259,7 @@ import { Palette } from 'lucide-vue-next'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useDialogStore } from '../stores/dialog'
 import axiosInstance from '../api/axios'
 import PixelCharacter from '../components/PixelCharacter.vue'
 import PixelSprite from '../components/PixelSprite.vue'
@@ -269,6 +270,7 @@ import {
 } from '../constants/characterOptions'
 
 const router = useRouter()
+const dialog = useDialogStore()
 const route = useRoute()
 const authStore = useAuthStore()
 
@@ -421,14 +423,14 @@ const handleSubmit = async () => {
     try {
       await axiosInstance.put('/api/v1/characters/me', payload)
       await authStore.fetchCharacter()
-      alert('캐릭터 정보가 수정되었습니다')
+      await dialog.alert({ title: '캐릭터를 수정했어요' })
       router.push('/home')
     } catch (error) {
       console.error('Character update failed:', error)
       if (error.response && error.response.data && error.response.data.message) {
-        alert(`수정 에러: ${error.response.data.message}`)
+        await dialog.alert({ title: '캐릭터를 수정하지 못했어요', text: error.response.data.message })
       } else {
-        alert('캐릭터 수정 중 오류가 발생했습니다. 다시 시도해 주세요.')
+        await dialog.alert({ title: '캐릭터를 수정하지 못했어요', text: '잠시 후 다시 시도해 주세요.' })
       }
     } finally {
       isLoading.value = false
@@ -439,7 +441,7 @@ const handleSubmit = async () => {
   try {
     await axiosInstance.post('/api/v1/characters', payload)
     await authStore.fetchCharacter()
-    alert('캐릭터 생성 성공! 합주실로 이동합니다')
+    await dialog.alert({ title: '캐릭터를 만들었어요', text: '합주실로 이동할게요.' })
     router.push('/home')
   } catch (error) {
     console.error('Character creation failed:', error)
@@ -448,18 +450,18 @@ const handleSubmit = async () => {
         const responseData = error.response.data
         if (responseData && responseData.code === 'C001') {
           await authStore.fetchCharacter()
-          alert('이미 보유하고 있는 캐릭터가 있습니다. 합주실로 이동합니다!')
+          await dialog.alert({ title: '이미 캐릭터가 있어요', text: '합주실로 이동할게요.' })
           router.push('/home')
         } else if (responseData && responseData.message) {
-          alert(`캐릭터 생성 에러: ${responseData.message}`)
+          await dialog.alert({ title: '캐릭터를 만들지 못했어요', text: responseData.message })
         } else {
-          alert('중복된 캐릭터 닉네임이거나 이미 캐릭터를 보유하고 있습니다.')
+          await dialog.alert({ title: '캐릭터를 만들지 못했어요', text: '이미 쓰고 있는 닉네임이거나, 캐릭터가 이미 있어요.' })
         }
       } else {
-        alert('캐릭터를 생성하는 동안 서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')
+        await dialog.alert({ title: '캐릭터를 만들지 못했어요', text: '서버에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.' })
       }
     } else {
-      alert('서버 연결 실패. 네트워크 연결 상태를 확인하고 다시 시도해 주세요.')
+      await dialog.alert({ title: '서버에 연결하지 못했어요', text: '네트워크 연결을 확인하고 다시 시도해 주세요.' })
     }
   } finally {
     isLoading.value = false
@@ -478,7 +480,7 @@ const handleSubmit = async () => {
   width: 100vw;
   height: 100vh;
   background: #f8f9fb;
-  color: #1a1a1a;
+  color: var(--c-text);
   font-family: 'Pretendard', sans-serif;
   position: fixed;
   top: 0;
@@ -522,8 +524,8 @@ const handleSubmit = async () => {
    LEFT PANEL: VISUAL PREVIEW BOX
    ========================================================================== */
 .preview-panel {
-  background: #f1f3f5;
-  border-right: 1px solid #e9ecef;
+  background: var(--c-line-soft);
+  border-right: 1px solid var(--c-line);
   padding: 40px 30px;
   display: flex;
   flex-direction: column;
@@ -548,7 +550,7 @@ const handleSubmit = async () => {
   width: 200px;
   height: 200px;
   background: #ffffff;
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--c-line);
   border-radius: 40px;
   display: flex;
   align-items: center;
@@ -594,7 +596,7 @@ const handleSubmit = async () => {
   font-size: 1.35rem;
   font-weight: 800;
   margin: 0;
-  color: #1a1a1a;
+  color: var(--c-text);
   letter-spacing: -0.5px;
 }
 
@@ -636,12 +638,12 @@ const handleSubmit = async () => {
   font-size: 1.45rem;
   font-weight: 800;
   margin: 4px 0;
-  color: #1a1a1a;
+  color: var(--c-text);
 }
 
 .form-header p {
   font-size: 0.82rem;
-  color: #868e96;
+  color: var(--c-muted);
   line-height: 1.4;
 }
 
@@ -665,14 +667,14 @@ const handleSubmit = async () => {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #f1f3f5;
+  background: var(--c-line-soft);
   border: 1.5px solid #dee2e6;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.78rem;
   font-weight: 800;
-  color: #adb5bd;
+  color: var(--c-faint);
   transition: all 0.3s ease;
 }
 
@@ -694,18 +696,18 @@ const handleSubmit = async () => {
   font-size: 0.7rem;
   font-weight: 700;
   white-space: nowrap;
-  color: #adb5bd;
+  color: var(--c-faint);
 }
 
 .step-dot.active .dot-label,
 .step-dot.complete .dot-label {
-  color: #1a1a1a;
+  color: var(--c-text);
 }
 
 .step-line {
   flex: 1;
   height: 2px;
-  background: #f1f3f5;
+  background: var(--c-line-soft);
   margin: 0 15px;
   position: relative;
   top: 0;
@@ -749,7 +751,7 @@ const handleSubmit = async () => {
 .input-group label {
   font-size: 0.82rem;
   font-weight: 800;
-  color: #495057;
+  color: var(--c-text-2);
 }
 
 .gz-input {
@@ -759,7 +761,7 @@ const handleSubmit = async () => {
   border: 1.5px solid #eceff2;
   border-radius: 12px;
   font-size: 0.88rem;
-  color: #1a1a1a;
+  color: var(--c-text);
   transition: all 0.2s;
 }
 
@@ -770,7 +772,7 @@ const handleSubmit = async () => {
 
 .validation-tip {
   font-size: 0.75rem;
-  color: #868e96;
+  color: var(--c-muted);
   margin-top: 1px;
   padding-left: 2px;
 }
@@ -801,12 +803,12 @@ const handleSubmit = async () => {
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  color: #868e96;
+  color: var(--c-muted);
 }
 
 .gender-card:hover {
   border-color: #ced4da;
-  color: #495057;
+  color: var(--c-text-2);
 }
 
 .gender-card.active {
@@ -844,18 +846,18 @@ const handleSubmit = async () => {
   gap: 2px;
   cursor: pointer;
   transition: all 0.2s;
-  color: #868e96;
+  color: var(--c-muted);
 }
 
 .style-card:hover {
   border-color: #ced4da;
-  color: #495057;
+  color: var(--c-text-2);
 }
 
 .style-card.active {
-  background: #fdf2f8;
-  border-color: #ec4899;
-  color: #ec4899;
+  background: var(--c-primary-soft);
+  border-color: var(--c-primary);
+  color: var(--c-primary-text);
 }
 
 .style-thumb {
@@ -892,7 +894,7 @@ const handleSubmit = async () => {
 }
 
 .color-preset.active {
-  border-color: #1a1a1a;
+  border-color: var(--c-text);
   transform: scale(1.05);
 }
 
@@ -901,7 +903,7 @@ const handleSubmit = async () => {
   height: 26px;
   border-radius: 50%;
   border: 1.5px solid #eceff2;
-  background: #f8f9fa;
+  background: var(--c-bg);
   cursor: pointer;
   position: relative;
   display: flex;
@@ -910,7 +912,7 @@ const handleSubmit = async () => {
 }
 
 .custom-color-picker:hover {
-  background: #e9ecef;
+  background: var(--c-line);
 }
 
 .picker-input {
@@ -931,7 +933,7 @@ const handleSubmit = async () => {
 .color-hex {
   font-size: 0.75rem;
   font-family: monospace;
-  color: #adb5bd;
+  color: var(--c-faint);
 }
 
 /* Instrument Grid Compact (Step 3) */
@@ -953,13 +955,13 @@ const handleSubmit = async () => {
   gap: 6px;
   cursor: pointer;
   transition: all 0.2s;
-  color: #868e96;
+  color: var(--c-muted);
   height: 80px;
 }
 
 .inst-card-grid:hover {
   border-color: #ced4da;
-  color: #495057;
+  color: var(--c-text-2);
 }
 
 .inst-card-grid.active {
@@ -998,7 +1000,7 @@ const handleSubmit = async () => {
   border-radius: 12px;
   font-size: 0.88rem;
   font-weight: 700;
-  color: #495057;
+  color: var(--c-text-2);
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
@@ -1006,8 +1008,8 @@ const handleSubmit = async () => {
 
 .nav-btn-back:hover:not(:disabled),
 .nav-btn-cancel:hover:not(:disabled) {
-  background: #f8f9fa;
-  color: #1a1a1a;
+  background: var(--c-bg);
+  color: var(--c-text);
   border-color: #ced4da;
 }
 
@@ -1089,7 +1091,7 @@ const handleSubmit = async () => {
   }
   .preview-panel {
     border-right: none;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--c-line);
     padding: 30px;
     height: auto;
   }

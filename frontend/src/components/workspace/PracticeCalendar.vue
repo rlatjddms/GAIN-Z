@@ -98,24 +98,24 @@ const select = (key) => {
 <style scoped>
 .calendar {
   position: absolute; top: calc(100% + 8px); left: 0; z-index: 50; width: 296px; box-sizing: border-box;
-  background: #fff; border: 1px solid #e9ecef; border-radius: 18px; padding: 14px;
+  background: #fff; border: 1px solid var(--c-line); border-radius: 18px; padding: 14px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
 }
 .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .cal-head strong { font-size: 0.9rem; font-weight: 900; }
 .nav {
-  width: 28px; height: 28px; border: none; border-radius: 8px; background: #f1f3f5; color: #495057;
+  width: 28px; height: 28px; border: none; border-radius: 8px; background: var(--c-line-soft); color: var(--c-text-2);
   font-size: 1rem; font-weight: 900; cursor: pointer;
 }
 .nav:disabled { opacity: 0.35; cursor: default; }
 
 .dows, .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.dows span { text-align: center; font-size: 0.7rem; font-weight: 800; color: #adb5bd; padding-bottom: 4px; }
+.dows span { text-align: center; font-size: 0.7rem; font-weight: 800; color: var(--c-faint); padding-bottom: 4px; }
 .days { transition: opacity 0.2s; }
 .days.loading { opacity: 0.5; }
 .day {
-  aspect-ratio: 1; border: none; border-radius: 9px; background: #f8f9fa; cursor: pointer;
-  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #495057; font-variant-numeric: tabular-nums;
+  aspect-ratio: 1; border: none; border-radius: 9px; background: var(--c-bg); cursor: pointer;
+  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); font-variant-numeric: tabular-nums;
 }
 .day:hover:not(:disabled) { outline: 2px solid var(--c-primary-line); }
 .day.lv1 { background: var(--c-primary-line); }

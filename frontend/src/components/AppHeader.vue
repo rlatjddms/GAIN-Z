@@ -89,7 +89,7 @@ const handleLogout = async () => {
 button { -webkit-appearance: none; appearance: none; outline: none; }
 
 .main-header {
-  background: #fff; border-bottom: 1px solid #e9ecef;
+  background: #fff; border-bottom: 1px solid var(--c-line);
   position: sticky; top: 0; z-index: 1000;
 }
 .header-inner {
@@ -112,28 +112,28 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 }
 .user-info:hover, .user-info.on { background: var(--c-primary-soft); }
 .user-info.on .name, .user-info.on .caret { color: var(--c-primary-text); }
-.caret { color: #adb5bd; transition: transform 0.15s; }
+.caret { color: var(--c-faint); transition: transform 0.15s; }
 .user-info[aria-expanded="true"] .caret { transform: rotate(180deg); }
 
 .menu {
   position: absolute; top: calc(100% + 8px); right: 0; min-width: 168px; z-index: 1100;
-  background: #fff; border: 1px solid #e9ecef; border-radius: 14px; padding: 6px;
+  background: #fff; border: 1px solid var(--c-line); border-radius: 14px; padding: 6px;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
 }
 .menu-item {
   display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box;
   padding: 9px 12px; border: none; background: none; border-radius: 10px; cursor: pointer;
-  font-family: inherit; font-size: 0.85rem; font-weight: 700; color: #495057; text-decoration: none; text-align: left;
+  font-family: inherit; font-size: 0.85rem; font-weight: 700; color: var(--c-text-2); text-decoration: none; text-align: left;
 }
-.menu-item svg { color: #adb5bd; flex: none; }
+.menu-item svg { color: var(--c-faint); flex: none; }
 .menu-item:hover, .menu-item.on { background: var(--c-primary-soft); color: var(--c-primary-text); }
 .menu-item:hover svg, .menu-item.on svg { color: var(--c-primary-text); }
 .menu-item.logout:hover { background: #fff5f5; color: #fa5252; }
 .menu-item.logout:hover svg { color: #fa5252; }
-.menu-divider { height: 1px; background: #f1f3f5; margin: 4px 6px; }
+.menu-divider { height: 1px; background: var(--c-line-soft); margin: 4px 6px; }
 .menu-enter-active, .menu-leave-active { transition: opacity 0.12s, transform 0.12s; }
 .menu-enter-from, .menu-leave-to { opacity: 0; transform: translateY(-4px); }
-.name { font-weight: 700; font-size: 0.9rem; color: #495057; }
+.name { font-weight: 700; font-size: 0.9rem; color: var(--c-text-2); }
 @media (max-width: 640px) {
   .header-inner { padding: 0 16px; }
   .user-info { padding-right: 6px; }

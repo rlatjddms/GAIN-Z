@@ -137,16 +137,17 @@ const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.secon
 </script>
 
 <style scoped>
-.data-card { background: #fff; border: 1px solid #e9ecef; border-radius: 24px; padding: 24px; }
-.card-title { font-weight: 800; font-size: 0.85rem; margin-bottom: 18px; display: flex; justify-content: space-between; color: #495057; }
+/* 카드 모양·제목은 WsCard와 같게 */
+.data-card { background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: 20px 22px; }
+.card-title { font-weight: 800; font-size: 0.9rem; margin-bottom: 16px; display: flex; justify-content: space-between; color: #343a40; }
 
 .log-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
 .log-stat {
-  background: #f8f9fa; border: 1px solid #f1f3f5; border-radius: 12px; padding: 10px 12px;
+  background: var(--c-bg); border: 1px solid var(--c-line-soft); border-radius: 12px; padding: 10px 12px;
   display: flex; flex-direction: column; gap: 4px; min-width: 0;
 }
-.log-stat span { font-size: 0.7rem; font-weight: 700; color: #868e96; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.log-stat strong { font-size: 1rem; font-weight: 900; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-stat span { font-size: 0.7rem; font-weight: 700; color: var(--c-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-stat strong { font-size: 1rem; font-weight: 900; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .log-stat strong.empty { color: #ced4da; }
 .streak-stat { background: #fff4e6; border-color: #ffe8cc; }
 .streak-stat strong { color: #ff922b; }
@@ -158,9 +159,9 @@ const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.secon
   transition: opacity 0.2s;
 }
 .grass.loading { opacity: 0.4; }
-.g { display: block; aspect-ratio: 1; border-radius: 3px; background: #f1f3f5; }
+.g { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--c-line-soft); }
 .g.future { visibility: hidden; }
-.g.hover { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #868e96; }
+.g.hover { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--c-muted); }
 
 .tip {
   position: absolute; z-index: 5; pointer-events: none; white-space: nowrap;
@@ -171,7 +172,7 @@ const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.secon
 .tip strong { font-size: 0.75rem; font-weight: 900; }
 .tip span { color: #ced4da; }
 .tip span.done { color: #8ce99a; }
-.grass-legend { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
+.grass-legend { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 700; color: var(--c-faint); }
 .grass-legend .g { width: 10px; }
 .g.lv1 { background: var(--c-primary-line); }
 .g.lv2 { background: color-mix(in srgb, var(--c-primary) 55%, #fff); }

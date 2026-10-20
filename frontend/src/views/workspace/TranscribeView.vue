@@ -1,10 +1,6 @@
 <template>
-  <SubPageLayout>
+  <SubPageLayout title="AI TRANSCRIBE" name="AI 악보 만들기" subtitle="음원을 올리면 내 악기에 맞는 악보를 만들어 줘요">
     <div class="page">
-      <div class="page-head">
-        <h2>AI 악보 만들기</h2>
-        <p>음원을 올리면 내 악기에 맞는 악보를 만들어 줘요</p>
-      </div>
 
       <!-- 음원 업로드·분석: #52(기술 조사)·#53에서 연결 -->
       <WsCard title="음원 올리기" soon>
@@ -50,24 +46,15 @@ const STEPS = [
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 16px; }
-.page-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
-.page-head h2 { margin: 0; font-size: 1.3rem; font-weight: 900; }
-.page-head p { margin: 0; font-size: 0.85rem; font-weight: 700; color: #adb5bd; }
 
 .dropzone {
   border: 2px dashed var(--c-primary-line); background: var(--c-primary-soft); border-radius: 16px; padding: 36px 20px;
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
 }
 .drop-icon { margin-bottom: 4px; color: var(--c-faint); }
-.dropzone strong { font-size: 0.95rem; font-weight: 800; color: #495057; }
-.dropzone p { margin: 0 0 10px; font-size: 0.75rem; font-weight: 700; color: #adb5bd; }
+.dropzone strong { font-size: 0.95rem; font-weight: 800; color: var(--c-text-2); }
+.dropzone p { margin: 0 0 10px; font-size: 0.75rem; font-weight: 700; color: var(--c-faint); }
 
-.btn {
-  border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit;
-  font-weight: 800; font-size: 0.85rem; padding: 10px 18px; border-radius: 12px;
-}
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .steps { list-style: none; margin: 20px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .steps li { display: flex; gap: 10px; align-items: flex-start; }
@@ -76,10 +63,10 @@ const STEPS = [
   font-size: 0.75rem; font-weight: 900; display: flex; align-items: center; justify-content: center;
 }
 .steps strong { display: block; font-size: 0.85rem; font-weight: 800; margin-bottom: 2px; }
-.steps p { margin: 0; font-size: 0.75rem; color: #868e96; line-height: 1.5; }
+.steps p { margin: 0; font-size: 0.75rem; color: var(--c-muted); line-height: 1.5; }
 
 .text-btn { font-size: 0.75rem; font-weight: 800; color: var(--c-primary-text); text-decoration: none; }
-.empty { margin: 0; padding: 20px 0; text-align: center; font-size: 0.8rem; color: #adb5bd; }
+.empty { margin: 0; padding: 20px 0; text-align: center; font-size: 0.8rem; color: var(--c-faint); }
 
 @media (max-width: 760px) {
   .steps { grid-template-columns: 1fr; }

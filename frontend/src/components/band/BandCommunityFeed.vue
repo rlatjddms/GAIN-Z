@@ -76,7 +76,7 @@ const timeAgo = postTimeAgo
 .head-actions { display: flex; gap: 8px; }
 .mine-btn { border: 1px solid #dce2ed; background: white; color: #53627a; border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .mine-btn[aria-pressed=true] { background: var(--c-primary-soft); border-color: color-mix(in srgb, var(--c-primary) 55%, #fff); color: var(--c-primary-text); }
-.title { font-weight: 800; font-size: 0.85rem; color: #495057; display: flex; align-items: center; gap: 8px; }
+.title { font-weight: 800; font-size: 0.85rem; color: var(--c-text-2); display: flex; align-items: center; gap: 8px; }
 .write-btn {
   display: flex; align-items: center; gap: 7px;
   border: 1px solid var(--c-primary); background: #fff; color: var(--c-primary-text); border-radius: 10px; padding: 7px 14px;
@@ -86,7 +86,7 @@ const timeAgo = postTimeAgo
 
 .notice {
   cursor: pointer;
-  display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #e9ecef;
+  display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--c-line);
   border-radius: 16px; padding: 14px 18px; margin-bottom: 12px;
 }
 .notice-tag {
@@ -94,13 +94,13 @@ const timeAgo = postTimeAgo
 }
 .notice-body { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: baseline; }
 .notice-body strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; font-weight: 800; white-space: nowrap; }
-.notice-body span { font-size: 0.8rem; color: #868e96; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notice-body span { font-size: 0.8rem; color: var(--c-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notice-meta small { display: block; margin-top: 4px; color: #858e9b; font-size: 10px; font-weight: 400; }
-.notice-meta { flex-shrink: 0; font-size: 0.72rem; color: #adb5bd; font-weight: 600; }
+.notice-meta { flex-shrink: 0; font-size: 0.72rem; color: var(--c-faint); font-weight: 600; }
 
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .post {
-  background: #fff; border: 1px solid #e9ecef; border-radius: 20px; padding: 16px;
+  background: #fff; border: 1px solid var(--c-line); border-radius: 20px; padding: 16px;
   display: flex; flex-direction: column; gap: 8px; cursor: pointer;
   transition: 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -110,29 +110,29 @@ const timeAgo = postTimeAgo
 .post-body p { flex: 1; min-width: 0; }
 .who { display: flex; flex-direction: column; min-width: 0; }
 .who strong { font-size: 0.8rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.who span { font-size: 0.7rem; color: #adb5bd; }
+.who span { font-size: 0.7rem; color: var(--c-faint); }
 .post h3 {
   margin: 4px 0 0; font-size: 0.95rem; font-weight: 800; line-height: 1.35;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   overflow-wrap: anywhere;
 }
 .post p {
-  margin: 0; font-size: 0.8rem; color: #868e96; line-height: 1.55; overflow-wrap: anywhere;
+  margin: 0; font-size: 0.8rem; color: var(--c-muted); line-height: 1.55; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 .post footer {
   margin-top: auto; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  font-size: 0.72rem; color: #adb5bd; font-weight: 700;
+  font-size: 0.72rem; color: var(--c-faint); font-weight: 700;
 }
-.file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #495057; background: #f8f9fa; padding: 3px 8px; border-radius: 6px; }
+.file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--c-text-2); background: var(--c-bg); padding: 3px 8px; border-radius: 6px; }
 .comments { margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 5px; color: #52627a; }
 .file { display: flex; align-items: center; gap: 4px; }
-.post-total { color: #adb5bd; font-size: 11px; font-weight: 600; }
+.post-total { color: var(--c-faint); font-size: 11px; font-weight: 600; }
 .thumbnail-wrap { position: relative; flex: none; }
 .attachment-count { position: absolute; right: 5px; bottom: 5px; color: white; background: #17243bbb; padding: 3px 5px; border-radius: 5px; font-size: 10px; font-weight: 700; }
 .small-notice { color: var(--c-primary-text); font-size: 10px; margin-right: 6px; }
 .skeleton { min-height: 180px; background: linear-gradient(110deg, #fff, #f5f7fa, #fff); }
-.empty { text-align: center; color: #adb5bd; font-size: 0.85rem; padding: 32px 0; }
+.empty { text-align: center; color: var(--c-faint); font-size: 0.85rem; padding: 32px 0; }
 
 @media (max-width: 900px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

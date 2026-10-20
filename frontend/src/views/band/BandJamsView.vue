@@ -1,9 +1,9 @@
 <template>
-  <SubPageLayout pill="BAND">
+  <SubPageLayout pill="BAND" :back-to="{ path: '/home', query: { band: $route.params.id } }" back-label="합주실"
+                 :title="band ? 'LAYER JAM' : ''" name="레이어 잼" :subtitle="band ? `${band.name} · 각자 녹음한 파트를 한 겹씩 쌓아 비대면으로 합주해요` : ''">
     <p v-if="error" role="alert">{{ error }} <button class="btn" @click="loadBand">다시 불러오기</button></p>
     <p v-else-if="!band" class="muted">레이어 잼을 불러오는 중…</p>
     <div v-else class="page">
-      <header class="page-head"><h1>LAYER JAM</h1><p>{{ band.name }} · 각자 녹음한 파트를 한 겹씩 쌓아 비대면으로 합주해요.</p></header>
       <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
       <p v-if="notice" class="status" role="status">{{ notice }}</p>
       <div class="workspace">
@@ -36,7 +36,7 @@
             <button class="btn danger" :disabled="busy || recording" @click="askDelete({ kind: 'jam' })">삭제</button>
           </template>
           <div v-if="jamLoading" class="muted">잼을 불러오는 중…</div>
-          <div v-else-if="!jam" class="empty"><div class="empty-icon"><PixelIcon name="mic" :size="48" /></div><strong>잼을 골라 주세요</strong><p>멤버가 올린 트랙을 들으며 내 파트를 녹음해 쌓을 수 있어요.</p></div>
+          <EmptyState v-else-if="!jam" icon="mic" title="잼을 골라 주세요" text="멤버가 올린 트랙을 들으며 내 파트를 녹음해 쌓을 수 있어요." />
           <template v-else>
             <p class="jam-meta">{{ jam.bpm }} BPM<template v-if="jam.song"> · 셋리스트 <router-link :to="`/bands/${band.id}/setlists?item=${jam.song.setlistItemId}`">{{ jam.song.title }}</router-link></template> · {{ jam.creatorName || '멤버' }}님이 만듦</p>
             <details class="guide">
@@ -175,23 +175,24 @@
     <dialog ref="deleteDialog" class="jam-dialog" aria-labelledby="jam-delete-title">
       <h3 id="jam-delete-title">{{ deleteTarget?.kind === 'bulk' ? `잼 ${deleteTarget.ids.length}개를 삭제할까요?` : deleteTarget?.kind === 'jam' ? '잼을 삭제할까요?' : '트랙을 삭제할까요?' }}</h3>
       <p class="muted">{{ deleteTarget?.kind === 'track' ? '올린 녹음 파일이 지워져요.' : '잼의 모든 트랙이 함께 지워져요.' }}</p>
-      <div class="dialog-actions"><button class="btn" @click="deleteDialog.close()">취소</button><button class="btn danger" :disabled="busy" @click="confirmDelete">삭제</button></div>
+      <div class="dialog-actions"><button class="btn" @click="deleteDialog.close()">취소</button><button class="btn danger solid" :disabled="busy" @click="confirmDelete">삭제</button></div>
     </dialog>
   </SubPageLayout>
 </template>
 
 <script setup>
 import { SkipBack, FileUp, Mic, Headphones, Star } from 'lucide-vue-next'
-import PixelIcon from '../../components/PixelIcon.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
+import EmptyState from '../../components/ui/EmptyState.vue'
 import { getBand } from '../../api/band'
 import { listSetlists } from '../../api/setlist'
 import { createJam, deleteJam, deleteJamTrack, getJam, listJams, loadJamTrackFile, setJamFavorite, updateJam, updateJamTrack, uploadJamTrack } from '../../api/jam'
 import { apiErrorMessage } from '../../api/practice'
 import { useBandStore } from '../../stores/band'
+import { useDialogStore } from '../../stores/dialog'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { JamEngine } from '../../audio/JamEngine'
 import {
@@ -202,6 +203,7 @@ import {
 const LATENCY_KEY = 'gainz.jam.latencyMs'
 const route = useRoute()
 const router = useRouter()
+const dialog = useDialogStore()
 const store = useBandStore()
 const engine = new JamEngine()
 const band = ref(null), error = ref(''), saveError = ref(''), notice = ref(''), busy = ref(false)
@@ -274,12 +276,12 @@ async function loadBand() {
 
 /* ---------- 잼 고르기·트랙 불러오기 ---------- */
 
-function leaveAllowed() {
-  if (recording.value) return window.confirm('녹음 중이에요. 녹음을 버리고 나갈까요?')
-  return !take.value || window.confirm('올리지 않은 녹음이 있어요. 버릴까요?')
+async function leaveAllowed() {
+  if (recording.value) return dialog.confirm({ title: '녹음 중이에요', text: '녹음을 버리고 나갈까요?', okText: '버리고 나가기', danger: true })
+  return !take.value || dialog.confirm({ title: '올리지 않은 녹음이 있어요', text: '녹음을 버릴까요?', okText: '버리기', danger: true })
 }
 async function selectJam(id, force = false) {
-  if (!force && (id === selectedId.value || !leaveAllowed())) return
+  if (!force && (id === selectedId.value || !await leaveAllowed())) return
   if (recording.value) await cancelRecording()
   stopPlayback(true)
   discardTake()
@@ -412,7 +414,7 @@ async function measure() {
   finally { measuring.value = false }
 }
 async function startRecording() {
-  if (take.value && !window.confirm('올리지 않은 녹음을 버리고 다시 녹음할까요?')) return
+  if (take.value && !await dialog.confirm({ title: '다시 녹음할까요?', text: '올리지 않은 녹음은 버려져요.', okText: '다시 녹음', danger: true })) return
   discardTake()
   stopPlayback(true)
   saveError.value = notice.value = ''
@@ -450,7 +452,7 @@ async function pickFile(event) {
   const file = event.target.files[0]
   event.target.value = ''
   if (!file) return
-  if (take.value && !window.confirm('올리지 않은 트랙을 버리고 이 파일로 바꿀까요?')) return
+  if (take.value && !await dialog.confirm({ title: '이 파일로 바꿀까요?', text: '올리지 않은 트랙은 버려져요.', okText: '바꾸기', danger: true })) return
   saveError.value = notice.value = ''
   if (file.size > JAM_TRACK_MAX_BYTES) { saveError.value = '음원 파일은 30MB까지 올릴 수 있어요.'; return }
   stopPlayback()
@@ -461,8 +463,9 @@ async function pickFile(event) {
     notice.value = '파일을 불러왔어요. 재생해서 다른 트랙과 맞는지 들어 보고 올려 주세요.'
   } catch { saveError.value = '재생할 수 없는 파일이에요. MP3·WAV·M4A·OGG·WebM 파일을 골라 주세요.' }
 }
-function discardTake(ask = false) {
-  if (ask && !window.confirm('녹음을 버릴까요?')) return
+// ask가 없으면 바로(동기로) 버린다
+async function discardTake(ask = false) {
+  if (ask && !await dialog.confirm({ title: '녹음을 버릴까요?', okText: '버리기', danger: true })) return
   if (take.value && playing.value) stopPlayback()
   take.value = null
 }
@@ -602,81 +605,71 @@ onBeforeUnmount(() => {
 <style scoped>
 .page,.page *,.jam-dialog,.jam-dialog * { box-sizing:border-box; }
 .page { display:flex; flex-direction:column; gap:16px; }
-.page-head h1 { margin:0; font-size:1.3rem; font-weight:900; }
-.page-head p,.muted,.empty p { color:#868e96; font-size:.8rem; line-height:1.7; }
-.page-head p { margin:8px 0 0; }
-.save-error,.status { margin:0; padding:10px 14px; border-radius:10px; font-size:.8rem; background:var(--c-primary-soft); color:#495057; }
+.muted { color:var(--c-muted); font-size:.8rem; line-height:1.7; }
+.save-error,.status { margin:0; padding:10px 14px; border-radius:10px; font-size:.8rem; background:var(--c-primary-soft); color:var(--c-text-2); }
 .save-error { color:#c92a2a; background:#fff5f5; }
 .workspace { display:grid; grid-template-columns:250px minmax(0,1fr); gap:20px; align-items:start; }
 .sidebar,.detail { min-width:0; }
 .detail :deep(.ws-card-head) { align-items:center; flex-wrap:wrap; }
 .detail :deep(.ws-card-head h3) { min-width:0; overflow-wrap:anywhere; flex:1 1 160px; }
-.btn { display:inline-flex; justify-content:center; align-items:center; min-height:34px; border:1px solid #e9ecef; background:#fff; color:#495057; font-family:inherit; font-size:.76rem; font-weight:700; line-height:1.4; padding:8px 12px; border-radius:9px; cursor:pointer; text-align:center; }
-.btn.primary { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
-.btn:hover:not(:disabled) { background:#f8f9fa; }
-.btn.primary:hover:not(:disabled) { background:var(--c-primary-strong); }
 button:disabled { opacity:.4; cursor:default; }
 .danger { color:#e03131; }
-button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset:2px; }
-.add-jam { width:100%; margin-bottom:12px; background:#f8f9fa; border-style:dashed; }
+button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); outline-offset:2px; }
+.add-jam { width:100%; margin-bottom:12px; background:var(--c-bg); border-style:dashed; }
 .jam-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
 .jam-row { display:flex; align-items:center; gap:6px; }
 .jam-row input[type='checkbox'] { width:16px; height:16px; flex:none; }
 .jam-row .jam-link { flex:1; min-width:0; }
-.list-tools,.bulk-tools { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 12px; font-size:.73rem; color:#868e96; }
-.text-btn { display:inline-flex; align-items:center; gap:4px; border:0; background:transparent; padding:4px 0; font-family:inherit; font-size:.74rem; color:#495057; cursor:pointer; }
+.list-tools,.bulk-tools { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 12px; font-size:.73rem; color:var(--c-muted); }
+.text-btn { display:inline-flex; align-items:center; gap:4px; border:0; background:transparent; padding:4px 0; font-family:inherit; font-size:.74rem; color:var(--c-text-2); cursor:pointer; }
 .text-btn[aria-pressed='true'] { color:#f59f00; }
 .text-btn.danger { color:var(--c-danger); }
 .text-btn:disabled { opacity:.45; cursor:default; }
 .star { display:inline-flex; background:transparent; border:0; color:#ced4da; cursor:pointer; padding:3px; flex:none; }
 .star.on { color:#fab005; }
-.jam-link { width:100%; display:flex; flex-direction:column; gap:5px; padding:10px 12px; text-align:left; border:1px solid #e9ecef; border-radius:12px; background:#fff; font-family:inherit; color:#343a40; cursor:pointer; overflow-wrap:anywhere; }
-.jam-link.active { background:var(--c-primary-soft); border-color:#dce3f5; }
+.jam-link { width:100%; display:flex; flex-direction:column; gap:5px; padding:10px 12px; text-align:left; border:1px solid var(--c-line); border-radius:12px; background:#fff; font-family:inherit; color:#343a40; cursor:pointer; overflow-wrap:anywhere; }
+.jam-link.active { background:var(--c-primary-soft); border-color:var(--c-primary-line); }
 .jam-link strong { font-size:.79rem; }
-.jam-link span,.jam-link small { color:#868e96; font-size:.7rem; }
-.empty { display:flex; flex-direction:column; align-items:center; text-align:center; padding:36px 14px; border:1px dashed #e9ecef; border-radius:14px; gap:8px; }
-.empty-icon { color: var(--c-faint); }
-.empty strong { font-size:.9rem; color:#495057; }
-.empty p { margin:0; }
-.jam-meta { margin:0 0 14px; color:#868e96; font-size:.76rem; }
+.jam-link span,.jam-link small { color:var(--c-muted); font-size:.7rem; }
+.jam-meta { margin:0 0 14px; color:var(--c-muted); font-size:.76rem; }
 .jam-meta a { color: var(--c-primary-text); font-weight:700; text-decoration:none; }
-.transport { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:12px; background:#f8f9fa; border-radius:12px; }
+.transport { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:12px; background:var(--c-bg); border-radius:12px; }
 .play { min-width:84px; }
-.time { font-size:.78rem; color:#868e96; font-variant-numeric:tabular-nums; }
+.time { font-size:.78rem; color:var(--c-muted); font-variant-numeric:tabular-nums; }
 .time b { color:#343a40; }
 .seek { flex:1 1 160px; min-width:120px; accent-color:var(--c-primary); }
-.check { display:inline-flex; align-items:center; gap:6px; font-size:.76rem; color:#495057; cursor:pointer; }
+.check { display:inline-flex; align-items:center; gap:6px; font-size:.76rem; color:var(--c-text-2); cursor:pointer; }
 .tracks { list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:8px; }
-.track { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 16px; padding:12px 14px; border:1px solid #e9ecef; border-radius:12px; background:#fff; }
-.track.silent { background:#f8f9fa; }
+.track { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 16px; padding:12px 14px; border:1px solid var(--c-line); border-radius:12px; background:#fff; }
+.track.silent { background:var(--c-bg); }
 .track.silent .track-name { opacity:.55; }
 .track.take { border-color:#ffc9c9; background:#fff8f8; }
 .track-name { display:flex; flex-direction:column; gap:3px; min-width:120px; flex:1 1 140px; }
 .track-name strong { font-size:.8rem; color:#343a40; overflow-wrap:anywhere; }
-.track-name small { font-size:.7rem; color:#868e96; }
+.track-name small { font-size:.7rem; color:var(--c-muted); }
 .track-error { color:#e03131 !important; }
 .track-controls { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; }
-.toggle { width:30px; height:30px; border:1px solid #e9ecef; border-radius:8px; background:#fff; color:#868e96; font-family:inherit; font-weight:800; font-size:.75rem; cursor:pointer; }
+.toggle { width:30px; height:30px; border:1px solid var(--c-line); border-radius:8px; background:#fff; color:var(--c-muted); font-family:inherit; font-weight:800; font-size:.75rem; cursor:pointer; }
 .toggle.on { background:#ff6b6b; border-color:#ff6b6b; color:#fff; }
 .toggle.solo.on { background:#fab005; border-color:#fab005; }
-.volume,.offset,.latency label { display:flex; flex-direction:column; gap:3px; font-size:.68rem; color:#868e96; }
+.volume,.offset,.latency label { display:flex; flex-direction:column; gap:3px; font-size:.68rem; color:var(--c-muted); }
 .volume input { width:120px; accent-color:var(--c-primary); }
-.offset input { width:96px; border:1px solid #e9ecef; padding:5px 8px; border-radius:8px; font-family:inherit; font-size:.76rem; color:#343a40; outline:none; }
-.remove { border:0; background:transparent; color:#adb5bd; font-size:20px; cursor:pointer; padding:2px 6px; }
+.offset input { width:96px; border:1px solid var(--c-line); padding:5px 8px; border-radius:8px; font-family:inherit; font-size:.76rem; color:#343a40; outline:none; }
+.remove { border:0; background:transparent; color:var(--c-faint); font-size:20px; cursor:pointer; padding:2px 6px; }
 .remove:hover:not(:disabled) { color:#e03131; }
 .nudge { display:flex; align-items:flex-end; flex-wrap:wrap; gap:6px; }
 .nudge .btn { min-height:30px; padding:5px 9px; }
-.take-hint { flex-basis:100%; margin:0; font-size:.7rem; color:#868e96; }
+.take-hint { flex-basis:100%; margin:0; font-size:.7rem; color:var(--c-muted); }
 .take-actions { flex-basis:100%; display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:8px; }
-.no-tracks { padding:18px; text-align:center; border:1px dashed #e9ecef; border-radius:12px; }
-.recorder { margin-top:18px; padding:16px; border-radius:12px; background:#f8f9fa; display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+.no-tracks { padding:18px; text-align:center; border:1px dashed var(--c-line); border-radius:12px; }
+.recorder { margin-top:18px; padding:16px; border-radius:12px; background:var(--c-bg); display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
 .recorder h4 { margin:0; font-size:.85rem; color:#343a40; }
-.hint { margin:0; font-size:.74rem; color:#868e96; }
+.hint { margin:0; font-size:.74rem; color:var(--c-muted); }
 .latency { display:flex; flex-direction:column; align-items:flex-start; gap:6px; width:100%; max-width:420px; }
 .latency label { width:100%; }
 .latency label b { color:#343a40; }
 .latency input { width:100%; accent-color:var(--c-primary); }
-.latency small { font-size:.7rem; color:#868e96; }
+.latency small { font-size:.7rem; color:var(--c-muted); }
 .record-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
 .record { color:#e03131; border-color:#ffc9c9; }
 .record.on { background:#e03131; border-color:#e03131; color:#fff; }
@@ -684,40 +677,39 @@ button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset
 .record:hover:not(:disabled) { background:#fff5f5; }
 .record.on:hover:not(:disabled) { background:#c92a2a; border-color:#c92a2a; }
 .rec-time { font-size:.78rem; color:#e03131; font-weight:700; font-variant-numeric:tabular-nums; }
-.jam-dialog { width:min(420px, calc(100vw - 32px)); border:0; border-radius:16px; padding:22px; font-family:'Pretendard', sans-serif; color:#343a40; }
-.jam-dialog::backdrop { background:rgba(33,37,41,.35); }
+.jam-dialog { width:min(420px, calc(100vw - 32px)); border:0; border-radius:var(--radius-xl); padding:24px; font-family:var(--font-sans); color:var(--c-text); box-shadow:var(--shadow-lg); }
+.jam-dialog::backdrop { background:rgba(15,23,42,.45); }
 .jam-dialog h3 { margin:0 0 14px; font-size:1rem; }
 .jam-dialog form { display:flex; flex-direction:column; gap:12px; }
-.jam-dialog label { display:flex; flex-direction:column; gap:6px; font-size:.75rem; color:#868e96; }
-.jam-dialog input,.jam-dialog select { width:100%; border:1px solid #e9ecef; padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; outline:none; box-shadow:none; }
-.jam-dialog input::placeholder { color:#adb5bd; opacity:1; }
+.jam-dialog label { display:flex; flex-direction:column; gap:6px; font-size:.75rem; color:var(--c-muted); }
+.jam-dialog input,.jam-dialog select { width:100%; border:1px solid var(--c-line); padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; outline:none; box-shadow:none; }
+.jam-dialog input::placeholder { color:var(--c-faint); opacity:1; }
 /* 입력칸은 다른 화면처럼 테두리 색만 바꾼다 */
-.offset input:focus,.jam-dialog input:focus,.jam-dialog select:focus { border-color:#adb5bd; outline:none; box-shadow:none; }
-.dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:6px; }
-.guide { margin:0 0 14px; padding:10px 14px; border:1px solid #e9ecef; border-radius:12px; font-size:.76rem; color:#495057; }
+.offset input:focus,.jam-dialog input:focus,.jam-dialog select:focus { border-color:var(--c-primary); outline:none; box-shadow:none; }
+.guide { margin:0 0 14px; padding:10px 14px; border:1px solid var(--c-line); border-radius:12px; font-size:.76rem; color:var(--c-text-2); }
 .guide summary { cursor:pointer; font-weight:700; color: var(--c-primary-text); }
 .guide ol { margin:10px 0 2px; padding-left:20px; display:flex; flex-direction:column; gap:6px; line-height:1.6; }
-.legend { list-style:none; margin:12px 0 0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 14px; font-size:.72rem; color:#868e96; }
+.legend { list-style:none; margin:12px 0 0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 14px; font-size:.72rem; color:var(--c-muted); }
 .legend li { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
-.legend .legend-note { color:#adb5bd; }
+.legend .legend-note { color:var(--c-faint); }
 .toggle-chip { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:#ff6b6b; color:#fff; font-weight:800; font-size:.65rem; }
 .toggle-chip.solo { background:#fab005; }
 .add-ways { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:100%; }
-.way { display:flex; flex-direction:column; align-items:flex-start; gap:8px; min-width:0; padding:14px; border-radius:10px; background:#fff; border:1px solid #e9ecef; }
+.way { display:flex; flex-direction:column; align-items:flex-start; gap:8px; min-width:0; padding:14px; border-radius:10px; background:#fff; border:1px solid var(--c-line); }
 .way > strong { font-size:.8rem; color:#343a40; }
 .file-picker { position:relative; overflow:hidden; }
 .file-picker input { position:absolute; inset:0; opacity:0; cursor:pointer; }
 .file-picker.disabled { opacity:.4; }
-.file-picker:focus-within { outline:2px solid #adb5bd; outline-offset:2px; }
+.file-picker:focus-within { outline:2px solid var(--c-primary-line); outline-offset:2px; }
 .song-picker { margin:0; padding:0; border:0; min-width:0; display:flex; flex-direction:column; gap:8px; }
-.song-picker legend { padding:0; margin-bottom:6px; font-size:.75rem; color:#868e96; }
+.song-picker legend { padding:0; margin-bottom:6px; font-size:.75rem; color:var(--c-muted); }
 .picked { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px; background:var(--c-primary-soft); font-size:.78rem; color:#343a40; }
-.picked small { color:#868e96; }
-.text-btn { border:0; background:transparent; padding:2px 0; font-family:inherit; font-size:.74rem; color:#868e96; cursor:pointer; flex-shrink:0; }
-.song-results { list-style:none; margin:0; padding:4px; border:1px solid #e9ecef; border-radius:10px; }
+.picked small { color:var(--c-muted); }
+.text-btn { border:0; background:transparent; padding:2px 0; font-family:inherit; font-size:.74rem; color:var(--c-muted); cursor:pointer; flex-shrink:0; }
+.song-results { list-style:none; margin:0; padding:4px; border:1px solid var(--c-line); border-radius:10px; }
 .song-option { width:100%; display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:8px 10px; border:0; border-radius:8px; background:transparent; font-family:inherit; text-align:left; cursor:pointer; color:#343a40; font-size:.78rem; }
 .song-option span { min-width:0; overflow-wrap:anywhere; }
-.song-option small { color:#868e96; font-size:.7rem; flex-shrink:0; }
+.song-option small { color:var(--c-muted); font-size:.7rem; flex-shrink:0; }
 .song-option:hover,.song-option:focus-visible { background:var(--c-primary-soft); }
 .more { margin:0; font-size:.72rem; }
 @media (max-width:760px) {

@@ -1,131 +1,135 @@
 <template>
-  <SubPageLayout pill="BAND">
+  <SubPageLayout pill="BAND" :back-to="{ path: '/home', query: { band: $route.params.id } }" back-label="합주실"
+                 :title="band ? 'BAND SETTINGS' : ''" name="밴드 설정"
+                 :subtitle="band ? `${band.name} · ${isLeader ? '리더는 밴드 정보와 멤버를 관리할 수 있어요' : '내 파트를 바꾸거나 밴드를 나갈 수 있어요'}` : ''">
     <p v-if="loadError" class="state">{{ loadError }}</p>
     <p v-else-if="!band" class="state">밴드를 불러오는 중…</p>
 
     <template v-else>
-      <header class="page-head">
-        <h1>{{ band.name }} 밴드 설정</h1>
-        <p>{{ isLeader ? '리더는 밴드 정보와 멤버를 관리할 수 있어요.' : '내 파트를 바꾸거나 밴드를 나갈 수 있어요.' }}</p>
-      </header>
-
       <p v-if="notice" class="notice" :class="{ bad: noticeBad }">{{ notice }}</p>
 
-      <!-- 밴드 정보 -->
-      <section class="card">
-        <h2>밴드 정보</h2>
-        <form v-if="isLeader" @submit.prevent="saveInfo">
-          <label class="field">
-            <span>밴드 이름</span>
-            <input v-model="name" type="text" :maxlength="BAND_NAME_MAX" :disabled="busy">
-          </label>
-          <label class="field">
-            <span>소개</span>
-            <textarea v-model="description" rows="2" :maxlength="BAND_DESCRIPTION_MAX" :disabled="busy"
-                      placeholder="밴드 소개를 입력해주세요"></textarea>
-          </label>
-          <div class="row-end">
-            <button type="submit" class="btn primary" :disabled="busy || !infoChanged || !name.trim()">저장</button>
-          </div>
-        </form>
-        <dl v-else class="info">
-          <dt>이름</dt><dd>{{ band.name }}</dd>
-          <dt>소개</dt><dd>{{ band.description || '소개가 없어요.' }}</dd>
-        </dl>
-      </section>
-
-      <!-- 초대 코드 -->
-      <section class="card">
-        <h2>초대 코드</h2>
-        <p class="desc">이 코드를 받은 사람은 홈 BAND 탭의 <strong>+</strong> 에서 밴드에 들어올 수 있어요. (최대 {{ MAX_BAND_MEMBERS }}명)</p>
-        <div class="code-row">
-          <span class="code">{{ band.inviteCode }}</span>
-          <button class="btn" :disabled="busy" @click="copyCode">{{ copied ? '복사됨' : '복사' }}</button>
-          <button v-if="isLeader" class="btn" :disabled="busy" @click="regenerate">새 코드 받기</button>
-        </div>
-      </section>
-
-      <!-- 멤버 -->
-      <section class="card">
-        <h2>멤버 <span class="count">{{ band.members.length }} / {{ MAX_BAND_MEMBERS }}</span></h2>
-        <ul class="members">
-          <li v-for="m in band.members" :key="m.memberId" class="member" :class="{ me: m.me }">
-            <div class="avatar" :class="{ clickable: !m.me }" @click="openProfile(m)">
-              <PixelCharacter :character="looks[m.memberId]"
-                              :outfit="m.character?.currentOutfitSpriteKey || 'DEFAULT'" :scale="2" :animate="false" />
-            </div>
-            <div class="who" :class="{ clickable: !m.me }" :title="m.me ? '' : '프로필 보기'" @click="openProfile(m)">
-              <strong>
-                <Crown v-if="m.position === 'LEADER'" class="crown" :size="12" :stroke-width="2.4" aria-label="리더" />{{ m.character?.nickname || '알 수 없는 멤버' }}
-                <em v-if="m.me">나</em>
-                <em v-else-if="friendOf(m) === 'FRIEND'" class="friend">친구</em>
-                <em v-else-if="friendOf(m) === 'SENT'" class="muted">신청함</em>
-              </strong>
-              <span>Lv.{{ m.character?.level ?? 1 }}</span>
-            </div>
-
-            <!-- 파트: 본인이나 리더만 바꿀 수 있다 -->
-            <select v-if="m.me || isLeader" class="part-select" :value="m.part" :disabled="busy" title="파트 바꾸기"
-                    @change="changePart(m, $event.target.value)">
-              <option v-for="o in INSTRUMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-            </select>
-            <span v-else class="part-text">{{ partName(m.part) }}</span>
-
-            <!-- 리더: 친구 신청·리더 넘기기·내보내기를 더보기 메뉴로 / 멤버: 친구 신청 버튼 하나 -->
-            <div v-if="isLeader && !m.me" class="more" :class="{ open: moreId === m.memberId }">
-              <button class="more-btn" title="더보기" aria-haspopup="menu" :aria-expanded="moreId === m.memberId"
-                      :disabled="busy || friendBusyId === m.userId" @click.stop="moreId = moreId === m.memberId ? null : m.memberId">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>
-              </button>
-              <div v-if="moreId === m.memberId" class="more-menu" role="menu">
-                <button v-if="friendOf(m) === 'RECEIVED'" class="more-item" role="menuitem" @click="moreId = null; acceptMate(m)">친구 수락</button>
-                <button v-else-if="friendOf(m) === 'NONE'" class="more-item" role="menuitem" @click="moreId = null; requestMate(m)">친구 신청</button>
-                <button class="more-item" role="menuitem" @click="moreId = null; makeLeader(m)">리더 넘기기</button>
-                <button class="more-item danger" role="menuitem" @click="moreId = null; kick(m)">내보내기</button>
+      <!-- 넓은 화면: 왼쪽 멤버·배경, 오른쪽 밴드 정보·초대 코드·나가기 -->
+      <div class="columns">
+      <div class="col">
+        <!-- 멤버 -->
+        <section class="card">
+          <h2>멤버 <span class="count">{{ band.members.length }} / {{ MAX_BAND_MEMBERS }}</span></h2>
+          <ul class="members">
+            <li v-for="m in band.members" :key="m.memberId" class="member" :class="{ me: m.me }">
+              <div class="avatar" :class="{ clickable: !m.me }" @click="openProfile(m)">
+                <PixelCharacter :character="looks[m.memberId]"
+                                :outfit="m.character?.currentOutfitSpriteKey || 'DEFAULT'" :scale="2" :animate="false" />
               </div>
+              <div class="who" :class="{ clickable: !m.me }" :title="m.me ? '' : '프로필 보기'" @click="openProfile(m)">
+                <strong>
+                  <Crown v-if="m.position === 'LEADER'" class="crown" :size="12" :stroke-width="2.4" aria-label="리더" />{{ m.character?.nickname || '알 수 없는 멤버' }}
+                  <em v-if="m.me">나</em>
+                  <em v-else-if="friendOf(m) === 'FRIEND'" class="friend">친구</em>
+                  <em v-else-if="friendOf(m) === 'SENT'" class="muted">신청함</em>
+                </strong>
+                <span>Lv.{{ m.character?.level ?? 1 }}</span>
+              </div>
+
+              <!-- 파트: 본인이나 리더만 바꿀 수 있다 -->
+              <select v-if="m.me || isLeader" class="part-select" :value="m.part" :disabled="busy" title="파트 바꾸기"
+                      @change="changePart(m, $event.target.value)">
+                <option v-for="o in INSTRUMENT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+              </select>
+              <span v-else class="part-text">{{ partName(m.part) }}</span>
+
+              <!-- 리더: 친구 신청·리더 넘기기·내보내기를 더보기 메뉴로 / 멤버: 친구 신청 버튼 하나 -->
+              <div v-if="isLeader && !m.me" class="more" :class="{ open: moreId === m.memberId }">
+                <button class="more-btn" title="더보기" aria-haspopup="menu" :aria-expanded="moreId === m.memberId"
+                        :disabled="busy || friendBusyId === m.userId" @click.stop="moreId = moreId === m.memberId ? null : m.memberId">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>
+                </button>
+                <div v-if="moreId === m.memberId" class="more-menu" role="menu">
+                  <button v-if="friendOf(m) === 'RECEIVED'" class="more-item" role="menuitem" @click="moreId = null; acceptMate(m)">친구 수락</button>
+                  <button v-else-if="friendOf(m) === 'NONE'" class="more-item" role="menuitem" @click="moreId = null; requestMate(m)">친구 신청</button>
+                  <button class="more-item" role="menuitem" @click="moreId = null; makeLeader(m)">리더 넘기기</button>
+                  <button class="more-item danger" role="menuitem" @click="moreId = null; kick(m)">내보내기</button>
+                </div>
+              </div>
+              <button v-else-if="!m.me && friendOf(m) === 'RECEIVED'" class="mini primary" :disabled="friendBusyId === m.userId"
+                      @click="acceptMate(m)">친구 수락</button>
+              <button v-else-if="!m.me && friendOf(m) === 'NONE'" class="mini primary" :disabled="friendBusyId === m.userId"
+                      @click="requestMate(m)">{{ friendBusyId === m.userId ? '보내는 중…' : '친구 신청' }}</button>
+            </li>
+          </ul>
+        </section>
+
+        <!-- 합주실 배경 -->
+        <section class="card">
+          <h2>합주실 배경</h2>
+          <p class="desc">{{ isLeader ? '홈 BAND 탭 합주실 무대의 배경이에요. 누르면 바로 바뀌어요.' : '리더가 고른 합주실 배경이에요.' }}</p>
+          <div class="stages">
+            <button v-for="st in BAND_STAGES" :key="st.key" type="button" class="stage-option"
+                    :class="{ active: currentStage === st.key }" :disabled="busy || !isLeader"
+                    :aria-pressed="currentStage === st.key" @click="changeStage(st.key)">
+              <img :src="st.background" :alt="`${st.name} 배경`">
+              <span>{{ st.name }}<Check v-if="currentStage === st.key" class="stage-check" :size="13" :stroke-width="3" /></span>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <div class="col">
+        <!-- 밴드 정보 -->
+        <section class="card">
+          <h2>밴드 정보</h2>
+          <form v-if="isLeader" @submit.prevent="saveInfo">
+            <label class="field">
+              <span>밴드 이름</span>
+              <input v-model="name" type="text" :maxlength="BAND_NAME_MAX" :disabled="busy">
+            </label>
+            <label class="field">
+              <span>소개</span>
+              <textarea v-model="description" rows="2" :maxlength="BAND_DESCRIPTION_MAX" :disabled="busy"
+                        placeholder="밴드 소개를 입력해주세요"></textarea>
+            </label>
+            <div class="row-end">
+              <button type="submit" class="btn primary" :disabled="busy || !infoChanged || !name.trim()">저장</button>
             </div>
-            <button v-else-if="!m.me && friendOf(m) === 'RECEIVED'" class="mini primary" :disabled="friendBusyId === m.userId"
-                    @click="acceptMate(m)">친구 수락</button>
-            <button v-else-if="!m.me && friendOf(m) === 'NONE'" class="mini primary" :disabled="friendBusyId === m.userId"
-                    @click="requestMate(m)">{{ friendBusyId === m.userId ? '보내는 중…' : '친구 신청' }}</button>
-          </li>
-        </ul>
-      </section>
+          </form>
+          <dl v-else class="info">
+            <dt>이름</dt><dd>{{ band.name }}</dd>
+            <dt>소개</dt><dd>{{ band.description || '소개가 없어요.' }}</dd>
+          </dl>
+        </section>
 
-      <!-- 합주실 배경 -->
-      <section class="card">
-        <h2>합주실 배경</h2>
-        <p class="desc">{{ isLeader ? '홈 BAND 탭 합주실 무대의 배경이에요. 누르면 바로 바뀌어요.' : '리더가 고른 합주실 배경이에요.' }}</p>
-        <div class="stages">
-          <button v-for="st in BAND_STAGES" :key="st.key" type="button" class="stage-option"
-                  :class="{ active: currentStage === st.key }" :disabled="busy || !isLeader"
-                  :aria-pressed="currentStage === st.key" @click="changeStage(st.key)">
-            <img :src="st.background" :alt="`${st.name} 배경`">
-            <span>{{ st.name }}<Check v-if="currentStage === st.key" class="stage-check" :size="13" :stroke-width="3" /></span>
-          </button>
-        </div>
-      </section>
+        <!-- 초대 코드 -->
+        <section class="card">
+          <h2>초대 코드</h2>
+          <p class="desc">이 코드를 받은 사람은 홈 BAND 탭의 <strong>+</strong> 에서 밴드에 들어올 수 있어요. (최대 {{ MAX_BAND_MEMBERS }}명)</p>
+          <div class="code-row">
+            <span class="code">{{ band.inviteCode }}</span>
+            <button class="btn" :disabled="busy" @click="copyCode">{{ copied ? '복사됨' : '복사' }}</button>
+            <button v-if="isLeader" class="btn" :disabled="busy" @click="regenerate">새 코드 받기</button>
+          </div>
+        </section>
 
-      <!-- 나가기 / 없애기 -->
-      <section class="card danger-zone">
-        <h2>밴드 나가기{{ isLeader ? ' · 없애기' : '' }}</h2>
-        <template v-if="isLeader">
-          <p class="desc">
-            리더는 다른 멤버에게 리더를 넘긴 뒤에 나갈 수 있어요. 밴드를 없애면 모든 멤버가 밴드에서 빠져요.
-          </p>
-          <div class="row-end">
-            <button class="btn" :disabled="busy || band.members.length > 1"
-                    :title="band.members.length > 1 ? '먼저 리더를 넘겨 주세요' : ''" @click="leave">밴드 나가기</button>
-            <button class="btn danger" :disabled="busy" @click="removeBand">밴드 없애기</button>
-          </div>
-        </template>
-        <template v-else>
-          <p class="desc">나가면 초대 코드로 다시 들어올 수 있어요.</p>
-          <div class="row-end">
-            <button class="btn danger" :disabled="busy" @click="leave">밴드 나가기</button>
-          </div>
-        </template>
-      </section>
+        <!-- 나가기 / 없애기 -->
+        <section class="card danger-zone">
+          <h2>밴드 나가기{{ isLeader ? ' · 없애기' : '' }}</h2>
+          <template v-if="isLeader">
+            <p class="desc">
+              리더는 다른 멤버에게 리더를 넘긴 뒤에 나갈 수 있어요. 밴드를 없애면 모든 멤버가 밴드에서 빠져요.
+            </p>
+            <div class="row-end">
+              <button class="btn" :disabled="busy || band.members.length > 1"
+                      :title="band.members.length > 1 ? '먼저 리더를 넘겨 주세요' : ''" @click="leave">밴드 나가기</button>
+              <button class="btn danger" :disabled="busy" @click="removeBand">밴드 없애기</button>
+            </div>
+          </template>
+          <template v-else>
+            <p class="desc">나가면 초대 코드로 다시 들어올 수 있어요.</p>
+            <div class="row-end">
+              <button class="btn danger" :disabled="busy" @click="leave">밴드 나가기</button>
+            </div>
+          </template>
+        </section>
+      </div>
+      </div>
     </template>
     <ProfileModal :user-id="profileUserId" can-request @close="profileUserId = null" @changed="loadFriendState" @remove="removeFromProfile" />
   </SubPageLayout>
@@ -146,10 +150,12 @@ import { apiErrorMessage } from '../../api/practice'
 import { getFriends, getSentRequests, getReceivedRequests, sendFriendRequestToBandMate, acceptFriendRequest, removeFriend } from '../../api/friend'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { useBandStore } from '../../stores/band'
+import { useDialogStore } from '../../stores/dialog'
 import { BAND_STAGES, DEFAULT_BAND_STAGE } from '../../constants/bandStage'
 
 const route = useRoute()
 const router = useRouter()
+const dialog = useDialogStore()
 const bandStore = useBandStore()
 const bandId = Number(route.params.id)
 
@@ -229,7 +235,7 @@ const profileUserId = ref(null)
 const openProfile = (m) => { if (!m.me) profileUserId.value = m.userId }
 
 const removeFromProfile = async (profile) => {
-  if (!window.confirm(`${profile.name} 님을 친구에서 삭제할까요?`)) return
+  if (!await dialog.confirm({ title: `${profile.name} 님을 친구에서 삭제할까요?`, okText: '삭제', danger: true })) return
   try {
     await removeFriend(profile.userId)
     profileUserId.value = null
@@ -289,8 +295,8 @@ const changeStage = (key) => {
   run(async () => apply(await updateBandStage(bandId, key)), '합주실 배경을 바꿨어요.', '배경을 바꾸지 못했어요.')
 }
 
-const regenerate = () => {
-  if (!window.confirm('새 초대 코드를 받을까요? 지금 코드는 더 이상 쓸 수 없어요.')) return
+const regenerate = async () => {
+  if (!await dialog.confirm({ title: '새 초대 코드를 받을까요?', text: '지금 코드는 더 이상 쓸 수 없어요.', okText: '새 코드 받기' })) return
   run(async () => apply(await regenerateInviteCode(bandId)), '새 초대 코드를 받았어요.', '코드를 바꾸지 못했어요.')
 }
 
@@ -301,13 +307,13 @@ const changePart = (m, part) => {
 
 const nick = (m) => m.character?.nickname || '이 멤버'
 
-const makeLeader = (m) => {
-  if (!window.confirm(`${nick(m)}에게 리더를 넘길까요? 넘기면 나는 일반 멤버가 돼요.`)) return
+const makeLeader = async (m) => {
+  if (!await dialog.confirm({ title: `${nick(m)}에게 리더를 넘길까요?`, text: '넘기면 나는 일반 멤버가 돼요.', okText: '리더 넘기기' })) return
   run(async () => apply(await transferLeader(bandId, m.memberId)), `${nick(m)}이(가) 새 리더가 됐어요.`, '리더를 넘기지 못했어요.')
 }
 
-const kick = (m) => {
-  if (!window.confirm(`${nick(m)}을(를) 밴드에서 내보낼까요?`)) return
+const kick = async (m) => {
+  if (!await dialog.confirm({ title: `${nick(m)}을(를) 밴드에서 내보낼까요?`, okText: '내보내기', danger: true })) return
   run(async () => apply(await removeMember(bandId, m.memberId)), `${nick(m)}을(를) 내보냈어요.`, '내보내지 못했어요.')
 }
 
@@ -316,18 +322,18 @@ const goHome = () => {
   router.push('/home')
 }
 
-const leave = () => {
-  if (!window.confirm(`${band.value.name}에서 나갈까요?`)) return
+const leave = async () => {
+  if (!await dialog.confirm({ title: `${band.value.name}에서 나갈까요?`, okText: '나가기', danger: true })) return
   run(async () => { await leaveBand(bandId); goHome() }, null, '밴드를 나가지 못했어요.')
 }
 
-const removeBand = () => {
-  const typed = window.prompt(`밴드를 없애면 되돌릴 수 없어요. 확인을 위해 밴드 이름(${band.value.name})을 입력해 주세요.`)
+const removeBand = async () => {
+  // 밴드 이름을 똑같이 적어야 확인을 누를 수 있다
+  const typed = await dialog.prompt({
+    title: '밴드를 없앨까요?', text: `되돌릴 수 없어요. 확인을 위해 밴드 이름(${band.value.name})을 입력해 주세요.`,
+    placeholder: band.value.name, match: band.value.name, okText: '밴드 없애기', danger: true,
+  })
   if (typed === null) return
-  if (typed.trim() !== band.value.name) {
-    say('밴드 이름이 달라서 없애지 않았어요.', true)
-    return
-  }
   run(async () => { await deleteBand(bandId); goHome() }, null, '밴드를 없애지 못했어요.')
 }
 
@@ -340,7 +346,7 @@ const copyCode = async () => {
     clearTimeout(copiedTimer)
     copiedTimer = setTimeout(() => { copied.value = false }, 1500)
   } catch {
-    window.prompt('초대 코드를 복사해 주세요', band.value.inviteCode)
+    dialog.prompt({ title: '초대 코드를 복사해 주세요', value: band.value.inviteCode, readonly: true, okText: '닫기' })
   }
 }
 onBeforeUnmount(() => clearTimeout(copiedTimer))
@@ -349,9 +355,12 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 
 <style scoped>
 * { box-sizing: border-box; }
-.state { color: #868e96; font-size: 0.9rem; }
-.page-head h1 { margin: 0 0 4px; font-size: 1.4rem; font-weight: 900; }
-.page-head p { margin: 0 0 20px; font-size: 0.85rem; color: #868e96; }
+.state { color: var(--c-muted); font-size: 0.9rem; }
+.columns { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 860px) {
+  .columns { grid-template-columns: minmax(0, 1fr); }
+}
 
 .notice {
   margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; font-size: 0.85rem; font-weight: 700;
@@ -360,45 +369,36 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 .notice.bad { background: #fff5f5; color: #e03131; }
 
 .card {
-  background: #fff; border: 1px solid #e9ecef; border-radius: 24px; padding: 24px; margin-bottom: 16px;
+  background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: 20px 22px;
 }
-.card h2 { margin: 0 0 14px; font-size: 0.95rem; font-weight: 900; display: flex; align-items: center; gap: 8px; }
-.count { font-size: 0.75rem; color: #adb5bd; font-weight: 800; }
-.desc { margin: 0 0 14px; font-size: 0.8rem; color: #868e96; line-height: 1.6; }
+/* 카드 제목은 WsCard와 같게 */
+.card h2 { margin: 0 0 16px; font-size: 0.9rem; font-weight: 800; color: #343a40; display: flex; align-items: center; gap: 8px; }
+.count { font-size: 0.75rem; color: var(--c-faint); font-weight: 800; }
+.desc { margin: 0 0 14px; font-size: 0.8rem; color: var(--c-muted); line-height: 1.6; }
 
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-.field span { font-size: 0.75rem; font-weight: 800; color: #495057; }
+.field span { font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }
 .field input, .field textarea {
-  border: 1px solid #e9ecef; border-radius: 12px; padding: 11px 14px; font-family: inherit;
-  font-size: 0.9rem; outline: none; background: #f8f9fa; resize: none;
+  border: 1px solid var(--c-line); border-radius: 12px; padding: 11px 14px; font-family: inherit;
+  font-size: 0.9rem; outline: none; background: var(--c-bg); resize: none;
 }
 .field input:focus, .field textarea:focus { border-color: var(--c-primary); background: #fff; }
 
 .info { display: grid; grid-template-columns: 56px 1fr; gap: 8px; margin: 0; font-size: 0.88rem; }
-.info dt { color: #868e96; font-weight: 800; font-size: 0.78rem; }
+.info dt { color: var(--c-muted); font-weight: 800; font-size: 0.78rem; }
 .info dd { margin: 0; }
 
 .row-end { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-.btn {
-  border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
-  font-weight: 800; font-size: 0.85rem; padding: 10px 16px; border-radius: 12px; font-family: inherit;
-}
-.btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn.primary:hover:not(:disabled) { background: var(--c-primary-strong); color: #fff; }
-.btn.danger { border-color: #ffc9c9; color: #e03131; }
-.btn.danger:hover:not(:disabled) { background: #fff5f5; border-color: #e03131; color: #e03131; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .code-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .code {
   font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.3rem; font-weight: 900; letter-spacing: 4px;
-  background: #f1f3f5; padding: 8px 14px; border-radius: 12px; margin-right: 4px;
+  background: var(--c-line-soft); padding: 8px 14px; border-radius: 12px; margin-right: 4px;
 }
 
 .members { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .member {
-  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: #f8f9fa;
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: var(--c-bg);
   flex-wrap: wrap;
 }
 .member.me { background: var(--c-primary-soft); }
@@ -411,38 +411,38 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
   border: 1px solid var(--c-primary-line); padding: 1px 6px; border-radius: 6px; margin-left: 4px; vertical-align: 1px;
 }
 .who em.friend { color: #2f9e44; border-color: #b2f2bb; }
-.who em.muted { color: #868e96; border-color: #dee2e6; }
-.who span { font-size: 0.72rem; color: #868e96; }
+.who em.muted { color: var(--c-muted); border-color: #dee2e6; }
+.who span { font-size: 0.72rem; color: var(--c-muted); }
 .avatar.clickable, .who.clickable { cursor: pointer; }
 .who.clickable:hover strong { color: var(--c-primary-text); }
 .part-select {
-  border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 7px 10px; font-family: inherit;
-  font-size: 0.8rem; font-weight: 700; color: #495057; cursor: pointer;
+  border: 1px solid var(--c-line); background: #fff; border-radius: 10px; padding: 7px 10px; font-family: inherit;
+  font-size: 0.8rem; font-weight: 700; color: var(--c-text-2); cursor: pointer;
 }
 .part-select:disabled { cursor: default; opacity: 0.7; }
-.part-text { font-size: 0.8rem; font-weight: 700; color: #495057; padding: 0 4px; }
+.part-text { font-size: 0.8rem; font-weight: 700; color: var(--c-text-2); padding: 0 4px; }
 .more { position: relative; flex: none; }
 .more-btn {
   display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;
-  border: none; background: none; border-radius: 8px; cursor: pointer; color: #adb5bd; transition: 0.15s;
+  border: none; background: none; border-radius: 8px; cursor: pointer; color: var(--c-faint); transition: 0.15s;
 }
-.more-btn:hover:not(:disabled), .more.open .more-btn { background: #e9ecef; color: #495057; }
+.more-btn:hover:not(:disabled), .more.open .more-btn { background: var(--c-line); color: var(--c-text-2); }
 .more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .more-menu {
   position: absolute; top: calc(100% + 4px); right: 0; z-index: 10; min-width: 120px;
-  background: #fff; border: 1px solid #e9ecef; border-radius: 12px; padding: 4px;
+  background: #fff; border: 1px solid var(--c-line); border-radius: 12px; padding: 4px;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
 }
 .more-item {
   display: block; width: 100%; padding: 8px 10px; border: none; background: none; border-radius: 8px; cursor: pointer;
-  font-family: inherit; font-size: 0.8rem; font-weight: 700; color: #495057; text-align: left; white-space: nowrap;
+  font-family: inherit; font-size: 0.8rem; font-weight: 700; color: var(--c-text-2); text-align: left; white-space: nowrap;
 }
-.more-item:hover { background: #f1f3f5; }
+.more-item:hover { background: var(--c-line-soft); }
 .more-item.danger { color: #e03131; }
 .more-item.danger:hover { background: #fff5f5; }
 .mini {
-  border: 1px solid #e9ecef; background: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer;
-  font-family: inherit; font-size: 0.72rem; font-weight: 800; color: #495057;
+  border: 1px solid var(--c-line); background: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer;
+  font-family: inherit; font-size: 0.72rem; font-weight: 800; color: var(--c-text-2);
 }
 .mini:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .mini.primary { color: var(--c-primary-text); border-color: var(--c-primary-line); background: var(--c-primary-soft); }
@@ -455,14 +455,14 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 
 .stages { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .stage-option {
-  border: 2px solid #e9ecef; background: #fff; border-radius: 14px; padding: 6px; cursor: pointer;
+  border: 2px solid var(--c-line); background: #fff; border-radius: 14px; padding: 6px; cursor: pointer;
   font-family: inherit; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.15s;
 }
 .stage-option img {
   width: 100%; aspect-ratio: 208 / 72; border-radius: 8px; display: block;
   image-rendering: pixelated; image-rendering: crisp-edges;
 }
-.stage-option span { font-size: 0.78rem; font-weight: 800; color: #495057; }
+.stage-option span { font-size: 0.78rem; font-weight: 800; color: var(--c-text-2); }
 .stage-option:hover:not(:disabled) { border-color: var(--c-primary-line); }
 .stage-option.active { border-color: var(--c-primary); }
 .stage-option.active span { color: var(--c-primary-text); }

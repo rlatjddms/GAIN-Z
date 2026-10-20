@@ -70,6 +70,7 @@
 import { reactive, ref, computed, watch, nextTick } from 'vue'
 import { createRoutine, updateRoutine, deleteRoutine } from '../../api/routine'
 import { apiErrorMessage } from '../../api/practice'
+import { useDialogStore } from '../../stores/dialog'
 import { dateKey } from '../../constants/practice'
 import { REPEAT_TYPES, WEEK_DAYS } from '../../constants/routine'
 
@@ -137,7 +138,7 @@ const submit = async () => {
 }
 
 const stop = async () => {
-  if (!window.confirm(`'${props.routine.content}' 루틴을 오늘부터 그만할까요?\n지난 체크 기록은 그대로 남아요.`)) return
+  if (!await useDialogStore().confirm({ title: `'${props.routine.content}' 루틴을 오늘부터 그만할까요?`, text: '지난 체크 기록은 그대로 남아요.', okText: '그만하기', danger: true })) return
   saving.value = true
   error.value = ''
   try {
@@ -159,55 +160,49 @@ const stop = async () => {
 }
 .modal {
   width: 100%; max-width: 400px; max-height: calc(100vh - 32px); overflow-y: auto; box-sizing: border-box;
-  background: #fff; border-radius: 24px; padding: 24px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  font-family: 'Pretendard', sans-serif; color: #1a1a1a;
+  background: var(--c-surface); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-lg);
+  font-family: 'Pretendard', sans-serif; color: var(--c-text);
   display: flex; flex-direction: column; gap: 14px;
 }
 h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
 
 .field { display: flex; flex-direction: column; gap: 6px; }
-.label { font-size: 0.75rem; font-weight: 800; color: #868e96; }
+.label { font-size: 0.75rem; font-weight: 800; color: var(--c-muted); }
 .input {
   border: 1px solid #dee2e6; border-radius: 10px; padding: 9px 11px; font: inherit; font-size: 0.9rem; font-weight: 700;
   outline: none; min-width: 0; box-sizing: border-box;
 }
 .input:focus { border-color: var(--c-primary); }
-.inline { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 700; color: #868e96; }
+.inline { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 700; color: var(--c-muted); }
 .input.count { width: 72px; text-align: right; }
 
-.segment { display: flex; background: #f1f3f5; border-radius: 11px; padding: 3px; }
+.segment { display: flex; background: var(--c-line-soft); border-radius: 11px; padding: 3px; }
 .segment button {
   flex: 1; border: none; background: none; border-radius: 9px; padding: 8px 0; cursor: pointer;
-  font: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96;
+  font: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-muted);
 }
 .segment button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06); }
 
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .days button {
-  aspect-ratio: 1; border: 1px solid #e9ecef; background: #fff; border-radius: 10px; cursor: pointer;
-  font: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96;
+  aspect-ratio: 1; border: 1px solid var(--c-line); background: #fff; border-radius: 10px; cursor: pointer;
+  font: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-muted);
 }
 .days button.on { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 
-.period { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-weight: 800; color: #adb5bd; }
+.period { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-weight: 800; color: var(--c-faint); }
 .period .input { flex: 1; min-width: 130px; font-size: 0.8rem; }
 .clear {
-  border: none; background: #f1f3f5; color: #495057; border-radius: 8px; padding: 6px 9px; cursor: pointer;
+  border: none; background: var(--c-line-soft); color: var(--c-text-2); border-radius: 8px; padding: 6px 9px; cursor: pointer;
   font: inherit; font-size: 0.7rem; font-weight: 800;
 }
-.help { margin: 0; font-size: 0.72rem; color: #adb5bd; }
+.help { margin: 0; font-size: 0.72rem; color: var(--c-faint); }
 .help.warn { color: #f08c00; font-weight: 700; }
 .error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
 
 .actions { display: flex; gap: 8px; margin-top: 4px; }
-.btn {
-  flex: 1; border: 1px solid #e9ecef; background: #fff; color: #495057; cursor: pointer;
-  font-weight: 800; font-size: 0.85rem; padding: 11px; border-radius: 12px; font-family: inherit;
-}
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn.danger { flex: none; color: #e03131; border-color: #ffc9c9; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
+.btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
+.btn.danger { flex: none; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 </style>

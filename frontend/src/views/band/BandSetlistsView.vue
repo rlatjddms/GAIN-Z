@@ -1,9 +1,9 @@
 <template>
-  <SubPageLayout pill="BAND">
+  <SubPageLayout pill="BAND" :back-to="{ path: '/home', query: { band: $route.params.id } }" back-label="합주실"
+                 :title="band ? 'SETLIST' : ''" name="셋리스트" :subtitle="band ? `${band.name} · 함께 준비할 곡과 합주 메모를 모아요` : ''">
     <p v-if="error" role="alert">{{ error }} <button class="btn" @click="loadBand">다시 불러오기</button></p>
     <p v-else-if="!band" class="muted">셋리스트를 불러오는 중…</p>
     <div v-else class="page">
-      <header class="page-head"><h1>BAND SETLIST</h1><p>{{ band.name }} · 함께 준비할 곡과 합주 메모를 모아 보세요.</p></header>
       <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
       <p v-if="notice" class="status" role="status">{{ notice }}</p>
       <div class="workspace" :inert="busy" :aria-busy="busy">
@@ -61,28 +61,28 @@
                 </article>
               </template>
             </SmoothReorder>
-            <div v-else class="empty"><span class="empty-icon"><PixelIcon name="music" :size="48" /></span><strong>아직 등록한 곡이 없어요</strong><p>곡을 추가하고 곡마다 내용을 저장해 보세요.</p><button class="btn" @click="addSong">+ 첫 곡 추가</button></div>
+            <EmptyState v-else class="empty" icon="music" title="아직 등록한 곡이 없어요" text="곡을 추가하고 곡마다 내용을 저장해 보세요."><template #actions><button class="btn" @click="addSong">+ 첫 곡 추가</button></template></EmptyState>
           </template>
 
-          <div v-else class="empty"><span class="empty-icon"><PixelIcon name="music" :size="48" /></span><strong>우리 밴드의 다음 합주를 준비해요</strong><p>왼쪽 목록에서 셋리스트를 만들어 주세요.</p></div>
+          <EmptyState v-else icon="music" title="우리 밴드의 다음 합주를 준비해요" text="왼쪽 목록에서 셋리스트를 만들어 주세요." />
         </WsCard>
       </div>
     </div>
     <Teleport to="body">
-      <dialog ref="createDialog" class="setlist-dialog" aria-labelledby="create-title" @click="closeOnBackdrop($event, createDialog)" @close="listTitle = ''"><form @submit.prevent="submitList"><div class="dialog-head"><h2 id="create-title">{{ renaming ? '셋리스트 이름 변경' : '새 셋리스트' }}</h2><button type="button" class="close-btn" aria-label="닫기" @click="createDialog.close()">×</button></div><label>셋리스트 이름<input v-model="listTitle" autofocus required maxlength="80" placeholder="셋리스트 이름을 적어주세요"></label><div class="form-actions"><button type="button" class="btn" @click="createDialog.close()">취소</button><button class="btn primary" :disabled="!listTitle.trim() || busy">{{ renaming ? '저장' : '만들기' }}</button></div></form></dialog>
-      <dialog ref="sheetDialog" class="setlist-dialog sheet-dialog" aria-labelledby="sheet-title" @click="closeOnBackdrop($event, sheetDialog)" @close="sheetSong = null"><h2 id="sheet-title">보관함에 저장하시겠습니까?</h2><p class="delete-description">{{ sheetSong?.sheetTitle || '이 악보' }} 악보를 내 보관함에 담고 열어요. 다음부터는 바로 열려요.</p><div class="form-actions"><button class="btn" autofocus :disabled="busy" @click="sheetDialog.close()">아니요</button><button class="btn primary" :disabled="busy" @click="confirmAddSheet">예</button></div></dialog>
-      <dialog ref="deleteDialog" class="setlist-dialog" aria-labelledby="delete-title" @click="closeOnBackdrop($event, deleteDialog)"><h2 id="delete-title">셋리스트 {{ deleteIds.length }}개를 삭제할까요?</h2><p class="delete-description">선택한 셋리스트의 곡 목록과 메모, 첨부파일이 함께 삭제돼요.</p><div class="form-actions"><button class="btn" autofocus :disabled="busy" @click="deleteDialog.close()">취소</button><button class="btn danger" :disabled="busy" @click="deleteLists">삭제</button></div></dialog>
+      <dialog ref="createDialog" class="setlist-dialog" aria-labelledby="create-title" @click="closeOnBackdrop($event, createDialog)" @close="listTitle = ''"><form @submit.prevent="submitList"><div class="dialog-head"><h2 id="create-title">{{ renaming ? '셋리스트 이름 변경' : '새 셋리스트' }}</h2><button type="button" class="close-btn" aria-label="닫기" @click="createDialog.close()">×</button></div><label>셋리스트 이름<input v-model="listTitle" autofocus required maxlength="80" placeholder="셋리스트 이름을 적어주세요"></label><div class="dialog-actions"><button type="button" class="btn" @click="createDialog.close()">취소</button><button class="btn primary" :disabled="!listTitle.trim() || busy">{{ renaming ? '저장' : '만들기' }}</button></div></form></dialog>
+      <dialog ref="sheetDialog" class="setlist-dialog sheet-dialog" aria-labelledby="sheet-title" @click="closeOnBackdrop($event, sheetDialog)" @close="sheetSong = null"><h2 id="sheet-title">보관함에 저장하시겠습니까?</h2><p class="delete-description">{{ sheetSong?.sheetTitle || '이 악보' }} 악보를 내 보관함에 담고 열어요. 다음부터는 바로 열려요.</p><div class="dialog-actions"><button class="btn" autofocus :disabled="busy" @click="sheetDialog.close()">아니요</button><button class="btn primary" :disabled="busy" @click="confirmAddSheet">예</button></div></dialog>
+      <dialog ref="deleteDialog" class="setlist-dialog" aria-labelledby="delete-title" @click="closeOnBackdrop($event, deleteDialog)"><h2 id="delete-title">셋리스트 {{ deleteIds.length }}개를 삭제할까요?</h2><p class="delete-description">선택한 셋리스트의 곡 목록과 메모, 첨부파일이 함께 삭제돼요.</p><div class="dialog-actions"><button class="btn" autofocus :disabled="busy" @click="deleteDialog.close()">취소</button><button class="btn danger solid" :disabled="busy" @click="deleteLists">삭제</button></div></dialog>
     </Teleport>
   </SubPageLayout>
 </template>
 
 <script setup>
 import { ChevronRight, Star, Check, Mic } from 'lucide-vue-next'
-import PixelIcon from '../../components/PixelIcon.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
+import EmptyState from '../../components/ui/EmptyState.vue'
 import SmoothReorder from '../../components/band/SmoothReorder.vue'
 import { getBand } from '../../api/band'
 import { BAND_ATTACHMENT_ACCEPT, BAND_ATTACHMENT_MAX_BYTES, BAND_ATTACHMENT_MAX_COUNT, loadBandAttachment } from '../../api/bandBoard'
@@ -91,9 +91,11 @@ import { createSetlist, deleteSetlist, deleteSetlistItem, listSetlists, reorderS
 import { addToWorkspace, getWorkspace } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
 import { useBandStore } from '../../stores/band'
+import { useDialogStore } from '../../stores/dialog'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 const route = useRoute()
 const router = useRouter()
+const dialog = useDialogStore()
 const store = useBandStore()
 const band = ref(null), error = ref(''), saveError = ref(''), notice = ref(''), busy = ref(false)
 const lists = ref([]), selectedId = ref(null), drafts = ref({}), songOrder = ref([])
@@ -239,9 +241,9 @@ async function run(work, fallback = '저장하지 못했어요. 잠시 후 다�
   catch (e) { saveError.value = apiErrorMessage(e, fallback); return false }
   finally { busy.value = false }
 }
-function discardAllowed() { return !dirty.value || window.confirm('저장하지 않은 곡이 있어요. 변경사항을 버릴까요?') }
+async function discardAllowed() { return !dirty.value || dialog.confirm({ title: '저장하지 않은 곡이 있어요', text: '변경사항을 버릴까요?', okText: '버리기', danger: true }) }
 function resetEditor() { drafts.value = {}; songOrder.value = []; expandedIds.value = []; cleanupUrls() }
-function selectList(id) { if (id === selectedId.value || busy.value || !discardAllowed()) return; resetEditor(); selectedId.value = id; notice.value = saveError.value = '' }
+async function selectList(id) { if (id === selectedId.value || busy.value || !await discardAllowed()) return; resetEditor(); selectedId.value = id; notice.value = saveError.value = '' }
 function addSong() {
   if (!selected.value || busy.value) return
   const song = { id: crypto.randomUUID(), title: '', artist: '', memo: '', sheetId: null, sheetTitle: '', workspaceItemId: null, memberIds: [], files: [] }
@@ -252,11 +254,11 @@ function addSong() {
   loadSheets()
 }
 function editSong(song) { drafts.value[song.id] = cloneSong(song); if (!expandedIds.value.includes(song.id)) expandedIds.value.push(song.id); notice.value = saveError.value = ''; loadSheets() }
-function cancelSong(id) {
+async function cancelSong(id) {
   const saved = selected.value.songs.find(song => song.id === id)
   const draft = drafts.value[id]
   const changed = saved ? songJson(draft) !== songJson(saved) : draft.title || draft.artist || draft.memo || draft.sheetId || draft.memberIds.length || draft.files.length
-  if (changed && !window.confirm('이 곡의 저장하지 않은 변경사항을 버릴까요?')) return
+  if (changed && !await dialog.confirm({ title: '이 곡의 변경사항을 버릴까요?', text: '저장하지 않은 내용이 사라져요.', okText: '버리기', danger: true })) return
   delete drafts.value[id]
   if (!saved) { songOrder.value = songOrder.value.filter(item => item !== id); expandedIds.value = expandedIds.value.filter(item => item !== id) }
   saveError.value = ''; cleanupUrls()
@@ -286,7 +288,7 @@ async function saveSong(song) {
   })
 }
 async function removeSong(song) {
-  if (!window.confirm(`${song.title} 곡을 삭제할까요?`)) return
+  if (!await dialog.confirm({ title: `${song.title} 곡을 삭제할까요?`, okText: '삭제', danger: true })) return
   await run(async () => {
     replaceList(await deleteSetlistItem(bandId(), selectedId.value, song.id))
     songOrder.value = songOrder.value.filter(id => id !== song.id)
@@ -307,7 +309,7 @@ async function submitList() {
     if (await run(async () => replaceList(await updateSetlist(bandId(), selectedId.value, { title })))) createDialog.value.close()
     return
   }
-  if (!discardAllowed()) return
+  if (!await discardAllowed()) return
   await run(async () => {
     const list = toList(await createSetlist(bandId(), title))
     lists.value = [...lists.value, list]
@@ -316,7 +318,7 @@ async function submitList() {
 }
 function askDelete(ids) { if (busy.value) return; deleteIds.value = [...ids]; deleteDialog.value.showModal() }
 async function deleteLists() {
-  if (deleteIds.value.includes(selectedId.value) && !discardAllowed()) return
+  if (deleteIds.value.includes(selectedId.value) && !await discardAllowed()) return
   const removed = []
   await run(async () => { for (const id of deleteIds.value) { await deleteSetlist(bandId(), id); removed.push(id) } }, '셋리스트를 삭제하지 못했어요.')
   // 일부만 지워졌어도 지운 것은 목록에서 뺀다.
@@ -358,11 +360,9 @@ onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', be
 <style scoped>
 .page,.page *,.setlist-dialog,.setlist-dialog * { box-sizing:border-box; }
 .page { display:flex; flex-direction:column; gap:16px; }
-.page-head h1 { margin:0; font-size:1.3rem; font-weight:900; }
-.page-head p,.muted,.empty p { color:#868e96; font-size:.8rem; line-height:1.7; }
-.page-head p { margin:8px 0 0; }
-.notice { margin:0; color:#868e96; font-size:.75rem; line-height:1.6; }
-.save-error,.status { margin:0; padding:10px 14px; border-radius:10px; font-size:.8rem; background:var(--c-primary-soft); color:#495057; }
+.muted { color:var(--c-muted); font-size:.8rem; line-height:1.7; }
+.notice { margin:0; color:var(--c-muted); font-size:.75rem; line-height:1.6; }
+.save-error,.status { margin:0; padding:10px 14px; border-radius:10px; font-size:.8rem; background:var(--c-primary-soft); color:var(--c-text-2); }
 .save-error { color:#c92a2a; background:#fff5f5; }
 .workspace { display:grid; grid-template-columns:250px minmax(0,1fr); gap:20px; align-items:start; }
 .sidebar,.detail { min-width:0; }
@@ -370,96 +370,89 @@ onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', be
 .detail :deep(.ws-card-head) { align-items:center; flex-wrap:wrap; }
 .detail :deep(.ws-card-head h3) { min-width:0; overflow-wrap:anywhere; flex:1 1 160px; }
 .detail :deep(.actions) { flex-wrap:wrap; gap:8px; }
-.btn { display:inline-flex; justify-content:center; align-items:center; min-height:34px; border:1px solid #e9ecef; background:#fff; color:#495057; font-family:inherit; font-size:.76rem; font-weight:700; line-height:1.4; padding:8px 12px; border-radius:9px; cursor:pointer; text-align:center; }
-.btn.primary { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
-.btn:hover:not(:disabled) { background:#f8f9fa; }
-.btn.primary:hover:not(:disabled) { background:var(--c-primary-strong); }
 button:disabled { opacity:.4; cursor:default; }
 .danger { color:#e03131; }
-button:focus-visible,a:focus-visible { outline:2px solid #adb5bd; outline-offset:2px; }
-.add-list { width:100%; margin-bottom:12px; color:#495057; background:#f8f9fa; border-style:dashed; }
-.list-tools,.bulk-tools { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; font-size:.73rem; color:#868e96; }
+button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); outline-offset:2px; }
+.add-list { width:100%; margin-bottom:12px; color:var(--c-text-2); background:var(--c-bg); border-style:dashed; }
+.list-tools,.bulk-tools { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; font-size:.73rem; color:var(--c-muted); }
 .text-btn { border:0; background:transparent; padding:4px 0; font-family:inherit; font-size:.74rem; cursor:pointer; }
 .list-nav { gap:8px; }
-.list-entry { display:flex; align-items:center; gap:5px; min-width:0; padding:8px 7px; border:1px solid #e9ecef; border-radius:12px; background:#fff; }
-.list-entry.active { background:var(--c-primary-soft); border-color:#dce3f5; }
+.list-entry { display:flex; align-items:center; gap:5px; min-width:0; padding:8px 7px; border:1px solid var(--c-line); border-radius:12px; background:#fff; }
+.list-entry.active { background:var(--c-primary-soft); border-color:var(--c-primary-line); }
 .list-link { display:flex; flex-direction:column; flex:1; min-width:0; gap:6px; text-align:left; border:0; background:transparent; font-family:inherit; padding:4px 0; cursor:pointer; overflow-wrap:anywhere; color:#343a40; }
 .list-link strong { font-size:.79rem; }
-.list-link span { color:#868e96; font-size:.7rem; }
+.list-link span { color:var(--c-muted); font-size:.7rem; }
 .star { background:transparent; border:0; color:#ced4da; font-size:20px; cursor:pointer; padding:3px; }
 .star.on { color:#fab005; }
-.summary { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; padding:10px 12px; background:#f8f9fa; border-radius:10px; color:#868e96; font-size:.75rem; }
-.summary b { color:#495057; }
-.summary em { margin-left:8px; color:#868e96; font-size:.7rem; font-style:normal; }
-.empty { display:flex; flex-direction:column; align-items:center; text-align:center; padding:36px 14px; margin-top:16px; border:1px dashed #e9ecef; border-radius:14px; gap:8px; }
-.empty-icon { margin-bottom:8px; color: var(--c-faint); }
-.empty strong { font-size:.9rem; color:#495057; }
-.empty p { margin:0 0 8px; }
+.summary { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; padding:10px 12px; background:var(--c-bg); border-radius:10px; color:var(--c-muted); font-size:.75rem; }
+.summary b { color:var(--c-text-2); }
+.summary em { margin-left:8px; color:var(--c-muted); font-size:.7rem; font-style:normal; }
+.empty { margin-top:16px; }
 .edit-toolbar { display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; margin-top:18px; }
 .title-field { flex:1; max-width:340px; min-width:160px; }
 .song-form,.song-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:480px; }
-.song-form { margin-top:16px; padding:16px; background:#f8f9fa; border-radius:12px; }
-label { display:flex; flex-direction:column; gap:7px; min-width:0; font-size:.75rem; font-weight:500; color:#868e96; }
-input:not([type=checkbox]):not([type=file]),textarea { display:block; width:100%; min-width:0; max-width:100%; border:1px solid #e9ecef; padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; font-weight:400; line-height:1.6; outline:none; box-shadow:none; }
-input:not([type=checkbox]):not([type=file]):focus,textarea:focus { border-color:#adb5bd; outline:none; box-shadow:none; }
-input::placeholder,textarea::placeholder { color:#adb5bd; opacity:1; font-weight:400; }
+.song-form { margin-top:16px; padding:16px; background:var(--c-bg); border-radius:12px; }
+label { display:flex; flex-direction:column; gap:7px; min-width:0; font-size:.75rem; font-weight:500; color:var(--c-muted); }
+input:not([type=checkbox]):not([type=file]),textarea { display:block; width:100%; min-width:0; max-width:100%; border:1px solid var(--c-line); padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; font-weight:400; line-height:1.6; outline:none; box-shadow:none; }
+input:not([type=checkbox]):not([type=file]):focus,textarea:focus { border-color:var(--c-primary); outline:none; box-shadow:none; }
+input::placeholder,textarea::placeholder { color:var(--c-faint); opacity:1; font-weight:400; }
 textarea { resize:vertical; min-height:64px; }
 .memo,.sheet-field { max-width:480px; }
-select { width:100%; min-width:0; border:1px solid #e9ecef; padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; line-height:1.6; outline:none; }
-select:focus { border-color:#adb5bd; }
+select { width:100%; min-width:0; border:1px solid var(--c-line); padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; line-height:1.6; outline:none; }
+select:focus { border-color:var(--c-primary); }
 .sheet-link { border:0; background:transparent; padding:0; font-family:inherit; cursor:pointer; text-align:left; color: var(--c-primary-text); font-size:.8rem; font-weight:700; overflow-wrap:anywhere; }
 .form-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; grid-column:1 / -1; }
 .songs { margin-top:16px; }
-.song-card { border:1px solid #e9ecef; border-radius:12px; background:#fff; transition:border-color .3s, box-shadow .3s; }
+.song-card { border:1px solid var(--c-line); border-radius:12px; background:#fff; transition:border-color .3s, box-shadow .3s; }
 .song-card.focused { border-color:var(--c-primary); box-shadow:0 0 0 3px color-mix(in srgb, var(--c-primary) 12%, transparent); }
 .jam-links { display:flex; flex-wrap:wrap; gap:8px; }
 .jam-go { gap:6px; text-decoration:none; }
-.jam-go small { color:#868e96; font-weight:500; }
+.jam-go small { color:var(--c-muted); font-weight:500; }
 .song-editing { border-color:#d3d9e0; }
 .song-actions { display:flex; align-items:center; gap:10px; flex-shrink:0; }
 .song-head { display:flex; align-items:center; gap:10px; padding:12px 14px; }
-.drag-handle { border:0; background:transparent; color:#adb5bd; border-radius:7px; width:26px; height:32px; flex-shrink:0; font-size:22px; cursor:grab; touch-action:none; user-select:none; }
+.drag-handle { border:0; background:transparent; color:var(--c-faint); border-radius:7px; width:26px; height:32px; flex-shrink:0; font-size:22px; cursor:grab; touch-action:none; user-select:none; }
 .drag-handle:active { cursor:grabbing; }
 .list-handle { width:18px; font-size:18px; padding:0; }
-.number { font-size:.8rem; color:#868e96; font-weight:700; }
+.number { font-size:.8rem; color:var(--c-muted); font-weight:700; }
 .song-toggle { display:flex; flex:1; min-width:0; align-items:center; justify-content:space-between; gap:10px; border:0; background:transparent; text-align:left; font-family:inherit; cursor:pointer; padding:0; color:#343a40; }
 .song-name { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; overflow-wrap:anywhere; }
 .song-name strong { font-size:.86rem; }
-.song-name>span { font-size:.72rem; color:#868e96; }
-.chevron { flex-shrink:0; color:#868e96; transition:transform .2s ease; }
+.song-name>span { font-size:.72rem; color:var(--c-muted); }
+.chevron { flex-shrink:0; color:var(--c-muted); transition:transform .2s ease; }
 .chevron.open { transform:rotate(180deg); }
 .song-collapse { display:grid; grid-template-rows:0fr; transition:grid-template-rows .22s ease; }
 .song-collapse.expanded { grid-template-rows:1fr; }
 .collapse-inner { overflow:hidden; min-height:0; }
-.song-body { border-top:1px solid #f1f3f5; padding:16px; display:flex; flex-direction:column; gap:18px; }
+.song-body { border-top:1px solid var(--c-line-soft); padding:16px; display:flex; flex-direction:column; gap:18px; }
 .participants { min-width:0; border:0; margin:0; padding:0; }
-legend,.read-section h4 { padding:0; margin:0 0 10px; font-size:.75rem; font-weight:600; color:#868e96; }
+legend,.read-section h4 { padding:0; margin:0 0 10px; font-size:.75rem; font-weight:600; color:var(--c-muted); }
 legend span { margin-left:6px; font-weight:400; }
 .member-options { display:flex; flex-wrap:wrap; gap:7px; }
-.member-option,.member-tag { display:inline-flex; align-items:center; gap:7px; max-width:100%; padding:7px 10px; border:1px solid #e9ecef; border-radius:20px; font-family:inherit; font-size:.74rem; background:#fff; color:#495057; line-height:1.5; overflow-wrap:anywhere; }
+.member-option,.member-tag { display:inline-flex; align-items:center; gap:7px; max-width:100%; padding:7px 10px; border:1px solid var(--c-line); border-radius:20px; font-family:inherit; font-size:.74rem; background:#fff; color:var(--c-text-2); line-height:1.5; overflow-wrap:anywhere; }
 .member-option { cursor:pointer; }
 .member-option.chosen { border-color:var(--c-primary-line); background:var(--c-primary-soft); color:var(--c-primary-text); }
-.member-option small,.member-tag small { color:#adb5bd; font-size:.66rem; }
-.member-tag { background:#f8f9fa; border:0; }
+.member-option small,.member-tag small { color:var(--c-faint); font-size:.66rem; }
+.member-tag { background:var(--c-bg); border:0; }
 .read-section p { margin:0; }
-.read-memo { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.8; font-size:.82rem; color:#495057; }
-.attachment-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:.75rem; color:#868e96; }
+.read-memo { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.8; font-size:.82rem; color:var(--c-text-2); }
+.attachment-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:.75rem; color:var(--c-muted); }
 .attachment-head small { margin-left:4px; }
 .file-picker { position:relative; overflow:hidden; }
 .file-picker input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
-.file-picker:focus-within { outline:1px solid #adb5bd; }
-.file-hint { font-size:.73rem; color:#adb5bd; line-height:1.6; margin:10px 0 0; }
+.file-picker:focus-within { outline:1px solid var(--c-primary); }
+.file-hint { font-size:.73rem; color:var(--c-faint); line-height:1.6; margin:10px 0 0; }
 .file-list { list-style:none; padding:0; margin:10px 0 0; display:flex; flex-direction:column; gap:6px; }
-.file-list li { display:flex; align-items:center; gap:10px; padding:8px 10px; background:#f8f9fa; border-radius:8px; }
-.file-list a { flex:1; min-width:0; overflow-wrap:anywhere; color:#495057; font-size:.76rem; text-decoration:none; line-height:1.6; }
-.file-list small { color:#adb5bd; margin-left:6px; }
-.remove-file,.close-btn { border:0; background:transparent; color:#868e96; font-size:22px; cursor:pointer; min-width:28px; min-height:28px; }
-.setlist-dialog { width:calc(100% - 32px); max-width:400px; max-height:calc(100dvh - 48px); overflow-y:auto; padding:24px; border:1px solid #e9ecef; border-radius:18px; color:#343a40; font-family:'Pretendard',sans-serif; box-shadow:0 20px 80px #0002; }
-.setlist-dialog::backdrop { background:rgba(20,28,40,.4); }
+.file-list li { display:flex; align-items:center; gap:10px; padding:8px 10px; background:var(--c-bg); border-radius:8px; }
+.file-list a { flex:1; min-width:0; overflow-wrap:anywhere; color:var(--c-text-2); font-size:.76rem; text-decoration:none; line-height:1.6; }
+.file-list small { color:var(--c-faint); margin-left:6px; }
+.remove-file,.close-btn { border:0; background:transparent; color:var(--c-muted); font-size:22px; cursor:pointer; min-width:28px; min-height:28px; }
+.setlist-dialog { width:calc(100% - 32px); max-width:400px; max-height:calc(100dvh - 48px); overflow-y:auto; padding:24px; border:0; border-radius:var(--radius-xl); color:var(--c-text); font-family:var(--font-sans); box-shadow:var(--shadow-lg); }
+.setlist-dialog::backdrop { background:rgba(15,23,42,.45); }
 .dialog-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }
 .setlist-dialog h2 { font-size:1rem; margin:0; }
-.setlist-dialog .form-actions { margin-top:22px; }
-.delete-description { font-size:.82rem; line-height:1.7; color:#868e96; }
+.setlist-dialog .dialog-actions { margin-top:22px; }
+.delete-description { font-size:.82rem; line-height:1.7; color:var(--c-muted); }
 .sheet-dialog { max-width:340px; }
 @media(max-width:760px) { .workspace { grid-template-columns:1fr; } }
 @media(max-width:480px) { .song-form,.song-fields { grid-template-columns:1fr; } .song-head { padding:12px 10px; gap:7px; } .detail :deep(.actions) { gap:6px; } .song-body { padding:14px; } }

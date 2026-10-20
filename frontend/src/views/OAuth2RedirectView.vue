@@ -65,7 +65,7 @@ onMounted(() => {
 
 .redirect-text {
   font-size: 1rem;
-  color: #495057;
+  color: var(--c-text-2);
   font-weight: 600;
   letter-spacing: -0.3px;
 }

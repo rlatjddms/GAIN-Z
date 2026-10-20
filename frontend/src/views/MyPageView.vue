@@ -1,11 +1,8 @@
 <template>
-  <SubPageLayout pill="MY">
+  <SubPageLayout pill="MY" title="MY PAGE" name="마이페이지" subtitle="회원 정보와 계정 설정을 바꿀 수 있어요">
+    <!-- 넓은 화면: 왼쪽 회원 정보·계정, 오른쪽 꾸미기·알림 설정 -->
     <div class="page">
-      <div class="page-head">
-        <h2>마이페이지</h2>
-        <p>회원 정보와 계정 설정을 바꿀 수 있어요</p>
-      </div>
-
+      <div class="col">
       <WsCard title="회원 정보">
         <p v-if="loadError" class="error">{{ loadError }}</p>
         <div v-else-if="!profile" class="loading">불러오는 중…</div>
@@ -77,12 +74,6 @@
         <p v-if="visibilityError" class="field-error">{{ visibilityError }}</p>
       </WsCard>
 
-      <ThemeCard />
-
-      <div id="notification-settings" ref="notificationSettingsRef">
-        <NotificationSettingsCard @loaded="scrollToHash" />
-      </div>
-
       <WsCard title="계정 설정">
         <div class="settings">
           <button v-if="isLocal" class="setting" @click="passwordOpen = true">
@@ -97,6 +88,15 @@
         </div>
         <button class="withdraw-link" :disabled="!profile" @click="withdrawOpen = true">회원 탈퇴</button>
       </WsCard>
+      </div>
+
+      <div class="col">
+      <ThemeCard />
+
+      <div id="notification-settings" ref="notificationSettingsRef">
+        <NotificationSettingsCard @loaded="scrollToHash" />
+      </div>
+      </div>
     </div>
 
     <PasswordModal :open="passwordOpen" @close="passwordOpen = false" @done="onPasswordChanged" />
@@ -115,6 +115,7 @@ import WithdrawModal from '../components/mypage/WithdrawModal.vue'
 import NotificationSettingsCard from '../components/mypage/NotificationSettingsCard.vue'
 import ThemeCard from '../components/mypage/ThemeCard.vue'
 import { useAuthStore } from '../stores/auth'
+import { useDialogStore } from '../stores/dialog'
 import {
   updateMyName, uploadProfileImage, deleteProfileImage,
   updateProfileVisibility,
@@ -124,6 +125,7 @@ import {
 import { apiErrorMessage } from '../api/practice'
 
 const router = useRouter()
+const dialog = useDialogStore()
 const route = useRoute()
 
 // 알림 페이지의 ⚙에서 오면(#notification-settings) 알림 설정으로 내려 준다
@@ -186,7 +188,7 @@ const onPhotoPicked = async (e) => {
 }
 
 const removePhoto = async () => {
-  if (!window.confirm('프로필 사진을 지우고 기본 이미지로 바꿀까요?')) return
+  if (!await dialog.confirm({ title: '프로필 사진을 지울까요?', text: '기본 이미지로 바뀌어요.', okText: '지우기' })) return
   photoBusy.value = true
   photoError.value = ''
   status.value = ''
@@ -264,7 +266,7 @@ const onPasswordChanged = () => {
 }
 
 const logout = async () => {
-  if (!window.confirm('로그아웃할까요?')) return
+  if (!await dialog.confirm({ title: '로그아웃할까요?', okText: '로그아웃' })) return
   await authStore.logout()
   router.push('/')
 }
@@ -273,7 +275,7 @@ const withdrawOpen = ref(false)
 const onWithdrawn = async () => {
   withdrawOpen.value = false
   await authStore.clearAfterWithdraw()
-  window.alert('탈퇴했어요. 그동안 GAIN-Z를 이용해 주셔서 고마워요.')
+  await dialog.alert({ title: '탈퇴했어요', text: '그동안 GAIN-Z를 이용해 주셔서 고마워요.' })
   router.replace('/')
 }
 </script>
@@ -281,19 +283,20 @@ const onWithdrawn = async () => {
 <style scoped>
 /* 헤더(64px)에 가리지 않게 */
 #notification-settings { scroll-margin-top: 80px; }
-.page { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-.page-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
-.page-head h2 { margin: 0; font-size: 1.3rem; font-weight: 900; }
-.page-head p { margin: 0; font-size: 0.85rem; font-weight: 700; color: #adb5bd; }
+.page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 860px) {
+  .page { grid-template-columns: minmax(0, 1fr); }
+}
 
-.photo { display: flex; align-items: center; gap: 18px; padding-bottom: 16px; border-bottom: 1px solid #f1f3f5; }
+.photo { display: flex; align-items: center; gap: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--c-line-soft); }
 .photo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.photo-hint { flex-basis: 100%; margin: 2px 0 0; font-size: 0.7rem; font-weight: 700; color: #adb5bd; }
+.photo-hint { flex-basis: 100%; margin: 2px 0 0; font-size: 0.7rem; font-weight: 700; color: var(--c-faint); }
 
 .info { margin: 0; display: flex; flex-direction: column; }
-.row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid #f1f3f5; }
+.row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--c-line-soft); }
 .row:first-child { border-top: none; }
-dt { font-size: 0.75rem; font-weight: 800; color: #868e96; }
+dt { font-size: 0.75rem; font-weight: 800; color: var(--c-muted); }
 dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break: break-all; }
 .name-view { display: flex; align-items: center; gap: 10px; }
 .name-view strong { font-weight: 900; }
@@ -306,7 +309,7 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
 
 .provider {
   display: inline-block; font-size: 0.72rem; font-weight: 800; padding: 3px 9px; border-radius: 999px;
-  background: #f1f3f5; color: #495057;
+  background: var(--c-line-soft); color: var(--c-text-2);
 }
 .provider.google { background: #e7f5ff; color: #1971c2; }
 .provider.kakao { background: #fff9db; color: #946200; }
@@ -315,41 +318,31 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
 .settings { display: flex; flex-direction: column; }
 .setting {
   display: flex; justify-content: space-between; align-items: center; width: 100%;
-  border: none; background: none; padding: 12px 2px; border-top: 1px solid #f1f3f5; cursor: pointer;
+  border: none; background: none; padding: 12px 2px; border-top: 1px solid var(--c-line-soft); cursor: pointer;
   font-family: inherit; font-size: 0.88rem; font-weight: 800; color: #343a40; text-align: left;
 }
 .setting:first-child { border-top: none; padding-top: 0; }
 .setting:hover { color: var(--c-primary-text); }
 .chev { color: #ced4da; font-size: 1.1rem; }
-.muted { margin: 0 0 12px; font-size: 0.78rem; color: #868e96; line-height: 1.6; }
+.muted { margin: 0 0 12px; font-size: 0.78rem; color: var(--c-muted); line-height: 1.6; }
 .withdraw-link {
   margin-top: 14px; border: none; background: none; padding: 0; cursor: pointer;
-  font-family: inherit; font-size: 0.72rem; font-weight: 700; color: #adb5bd; text-decoration: underline;
+  font-family: inherit; font-size: 0.72rem; font-weight: 700; color: var(--c-faint); text-decoration: underline;
 }
 .withdraw-link:hover:not(:disabled) { color: #e03131; }
 .withdraw-link:disabled { cursor: not-allowed; }
 
-.btn {
-  border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit; cursor: pointer;
-  font-weight: 800; font-size: 0.8rem; padding: 8px 12px; border-radius: 10px; white-space: nowrap;
-}
-.btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
-.btn.small { padding: 7px 10px; font-size: 0.75rem; }
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn.primary:hover:not(:disabled) { color: #fff; background: var(--c-primary-strong); }
-.btn.ghost { border-color: transparent; color: #868e96; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: 0.75rem; }
 
-.segmented { display: inline-flex; background: #f1f3f5; border-radius: 12px; padding: 3px; gap: 2px; }
+.segmented { display: inline-flex; background: var(--c-line-soft); border-radius: 12px; padding: 3px; gap: 2px; }
 .segmented button {
   border: none; background: none; border-radius: 10px; padding: 7px 14px; cursor: pointer;
-  font-family: inherit; font-size: 0.8rem; font-weight: 800; color: #868e96; transition: 0.15s;
+  font-family: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-muted); transition: 0.15s;
 }
 .segmented button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1); }
 .segmented button:disabled { cursor: not-allowed; }
 .muted.small { margin: 8px 0 0; font-size: 0.72rem; }
 .saved { margin: 10px 0 0; font-size: 0.75rem; font-weight: 800; color: #2f9e44; }
 .error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
-.loading { padding: 16px 0; font-size: 0.85rem; color: #adb5bd; }
+.loading { padding: 16px 0; font-size: 0.85rem; color: var(--c-faint); }
 </style>

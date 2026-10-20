@@ -23,6 +23,7 @@ import { getBandPost } from '../../api/bandBoard'
 import BoardIcon from './BoardIcon.vue'
 import BandPostEditor from './BandPostEditor.vue'
 import BandPostDetail from './BandPostDetail.vue'
+import { useDialogStore } from '../../stores/dialog'
 
 const props = defineProps({ band: { type: Object, required: true }, mode: String, postId: { type: Number, default: null } })
 const emit = defineEmits(['close', 'saved', 'edit', 'changed'])
@@ -40,13 +41,14 @@ const previousOverflow = document.body.style.overflow
 onMounted(() => { dialog.value.showModal(); document.body.style.overflow = 'hidden' })
 onBeforeUnmount(() => { sequence++; document.body.style.overflow = previousOverflow; dialog.value?.close() })
 
-function mayLeave() {
+const appDialog = useDialogStore()
+async function mayLeave() {
   if (allowNavigation) return true
   if (busy.value) return false
-  return !editorState.value.dirty || window.confirm('작성 중인 내용이 있어요. 저장하지 않고 닫을까요?')
+  return !editorState.value.dirty || appDialog.confirm({ title: '작성 중인 내용이 있어요', text: '저장하지 않고 닫을까요?', okText: '닫기' })
 }
-function close() {
-  if (!mayLeave()) return
+async function close() {
+  if (!await mayLeave()) return
   allowNavigation = true
   emit('close')
 }
@@ -82,20 +84,20 @@ watch(() => [props.mode, props.postId], load, { immediate: true })
 
 <style scoped>
 * { box-sizing: border-box; }
-.post-dialog { width: min(740px, calc(100vw - 48px)); max-width: none; max-height: min(880px, calc(100dvh - 100px)); padding: 0; border: 1px solid #e8ebf0; border-radius: 22px; color: #212529; background: white; font-family: 'Pretendard', sans-serif; box-shadow: 0 28px 100px #15233d30; overflow: hidden; }
+.post-dialog { width: min(740px, calc(100vw - 48px)); max-width: none; max-height: min(880px, calc(100dvh - 100px)); padding: 0; border: 0; border-radius: var(--radius-xl); color: var(--c-text); background: var(--c-surface); font-family: var(--font-sans); box-shadow: var(--shadow-lg); overflow: hidden; }
 .post-dialog[open] { display: flex; flex-direction: column; }
-.post-dialog::backdrop { background: #17243b55; backdrop-filter: blur(2px); }
+.post-dialog::backdrop { background: rgba(15, 23, 42, 0.45); }
 .dialog-toolbar { display: flex; align-items: center; gap: 14px; flex: none; padding: 18px 24px; border-bottom: 1px solid #f0f2f5; background: #fff; }
 .dialog-context { flex: 1; min-width: 0; }
-.dialog-context > span { display: block; color: #868e96; font-size: 10px; font-weight: 700; margin-bottom: 5px; }
+.dialog-context > span { display: block; color: var(--c-muted); font-size: 10px; font-weight: 700; margin-bottom: 5px; }
 .dialog-context h2 { font-size: 14px; font-weight: 800; margin: 0; }
-.close-button { display: grid; place-items: center; width: 32px; height: 32px; border: none; border-radius: 9px; background: #f6f7f9; color: #868e96; cursor: pointer; }
+.close-button { display: grid; place-items: center; width: 32px; height: 32px; border: none; border-radius: 9px; background: #f6f7f9; color: var(--c-muted); cursor: pointer; }
 .close-button:hover { background: #edf0f4; color: #212529; }
 .publish { display: flex; align-items: center; gap: 8px; background: var(--c-primary); color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
 .publish:hover { background: var(--c-primary-strong); }
-.publish:disabled { background: #edf0f6; color: #adb5bd; cursor: default; }
+.publish:disabled { background: #edf0f6; color: var(--c-faint); cursor: default; }
 .dialog-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
-.load-state { padding: 32px; min-height: 280px; color: #868e96; font-size: 13px; }
+.load-state { padding: 32px; min-height: 280px; color: var(--c-muted); font-size: 13px; }
 .load-state button { border: 0; color: var(--c-primary-text); background: var(--c-primary-soft); border-radius: 8px; padding: 9px 14px; cursor: pointer; font: inherit; }
 .loading-line, .loading-box { display: block; height: 14px; background: #f1f3f6; border-radius: 6px; margin-bottom: 16px; }
 .loading-line { width: 50%; }

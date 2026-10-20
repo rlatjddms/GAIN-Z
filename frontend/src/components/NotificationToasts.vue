@@ -44,7 +44,7 @@ const open = (t) => {
   font-family: 'Pretendard', sans-serif;
 }
 .toast {
-  pointer-events: auto; display: flex; align-items: flex-start; background: #fff; border: 1px solid #f1f3f5;
+  pointer-events: auto; display: flex; align-items: flex-start; background: #fff; border: 1px solid var(--c-line-soft);
   border-radius: 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10), 0 1px 3px rgba(15, 23, 42, 0.06);
   overflow: hidden; transition: box-shadow 0.15s, transform 0.15s;
 }
@@ -55,16 +55,16 @@ const open = (t) => {
 }
 .toast-main:hover .content { color: var(--c-primary-text); }
 .text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.title { font-size: 0.72rem; font-weight: 800; color: #868e96; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title { font-size: 0.72rem; font-weight: 800; color: var(--c-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .content {
-  font-size: 0.85rem; font-weight: 800; color: #1a1a1a; line-height: 1.4; overflow-wrap: anywhere;
+  font-size: 0.85rem; font-weight: 800; color: var(--c-text); line-height: 1.4; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .close {
   flex: none; margin: 8px 8px 0 0; width: 22px; height: 22px; border: none; background: none; border-radius: 6px;
-  cursor: pointer; color: #adb5bd; font-size: 1rem; line-height: 1;
+  cursor: pointer; color: var(--c-faint); font-size: 1rem; line-height: 1;
 }
-.close:hover { color: #495057; background: #f1f3f5; }
+.close:hover { color: var(--c-text-2); background: var(--c-line-soft); }
 
 .toast-enter-active, .toast-leave-active { transition: opacity 0.2s, transform 0.2s; }
 .toast-enter-from { opacity: 0; transform: translateX(24px); }

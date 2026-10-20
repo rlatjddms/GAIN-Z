@@ -84,9 +84,11 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useDialogStore } from '../stores/dialog'
 import AppLogo from '../components/AppLogo.vue'
 
 const router = useRouter()
+const dialog = useDialogStore()
 const authStore = useAuthStore()
 
 const isCheckingEmail = ref(false)
@@ -201,14 +203,14 @@ const handleSignup = async () => {
       formData.value.password
     )
     localStorage.setItem(`firstLogin_${formData.value.email.trim()}`, 'true')
-    alert('GAIN-Z 가입을 진심으로 축하합니다! 로그인 후 이용해주세요.')
+    await dialog.alert({ title: 'GAIN-Z 가입을 축하해요!', text: '로그인하고 시작해 보세요.' })
     router.push('/')
   } catch (error) {
     console.error(error)
     if (error.response && error.response.data && error.response.data.message) {
-      alert(`회원가입 실패: ${error.response.data.message}`)
+      await dialog.alert({ title: '가입하지 못했어요', text: error.response.data.message })
     } else {
-      alert('회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+      await dialog.alert({ title: '가입하지 못했어요', text: '잠시 후 다시 시도해 주세요.' })
     }
   } finally {
     isLoading.value = false
@@ -248,17 +250,17 @@ const handleSignup = async () => {
 
 .gz-input {
   width: 100%; padding: 18px 20px; border: 1.5px solid #eceff2; border-radius: 12px;
-  font-size: 0.95rem; background: #fff; transition: all 0.2s; color: #1a1a1a; outline: none;
+  font-size: 0.95rem; background: #fff; transition: all 0.2s; color: var(--c-text); outline: none;
 }
 .gz-input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 5%, transparent); }
-.gz-input:disabled { background: #f8f9fb; color: #adb5bd; cursor: not-allowed; }
+.gz-input:disabled { background: #f8f9fb; color: var(--c-faint); cursor: not-allowed; }
 
 .check-btn {
-  padding: 0 16px; background: #f1f3f5; border: 1.5px solid #eceff2; border-radius: 12px;
-  font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; color: #495057;
+  padding: 0 16px; background: var(--c-line-soft); border: 1.5px solid #eceff2; border-radius: 12px;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; color: var(--c-text-2);
   transition: background 0.2s;
 }
-.check-btn:hover:not(:disabled) { background: #e9ecef; }
+.check-btn:hover:not(:disabled) { background: var(--c-line); }
 .check-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .status-msg { font-size: 0.78rem; margin: 6px 0 0 4px; line-height: 1.3; }

@@ -1,9 +1,8 @@
 <template>
-  <SubPageLayout>
-  <div class="page">
-    <div class="page-head">
-      <h2>연습 기록장</h2>
-      <div class="head-actions">
+  <SubPageLayout title="PRACTICE LOG" name="연습 기록장" subtitle="타이머로 연습 시간을 재고, 루틴을 체크해요">
+    <!-- 제목 아래에 날짜 고르기 -->
+    <template #below>
+    <div class="head-actions">
       <div ref="pickerRef" class="date-picker">
         <button class="arrow" aria-label="전날" @click="move(-1)">‹</button>
         <button class="date-title" :aria-expanded="calendarOpen" @click="calendarOpen = !calendarOpen">
@@ -12,9 +11,10 @@
         <button class="arrow" :disabled="isToday" aria-label="다음 날" @click="move(1)">›</button>
         <PracticeCalendar v-model="selected" :open="calendarOpen" @close="calendarOpen = false" />
       </div>
-      <button v-if="!isToday" class="today-btn" @click="selected = todayKey">오늘로</button>
-      </div>
+      <button v-if="!isToday" class="btn small on" @click="selected = todayKey">오늘로</button>
     </div>
+    </template>
+  <div class="page">
 
     <p v-if="loadError" class="load-error">{{ loadError }}</p>
 
@@ -102,26 +102,20 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 16px; }
 /* 제목 아래에 날짜 고르기 */
-.page-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
-.page-head h2 { margin: 0; font-size: 1.3rem; font-weight: 900; }
-.head-actions { display: flex; align-items: center; gap: 10px; margin-left: -4px; }
+.head-actions { display: flex; align-items: center; gap: 10px; margin: 4px 0 0 -4px; }
 
 .date-picker { position: relative; display: flex; align-items: center; gap: 4px; }
 .arrow {
-  width: 32px; height: 32px; border: none; border-radius: 10px; background: #fff; color: #495057;
-  font-size: 1.1rem; font-weight: 900; cursor: pointer; box-shadow: inset 0 0 0 1px #e9ecef;
+  width: 32px; height: 32px; border: none; border-radius: 10px; background: #fff; color: var(--c-text-2);
+  font-size: 1.1rem; font-weight: 900; cursor: pointer; box-shadow: inset 0 0 0 1px var(--c-line);
 }
 .arrow:hover:not(:disabled) { color: var(--c-primary-text); box-shadow: inset 0 0 0 1px var(--c-primary-line); }
 .arrow:disabled { opacity: 0.35; cursor: default; }
 .date-title {
   display: flex; align-items: center; gap: 6px; border: none; background: none; cursor: pointer;
-  padding: 4px 8px; border-radius: 10px; font-family: inherit; font-size: 1.1rem; font-weight: 900; color: #1a1a1a;
+  padding: 4px 8px; border-radius: 10px; font-family: inherit; font-size: 1.1rem; font-weight: 900; color: var(--c-text);
 }
-.date-title:hover { background: #f1f3f5; }
-.today-btn {
-  border: 1px solid var(--c-primary-line); background: var(--c-primary-soft); color: var(--c-primary-text); cursor: pointer; font-family: inherit;
-  font-size: 0.75rem; font-weight: 800; padding: 6px 12px; border-radius: 9px;
-}
+.date-title:hover { background: var(--c-line-soft); }
 
 .today-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
 

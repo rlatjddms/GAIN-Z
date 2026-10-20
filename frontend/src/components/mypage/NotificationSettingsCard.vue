@@ -85,8 +85,8 @@ const setGroup = (g, on) => save(Object.fromEntries(g.items.map((item) => [item.
 </script>
 
 <style scoped>
-.muted { margin: 0 0 12px; font-size: 0.78rem; color: #868e96; line-height: 1.6; }
-.group + .group { margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1f3f5; }
+.muted { margin: 0 0 12px; font-size: 0.78rem; color: var(--c-muted); line-height: 1.6; }
+.group + .group { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--c-line-soft); }
 .group-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .group-head strong { font-size: 0.85rem; font-weight: 900; color: #343a40; }
 .spacer { flex: 1; }
@@ -97,7 +97,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .row { display: flex; align-items: center; gap: 12px; padding: 8px 0 8px 34px; }
 .label { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .name { font-size: 0.85rem; font-weight: 800; color: #343a40; }
-.desc { font-size: 0.72rem; font-weight: 700; color: #adb5bd; }
+.desc { font-size: 0.72rem; font-weight: 700; color: var(--c-faint); }
 
 .switch {
   flex: none; position: relative; width: 40px; height: 22px; border: none; border-radius: 999px; cursor: pointer;
@@ -112,7 +112,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .switch.on .knob { transform: translateX(18px); }
 
 .error { margin: 8px 0 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
-.loading { padding: 12px 0; font-size: 0.85rem; color: #adb5bd; }
+.loading { padding: 12px 0; font-size: 0.85rem; color: var(--c-faint); }
 
 @media (max-width: 480px) {
   .row { padding-left: 0; }

@@ -31,7 +31,7 @@
 
           <div class="actions">
             <button v-if="rewards.length" class="btn ghost" @click="goWardrobe">옷장에서 입어 보기</button>
-            <button class="btn" @click="emit('close')">확인</button>
+            <button class="btn primary" @click="emit('close')">확인</button>
           </div>
         </section>
       </div>
@@ -80,34 +80,30 @@ const goWardrobe = () => {
 }
 .modal {
   width: 100%; max-width: 360px; box-sizing: border-box; text-align: center;
-  background: #fff; border-radius: 24px; padding: 28px 24px 22px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  font-family: 'Pretendard', sans-serif; color: #1a1a1a;
+  background: var(--c-surface); border-radius: var(--radius-xl); padding: 28px 24px 22px; box-shadow: var(--shadow-lg);
+  font-family: 'Pretendard', sans-serif; color: var(--c-text);
 }
 .badge {
   display: inline-block; font-size: 0.8rem; font-weight: 900; letter-spacing: 1px; color: #fff;
   background: linear-gradient(90deg, #ff922b, #f59f00); padding: 6px 14px; border-radius: 8px;
   animation: pop 0.5s ease;
 }
-.level { margin-top: 14px; font-size: 1.5rem; font-weight: 800; color: #868e96; }
+.level { margin-top: 14px; font-size: 1.5rem; font-weight: 800; color: var(--c-muted); }
 .level strong { color: #f08c00; font-weight: 900; }
-.tier { margin: 8px 0 0; font-size: 0.9rem; font-weight: 800; color: #495057; }
-.exp { margin: 6px 0 0; font-size: 0.8rem; font-weight: 700; color: #adb5bd; }
+.tier { margin: 8px 0 0; font-size: 0.9rem; font-weight: 800; color: var(--c-text-2); }
+.exp { margin: 6px 0 0; font-size: 0.8rem; font-weight: 700; color: var(--c-faint); }
 .rewards { margin-top: 16px; background: #fff9db; border-radius: 14px; padding: 12px; text-align: left; }
 .rewards > strong { display: block; margin-bottom: 8px; font-size: 0.78rem; font-weight: 900; color: #e67700; text-align: center; }
 .rewards ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
 .rewards li { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 10px; padding: 4px 10px 4px 4px; }
-.thumb { width: 48px; height: 56px; border-radius: 8px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.thumb { width: 48px; height: 56px; border-radius: 8px; background: var(--c-bg); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
 .stage-thumb { width: 100%; align-self: stretch; }
 .what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.what small { font-size: 0.68rem; font-weight: 800; color: #adb5bd; }
+.what small { font-size: 0.68rem; font-weight: 800; color: var(--c-faint); }
 .what b { font-size: 0.88rem; font-weight: 900; color: #343a40; }
-.next { margin: 10px 0 0; font-size: 0.72rem; font-weight: 700; color: #adb5bd; }
+.next { margin: 10px 0 0; font-size: 0.72rem; font-weight: 700; color: var(--c-faint); }
 .actions { margin-top: 18px; display: flex; gap: 8px; }
-.btn {
-  flex: 1; border: none; background: var(--c-primary); color: #fff; cursor: pointer;
-  font-weight: 800; font-size: 0.88rem; padding: 12px; border-radius: 12px; font-family: inherit;
-}
-.btn.ghost { background: #f1f3f5; color: #495057; }
+.btn { flex: 1; min-height: 44px; font-size: 0.88rem; }
 @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }

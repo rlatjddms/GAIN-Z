@@ -114,25 +114,20 @@ onBeforeUnmount(stop)
 
 <style scoped>
 .bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-.modes { display: flex; background: #f1f3f5; border-radius: 10px; padding: 3px; }
+.modes { display: flex; background: var(--c-line-soft); border-radius: 10px; padding: 3px; }
 .modes button {
-  border: none; background: none; font-family: inherit; font-size: 0.75rem; font-weight: 800; color: #868e96;
+  border: none; background: none; font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-muted);
   padding: 6px 12px; border-radius: 8px; cursor: pointer;
 }
 .modes button.on { background: #fff; color: var(--c-primary-text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
-.info { font-size: 0.72rem; font-weight: 700; color: #868e96; }
+.info { font-size: 0.72rem; font-weight: 700; color: var(--c-muted); }
 
 .play { margin-left: auto; display: flex; align-items: center; gap: 6px; }
-.bpm { display: flex; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 800; color: #adb5bd; }
+.bpm { display: flex; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 800; color: var(--c-faint); }
 .bpm input {
-  width: 52px; border: 1px solid #e9ecef; border-radius: 8px; padding: 6px; font-family: inherit;
-  font-size: 0.78rem; font-weight: 800; color: #495057; text-align: center; outline: none;
+  width: 52px; border: 1px solid var(--c-line); border-radius: 8px; padding: 6px; font-family: inherit;
+  font-size: 0.78rem; font-weight: 800; color: var(--c-text-2); text-align: center; outline: none;
 }
 .bpm input:focus { border-color: var(--c-primary); }
-.btn {
-  border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit; cursor: pointer;
-  font-weight: 800; font-size: 0.75rem; padding: 7px 12px; border-radius: 10px;
-}
-.btn:hover { border-color: var(--c-primary); color: var(--c-primary-text); }
 .btn.on { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 </style>

@@ -47,8 +47,8 @@ onBeforeUnmount(() => { token++; release() })
 <style scoped>
 .profile-avatar {
   flex: none; display: inline-flex; align-items: center; justify-content: center; overflow: hidden;
-  border-radius: 50%; background: #e9ecef; box-shadow: 0 0 0 1px #e9ecef;
+  border-radius: 50%; background: var(--c-line); box-shadow: 0 0 0 1px var(--c-line);
 }
 img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.default { width: 100%; height: 100%; fill: #adb5bd; }
+.default { width: 100%; height: 100%; fill: var(--c-faint); }
 </style>

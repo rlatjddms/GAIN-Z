@@ -21,7 +21,7 @@ defineProps({
 
 <style scoped>
 .ws-card {
-  background: #fff; border: 1px solid #e9ecef; border-radius: 20px;
+  background: #fff; border: 1px solid var(--c-line); border-radius: 20px;
   padding: 20px 22px; min-width: 0;
 }
 .ws-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }

@@ -1,18 +1,6 @@
 <template>
-  <SubPageLayout>
-  <div class="page">
-    <router-link to="/sheets" class="crumb">‹ 악보 보관함</router-link>
-
-    <p v-if="loadError" class="error">{{ loadError }}</p>
-    <div v-else-if="!item" class="loading">불러오는 중…</div>
-
-    <template v-else>
-      <div class="page-head">
-        <div class="title">
-          <h2>{{ sheet.title }}</h2>
-          <p>{{ metaText }}</p>
-        </div>
-        <div class="head-actions">
+  <SubPageLayout back-to="/sheets" back-label="악보 보관함" :title="item ? 'SHEET' : ''" :name="sheet?.title" :subtitle="item ? metaText : ''">
+    <template #actions>
           <button
             class="btn star"
             :class="{ on: item.favorite }"
@@ -21,8 +9,12 @@
           ><Star :size="14" :stroke-width="2.2" :fill="item.favorite ? 'currentColor' : 'none'" /> 즐겨찾기</button>
           <router-link v-if="sheet.mine" :to="`/sheets/${item.id}/edit`" class="btn">수정</router-link>
           <button class="btn danger" :disabled="removing" @click="remove">삭제</button>
-        </div>
-      </div>
+    </template>
+  <div class="page">
+    <p v-if="loadError" class="error">{{ loadError }}</p>
+    <div v-else-if="!item" class="loading">불러오는 중…</div>
+
+    <template v-else>
 
       <p v-if="actionError" class="error">{{ actionError }}</p>
 
@@ -117,12 +109,14 @@ import SheetPageView from '../../components/workspace/SheetPageView.vue'
 import MeasureSheet from '../../components/workspace/MeasureSheet.vue'
 import KeyHelper from '../../components/workspace/KeyHelper.vue'
 import { getWorkspaceItem, updateWorkspaceItem, removeWorkspaceItem } from '../../api/sheet'
+import { useDialogStore } from '../../stores/dialog'
 import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { sheetTypeLabel, isPdf } from '../../constants/sheet'
 
 const route = useRoute()
 const router = useRouter()
+const dialog = useDialogStore()
 const itemId = route.params.id
 
 const item = ref(null)
@@ -230,7 +224,7 @@ const remove = async () => {
   const message = sheet.value.mine
     ? `「${sheet.value.title}」을(를) 삭제할까요?\n올린 파일과 메모도 함께 삭제돼요.`
     : `「${sheet.value.title}」을(를) 보관함에서 삭제할까요?\n메모와 연습 키도 함께 삭제돼요.`
-  if (!window.confirm(message)) return
+  if (!await dialog.confirm({ title: '악보를 삭제할까요?', text: message, okText: '삭제', danger: true })) return
   removing.value = true
   try {
     await removeWorkspaceItem(itemId)
@@ -242,65 +236,46 @@ const remove = async () => {
   }
 }
 
-onBeforeRouteLeave(() => (memoDirty.value ? window.confirm('저장하지 않은 메모가 있어요. 나갈까요?') : true))
+onBeforeRouteLeave(() => (memoDirty.value ? dialog.confirm({ title: '저장하지 않은 메모가 있어요', text: '저장하지 않고 나갈까요?', okText: '나가기' }) : true))
 </script>
 
 <style scoped>
-.page { display: flex; flex-direction: column; gap: 14px; }
-.crumb { align-self: flex-start; font-size: 0.8rem; font-weight: 800; color: #868e96; text-decoration: none; }
-.crumb:hover { color: var(--c-primary-text); }
-
-.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.title { min-width: 0; }
-.title h2 { margin: 0 0 4px; font-size: 1.4rem; font-weight: 900; word-break: keep-all; }
-.title p { margin: 0; font-size: 0.8rem; font-weight: 700; color: #868e96; }
-.head-actions { display: flex; gap: 8px; }
-
-.btn {
-  border: 1px solid #e9ecef; background: #fff; color: #495057; font-family: inherit; cursor: pointer;
-  font-weight: 800; font-size: 0.8rem; padding: 9px 14px; border-radius: 12px; text-decoration: none;
-}
-.btn:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
-.btn.small { padding: 7px 12px; font-size: 0.75rem; border-radius: 10px; }
-.btn.primary { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-.btn.primary:hover:not(:disabled) { color: #fff; background: var(--c-primary-strong); }
+.page { display: flex; flex-direction: column; gap: 16px; }
 .btn.star.on { color: #e67700; border-color: #ffe066; background: #fff9db; }
-.btn.danger:hover:not(:disabled) { border-color: #ffa8a8; color: #e03131; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
 .layout.wide { grid-template-columns: minmax(0, 1fr); }
 .side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 16px; }
 
-.toolbar { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid #f1f3f5; }
-.toolbar .count { margin-right: auto; font-size: 0.75rem; font-weight: 800; color: #868e96; }
+.toolbar { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--c-line-soft); }
+.toolbar .count { margin-right: auto; font-size: 0.75rem; font-weight: 800; color: var(--c-muted); }
 .zoom { display: flex; align-items: center; gap: 4px; }
-.zoom-value { min-width: 44px; text-align: center; font-size: 0.75rem; font-weight: 800; color: #495057; font-variant-numeric: tabular-nums; }
+.zoom-value { min-width: 44px; text-align: center; font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); font-variant-numeric: tabular-nums; }
 .step {
-  width: 32px; height: 32px; border: 1px solid #e9ecef; background: #fff; border-radius: 9px; cursor: pointer;
-  font-family: inherit; font-size: 1rem; font-weight: 900; color: #495057;
+  width: 32px; height: 32px; border: 1px solid var(--c-line); background: #fff; border-radius: 9px; cursor: pointer;
+  font-family: inherit; font-size: 1rem; font-weight: 900; color: var(--c-text-2);
 }
 .step:hover:not(:disabled) { border-color: var(--c-primary); color: var(--c-primary-text); }
 .step:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .pages { display: flex; flex-direction: column; align-items: center; gap: 18px; }
 .page-frame { margin: 0; width: 100%; max-width: 100%; }
-.page-frame :deep(.sheet-page) { border: 1px solid #e9ecef; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04); }
-figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight: 800; color: #adb5bd; }
+.page-frame :deep(.sheet-page) { border: 1px solid var(--c-line); border-radius: 6px; overflow: hidden; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04); }
+figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight: 800; color: var(--c-faint); }
 
 .memo {
-  width: 100%; box-sizing: border-box; min-height: 180px; resize: vertical; border: 1px solid #e9ecef; border-radius: 12px;
+  width: 100%; box-sizing: border-box; min-height: 180px; resize: vertical; border: 1px solid var(--c-line); border-radius: 12px;
   padding: 12px; font-family: inherit; font-size: 0.85rem; line-height: 1.6; color: #212529; outline: none;
 }
 .memo:focus { border-color: var(--c-primary); }
 .memo-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.memo-foot .count { font-size: 0.7rem; color: #adb5bd; font-weight: 700; margin-right: auto; }
+.memo-foot .count { font-size: 0.7rem; color: var(--c-faint); font-weight: 700; margin-right: auto; }
 .saved { color: #2f9e44; font-weight: 800; font-size: 0.72rem; }
-.muted { margin: 0; font-size: 0.78rem; color: #868e96; line-height: 1.6; }
+.muted { margin: 0; font-size: 0.78rem; color: var(--c-muted); line-height: 1.6; }
 .text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; text-decoration: none; }
 
-.empty { margin: 0; padding: 32px; text-align: center; font-size: 0.85rem; color: #adb5bd; }
-.loading { padding: 48px; text-align: center; font-size: 0.85rem; color: #adb5bd; }
+.empty { margin: 0; padding: 32px; text-align: center; font-size: 0.85rem; color: var(--c-faint); }
+.loading { padding: 48px; text-align: center; font-size: 0.85rem; color: var(--c-faint); }
 .error { margin: 0; font-size: 0.8rem; color: #e03131; font-weight: 700; }
 
 @media (max-width: 860px) {

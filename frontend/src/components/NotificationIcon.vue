@@ -25,7 +25,7 @@ const glyph = computed(() => Math.round(props.size / 2))
 <style scoped>
 .icon {
   flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: #f1f3f5; color: #868e96;
+  background: var(--c-line-soft); color: var(--c-muted);
 }
 .icon.friend { background: #ebfbee; color: #2f9e44; }
 .icon.band { background: var(--c-primary-soft); color: var(--c-primary-text); }
