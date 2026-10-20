@@ -59,9 +59,10 @@ export async function uploadSheet(info, files, onProgress) {
   return response.data.data
 }
 
-// 코드 붙여넣기로 코드 악보 만들기 (파일 없이 코드 글만, #157) → 보관함 항목 (uploadSheet와 같은 모양)
-export async function createChordSheet(info, content) {
-  const response = await axiosInstance.post('/api/v1/sheets/chords', infoBody({ ...info, sheetType: 'CHORD', content }))
+// 글 악보 만들기 (파일 없이 글만) → 보관함 항목 (uploadSheet와 같은 모양)
+// info.sheetType: CHORD = 코드 붙여넣기(#157, [C]가사 형식), TAB = 타브 붙여넣기·직접 쓰기(#166, 글자 타브)
+export async function createTextSheet(info, content) {
+  const response = await axiosInstance.post('/api/v1/sheets/text', infoBody({ ...info, content }))
   return response.data.data
 }
 

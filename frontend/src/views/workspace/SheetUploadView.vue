@@ -1,10 +1,10 @@
 <template>
   <SubPageLayout :back-to="editing ? `/sheets/${itemId}` : '/sheets'" :back-label="editing ? '악보' : '악보 보관함'"
                  :title="editing ? 'EDIT SHEET' : 'UPLOAD SHEET'" :name="editing ? '악보 정보 수정' : '악보 올리기'"
-                 :subtitle="editing ? (mode === 'chords' ? '코드 악보와 곡 정보를 고칠 수 있어요' : '곡 정보를 고치거나 장을 더 올리고 지울 수 있어요') : '악보 사진·PDF를 올리거나, 코드 사이트에서 복사한 코드를 붙여 넣으세요'">
+                 :subtitle="editing ? (mode === 'chords' ? '코드 악보와 곡 정보를 고칠 수 있어요' : mode === 'tab' ? '타브 글과 곡 정보를 고칠 수 있어요' : '곡 정보를 고치거나 장을 더 올리고 지울 수 있어요') : '악보 사진·PDF를 올리거나, 코드 사이트에서 복사한 코드·타브를 붙여 넣으세요'">
     <template #actions>
       <button class="btn primary" :disabled="!canSave" @click="save">
-        {{ saving ? (editing || mode === 'chords' ? '저장 중…' : `올리는 중 ${Math.round(progress * 100)}%`) : (editing || mode === 'chords' ? '저장' : '올리기') }}
+        {{ saving ? (editing || textMode ? '저장 중…' : `올리는 중 ${Math.round(progress * 100)}%`) : (editing || textMode ? '저장' : '올리기') }}
       </button>
     </template>
   <div class="page">
@@ -13,10 +13,11 @@
     <div v-else-if="editing && !sheet" class="loading">불러오는 중…</div>
 
     <template v-else>
-    <!-- 새로 만들 때: 파일 올리기 / 코드 붙여넣기 (#157) -->
+    <!-- 새로 만들 때: 파일 올리기 / 코드 붙여넣기 (#157) / 타브 붙여넣기 (#166) -->
     <div v-if="!editing" class="segment mode-switch" role="tablist" aria-label="악보 만드는 방법">
       <button role="tab" :aria-selected="mode === 'files'" :class="{ on: mode === 'files' }" @click="setMode('files')">파일 올리기</button>
       <button role="tab" :aria-selected="mode === 'chords'" :class="{ on: mode === 'chords' }" @click="setMode('chords')">코드 붙여넣기</button>
+      <button role="tab" :aria-selected="mode === 'tab'" :class="{ on: mode === 'tab' }" @click="setMode('tab')">타브 붙여넣기</button>
     </div>
 
     <div class="layout">
@@ -27,6 +28,19 @@
         <p class="tip">코드 줄은 아래 가사의 같은 칸에 붙이고, [Verse]·Chorus: 같은 줄은 구간 이름이 돼요. 바뀐 결과를 아래에서 확인하고, 이상한 곳은 붙여 넣은 글을 고쳐 주세요.</p>
         <div class="chord-preview">
           <ChordSheet :content="chordContent" :original-key="form.originalKey || null" empty-text="붙여 넣으면 여기에 코드 악보가 보여요." />
+        </div>
+      </WsCard>
+
+      <!-- 타브 붙여넣기·직접 쓰기 (#166): 글자 타브 → 마디 악보, 타브 렌더러로 바로 미리보기 -->
+      <WsCard v-else-if="mode === 'tab'" title="타브 붙여넣기 · 직접 쓰기">
+        <textarea v-model="tabText" class="chord-input" rows="14" spellcheck="false" :disabled="busy"
+                  :placeholder="TAB_PLACEHOLDER" />
+        <p class="tip">코드 사이트의 글자 타브를 붙여 넣거나 직접 써도 돼요. 맨 위 줄이 가장 높은 줄(기타 e, 베이스 G)이고, 마디선 | 사이가 한 마디예요. 음 길이는 칸 간격으로 짐작해서 맞춰요.</p>
+        <p v-if="tabResult.strings === 4 && form.instrumentType !== 'BASS'" class="tip warn">4줄 타브예요. 악기를 베이스로 바꾸면 줄 이름이 맞게 보여요.</p>
+        <div class="chord-preview">
+          <MeasureSheet v-if="tabRows.length" :tabs="tabRows" :instrument-type="form.instrumentType"
+                        :original-key="form.originalKey || null" :view-key="form.originalKey || null" :bpm="form.bpm || null" />
+          <p v-else class="empty-preview">붙여 넣으면 여기에 타브 악보가 보여요.</p>
         </div>
       </WsCard>
 
@@ -155,7 +169,9 @@ import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
 import WsCard from '../../components/workspace/WsCard.vue'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
 import ChordSheet from '../../components/workspace/ChordSheet.vue'
-import { getWorkspaceItem, uploadSheet, createChordSheet, updateSheet, addSheetPages, deleteSheetPage } from '../../api/sheet'
+import MeasureSheet from '../../components/workspace/MeasureSheet.vue'
+import { getWorkspaceItem, uploadSheet, createTextSheet, updateSheet, addSheetPages, deleteSheetPage } from '../../api/sheet'
+import { importTabText, toTabRows } from '../../music/tabImport'
 import { importChordText } from '../../music/chordImport'
 import { countChords } from '../../music/chordSheet'
 import { apiErrorMessage } from '../../api/practice'
@@ -183,16 +199,33 @@ const form = reactive({
   originalKey: '',
   bpm: null,
 })
-// 파일 올리기 / 코드 붙여넣기 (고치기는 그 악보에 맞춰 정해짐: 파일 없이 코드 글만 있으면 코드)
-const mode = ref(route.query.mode === 'chords' ? 'chords' : 'files')
+// 파일 올리기 / 코드 붙여넣기 / 타브 붙여넣기 (고치기는 그 악보에 맞춰 정해짐: 파일 없이 글만 있으면 코드 또는 타브)
+const MODES = { chords: 'CHORD', tab: 'TAB' }
+const mode = ref(MODES[route.query.mode] ? route.query.mode : 'files')
+const textMode = computed(() => mode.value !== 'files')
+// 타브 붙여넣기·직접 쓰기 (#166)
+const tabText = ref('')
+const originalTab = ref('')
+const tabResult = computed(() => importTabText(tabText.value))
+const tabRows = computed(() => toTabRows(tabResult.value.measures))
+const TAB_PLACEHOLDER = [
+  '[Intro]',
+  'e|-------0-----|-------3-----|',
+  'B|-----1---1---|-----0---0---|',
+  'G|---0-------0-|---0-------0-|',
+  'D|-2-----------|-------------|',
+  'A|-------------|-2-----------|',
+  'E|-------------|-------------|',
+].join(String.fromCharCode(10))
 const chordText = ref('')
 const originalChords = ref('')
 const chordContent = computed(() => importChordText(chordText.value))
 const setMode = (m) => {
   mode.value = m
+  if (m === 'tab') form.sheetType = 'TAB'
   if (m === 'chords') form.sheetType = 'CHORD'
 }
-if (mode.value === 'chords') form.sheetType = 'CHORD'
+if (textMode.value) form.sheetType = MODES[mode.value]
 // 마지막으로 저장(불러온) 곡 정보. 바뀌었는지 비교용
 const original = ref(JSON.stringify(form))
 const sheet = ref(null)
@@ -220,9 +253,16 @@ onMounted(async () => {
       sheetType: s.sheetTypes?.[0] || 'SCORE', originalKey: s.originalKey || '', bpm: s.bpm,
     })
     if (s.content && !s.pages.length) {
-      mode.value = 'chords'
-      chordText.value = s.content
-      originalChords.value = s.content
+      // 글 악보: 종류가 타브면 타브 붙여넣기, 아니면 코드 붙여넣기로 고친다
+      if (s.sheetTypes?.[0] === 'TAB') {
+        mode.value = 'tab'
+        tabText.value = s.content
+        originalTab.value = s.content
+      } else {
+        mode.value = 'chords'
+        chordText.value = s.content
+        originalChords.value = s.content
+      }
     }
     original.value = JSON.stringify(form)
   } catch (e) {
@@ -303,9 +343,14 @@ const removePage = async (page) => {
 
 /* ---------- 저장 ---------- */
 const dirty = computed(() => JSON.stringify(form) !== original.value
-  || (mode.value === 'chords' ? chordText.value !== originalChords.value : (!editing && picked.value.length > 0)))
+  || (mode.value === 'chords' ? chordText.value !== originalChords.value
+    : mode.value === 'tab' ? tabText.value !== originalTab.value
+      : (!editing && picked.value.length > 0)))
 const problem = computed(() => {
-  if (mode.value === 'chords') {
+  if (mode.value === 'tab') {
+    if (!tabResult.value.noteCount) return '음이 있는 타브를 붙여 넣거나 써 주세요.'
+    if (tabText.value.length > MAX_CHORD_TEXT) return `타브는 ${MAX_CHORD_TEXT.toLocaleString()}자까지 저장할 수 있어요.`
+  } else if (mode.value === 'chords') {
     if (!countChords(chordContent.value)) return '코드가 있는 글을 붙여 넣어 주세요.'
     if (chordContent.value.length > MAX_CHORD_TEXT) return `코드 악보는 ${MAX_CHORD_TEXT.toLocaleString()}자까지 저장할 수 있어요.`
   } else if (!editing && !picked.value.length) return '악보 파일을 한 장 이상 골라 주세요.'
@@ -321,12 +366,15 @@ const save = async () => {
   error.value = ''
   const info = { ...form, title: form.title.trim(), artist: form.artist.trim() }
   try {
-    if (mode.value === 'chords') {
-      const content = chordContent.value
-      if (editing) await updateSheet(sheet.value.id, { ...info, content })
-      const item = editing ? null : await createChordSheet(info, content)
+    if (textMode.value) {
+      // 코드는 [C]가사 형식으로 바꾼 글, 타브는 붙여 넣은 글 그대로 저장 (보기·고치기 때 다시 읽음)
+      const content = mode.value === 'tab' ? tabText.value.replace(/\s+$/, '') : chordContent.value
+      const sheetType = MODES[mode.value]
+      if (editing) await updateSheet(sheet.value.id, { ...info, sheetType, content })
+      const item = editing ? null : await createTextSheet({ ...info, sheetType }, content)
       original.value = JSON.stringify(form)
       originalChords.value = chordText.value
+      originalTab.value = tabText.value
       router.replace(`/sheets/${editing ? itemId : item.id}`)
     } else if (editing) {
       await updateSheet(sheet.value.id, info)
@@ -353,6 +401,8 @@ onBeforeRouteLeave(() => (dirty.value && !loadError.value ? dialog.confirm({ tit
 
 
 .mode-switch { margin-bottom: 16px; }
+.tip.warn { color: var(--c-warning); font-weight: 700; }
+.empty-preview { margin: 0; padding: 24px 0; text-align: center; font-size: 0.85rem; color: var(--c-faint); }
 .chord-input {
   width: 100%; box-sizing: border-box; resize: vertical; min-height: 220px; padding: 12px 14px;
   border: 1px solid var(--c-line); border-radius: 12px; outline: none; background: var(--c-surface);
