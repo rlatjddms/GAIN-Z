@@ -7,8 +7,11 @@
     <div v-if="!bare" class="stage-head">
       <!-- 레벨·칭호 줄 왼쪽 끝에 붙일 것 (홈: 요즘 듣는 음악) -->
       <slot name="head-start" />
-      <div class="level-tag">Lv.{{ level }} {{ nickname }}</div>
-      <div class="tier-badge">{{ tier.name }}</div>
+      <!-- 레벨·칭호는 언제나 무대 가운데 -->
+      <div class="head-center">
+        <div class="level-tag">Lv.{{ level }} {{ nickname }}</div>
+        <div class="tier-badge">{{ tier.name }}</div>
+      </div>
     </div>
 
     <!-- 배경과 캐릭터는 같은 도트 격자 (홈과 옷장 미리보기가 똑같이 보인다) -->
@@ -129,6 +132,7 @@ const stageStyle = computed(() => ({
   width: 100%;
   flex-wrap: wrap;
 }
+.head-center { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .level-tag {
   display: inline-block;
   padding: 4px 12px;
@@ -249,7 +253,13 @@ const stageStyle = computed(() => ({
 @media (max-width: 640px) {
   .character-stage { color: var(--c-text); display: flex; flex-direction: column; }
   .stage-head, .exp-area { position: static; transform: none; margin: 0; }
-  .stage-head { order: 1; width: auto; box-sizing: border-box; padding: 12px 12px 8px; gap: 6px; flex-wrap: nowrap; }
+  /* 왼쪽 칸(음악) · 가운데 칸(레벨·칭호) · 오른쪽 빈 칸: 양쪽 칸 폭이 같아서 레벨·칭호가 늘 가운데 */
+  .stage-head {
+    order: 1; width: auto; box-sizing: border-box; padding: 12px 10px 8px;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 4px;
+  }
+  .stage-head > :deep(*:not(.head-center)) { grid-column: 1; justify-self: start; }
+  .head-center { grid-column: 2; flex-wrap: nowrap; gap: 6px; max-width: 64vw; }
   .character-stage > :deep(.scene) { order: 3; }
   .exp-area {
     order: 4; padding: 10px 12px 14px;
@@ -258,12 +268,11 @@ const stageStyle = computed(() => ({
   .exp-main { grid-column: 2; width: auto; }
   .exp-area > :deep(*:not(.exp-main)) { grid-column: 3; justify-self: end; }
   .level-tag, .tier-badge {
-    display: inline-flex; align-items: center; height: 28px; padding: 0 11px; box-sizing: border-box;
+    display: inline-flex; align-items: center; height: 28px; padding: 0 9px; box-sizing: border-box;
     border-radius: 999px; font-size: 0.75rem; line-height: 1;
   }
-  /* 왼쪽 끝 음악을 뺀 나머지 폭 가운데에 레벨·칭호 */
-  .level-tag { margin-left: auto; max-width: 36%; font-weight: 800; min-width: 0; display: block; line-height: 28px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tier-badge { flex: none; margin-right: auto; box-shadow: none; }
+  .level-tag { font-weight: 800; min-width: 0; display: block; line-height: 28px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tier-badge { flex: none; box-shadow: none; }
   .exp-text { text-shadow: none; }
   .speech-bubble { white-space: normal; width: max-content; max-width: 180px; }
 }

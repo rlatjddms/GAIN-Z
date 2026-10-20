@@ -17,7 +17,7 @@
               <div class="music-chip" :class="{ empty: !myMusic }">
                 <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
                   <span class="note"><Music :size="13" :stroke-width="2.5" /></span>
-                  <span class="music-text">{{ myMusic ? `${myMusic.title} · ${myMusic.artist}` : '요즘 듣는 음악 등록' }}</span>
+                  <span class="music-text">{{ myMusic ? myMusic.title : '요즘 듣는 음악 등록' }}<span v-if="myMusic" class="music-artist"> · {{ myMusic.artist }}</span></span>
                 </button>
                 <a v-if="myMusicUrl" class="music-link" :href="myMusicUrl" target="_blank" rel="noopener noreferrer" title="새 탭에서 듣기">
                   <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
@@ -620,10 +620,12 @@ button::-moz-focus-inner { border: 0 !important; }
 .edit-char-btn { top: 50%; bottom: auto; right: 20px; transform: translateY(-50%); }
 /* 휴대폰: 둘 다 흰 바탕 줄 안. 음악은 줄 왼쪽 끝(남는 폭만큼 줄어듦), 옷장은 경험치 줄 오른쪽 끝 */
 @media (max-width: 640px) {
-  .music-chip { position: static; transform: none; height: 28px; max-width: 32%; min-width: 0; flex: 0 1 auto; }
-  .music-main { padding: 0 10px 0 4px; font-size: 0.72rem; }
+  .music-chip { position: static; transform: none; height: 28px; max-width: 100%; min-width: 0; }
+  .music-main { gap: 4px; padding: 0 6px 0 3px; font-size: 0.72rem; }
   .music-chip .note { width: 20px; height: 20px; }
-  .music-link { width: 22px; height: 22px; }
+  .music-link { width: 20px; height: 20px; margin-right: 3px; }
+  /* 좁은 칸이라 가수 이름은 빼고 제목만 */
+  .music-artist { display: none; }
   .edit-char-btn { position: static; transform: none; white-space: nowrap; height: 28px; padding: 0 10px; gap: 4px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; box-shadow: none; }
 }
 </style>
