@@ -474,7 +474,7 @@ button::-moz-focus-inner { border: 0 !important; }
 .card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
 .card-title.link:hover { color: var(--c-primary-text); }
 .record-count { font-size: 0.75rem; color: #adb5bd; }
-/* 은은한 유리장: 아주 연한 테두리와 살짝 푸른 유리, 부드러운 대각선 반사광 두 줄. 레코드가 먼저 보이게 */
+/* 은은한 유리장: 아주 연한 테두리와 살짝 푸른 유리, 부드러운 대각선 반사광 두 줄, 윗면·앞면이 보이는 두꺼운 유리 선반 */
 .shelf {
   position: relative; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; gap: 12px;
   padding: 12px 10px 8px;
@@ -482,14 +482,16 @@ button::-moz-focus-inner { border: 0 !important; }
   border: 1px solid #e3eaef;
 }
 .shelf::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
   background: linear-gradient(115deg, rgba(255, 255, 255, 0) 6%, rgba(255, 255, 255, 0.85) 13%, rgba(255, 255, 255, 0) 22%,
     rgba(255, 255, 255, 0) 25%, rgba(255, 255, 255, 0.6) 28%, rgba(255, 255, 255, 0) 32%);
 }
-.shelf-items { display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
+.shelf-items { position: relative; z-index: 1; display: flex; justify-content: space-around; align-items: flex-end; padding: 0 8px; }
+/* 레코드가 윗면에 살짝 올라앉도록 위로 겹치고, 양옆은 장 안쪽까지 조금 길게 */
 .shelf-board {
-  height: 3px; margin-top: 2px;
-  background: linear-gradient(#ffffff 0 1px, #dbe7ed 1px 3px);
+  height: 9px; margin: -4px -4px 0;
+  background: linear-gradient(#ffffff 0 1px, #e8f1f5 1px 5px, #c9dbe3 5px 8px, #b3c8d2 8px 9px);
+  box-shadow: 0 5px 6px -4px rgba(60, 90, 110, 0.3);
 }
 .shelf:hover .shelf-items { transform: translateY(-2px); }
 .shelf-items { transition: transform 0.2s; }
