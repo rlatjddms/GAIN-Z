@@ -6,6 +6,8 @@ import com.project.gainz.domain.character.dto.response.CharacterResponse;
 import com.project.gainz.domain.character.dto.response.ExperienceResult;
 import com.project.gainz.domain.character.dto.response.WardrobeResponse;
 import com.project.gainz.domain.character.entity.Character;
+import com.project.gainz.domain.character.entity.DecorPlacement;
+import com.project.gainz.domain.character.enums.DecorItem;
 import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.entity.UserOutfit;
 import com.project.gainz.domain.character.enums.Accessory;
@@ -55,6 +57,7 @@ class CharacterServiceTest {
     @Mock private OutfitItemRepository outfitItemRepository;
     @Mock private UserOutfitRepository userOutfitRepository;
     @Mock private UserRepository userRepository;
+    @Mock private com.project.gainz.domain.record.repository.UserRecordRepository userRecordRepository;
 
     @InjectMocks private CharacterService characterService;
 
@@ -203,7 +206,8 @@ class CharacterServiceTest {
         assertThat(result.backgrounds()).extracting(WardrobeResponse.BackgroundView::key, WardrobeResponse.BackgroundView::unlocked)
                 .containsExactly(
                         Tuple.tuple(StageBackground.ROOKIE, true), Tuple.tuple(StageBackground.RISING, true),
-                        Tuple.tuple(StageBackground.PRO, false), Tuple.tuple(StageBackground.LEGEND, false));
+                        Tuple.tuple(StageBackground.PRO, false), Tuple.tuple(StageBackground.LEGEND, false),
+                        Tuple.tuple(StageBackground.LISTENING_ROOM, false));
         // 새 캐릭터는 방구석으로 시작하고, 레벨이 올라도 고른 배경은 그대로
         assertThat(result.stageBackground()).isEqualTo(StageBackground.ROOKIE);
     }
@@ -323,19 +327,23 @@ class CharacterServiceTest {
     }
 
     @Test
-    void 귀걸이와_무대_효과를_고르고_null이면_끈다() {
+    void 귀걸이와_무대_효과_여러_개를_고른다() {
         ReflectionTestUtils.setField(character, "level", 16);
         when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
         givenBasicOutfit();
 
         CharacterResponse on = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
-                1L, StageBackground.RISING, null, null, null, null, null, Accessory.STUD_EARRINGS, StageEffect.SMOKE));
+                1L, StageBackground.RISING, null, null, null, null, null, Accessory.STUD_EARRINGS, List.of(StageEffect.SMOKE, StageEffect.SPARKLE)));
         assertThat(on.earrings()).isEqualTo(Accessory.STUD_EARRINGS);
-        assertThat(on.stageEffect()).isEqualTo(StageEffect.SMOKE);
+        assertThat(on.stageEffects()).containsExactly(StageEffect.SMOKE, StageEffect.SPARKLE);
 
-        CharacterResponse off = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.RISING));
-        assertThat(off.earrings()).isNull();
-        assertThat(off.stageEffect()).isNull();
+        // 효과 목록을 안 보내면 그대로, 빈 목록이면 모두 끔
+        CharacterResponse kept = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.RISING));
+        assertThat(kept.earrings()).isNull();
+        assertThat(kept.stageEffects()).hasSize(2);
+        CharacterResponse off = characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
+                1L, StageBackground.RISING, null, null, null, null, null, null, List.of()));
+        assertThat(off.stageEffects()).isEmpty();
     }
 
     private WardrobeUpdateRequest withColors(Map<String, String> colors) {
@@ -385,6 +393,96 @@ class CharacterServiceTest {
         assertThat(characterService.updateWardrobe(USER_ID, show).instrumentHidden()).isFalse();
     }
 
+    // ---------- 레코드 수집 보상 ----------
+
+    private void givenRecords(com.project.gainz.domain.record.enums.RecordRarity... rarities) {
+        java.util.Set<com.project.gainz.domain.record.enums.RecordRarity> wanted = java.util.Set.of(rarities);
+        List<com.project.gainz.domain.record.entity.UserRecord> owned = java.util.Arrays.stream(com.project.gainz.domain.record.enums.RecordType.values())
+                .filter(t -> rarities.length == 0 || wanted.contains(t.rarity()))
+                .map(t -> new com.project.gainz.domain.record.entity.UserRecord(user, t))
+                .toList();
+        when(userRecordRepository.findAllByUserId(USER_ID)).thenReturn(owned);
+    }
+
+    private WardrobeUpdateRequest withDecor(DecorPlacement... placements) {
+        return new WardrobeUpdateRequest(1L, StageBackground.ROOKIE, null, null, null, null, null, null, null, null, null, null, List.of(placements));
+    }
+
+    @Test
+    void 카세트를_다_모으면_카세트_소품을_원하는_자리에_놓는다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+        givenRecords(com.project.gainz.domain.record.enums.RecordRarity.COMMON);
+
+        CharacterResponse placed = characterService.updateWardrobe(USER_ID,
+                withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.CASSETTE_DECK, 150, 70)));
+        assertThat(placed.decorLayout()).containsExactly(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.CASSETTE_DECK, 150, 70));
+
+        // 안 보내면 그대로, 빈 목록이면 모두 내림
+        assertThat(characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.ROOKIE)).decorLayout()).hasSize(2);
+        assertThat(characterService.updateWardrobe(USER_ID, withDecor()).decorLayout()).isEmpty();
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, withDecor(new DecorPlacement(DecorItem.CD_RACK, 10))))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ROOM_DECOR_LOCKED);
+    }
+
+    @Test
+    void 무대_밖이나_같은_소품_두_번은_거절한다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+        givenRecords(com.project.gainz.domain.record.enums.RecordRarity.COMMON);
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 185))))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DECOR_LAYOUT_INVALID);
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 10, 20))))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DECOR_LAYOUT_INVALID);
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID,
+                withDecor(new DecorPlacement(DecorItem.TAPE_RACK, 10), new DecorPlacement(DecorItem.TAPE_RACK, 40))))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DECOR_LAYOUT_INVALID);
+        assertThat(character.getDecorLayout()).isEmpty();
+    }
+
+    @Test
+    void 예전에_효과_하나만_고른_캐릭터는_그_효과가_켜져_있다() {
+        ReflectionTestUtils.setField(character, "stageEffect", StageEffect.SPARKLE);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+
+        assertThat(characterService.getCharacter(USER_ID).stageEffects()).containsExactly(StageEffect.SPARKLE);
+    }
+
+    @Test
+    void 리스닝_룸은_레코드를_전부_모아야_고를_수_있다() {
+        ReflectionTestUtils.setField(character, "level", 30);
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        givenBasicOutfit();
+        givenRecords(com.project.gainz.domain.record.enums.RecordRarity.COMMON, com.project.gainz.domain.record.enums.RecordRarity.RARE);
+
+        assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.LISTENING_ROOM)))
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.STAGE_BACKGROUND_LOCKED);
+
+        givenRecords();
+        assertThat(characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(1L, StageBackground.LISTENING_ROOM)).stageBackground())
+                .isEqualTo(StageBackground.LISTENING_ROOM);
+    }
+
+    @Test
+    void 옷장에_수집_보상_잠금이_보인다() {
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
+        when(userOutfitRepository.findOutfitItemIdsByUserId(USER_ID)).thenReturn(List.of());
+        when(outfitItemRepository.findAllByOrderByRequiredLevelAscIdAsc()).thenReturn(List.of());
+        givenRecords(com.project.gainz.domain.record.enums.RecordRarity.RARE);
+
+        WardrobeResponse result = characterService.getWardrobe(USER_ID);
+
+        assertThat(result.decorSets()).extracting(WardrobeResponse.DecorSetView::key, WardrobeResponse.DecorSetView::unlocked)
+                .containsExactly(
+                        Tuple.tuple(com.project.gainz.domain.character.enums.RoomDecor.CASSETTE, false),
+                        Tuple.tuple(com.project.gainz.domain.character.enums.RoomDecor.CD, true),
+                        Tuple.tuple(com.project.gainz.domain.character.enums.RoomDecor.LP, false));
+        assertThat(result.backgrounds()).filteredOn(b -> b.key() == StageBackground.LISTENING_ROOM)
+                .extracting(WardrobeResponse.BackgroundView::unlocked).containsExactly(false);
+    }
+
     @Test
     void 벨트는_허리_자리에_쓴다() {
         ReflectionTestUtils.setField(character, "level", 16);
@@ -414,10 +512,10 @@ class CharacterServiceTest {
         givenBasicOutfit();
 
         assertThatThrownBy(() -> characterService.updateWardrobe(USER_ID, new WardrobeUpdateRequest(
-                1L, StageBackground.ROOKIE, null, null, null, null, null, null, StageEffect.SPOTLIGHT)))
+                1L, StageBackground.ROOKIE, null, null, null, null, null, null, List.of(StageEffect.SPOTLIGHT))))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.STAGE_EFFECT_LOCKED);
-        assertThat(character.getStageEffect()).isNull();
+        assertThat(character.getStageEffects()).isEmpty();
     }
 
     @Test

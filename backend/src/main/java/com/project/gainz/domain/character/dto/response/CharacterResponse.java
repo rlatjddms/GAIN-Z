@@ -4,8 +4,10 @@ import com.project.gainz.domain.character.enums.Accessory;
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.enums.StageBackground;
+import com.project.gainz.domain.character.entity.DecorPlacement;
 import com.project.gainz.domain.character.enums.StageEffect;
 
+import java.util.List;
 import java.util.Map;
 import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.domain.character.entity.Character;
@@ -28,7 +30,7 @@ public record CharacterResponse(
         Long currentOutfitId,
         String currentOutfitSpriteKey,    // 입은 의상 스프라이트 키 (성별에 맞는 그림은 프론트에서 고름)
         StageBackground stageBackground,
-        StageEffect stageEffect,          // 고른 무대 효과 (없으면 null)
+        List<StageEffect> stageEffects,   // 켜 둔 무대 효과 (여러 개)
         Accessory hat,                    // 쓰고 있는 소품 (없으면 null)
         Accessory glasses,
         Accessory earrings,
@@ -37,7 +39,8 @@ public record CharacterResponse(
         Accessory shoes,                  // 늘 하나 (기본 BASIC_SHOES)
         Accessory bottom,                 // 늘 하나 (기본 JEANS)
         Map<String, String> itemColors,   // 아이템마다 고른 색 (없는 아이템은 기본 색)
-        boolean instrumentHidden          // 그림에서 악기를 내려놓았는지
+        boolean instrumentHidden,         // 그림에서 악기를 내려놓았는지
+        List<DecorPlacement> decorLayout  // 무대에 올린 방 꾸미기 소품과 자리
 ) {
     public static CharacterResponse from(Character character) {
         return new CharacterResponse(
@@ -57,7 +60,7 @@ public record CharacterResponse(
                 character.getCurrentOutfit() != null ? character.getCurrentOutfit().getId() : null,
                 character.getCurrentOutfit() != null ? character.getCurrentOutfit().getSpriteKey() : null,
                 character.getCurrentStageBackground(),
-                character.getStageEffect(),
+                character.getStageEffects(),
                 character.getHat(),
                 character.getGlasses(),
                 character.getEarrings(),
@@ -66,7 +69,8 @@ public record CharacterResponse(
                 character.getWornShoes(),
                 character.getWornBottom(),
                 character.getItemColors(),
-                character.isInstrumentHidden()
+                character.isInstrumentHidden(),
+                character.getDecorLayout()
         );
     }
 }

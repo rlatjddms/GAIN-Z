@@ -4,6 +4,12 @@ import com.project.gainz.domain.character.dto.request.WardrobeUpdateRequest;
 import com.project.gainz.domain.character.dto.response.WardrobeResponse;
 import com.project.gainz.domain.character.enums.Accessory;
 import com.project.gainz.domain.character.enums.LevelOutfit;
+import com.project.gainz.domain.character.entity.DecorPlacement;
+import com.project.gainz.domain.character.enums.DecorItem;
+import com.project.gainz.domain.character.enums.RoomDecor;
+import com.project.gainz.domain.record.entity.UserRecord;
+import com.project.gainz.domain.record.enums.RecordType;
+import com.project.gainz.domain.record.repository.UserRecordRepository;
 import com.project.gainz.domain.character.enums.AccessorySlot;
 import com.project.gainz.domain.character.enums.StageBackground;
 import com.project.gainz.domain.character.enums.StageEffect;
@@ -44,6 +50,7 @@ public class CharacterService {
     private final OutfitItemRepository outfitItemRepository;
     private final UserOutfitRepository userOutfitRepository;
     private final UserRepository userRepository;
+    private final UserRecordRepository userRecordRepository;
 
     // 캐릭터 생성
     public Long createCharacter(Long userId, CharacterCreateRequest request) {
@@ -136,10 +143,14 @@ public class CharacterService {
                 .filter(item -> item.getCategory() != OutfitCategory.BACKGROUND)
                 .map(item -> WardrobeResponse.OutfitView.of(item, owns(character, owned, item), item.getId().equals(equippedId)))
                 .toList();
+        Set<RecordType> records = ownedRecords(userId);
         List<WardrobeResponse.BackgroundView> backgrounds = Arrays.stream(StageBackground.values())
-                .map(bg -> new WardrobeResponse.BackgroundView(bg, bg.getRequiredLevel(), bg.isUnlockedAt(character.getLevel())))
+                .map(bg -> new WardrobeResponse.BackgroundView(bg, bg.getRequiredLevel(), isUnlocked(bg, character, records)))
                 .toList();
-        return new WardrobeResponse(outfits, backgrounds, character.getCurrentStageBackground());
+        List<WardrobeResponse.DecorSetView> decorSets = Arrays.stream(RoomDecor.values())
+                .map(d -> new WardrobeResponse.DecorSetView(d, d.isCompletedBy(records)))
+                .toList();
+        return new WardrobeResponse(outfits, backgrounds, character.getCurrentStageBackground(), decorSets);
     }
 
     // 옷장 저장: 보유한 의상으로 갈아입고, 얻은 무대 배경·효과를 고르고, 자리마다 하의·소품을 쓴다
@@ -155,9 +166,14 @@ public class CharacterService {
             throw new BusinessException(ErrorCode.OUTFIT_NOT_OWNED);
         }
         StageBackground background = request.stageBackground();
-        if (!background.isUnlockedAt(character.getLevel())) {
+        List<DecorPlacement> layout = request.decorLayout();
+        // 레코드 수집 보상(리스닝 룸·방 꾸미기)을 고를 때만 레코드를 읽는다
+        boolean needsRecords = background.isRecordReward() || (layout != null && !layout.isEmpty());
+        Set<RecordType> records = needsRecords ? ownedRecords(userId) : Set.of();
+        if (!isUnlocked(background, character, records)) {
             throw new BusinessException(ErrorCode.STAGE_BACKGROUND_LOCKED);
         }
+        if (layout != null) validateDecorLayout(layout, records);
 
         Map<AccessorySlot, Accessory> accessories = new EnumMap<>(AccessorySlot.class);
         accessories.put(AccessorySlot.HAT, request.hat());
@@ -175,9 +191,13 @@ public class CharacterService {
             if (!accessory.isUnlockedAt(character.getLevel())) throw new BusinessException(ErrorCode.ACCESSORY_LOCKED);
         });
 
-        StageEffect effect = request.stageEffect();
-        if (effect != null && !effect.isUnlockedAt(character.getLevel())) {
-            throw new BusinessException(ErrorCode.STAGE_EFFECT_LOCKED);
+        List<StageEffect> effects = request.stageEffects();
+        if (effects != null) {
+            for (StageEffect effect : effects) {
+                if (effect == null || !effect.isUnlockedAt(character.getLevel())) {
+                    throw new BusinessException(ErrorCode.STAGE_EFFECT_LOCKED);
+                }
+            }
         }
 
         if (request.itemColors() != null) {
@@ -188,9 +208,35 @@ public class CharacterService {
         character.changeStageBackground(background);
         if (request.itemColors() != null) character.changeItemColors(request.itemColors());
         if (request.instrumentHidden() != null) character.changeInstrumentHidden(request.instrumentHidden());
-        character.changeStageEffect(effect);
+        if (effects != null) character.changeStageEffects(effects.stream().distinct().toList());
+        if (layout != null) character.changeDecorLayout(layout);
         accessories.forEach(character::wear);
         return CharacterResponse.from(character);
+    }
+
+    // 소품 배치: 모은 세트의 소품만, 같은 소품은 한 번, 자리(x·y)는 무대 안
+    private static void validateDecorLayout(List<DecorPlacement> layout, Set<RecordType> records) {
+        Set<DecorItem> seen = new HashSet<>();
+        for (DecorPlacement p : layout) {
+            boolean yOk = p != null && (p.y() == null || (p.y() >= DecorItem.MIN_Y && p.y() <= DecorItem.MAX_Y));
+            if (p == null || p.key() == null || !seen.add(p.key()) || p.x() < DecorItem.MIN_X || p.x() > DecorItem.MAX_X || !yOk) {
+                throw new BusinessException(ErrorCode.DECOR_LAYOUT_INVALID);
+            }
+            if (!p.key().getSet().isCompletedBy(records)) {
+                throw new BusinessException(ErrorCode.ROOM_DECOR_LOCKED);
+            }
+        }
+    }
+
+    private Set<RecordType> ownedRecords(Long userId) {
+        Set<RecordType> owned = new HashSet<>();
+        for (UserRecord r : userRecordRepository.findAllByUserId(userId)) owned.add(r.getRecordType());
+        return owned;
+    }
+
+    // 레벨 무대는 레벨로, 리스닝 룸은 레코드를 전부 모았는지로
+    private static boolean isUnlocked(StageBackground bg, Character character, Set<RecordType> records) {
+        return bg.isRecordReward() ? RoomDecor.allCollected(records) : bg.isUnlockedAt(character.getLevel());
     }
 
     private static final Pattern HEX_COLOR = Pattern.compile("^#[0-9A-Fa-f]{6}$");

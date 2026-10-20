@@ -1,5 +1,6 @@
 package com.project.gainz.domain.record.service;
 
+import com.project.gainz.domain.character.enums.RoomDecor;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.JamTrackRepository;
 import com.project.gainz.domain.friend.enums.FriendshipStatus;
@@ -54,6 +55,8 @@ public class RecordService {
     // 지난 날짜도 고칠 수 있어서 가입일보다 조금 앞부터 센다
     private static final int PRACTICE_BACKFILL_DAYS = 7;
     static final String RECORDS_URL = "/home?records=open";
+    // 수집 보상은 옷장 배경 탭에서 고른다
+    static final String WARDROBE_URL = "/wardrobe";
 
     private final UserRecordRepository userRecordRepository;
     private final UserRepository userRepository;
@@ -126,7 +129,24 @@ public class RecordService {
             notificationService.notify(user, NotificationType.RECORD, "MY RECORDS",
                     "새 레코드를 얻었어요: " + type.title() + " (" + type.shape() + ")", RECORDS_URL);
         }
+        notifyCollectionRewards(user, owned, reached);
         return granted;
+    }
+
+    // 이번에 종류별로 다 모았으면 방 꾸미기 세트, 전부 모았으면 리스닝 룸 무대를 알린다
+    private void notifyCollectionRewards(User user, Set<RecordType> before, List<RecordType> reached) {
+        Set<RecordType> after = EnumSet.noneOf(RecordType.class);
+        after.addAll(before);
+        after.addAll(reached);
+        for (RoomDecor decor : RoomDecor.values()) {
+            if (decor.isCompletedBy(after) && !decor.isCompletedBy(before)) {
+                notificationService.notify(user, NotificationType.RECORD, "MY RECORDS", decor.completedMessage(), WARDROBE_URL);
+            }
+        }
+        if (RoomDecor.allCollected(after) && !RoomDecor.allCollected(before)) {
+            notificationService.notify(user, NotificationType.RECORD, "MY RECORDS",
+                    "레코드를 모두 모았어요! 리스닝 룸 무대를 얻었어요", WARDROBE_URL);
+        }
     }
 
     private Map<RecordType, LocalDateTime> ownedOf(Long userId) {
