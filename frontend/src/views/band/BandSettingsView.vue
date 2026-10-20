@@ -374,7 +374,7 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 .notice.bad { padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 
 .card {
-  background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: 20px 22px;
+  background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: var(--pad-card);
 }
 /* 카드 제목은 WsCard와 같게 */
 .card h2 { margin: 0 0 16px; font-size: 0.9rem; font-weight: 800; color: #343a40; display: flex; align-items: center; gap: 8px; }
@@ -488,4 +488,13 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
 }
 /* 리더 왕관: 홈 밴드 무대와 같은 노란 왕관, 이름과 띄움 */
 .crown { margin-right: 6px; color: #f08c00; vertical-align: -1px; flex: none; }
+/* 휴대폰: 입력칸·초대 코드·카드 사이를 줄여 비율을 맞춘다 */
+@media (max-width: 640px) {
+  .columns { gap: 12px; }
+  .card h2 { margin-bottom: 12px; }
+  .desc { margin-bottom: 10px; }
+  .field input, .field textarea { padding: 9px 12px; border-radius: 10px; }
+  .code { font-size: 1.05rem; letter-spacing: 3px; padding: 6px 12px; border-radius: 10px; }
+  .info { grid-template-columns: 48px 1fr; }
+}
 </style>

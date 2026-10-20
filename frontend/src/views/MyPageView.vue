@@ -341,4 +341,12 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
 .saved { margin: 10px 0 0; font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
 .error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 .loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
+/* 휴대폰: 사진·칸 이름 폭을 줄여 비율을 맞춘다 */
+@media (max-width: 640px) {
+  .page, .col { gap: 12px; }
+  .photo { gap: 14px; }
+  .photo :deep(.profile-avatar) { width: 64px !important; height: 64px !important; }
+  .row { grid-template-columns: 60px minmax(0, 1fr); gap: 10px; padding: 10px 0; }
+  .setting { padding: 11px 2px; }
+}
 </style>

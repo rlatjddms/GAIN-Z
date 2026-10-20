@@ -1,5 +1,5 @@
 <template>
-  <SubPageLayout title="WARDROBE" name="옷장" subtitle="바꾼 모습은 저장해야 반영돼요">
+  <SubPageLayout title="DRESS ROOM" name="옷장" subtitle="바꾼 모습은 저장해야 반영돼요">
     <template #actions>
       <span v-if="savedMessage" class="saved">{{ savedMessage }}</span>
       <button class="btn" :disabled="!dirty || saving" @click="reset">되돌리기</button>
@@ -455,7 +455,8 @@ onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 �
 }
 @media (max-width: 640px) {
   .preview { top: 56px; }
-  .preview :deep(.character-stage) { max-width: 320px; margin-left: auto; margin-right: auto; }
+  /* 세로 flex 안에서 auto 여백만 주면 폭이 0으로 줄어서 width를 같이 준다 */
+  .preview :deep(.character-stage) { width: 100%; max-width: 320px; margin-left: auto; margin-right: auto; }
 }
 
 .panel { background: #fff; border: 1px solid var(--c-line); border-radius: 20px; overflow: hidden; }
@@ -465,7 +466,11 @@ onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 �
   font-size: 0.9rem; font-weight: 800; color: var(--c-faint); border-bottom: 2px solid transparent;
 }
 .tabs button.on { color: var(--c-primary-text); border-bottom-color: var(--c-primary); }
-.tab-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 18px; }
+.tab-body { padding: var(--pad-card); display: flex; flex-direction: column; gap: 18px; }
+@media (max-width: 640px) {
+  .tabs button { padding: 11px 0; font-size: 0.85rem; }
+  .tab-body { gap: 14px; }
+}
 
 .field { display: flex; flex-direction: column; gap: 8px; }
 .label { font-size: 0.75rem; font-weight: 800; color: var(--c-muted); }

@@ -7,6 +7,8 @@
     <div v-if="!bare" class="stage-head">
       <div class="level-tag">Lv.{{ level }} {{ nickname }}</div>
       <div class="tier-badge">{{ tier.name }}</div>
+      <!-- 칭호 옆에 붙일 버튼 (홈 휴대폰 화면의 옷장 버튼) -->
+      <slot name="badge" />
     </div>
 
     <!-- 배경과 캐릭터는 같은 도트 격자 (홈과 옷장 미리보기가 똑같이 보인다) -->

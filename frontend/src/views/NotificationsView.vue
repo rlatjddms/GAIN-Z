@@ -236,7 +236,7 @@ watch(tab, () => { stopSelect(); reload() }, { immediate: true })
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 16px; }
 
-.card { background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: 20px 22px; }
+.card { background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: var(--pad-card); }
 
 .tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 12px; border-bottom: 1px solid var(--c-line-soft); }
 .tab-count { min-width: 16px; padding: 0 5px; border-radius: 999px; background: #fa5252; color: #fff; font-size: 0.65rem; line-height: 16px; text-align: center; }

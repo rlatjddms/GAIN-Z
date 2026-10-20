@@ -22,12 +22,15 @@
                 <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
               </a>
             </div>
-            <button class="edit-char-btn" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
-              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 3l3 2 3-2 5 3-2 4-2-1v12H8V9L6 10 4 6z"></path>
-              </svg>
-              옷장
+            <!-- 옷장 버튼: 넓은 화면은 무대 오른쪽 아래, 휴대폰은 칭호 옆 -->
+            <button class="edit-char-btn wide-only" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
+              <Shirt :size="13" :stroke-width="2.5" /> 옷장
             </button>
+            <template #badge>
+              <button class="edit-char-btn badge-btn" @click="router.push('/wardrobe')" title="옷장: 외형·의상·배경 바꾸기">
+                <Shirt :size="12" :stroke-width="2.5" /> 옷장
+              </button>
+            </template>
           </CharacterStage>
 
           <section class="quick-grid grid-3">
@@ -164,7 +167,7 @@
 </template>
 
 <script setup>
-import { Crown, Music, Settings } from 'lucide-vue-next'
+import { Crown, Music, Settings, Shirt } from 'lucide-vue-next'
 import PixelIcon from '../components/PixelIcon.vue'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -470,7 +473,7 @@ button::-moz-focus-inner { border: 0 !important; }
 
 /* 데이터 카드 */
 /* 카드 모양·제목은 WsCard와 같게 */
-.data-card { background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: 20px 22px; }
+.data-card { background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: var(--pad-card); }
 .card-title { font-weight: 800; font-size: 0.9rem; margin-bottom: 16px; display: flex; justify-content: space-between; color: #343a40; }
 .card-title.link { width: 100%; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
 .card-title.link:hover { color: var(--c-primary-text); }
@@ -626,8 +629,10 @@ button::-moz-focus-inner { border: 0 !important; }
   .card-btn:hover { transform: none; box-shadow: none; }
 }
 
-/* 좁은 화면: 무대 아래 경험치와 겹치지 않게 옷장 버튼을 무대 밑으로 */
+/* 칭호 옆 옷장 버튼은 휴대폰에서만 */
+.edit-char-btn.badge-btn { display: none; position: static; padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; }
 @media (max-width: 640px) {
-  .edit-char-btn { position: static; margin: 0 auto 12px; }
+  .edit-char-btn.wide-only { display: none; }
+  .edit-char-btn.badge-btn { display: inline-flex; }
 }
 </style>

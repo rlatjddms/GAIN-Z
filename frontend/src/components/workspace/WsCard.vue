@@ -22,7 +22,7 @@ defineProps({
 <style scoped>
 .ws-card {
   background: #fff; border: 1px solid var(--c-line); border-radius: 20px;
-  padding: 20px 22px; min-width: 0;
+  padding: var(--pad-card); min-width: 0;
 }
 .ws-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 h3 { margin: 0; font-size: 0.9rem; font-weight: 800; color: #343a40; display: flex; align-items: center; gap: 8px; }

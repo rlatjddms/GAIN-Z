@@ -73,3 +73,11 @@ body {
   font-family: var(--font-sans);
   color: var(--c-text);
 }
+
+/* 휴대폰 (#124): 글자 크기는 대부분 rem이라 기준 글자를 줄이면 화면 전체가 같은 비율로 작아진다 (16px → 14.5px, 약 90%)
+   카드 안쪽 여백은 --pad-card로 같이 줄인다 */
+:root { --pad-card: 20px 22px; }
+@media (max-width: 640px) {
+  html { font-size: 14.5px; }
+  :root { --pad-card: 16px; }
+}
