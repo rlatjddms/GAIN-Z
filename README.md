@@ -67,6 +67,24 @@ npm run dev
 
 Vite 환경 변수는 빌드 시점에 박히므로, 값을 바꾸면 `npm run build`를 다시 합니다.
 
+## Docker로 띄우기
+
+DB·Redis·백엔드·프론트를 한 번에 올리는 `docker-compose.yml`이 루트에 있습니다. 프론트 컨테이너의 nginx가 정적 파일을 서빙하면서 `/api`와 소셜 로그인 경로만 백엔드로 넘기므로, 한 도메인(기본 `http://localhost`)으로 전부 접속합니다.
+
+```bash
+cp .env.example .env
+# .env 에 DB 비밀번호, JWT_SECRET, 소셜 로그인 클라이언트, FRONTEND_URL 을 채운다.
+# 첫 실행은 테이블을 만들어야 하므로 .env 에 DDL_AUTO=update 를 한 줄 넣고 띄운 뒤, 뜨고 나면 그 줄을 지운다
+docker compose up -d --build
+```
+
+- 이미지: `backend/Dockerfile`(Gradle 빌드 → JRE 17), `frontend/Dockerfile`(Vite 빌드 → nginx 1.27). nginx 설정은 `frontend/nginx.conf`.
+- 데이터는 볼륨 `db-data`(MariaDB), `redis-data`, `uploads`(올린 파일)에 남습니다. `docker compose down -v`는 이 볼륨까지 지우니 조심합니다.
+- 포트를 바꾸려면 `.env`에 `WEB_PORT=8089`처럼 적고, `FRONTEND_URL`도 `http://localhost:8089`로 맞춥니다.
+- 소셜 로그인 콘솔의 리다이렉트 URI는 `${FRONTEND_URL}/login/oauth2/code/{google|kakao|naver}`입니다. 백엔드가 nginx의 `X-Forwarded-*` 헤더로 바깥 주소를 알아내므로 백엔드 포트를 밖으로 열 필요가 없습니다.
+- HTTPS는 이 compose에 없습니다. 도메인이 정해지면 앞에 Caddy·certbot 같은 TLS 종단을 두거나 클라우드 로드밸런서를 씁니다. 앞단이 `X-Forwarded-Proto`를 보내면 nginx가 그대로 백엔드에 넘깁니다.
+- 로그: `docker compose logs -f backend`
+
 ## 운영 실행 (prod 프로필)
 
 백엔드를 `SPRING_PROFILES_ACTIVE=prod`로 띄우면 `application-prod.yml`이 적용되어 아래 환경 변수를 읽습니다.
