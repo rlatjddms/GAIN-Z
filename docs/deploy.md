@@ -1,11 +1,11 @@
 # 배포 가이드 (Render + Supabase + Vercel)
 
-GAIN-Z를 무료로 인터넷에 올리는 방법입니다 (#180, 실제 배포 후 #183에서 고침). 세 서비스 모두 GitHub 계정으로 가입하고, 카드 등록은 필요 없습니다.
+GAIN-Z를 무료로 인터넷에 올리는 방법입니다 (#180, 실제 배포 후 #183에서 고침, 깨우기는 #195에서 UptimeRobot으로). 세 서비스 모두 GitHub 계정으로 가입하고, 카드 등록은 필요 없습니다.
 
 | 하는 일 | 서비스 | 무료 범위 |
 | --- | --- | --- |
 | 화면(프론트) | Vercel | 무료, HTTPS 자동 |
-| 백엔드 | Render (Docker) | RAM 512MB, 15분 동안 요청이 없으면 잠듦 → 10분마다 깨움 |
+| 백엔드 | Render (Docker) | RAM 512MB, 15분 동안 요청이 없으면 잠듦 → UptimeRobot이 5분마다 깨움 |
 | 로그인 유지(Redis) | Render Key Value | 25MB, 재시작되면 다시 로그인해야 함 |
 | DB | Supabase PostgreSQL | 500MB |
 | 올린 파일 | Supabase Storage | 1GB |
@@ -22,14 +22,14 @@ GAIN-Z를 무료로 인터넷에 올리는 방법입니다 (#180, 실제 배포 
 
 - `render.yaml`: Render 백엔드 + Key Value (Blueprint)
 - `frontend/vercel.json`: Vercel 빌드·SPA 설정
-- `.github/workflows/keep-awake.yml`: 10분마다 백엔드를 깨우는 GitHub Actions
+
+깨우기(UptimeRobot)는 레포 밖에서 설정합니다 (5단계).
 
 ## 브랜치
 
 - 이 레포의 **기본 브랜치는 `dev`**입니다. 기능 PR은 전부 `dev`로 머지합니다.
 - **운영 배포는 `main`**입니다. `dev` → `main` 릴리스 PR을 **merge commit**으로 머지하면 Render와 Vercel이 새 버전을 올립니다. squash로 머지하면 `main`과 `dev`의 기록이 갈라져 다음 릴리스에서 충돌이 납니다.
 - Render는 `render.yaml`에 `branch: main`이 적혀 있어 따로 설정할 것이 없습니다. **Vercel은 기본 브랜치(`dev`)를 운영으로 배포하므로 3-5에서 `main`으로 바꿔야 합니다.**
-- keep-awake 같은 예약 워크플로는 GitHub 규칙상 기본 브랜치(`dev`)에 있는 파일로 돕니다.
 
 ## 주소 이름
 
@@ -143,16 +143,19 @@ Domains에 주소가 여러 개 보이는 것은 정상입니다. `<프로젝트
 - Google: OAuth 동의 화면이 "테스트"면 테스트 사용자로 등록한 계정만 로그인됩니다. 누구나 쓰게 하려면 **앱 게시**.
 - Naver: 검수 전에는 "멤버관리"에 등록한 계정만 로그인됩니다.
 
-## 5. 깨우기 (GitHub Actions)
+## 5. 깨우기 (UptimeRobot)
 
-레포 **Settings → Secrets and variables → Actions → Variables** 탭(Secrets 탭 아님) → New repository variable
+Render 무료 백엔드는 15분 동안 요청이 없으면 잠들고, 깨는 데 1분쯤 걸립니다. 바깥에서 5분마다 헬스 체크를 불러 깨워 둡니다. 헬스 체크가 DB도 한 번 물어서 Supabase가 7일 미사용으로 멈추는 것도 막습니다.
 
-- Name `BACKEND_URL`, Value: Render 실제 주소 (끝에 `/` 없이)
+1. [uptimerobot.com](https://uptimerobot.com) 무료 가입
+2. **New Monitor**
+   - Monitor Type: **HTTP(s)**
+   - URL: `https://<백엔드>/api/v1/health`
+   - Monitoring Interval: **5분**
+   - 알림 받을 이메일 체크 (서버가 응답하지 않으면 메일이 옵니다)
+3. 저장하면 바로 시작합니다. 대시보드에서 **Up**(초록)이 보이면 됩니다.
 
-**Actions → keep-awake → Run workflow**(브랜치 `dev`)로 한 번 돌려 초록 체크를 확인합니다. 회색(Skipped)이면 변수가 Secrets 탭에 들어간 것입니다. 그 뒤로는 10분마다 돌면서 Render가 잠들지 않게 하고, 헬스 체크가 DB도 한 번 물어서 Supabase가 7일 미사용으로 멈추는 것도 막습니다.
-
-- GitHub 예약 실행은 몇 분씩 늦거나, 새로 추가된 직후에는 한동안 안 돌 수 있습니다. Actions 탭에서 `schedule`로 실행된 기록이 쌓이는지 봅니다. 계속 안 돌면 UptimeRobot 같은 무료 모니터링으로 헬스 체크 주소를 5분마다 부르게 해도 됩니다.
-- 60일 동안 커밋이 없으면 GitHub가 예약 실행을 멈춥니다. Actions 탭에서 다시 켭니다.
+GitHub Actions 예약 실행은 쓰지 않습니다 (#195). 예약 실행이 붐빌 때 늦거나 빠지고, 레포가 비공개라 10분마다 돌면 무료 Actions 시간(월 2,000분)을 넘깁니다.
 
 ## 6. 확인
 
@@ -175,13 +178,13 @@ Domains에 주소가 여러 개 보이는 것은 정상입니다. `<프로젝트
 
 1. Vercel `VITE_API_BASE_URL` → Redeploy
 2. 소셜 로그인 콘솔 3곳의 리다이렉트 주소, 카카오 Web 사이트 도메인
-3. GitHub 변수 `BACKEND_URL`
+3. UptimeRobot 모니터 URL
 
 ## 문제가 생겼을 때
 
 | 증상 | 원인과 할 일 |
 | --- | --- |
-| 검은 화면에 "SERVICE WAKING UP…" (Render 화면) | 백엔드가 잠들었다 깨는 중입니다. 1분쯤 기다리면 됩니다. 자주 보이면 깨우기(5)가 도는지 확인합니다 |
+| 검은 화면에 "SERVICE WAKING UP…" (Render 화면) | 백엔드가 잠들었다 깨는 중입니다. 1분쯤 기다리면 됩니다. 자주 보이면 UptimeRobot 모니터가 Up인지 확인합니다(5) |
 | "서버에 연결하지 못했어요", Console에 `CORS` | Render `FRONTEND_URL`이 지금 사이트 주소와 다릅니다 |
 | Console에 `Failed to fetch`/`ERR_…`, 헬스 체크도 안 열림 | 백엔드가 재배포 중이거나 꺼졌습니다. Render Events·Logs 확인 |
 | 헬스 체크가 503 `db-down` | DB 연결 실패. Supabase가 **Paused**면 대시보드에서 Restore, 아니면 `DB_*` 값 확인 |
