@@ -1,0 +1,74 @@
+# Render Blueprint (#180): 백엔드(Docker) + Redis(Key Value). 가이드: docs/deploy.md
+# Render 대시보드 → New → Blueprint → 이 레포를 고르면 아래 서비스가 만들어진다.
+# sync: false 인 값은 처음 만들 때 대시보드에서 직접 넣는다 (레포에 비밀값을 두지 않는다)
+services:
+  - type: web
+    name: gainz-backend
+    runtime: docker
+    plan: free
+    # 한국에서 가장 가까운 리전. Supabase 프로젝트도 Singapore 로 만들면 DB 왕복이 짧다
+    region: singapore
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/v1/health
+    # main 에 머지되면 자동 배포
+    autoDeployTrigger: commit
+    envVars:
+      # 백엔드가 이 포트로 뜬다 (Dockerfile HEALTHCHECK 와 같게)
+      - key: PORT
+        value: "8080"
+      # 무료 인스턴스 RAM 512MB에 맞춘 JVM 설정
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:MaxRAMPercentage=60 -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k -XX:ReservedCodeCacheSize=48m"
+      - key: SPRING_DATA_REDIS_URL
+        fromService:
+          type: keyvalue
+          name: gainz-redis
+          property: connectionString
+      # Supabase Session pooler (docs/deploy.md 1단계)
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_POOL_SIZE
+        value: "5"
+      # 새 컬럼·테이블이 생기는 배포가 멈추지 않게 운영에서도 update 로 둔다 (컬럼을 지우거나 바꾸지는 않음)
+      - key: DDL_AUTO
+        value: update
+      - key: STORAGE_TYPE
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: uploads
+      - key: JWT_SECRET
+        generateValue: true
+      # Vercel 주소 (docs/deploy.md 3단계에서 정해지면 넣는다). 예) https://gain-z.vercel.app
+      - key: FRONTEND_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: KAKAO_CLIENT_ID
+        sync: false
+      - key: KAKAO_CLIENT_SECRET
+        sync: false
+      - key: NAVER_CLIENT_ID
+        sync: false
+      - key: NAVER_CLIENT_SECRET
+        sync: false
+
+  # 로그인 유지용 refresh token 저장소. 무료는 25MB, 디스크에 남지 않아 재시작되면 다시 로그인해야 한다
+  - type: keyvalue
+    name: gainz-redis
+    plan: free
+    region: singapore
+    maxmemoryPolicy: allkeys-lru
+    # 비워 두면 Render 안쪽(백엔드)에서만 붙을 수 있다
+    ipAllowList: []
