@@ -1,5 +1,6 @@
 package com.project.gainz.domain.band.service;
 
+import com.project.gainz.global.common.converter.CheckConstraints;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -18,6 +19,9 @@ public class BandSchemaPatcher implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        if (!CheckConstraints.isMariaDb(jdbcTemplate)) {
+            return;
+        }
         try {
             Integer count = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()"

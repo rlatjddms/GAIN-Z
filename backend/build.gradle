@@ -20,8 +20,9 @@ dependencies {
     // Spring Data JPA
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
-    // MariaDB Driver
+    // DB 드라이버: 운영은 PostgreSQL(Supabase), 로컬은 MariaDB도 그대로 쓸 수 있다 (#178)
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+    runtimeOnly 'org.postgresql:postgresql'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'

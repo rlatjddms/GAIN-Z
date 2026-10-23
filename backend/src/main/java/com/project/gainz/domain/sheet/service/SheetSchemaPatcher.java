@@ -1,5 +1,6 @@
 package com.project.gainz.domain.sheet.service;
 
+import com.project.gainz.global.common.converter.CheckConstraints;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -33,6 +34,9 @@ public class SheetSchemaPatcher implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        if (!CheckConstraints.isMariaDb(jdbcTemplate)) {
+            return;
+        }
         for (Patch patch : PATCHES) {
             try {
                 Integer count = jdbcTemplate.queryForObject(

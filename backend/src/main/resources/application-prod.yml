@@ -2,8 +2,8 @@
 # 필수: DB_URL, DB_USERNAME, DB_PASSWORD, REDIS_HOST, JWT_SECRET, FRONTEND_URL,
 #       GOOGLE_CLIENT_ID/SECRET, KAKAO_CLIENT_ID/SECRET, NAVER_CLIENT_ID/SECRET
 spring:
+  # 드라이버는 DB_URL로 정해진다. 예) jdbc:postgresql://호스트:5432/postgres?sslmode=require (#178)
   datasource:
-    driver-class-name: org.mariadb.jdbc.Driver
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
@@ -22,6 +22,7 @@ spring:
     properties:
       hibernate:
         format_sql: false
+        auto_quote_keyword: true
 
   security:
     oauth2:

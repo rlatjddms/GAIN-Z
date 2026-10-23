@@ -21,6 +21,9 @@ public class NotificationSchemaPatcher implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        if (!CheckConstraints.isMariaDb(jdbcTemplate)) {
+            return;
+        }
         try {
             Integer count = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()"

@@ -13,6 +13,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        # PostgreSQL 예약어(user 테이블 등)는 자동으로 따옴표를 붙인다. MariaDB에서도 그대로 동작한다 (#178)
+        auto_quote_keyword: true
 
   # 악보 파일 올리기: 한 장 10MB (SheetFileStorage.MAX_FILE_BYTES와 같게), 한 번에 100MB
   servlet:
