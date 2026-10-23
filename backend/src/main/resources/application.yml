@@ -15,6 +15,10 @@ spring:
         format_sql: true
         # PostgreSQL 예약어(user 테이블 등)는 자동으로 따옴표를 붙인다. MariaDB에서도 그대로 동작한다 (#178)
         auto_quote_keyword: true
+        # DB 연결은 트랜잭션이 끝나면 바로 돌려준다. 기본값(요청이 끝날 때까지 쥐고 있음)이면 실시간 알림(SSE)처럼
+        # 30분씩 열려 있는 요청이 연결을 하나씩 붙잡아, 연결 수가 적은 운영 DB에서 다른 요청·헬스 체크가 멈춘다
+        connection:
+          handling_mode: DELAYED_ACQUISITION_AND_RELEASE_AFTER_TRANSACTION
 
   # 악보 파일 올리기: 한 장 10MB (SheetFileStorage.MAX_FILE_BYTES와 같게), 한 번에 100MB
   servlet:
