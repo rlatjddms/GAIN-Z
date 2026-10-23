@@ -81,6 +81,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppLogo from '../components/AppLogo.vue'
+import { API_BASE_URL } from '../api/axios'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -125,7 +126,7 @@ const handleSocialLogin = (provider) => {
   // Save keepLoggedIn checkbox state in sessionStorage temporarily
   sessionStorage.setItem('keepLoggedInPreference', keepLoggedIn.value.toString())
   // Redirect to backend OAuth2 authorization URL
-  window.location.href = `http://localhost:8080/oauth2/authorization/${provider}`
+  window.location.href = `${API_BASE_URL}/oauth2/authorization/${provider}`
 }
 </script>
 
