@@ -1,5 +1,5 @@
 # 운영 설정 (#174). 값은 전부 환경 변수로 받는다. 실행: SPRING_PROFILES_ACTIVE=prod
-# 필수: DB_URL, DB_USERNAME, DB_PASSWORD, REDIS_HOST, JWT_SECRET, FRONTEND_URL,
+# 필수: DB_URL, DB_USERNAME, DB_PASSWORD, REDIS_HOST(또는 SPRING_DATA_REDIS_URL), JWT_SECRET, FRONTEND_URL,
 #       GOOGLE_CLIENT_ID/SECRET, KAKAO_CLIENT_ID/SECRET, NAVER_CLIENT_ID/SECRET
 # 파일을 Supabase에 둘 때: STORAGE_TYPE=supabase, SUPABASE_URL, SUPABASE_SERVICE_KEY (버킷 이름 SUPABASE_BUCKET, 기본 uploads)
 spring:
@@ -8,10 +8,14 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    # 무료 DB(Supabase) 연결 수 제한에 맞춰 줄일 수 있다 (#180)
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
 
   data:
     redis:
-      host: ${REDIS_HOST}
+      # Render Key Value처럼 주소 한 줄(redis://…)로 받을 때는 SPRING_DATA_REDIS_URL 을 넣는다. 그러면 host·port보다 먼저 쓴다 (#180)
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
 
@@ -62,6 +66,7 @@ springdoc:
     enabled: ${SWAGGER_ENABLED:false}
 
 server:
-  port: ${SERVER_PORT:8080}
+  # Render는 PORT 를 넣어 준다 (#180)
+  port: ${SERVER_PORT:${PORT:8080}}
   # nginx 같은 리버스 프록시 뒤에서 X-Forwarded-* 헤더를 읽어야 소셜 로그인 redirect-uri의 {baseUrl}이 바깥 주소(https://도메인)로 잡힌다
   forward-headers-strategy: framework
