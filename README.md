@@ -87,6 +87,10 @@ docker compose up -d --build
 - HTTPS는 이 compose에 없습니다. 도메인이 정해지면 앞에 Caddy·certbot 같은 TLS 종단을 두거나 클라우드 로드밸런서를 씁니다. 앞단이 `X-Forwarded-Proto`를 보내면 nginx가 그대로 백엔드에 넘깁니다.
 - 로그: `docker compose logs -f backend`
 
+## 배포
+
+Render(백엔드) + Supabase(DB·파일) + Vercel(프론트)에 무료로 올립니다. 순서대로 따라 하는 방법은 [docs/deploy.md](docs/deploy.md)에 있습니다. 설정 파일은 `render.yaml`, `frontend/vercel.json`, `.github/workflows/keep-awake.yml`입니다.
+
 ## 운영 실행 (prod 프로필)
 
 백엔드를 `SPRING_PROFILES_ACTIVE=prod`로 띄우면 `application-prod.yml`이 적용되어 아래 환경 변수를 읽습니다.
@@ -108,7 +112,9 @@ docker compose up -d --build
 | `SUPABASE_BUCKET` | | 비공개 버킷 이름 (기본 `uploads`). 미리 만들어 둔다 |
 | `DDL_AUTO` | | 기본 `validate`(스키마 검사만). 첫 배포처럼 테이블을 만들어야 할 때만 `update`로 한 번 띄운다 |
 | `SWAGGER_ENABLED` | | 기본 `false`. API 문서를 운영에서 보려면 `true` |
-| `SERVER_PORT` | | 기본 8080 |
+| `SERVER_PORT` | | 기본 `PORT`, 그것도 없으면 8080 |
+| `SPRING_DATA_REDIS_URL` | | Redis 주소 한 줄(`redis://…`). 넣으면 `REDIS_HOST`보다 먼저 씁니다 (Render Key Value) |
+| `DB_POOL_SIZE` | | DB 연결 수 (기본 10). 무료 DB에서는 5 정도로 줄입니다 |
 
 운영에서 달라지는 점:
 
