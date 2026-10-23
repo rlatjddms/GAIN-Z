@@ -2,6 +2,7 @@ package com.project.gainz.domain.sheet.service;
 
 import com.project.gainz.domain.sheet.service.SheetFileStorage.StoredFile;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.global.storage.LocalFileStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
@@ -23,7 +24,7 @@ class SheetFileStorageTest {
     @TempDir Path dir;
 
     private SheetFileStorage storage() {
-        return new SheetFileStorage(dir.toString());
+        return new SheetFileStorage(new LocalFileStore(dir.toString()));
     }
 
     @Test

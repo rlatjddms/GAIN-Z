@@ -3,31 +3,30 @@ package com.project.gainz.domain.band.service;
 import com.project.gainz.domain.sheet.service.SheetFileStorage;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.global.storage.FileStore;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.UUID;
 import java.util.function.Function;
 
+// 밴드 게시판·셋리스트 첨부와 잼 녹음 트랙을 FileStore의 band/ 아래에 저장한다 (#178)
 @Slf4j
 @Component
 public class BandAttachmentStorage {
     public static final long MAX_BYTES = 10L * 1024 * 1024;
     // 레이어 잼 녹음 트랙 (Opus·AAC 약 25분)
     public static final long AUDIO_MAX_BYTES = 30L * 1024 * 1024;
-    private final Path baseDir;
+    private static final String FOLDER = "band/";
+    private final FileStore fileStore;
 
     public record StoredFile(String key, String name, String type) {}
 
-    public BandAttachmentStorage(@Value("${gainz.upload-dir:${user.home}/.gainz/uploads}") String dir) {
-        baseDir = Path.of(dir, "band").toAbsolutePath().normalize();
+    public BandAttachmentStorage(FileStore fileStore) {
+        this.fileStore = fileStore;
     }
 
     public StoredFile store(MultipartFile file) {
@@ -48,13 +47,8 @@ public class BandAttachmentStorage {
             String type = detector.apply(head);
             if (type == null) throw new BusinessException(invalid);
             String key = UUID.randomUUID().toString();
-            Files.createDirectories(baseDir);
-            Path target = resolve(key);
             try (var stream = file.getInputStream()) {
-                Files.copy(stream, target);
-            } catch (IOException e) {
-                Files.deleteIfExists(target);
-                throw e;
+                fileStore.put(path(key), stream, file.getSize(), type);
             }
             String name = file.getOriginalFilename() == null ? "첨부파일" : file.getOriginalFilename();
             name = name.replace('\\', '/');
@@ -94,21 +88,21 @@ public class BandAttachmentStorage {
     }
 
     public Resource load(String key) {
-        Path path = resolve(key);
-        if (!Files.isRegularFile(path) || !Files.isReadable(path)) throw new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND);
-        return new FileSystemResource(path);
+        Resource resource;
+        try { resource = fileStore.get(path(key)); }
+        catch (IOException e) { throw new BusinessException(ErrorCode.BAND_FILE_STORAGE_FAILED); }
+        if (resource == null) throw new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND);
+        return resource;
     }
 
     public void delete(String key) {
         if (key == null) return;
-        try { Files.deleteIfExists(resolve(key)); }
+        try { fileStore.delete(path(key)); }
         catch (IOException | BusinessException e) { log.warn("밴드 첨부 파일 정리 실패: {}", key); }
     }
 
-    private Path resolve(String key) {
+    private static String path(String key) {
         if (key == null || !key.matches("[a-f0-9-]{36}")) throw new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND);
-        Path path = baseDir.resolve(key).normalize();
-        if (!path.getParent().equals(baseDir)) throw new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND);
-        return path;
+        return FOLDER + key;
     }
 }

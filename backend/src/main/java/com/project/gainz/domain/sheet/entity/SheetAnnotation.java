@@ -16,6 +16,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 // 악보 장 위 내 필기 (#167). 원본 파일은 그대로 두고 사용자마다, 장(PDF는 쪽)마다 따로 저장한다
 @Entity
@@ -40,7 +42,9 @@ public class SheetAnnotation extends BaseEntity {
     private Integer pdfPage;         // PDF 안 쪽 번호 (1부터). 그림 장은 1
 
     // 필기 JSON { w, h, strokes: [{ t, c, s, p: [x, y, …] }] } (프론트 stores/annotation.js)
-    @Column(nullable = false, columnDefinition = "MEDIUMTEXT")
+    // 긴 텍스트: MariaDB longtext, PostgreSQL text (#178)
+    @JdbcTypeCode(SqlTypes.LONG32VARCHAR)
+    @Column(nullable = false)
     private String data;
 
     @Builder
