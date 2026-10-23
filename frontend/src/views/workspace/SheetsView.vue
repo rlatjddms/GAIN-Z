@@ -1,0 +1,311 @@
+<template>
+  <SubPageLayout title="WORK BENCH" name="악보 보관함" subtitle="갖고 있는 악보를 모아 두고 다른 키로도 쳐 봐요">
+    <template #actions>
+      <router-link to="/sheets/new" class="btn primary">+ 악보 생성하기</router-link>
+    </template>
+  <div class="page">
+
+    <!-- 악보 찾기 (#156): 내 보관함에서 먼저 찾고, 없으면 파는 곳·무료 코드 사이트로. 산 악보는 올리기 -->
+    <WsCard title="악보 찾기">
+      <div class="finder">
+        <input v-model="findQuery" class="find-input" maxlength="100" placeholder="곡 제목이나 가수를 입력해 주세요" aria-label="찾을 곡">
+        <div v-if="findQuery.trim()" class="mine-found">
+          <span class="found-label">내 보관함</span>
+          <template v-if="myMatches.length">
+            <router-link v-for="m in myMatches" :key="m.id" :to="`/sheets/${m.id}`" class="chip">{{ m.title }}<span v-if="m.artist" class="found-artist"> · {{ m.artist }}</span></router-link>
+          </template>
+          <span v-else class="found-none">없어요</span>
+        </div>
+        <div class="site-row">
+          <span class="found-label">다른 곳에서 찾기</span>
+          <SheetSearchLinks :title="findQuery" />
+        </div>
+      </div>
+      <p class="find-hint">산 악보 PDF·사진은 <router-link to="/sheets/new">악보 생성하기</router-link>에서 올려 두면 메모·키 바꾸기·밴드 공유를 쓸 수 있어요.</p>
+    </WsCard>
+
+    <WsCard :title="`내 악보${items.length ? ` ${items.length}` : ''}`">
+      <template #actions>
+        <div class="filters">
+          <button class="chip" :class="{ on: !favoriteOnly }" @click="favoriteOnly = false">전체</button>
+          <button class="chip" :class="{ on: favoriteOnly }" @click="favoriteOnly = true"><Star :size="13" :stroke-width="2.2" fill="currentColor" /> 즐겨찾기</button>
+          <select v-model="sort" class="sort" aria-label="정렬">
+            <option value="recent">최근 담은 순</option>
+            <option value="title">제목 순</option>
+          </select>
+          <button v-if="items.length || selecting" class="chip" :class="{ on: selecting }" @click="toggleSelecting">
+            {{ selecting ? '선택 취소' : '선택' }}
+          </button>
+        </div>
+      </template>
+
+      <!-- 선택할 때만 보이는 일괄 작업 줄 -->
+      <div v-if="selecting" class="select-bar">
+        <label class="check-all">
+          <input type="checkbox" :checked="allSelected" :indeterminate.prop="someSelected" :disabled="!items.length || bulkBusy" @change="toggleAll">
+          <span>{{ selected.size ? `${selected.size}개 선택` : '전체 선택' }}</span>
+        </label>
+        <div class="bulk-actions">
+          <button class="chip" :disabled="!selected.size || bulkBusy" @click="bulkFavorite(true)">즐겨찾기 추가</button>
+          <button class="chip" :disabled="!selected.size || bulkBusy" @click="bulkFavorite(false)">즐겨찾기 해제</button>
+          <button class="chip danger" :disabled="!selected.size || bulkBusy" @click="bulkDelete">삭제</button>
+        </div>
+      </div>
+
+      <p v-if="error" class="error">{{ error }} <button class="text-btn" @click="load">다시 불러오기</button></p>
+      <div v-else-if="loading && !items.length" class="loading">불러오는 중…</div>
+
+      <ul v-else-if="items.length" class="list" :class="{ selecting }">
+        <li v-for="item in items" :key="item.id" :class="{ checked: selected.has(item.id) }">
+          <input
+            v-if="selecting"
+            type="checkbox"
+            class="item-check"
+            :checked="selected.has(item.id)"
+            :disabled="bulkBusy"
+            :aria-label="`${item.title} 선택`"
+            @change="toggleOne(item.id)"
+          >
+          <router-link
+            v-slot="{ href, navigate }"
+            :to="`/sheets/${item.id}`"
+            custom
+          >
+          <a :href="href" class="row" @click="onRowClick($event, item, navigate)">
+            <span class="cover">
+              <SheetPageView
+                v-if="item.coverPageId"
+                :sheet-id="item.sheetId"
+                :page-id="item.coverPageId"
+                content-type="image/png"
+                thumb
+              />
+              <span v-else class="cover-text"><template v-if="item.pageCount">PDF</template><PixelIcon v-else name="music" :size="24" /></span>
+            </span>
+            <span class="info">
+              <strong>{{ item.title }}</strong>
+              <span class="meta">
+                {{ item.artist || '아티스트 미입력' }} · {{ instrumentLabel(item.instrumentType) }}
+                <template v-if="item.sheetType"> · {{ sheetTypeLabel(item.sheetType) }}</template>
+                <template v-if="item.pageCount > 1"> · {{ item.pageCount }}장</template>
+              </span>
+            </span>
+            <span v-if="item.originalKey" class="key-badge" :class="{ changed: item.customKey }" :title="item.customKey ? `원래 ${item.originalKey} → 연습 ${item.customKey}` : '원래 키'">
+              {{ item.customKey ? `${item.originalKey}→${item.customKey}` : item.originalKey }}
+            </span>
+            <StickyNote v-if="item.hasMemo" class="memo-mark" :size="13" :stroke-width="2.2" aria-label="메모 있음" />
+          </a>
+          </router-link>
+          <button
+            v-if="!selecting"
+            class="star"
+            :class="{ on: item.favorite }"
+            :aria-label="item.favorite ? '즐겨찾기 해제' : '즐겨찾기'"
+            :aria-pressed="item.favorite"
+            @click="toggleFavorite(item)"
+          ><Star :size="16" :stroke-width="2.2" :fill="item.favorite ? 'currentColor' : 'none'" /></button>
+        </li>
+      </ul>
+
+      <EmptyState v-else-if="favoriteOnly" icon="star" title="즐겨찾기한 악보가 없어요" text="악보 옆 별을 누르면 여기 모아 볼 수 있어요." />
+      <EmptyState v-else icon="folder" title="아직 담아 둔 악보가 없어요">
+        갖고 있는 악보 사진·스캔·PDF를 올려 보세요. 메모를 남기고, 다른 키로 칠 코드도 알려 드려요.
+        <template #actions><router-link to="/sheets/new" class="btn primary">+ 첫 악보 생성하기</router-link></template>
+      </EmptyState>
+    </WsCard>
+  </div>
+  </SubPageLayout>
+</template>
+
+<script setup>
+import { Star, StickyNote } from 'lucide-vue-next'
+import PixelIcon from '../../components/PixelIcon.vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
+import EmptyState from '../../components/ui/EmptyState.vue'
+import WsCard from '../../components/workspace/WsCard.vue'
+import SheetSearchLinks from '../../components/workspace/SheetSearchLinks.vue'
+import SheetPageView from '../../components/workspace/SheetPageView.vue'
+import { getWorkspace, updateWorkspaceItem, removeWorkspaceItem } from '../../api/sheet'
+import { apiErrorMessage } from '../../api/practice'
+import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
+import { sheetTypeLabel } from '../../constants/sheet'
+import { useDialogStore } from '../../stores/dialog'
+
+const dialog = useDialogStore()
+
+const findQuery = ref('')
+// 내 보관함에서 찾기: 검색어 낱말이 모두 제목·가수에 들어 있는 악보 (띄어쓰기·대소문자 무시, 최대 5개)
+const squash = (s) => (s || '').toLowerCase().replace(/\s+/g, '')
+const myMatches = computed(() => {
+  const words = findQuery.value.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  if (!words.length) return []
+  return items.value.filter((i) => words.every((w) => squash(`${i.title} ${i.artist || ''}`).includes(w))).slice(0, 5)
+})
+const items = ref([])
+const loading = ref(false)
+const error = ref('')
+const favoriteOnly = ref(false)
+const sort = ref('recent')
+
+const instrumentLabel = (type) => INSTRUMENT_OPTIONS.find((o) => o.value === type)?.label || type
+
+let token = 0
+const load = async () => {
+  const mine = ++token
+  loading.value = true
+  error.value = ''
+  try {
+    const result = await getWorkspace({ favorite: favoriteOnly.value, sort: sort.value })
+    if (mine === token) {
+      items.value = result
+      // 목록에서 사라진 악보는 선택에서도 뺀다
+      const ids = new Set(result.map((i) => i.id))
+      selected.value = new Set([...selected.value].filter((id) => ids.has(id)))
+    }
+  } catch (e) {
+    if (mine === token) error.value = `악보를 불러오지 못했어요. ${apiErrorMessage(e)}`
+  } finally {
+    if (mine === token) loading.value = false
+  }
+}
+
+// 별은 바로 바꿔 보이고, 실패하면 되돌린다
+const toggleFavorite = async (item) => {
+  const next = !item.favorite
+  item.favorite = next
+  try {
+    await updateWorkspaceItem(item.id, { isFavorite: next })
+    if (favoriteOnly.value && !next) items.value = items.value.filter((i) => i.id !== item.id)
+  } catch (e) {
+    item.favorite = !next
+    error.value = `즐겨찾기를 바꾸지 못했어요. ${apiErrorMessage(e)}`
+  }
+}
+
+/* ---------- 선택해서 한꺼번에 (선택할 때만 체크박스가 보인다) ---------- */
+const selecting = ref(false)
+const selected = ref(new Set())
+const bulkBusy = ref(false)
+const allSelected = computed(() => items.value.length > 0 && selected.value.size === items.value.length)
+const someSelected = computed(() => selected.value.size > 0 && !allSelected.value)
+
+const toggleSelecting = () => {
+  selecting.value = !selecting.value
+  selected.value = new Set()
+}
+const toggleOne = (id) => {
+  const next = new Set(selected.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selected.value = next
+}
+const toggleAll = () => {
+  selected.value = allSelected.value ? new Set() : new Set(items.value.map((i) => i.id))
+}
+// 선택 중에는 줄을 눌러도 들어가지 않고 선택만 바꾼다
+const onRowClick = (e, item, navigate) => {
+  if (!selecting.value) return navigate(e)
+  e.preventDefault()
+  if (!bulkBusy.value) toggleOne(item.id)
+}
+
+// 여러 개를 동시에 보내고 목록을 다시 불러온다. 실패가 있으면 개수를 알려 주고 선택 상태를 유지한다
+const runBulk = async (ids, action, failText) => {
+  bulkBusy.value = true
+  const results = await Promise.allSettled(ids.map(action))
+  const failed = results.filter((r) => r.status === 'rejected')
+  selected.value = new Set()
+  if (!failed.length) selecting.value = false
+  await load()
+  if (failed.length) error.value = `${failed.length}개를 ${failText}. ${apiErrorMessage(failed[0].reason)}`
+  bulkBusy.value = false
+}
+
+const bulkFavorite = (favorite) =>
+  runBulk([...selected.value], (id) => updateWorkspaceItem(id, { isFavorite: favorite }),
+    favorite ? '즐겨찾기에 추가하지 못했어요' : '즐겨찾기에서 해제하지 못했어요')
+
+const bulkDelete = async () => {
+  const ids = [...selected.value]
+  if (!await dialog.confirm({ title: `악보 ${ids.length}개를 삭제할까요?`, text: '직접 올린 악보는 파일과 메모도 함께 삭제돼요.', okText: '삭제', danger: true })) return
+  return runBulk(ids, (id) => removeWorkspaceItem(id), '삭제하지 못했어요')
+}
+
+watch([favoriteOnly, sort], load)
+onMounted(load)
+</script>
+
+<style scoped>
+.finder { display: flex; flex-direction: column; gap: 10px; }
+.find-input {
+  border: 1px solid var(--c-line); border-radius: 10px; padding: 9px 12px; font: inherit; font-size: 0.88rem; outline: none;
+  max-width: 420px; box-sizing: border-box; width: 100%;
+}
+.find-input:focus { border-color: var(--c-primary); }
+.mine-found, .site-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.found-label { font-size: 0.72rem; font-weight: 800; color: var(--c-muted); margin-right: 2px; }
+.found-none { font-size: 0.75rem; color: var(--c-faint); }
+.found-artist { font-weight: 600; color: var(--c-faint); }
+.mine-found .chip { text-decoration: none; }
+.find-hint { margin: 10px 0 0; font-size: 0.75rem; color: var(--c-muted); line-height: 1.6; }
+.find-hint a { color: var(--c-primary-text); font-weight: 800; }
+.page { display: flex; flex-direction: column; gap: 16px; }
+
+
+.filters { display: flex; gap: 6px; align-items: center; }
+.sort {
+  border: 1px solid var(--c-line); background: #fff; color: var(--c-text-2); font-family: inherit;
+  font-size: 0.75rem; font-weight: 800; padding: 5px 8px; border-radius: var(--radius-pill); cursor: pointer;
+}
+
+
+.select-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 10px; padding: 8px 12px; border-radius: 12px; background: var(--c-bg);
+}
+.check-all { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 800; color: var(--c-text-2); }
+.bulk-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+input[type='checkbox'] { width: 18px; height: 18px; margin: 0; accent-color: var(--c-primary); cursor: pointer; flex: none; }
+
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.list li { display: flex; align-items: center; gap: 4px; border: 1px solid var(--c-line-soft); border-radius: 14px; transition: border-color 0.15s, background 0.15s; }
+.list li:hover { border-color: var(--c-primary-line); }
+.list.selecting li { padding-left: 12px; }
+.list li.checked { border-color: var(--c-primary-line); background: var(--c-primary-soft); }
+.list.selecting .row { padding-right: 12px; }
+.row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 8px 6px 8px 8px; text-decoration: none; color: inherit; }
+.cover {
+  flex: none; width: 46px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid var(--c-line-soft);
+  background: var(--c-bg); display: flex; align-items: center; justify-content: center;
+}
+.cover-text { font-size: 0.65rem; font-weight: 900; color: var(--c-danger); }
+.key-badge {
+  flex: none; padding: 5px 8px; border-radius: 8px; text-align: center; white-space: nowrap;
+  background: var(--c-bg); color: var(--c-text-2); font-weight: 900; font-size: 0.75rem;
+}
+.key-badge.changed { background: #fff4e6; color: #e8590c; }
+.info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.info strong { font-size: 0.95rem; font-weight: 800; color: #212529; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta { font-size: 0.75rem; color: var(--c-muted); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.memo-mark { flex: none; font-size: 0.9rem; }
+.star {
+  flex: none; width: 44px; height: 44px; border: none; background: none; cursor: pointer;
+  font-size: 1.2rem; color: #ced4da; font-family: inherit;
+}
+.star.on { color: #fab005; }
+.star:hover { color: #fab005; }
+
+.loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
+.error { margin: 0 0 12px; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
+.text-btn { border: none; background: none; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; }
+
+
+.chip, .sort { white-space: nowrap; }
+
+@media (max-width: 640px) {
+  /* 좁은 화면: 카드 제목 아래로 필터를 내린다 */
+  .page :deep(.ws-card-head) { flex-direction: column; align-items: flex-start; }
+  .filters { flex-wrap: wrap; }
+}
+</style>

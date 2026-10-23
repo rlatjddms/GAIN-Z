@@ -1,0 +1,87 @@
+# GAIN-Z 전체(DB·Redis·백엔드·프론트)를 한 번에 띄운다 (#176)
+# 값은 같은 폴더의 .env 에서 읽는다. .env.example 을 복사해서 채운다.
+#   docker compose up -d --build
+# 첫 실행은 테이블을 만들어야 하므로 DDL_AUTO=update 로 한 번 띄운다 (README "Docker로 띄우기")
+
+services:
+  # 운영(Supabase)과 같은 PostgreSQL (#178)
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gainz
+      POSTGRES_USER: ${DB_USERNAME:-gainz}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD 를 .env 에 적어 주세요}
+      TZ: Asia/Seoul
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d gainz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/gainz
+      DB_USERNAME: ${DB_USERNAME:-gainz}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 을 .env 에 적어 주세요 (32자 이상)}
+      # 브라우저가 접속하는 주소. 소셜 로그인이 끝나면 여기로 돌아온다
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-${FRONTEND_URL:-http://localhost}}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:?}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:?}
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:?}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:?}
+      DDL_AUTO: ${DDL_AUTO:-validate}
+      # 올린 파일: 기본은 아래 uploads 볼륨. supabase 로 두면 SUPABASE_URL·SUPABASE_SERVICE_KEY 도 필요
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_BUCKET: ${SUPABASE_BUCKET:-uploads}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+    volumes:
+      # 올린 파일(악보·필기·녹음·프로필 사진). 컨테이너를 지워도 남는다
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # 비워 두면 같은 도메인으로 API를 부른다 (nginx가 /api 를 backend 로 넘김)
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    # 백엔드가 뜬 뒤에 열어야 첫 접속에서 502가 안 난다
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pg-data:
+  redis-data:
+  uploads:

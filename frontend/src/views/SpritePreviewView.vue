@@ -1,0 +1,277 @@
+<template>
+  <div class="sprite-preview">
+    <header class="head">
+      <h1>픽셀 스프라이트 미리보기</h1>
+      <p>개발용 페이지. 스프라이트 PNG(<code>src/assets/sprites/</code>)를 바꾸면 바로 반영됩니다.</p>
+    </header>
+
+    <section class="panel">
+      <h2>조합 미리보기</h2>
+      <div class="playground">
+        <div class="stage">
+          <PixelCharacter :character="character" :outfit="outfit" :scale="8" />
+        </div>
+        <div class="controls">
+          <label>성별
+            <select v-model="character.gender">
+              <option value="FEMALE">FEMALE</option>
+              <option value="MALE">MALE</option>
+            </select>
+          </label>
+          <label>머리
+            <select v-model="character.hairStyle">
+              <option v-for="h in hairStyles" :key="h" :value="h">{{ h }}</option>
+            </select>
+          </label>
+          <label>악기
+            <select v-model="character.instrumentType">
+              <option v-for="i in instruments" :key="i" :value="i">{{ i }}</option>
+            </select>
+          </label>
+          <label>의상
+            <select v-model="outfit">
+              <option v-for="o in outfits" :key="o" :value="o">{{ o }}</option>
+            </select>
+          </label>
+          <label v-for="slot in ACCESSORY_SLOTS" :key="slot.key">{{ slot.label }}
+            <select v-model="character[slot.field]">
+              <option :value="null">없음</option>
+              <option v-for="a in listSprites(slot.folder)" :key="a" :value="a">{{ a }}</option>
+            </select>
+          </label>
+          <label>피부색 <input type="color" v-model="character.skinColor"></label>
+          <label>머리색 <input type="color" v-model="character.hairColor"></label>
+          <label>악기색 <input type="color" v-model="character.instrumentColor"></label>
+          <label>의상색 <input type="color" v-model="character.outfitColor"></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>공통 UI (#134)</h2>
+      <PageHeader title="ROUTINE TRACKER" name="연습 기록장" subtitle="타이머로 연습 시간을 재고, 루틴을 체크해요">
+        <template #actions><button class="btn">보조</button><button class="btn primary">+ 주요 버튼</button></template>
+      </PageHeader>
+      <div class="ui-row">
+        <button class="btn">기본</button><button class="btn primary">주요</button><button class="btn danger">위험</button>
+        <button class="btn danger solid">위험(채움)</button><button class="btn ghost">글자만</button><button class="btn on">켜짐</button>
+        <button class="btn" disabled>못 누름</button><button class="btn small">작게</button><button class="btn small primary">작게 주요</button>
+      </div>
+      <div class="ui-row">
+        <button class="btn" @click="dialog.confirm({ title: '게시글을 삭제할까요?', okText: '삭제', danger: true })">확인창 (위험)</button>
+        <button class="btn" @click="dialog.confirm({ title: '새 초대 코드를 받을까요?', text: '지금 코드는 더 이상 쓸 수 없어요.', okText: '새 코드 받기' })">확인창</button>
+        <button class="btn" @click="dialog.prompt({ title: '초대 코드를 복사해 주세요', value: 'AB12CD34', readonly: true, okText: '닫기' })">복사 창</button>
+        <button class="btn" @click="dialog.alert({ title: '캐릭터를 만들었어요', text: '합주실로 이동할게요.' })">알림 창</button>
+      </div>
+      <div class="ui-row">
+        <div class="segment"><button class="on">공개</button><button>친구만</button><button>비공개</button></div>
+        <div class="segment small"><button class="on">주</button><button>월</button></div>
+        <button class="chip on">전체</button><button class="chip">즐겨찾기</button><button class="chip">선택</button><button class="chip danger">삭제</button>
+      </div>
+      <p class="ui-error">저장하지 못했어요. 잠시 후 다시 시도해 주세요.</p>
+      <p class="ui-ok">파트를 바꿨어요.</p>
+      <EmptyState icon="folder" title="아직 담아 둔 악보가 없어요" text="갖고 있는 악보 사진·스캔·PDF를 올려 보세요.">
+        <template #actions><button class="btn primary">+ 첫 악보 올리기</button></template>
+      </EmptyState>
+    </section>
+
+    <section class="panel">
+      <h2>픽셀 아이콘 {{ pixelIconNames.length }}종 (큰 아이콘)</h2>
+      <div class="grid">
+        <figure v-for="n in pixelIconNames" :key="n" style="color: var(--c-primary-text)">
+          <PixelIcon :name="n" :size="48" />
+          <figcaption>{{ n }}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>썸네일 (옷장·캐릭터 만들기)</h2>
+      <div class="grid thumbs">
+        <figure v-for="h in hairStyles" :key="`h-${h}`">
+          <PixelSprite :parts="[['body', character.gender], ['hair', h]]" :colors="character" :region="HEAD_REGION" :box="48" />
+          <figcaption>{{ h }}</figcaption>
+        </figure>
+        <figure v-for="i in instruments" :key="`i-${i}`">
+          <PixelSprite :parts="[['instrument', i]]" :colors="character" :box="36" exact />
+          <figcaption>{{ i }}</figcaption>
+        </figure>
+        <template v-for="slot in ACCESSORY_SLOTS" :key="`s-${slot.key}`">
+          <figure v-for="a in listSprites(slot.folder)" :key="`a-${a}`">
+            <PixelSprite :parts="[[slot.folder, a]]" :box="44" />
+            <figcaption>{{ a }}</figcaption>
+          </figure>
+        </template>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>아이템 추천 색 {{ colorItems.length }}종</h2>
+      <div class="color-items">
+        <div v-for="it in colorItems" :key="it.key" class="color-item">
+          <figure v-for="c in it.presets" :key="c">
+            <PixelSprite :parts="[[it.layer, it.file]]" :item-colors="{ [it.key]: c }" :box="44" />
+            <figcaption :style="{ color: c }">●</figcaption>
+          </figure>
+          <span>{{ it.key }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>방 꾸미기 세트 · 리스닝 룸 (레코드 수집 보상)</h2>
+      <div class="fx-grid">
+        <figure v-for="set in ROOM_DECOR_SETS" :key="set.key">
+          <StageScene :character="character" :stage-key="set.key === 'LP' ? 'RISING' : 'ROOKIE'" :decor="layoutOf(set)" :effects="[]" />
+          <figcaption>{{ set.name }}</figcaption>
+        </figure>
+        <figure>
+          <StageScene :character="character" stage-key="LISTENING_ROOM" :decor="[{ key: 'TURNTABLE', x: 30 }, { key: 'LP_SHELF', x: 150 }, { key: 'CD_RACK', x: 128 }]" :effects="['SPARKLE', 'SPOTLIGHT']" />
+          <figcaption>리스닝 룸 + 소품 셋 + 효과 둘</figcaption>
+        </figure>
+        <figure>
+          <StageScene :character="character" stage-key="ROOKIE" :decor="dragLayout" :effects="[]" decor-editable
+                      @decor-move="(key, x, y) => { dragLayout = dragLayout.map((d) => (d.key === key ? { ...d, x, y } : d)) }" />
+          <figcaption>끌어서 옮기기 시험 ({{ dragLayout.map((d) => `${d.key} x${d.x} y${d.y ?? '바닥'}`).join(', ') }})</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>무대 효과 {{ STAGE_EFFECTS.length }}종</h2>
+      <div class="fx-grid">
+        <figure v-for="e in STAGE_EFFECTS" :key="e.key">
+          <StageScene :character="character" stage-key="RISING" :effects="[e.key]" />
+          <figcaption>{{ e.icon }} {{ e.key }}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>레벨 구간별 무대</h2>
+      <CharacterStage v-for="lv in [3, 14, 35, 50]" :key="lv" :character="{ ...character, nickname: '미리보기', level: lv, exp: 40 }" />
+    </section>
+
+    <section class="panel">
+      <h2>머리 스타일 {{ hairStyles.length }}종</h2>
+      <div class="grid">
+        <figure v-for="h in hairStyles" :key="h">
+          <PixelCharacter :character="{ ...character, hairStyle: h }" :scale="4" :animate="false" />
+          <figcaption>{{ h }}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>의상 {{ outfits.length }}종</h2>
+      <div class="grid">
+        <figure v-for="o in outfits" :key="o">
+          <PixelCharacter :character="character" :outfit="o" :scale="4" :animate="false" />
+          <figcaption>{{ o }}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section v-for="slot in ACCESSORY_SLOTS" :key="slot.key" class="panel">
+      <h2>소품 · {{ slot.label }} {{ listSprites(slot.folder).length }}종</h2>
+      <div class="grid">
+        <figure v-for="a in listSprites(slot.folder)" :key="a">
+          <PixelCharacter :character="{ ...character, [slot.field]: a }" :outfit="outfit" :scale="4" :animate="false" />
+          <figcaption>{{ a }}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>악기 {{ instruments.length }}종</h2>
+      <div class="grid">
+        <figure v-for="i in instruments" :key="i">
+          <PixelCharacter :character="{ ...character, instrumentType: i }" :scale="4" :animate="false" />
+          <figcaption>{{ i }}</figcaption>
+        </figure>
+      </div>
+    </section>
+  </div>
+</template>
+
+<script setup>
+import { reactive, ref } from 'vue'
+import PixelCharacter from '../components/PixelCharacter.vue'
+import CharacterStage from '../components/CharacterStage.vue'
+import PixelSprite from '../components/PixelSprite.vue'
+import PixelIcon from '../components/PixelIcon.vue'
+import PageHeader from '../components/ui/PageHeader.vue'
+import EmptyState from '../components/ui/EmptyState.vue'
+import { useDialogStore } from '../stores/dialog'
+import { PIXEL_ICONS } from '../pixel/icons'
+import StageScene from '../components/StageScene.vue'
+import { HEAD_REGION } from '../pixel/palette'
+import { listSprites } from '../pixel/sprites'
+import { ACCESSORY_SLOTS as WEAR_SLOTS, BOTTOM_SLOT, STAGE_EFFECTS, ACCESSORIES, BOTTOMS, slotOf } from '../constants/rewards'
+import { ITEM_COLORS } from '../constants/itemColors'
+import { ROOM_DECOR_SETS } from '../constants/recordRewards'
+
+const dragLayout = ref([{ key: 'CASSETTE_DECK', x: 46 }, { key: 'TAPE_RACK', x: 138 }])
+const layoutOf = (set) => [{ key: set.player.key, x: 46 }, { key: set.rack.key, x: 138 }]
+import { outfitSpriteName } from '../pixel/sprites'
+
+// 하의도 소품처럼 자리 하나로 보여 준다
+const ACCESSORY_SLOTS = [BOTTOM_SLOT, ...WEAR_SLOTS]
+
+const dialog = useDialogStore()
+const pixelIconNames = Object.keys(PIXEL_ICONS)
+const hairStyles = listSprites('hair')
+const instruments = listSprites('instrument')
+// 의상 파일은 <이름>_<성별>.png → 이름만
+const outfits = [...new Set(listSprites('outfit').map((n) => n.replace(/_(MALE|FEMALE)$/, '')))]
+const outfit = ref('DEFAULT')
+
+// 색을 바꿀 수 있는 아이템과 추천 색 (그림 폴더·파일 찾기)
+const colorItems = Object.entries(ITEM_COLORS).map(([key, spec]) => {
+  const item = [...ACCESSORIES, ...BOTTOMS].find((i) => i.key === key)
+  return item
+    ? { key, presets: spec.presets, layer: slotOf(item.slot).folder, file: key }
+    : { key, presets: spec.presets, layer: 'outfit', file: outfitSpriteName(key, 'MALE') }
+})
+
+const character = reactive({
+  gender: 'FEMALE',
+  hairStyle: 'LONG_STRAIGHT',
+  instrumentType: 'GUITAR',
+  skinColor: '#F8D7B5',
+  hairColor: '#EC4899',
+  instrumentColor: '#B91C1C',
+  outfitColor: '#FFFFFF',
+  bottom: null, hat: null, glasses: null, earrings: null, neck: null, waist: null, shoes: null,
+})
+</script>
+
+<style scoped>
+.ui-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0; }
+.ui-error, .ui-ok { margin: 0 0 8px; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
+.ui-error { background: var(--c-danger-soft); color: var(--c-danger); }
+.ui-ok { background: var(--c-primary-soft); color: var(--c-primary-text); }
+.sprite-preview { max-width: 1040px; margin: 0 auto; padding: 32px 20px 60px; font-family: 'Pretendard', sans-serif; color: #1a1a1a; }
+.head h1 { font-size: 1.4rem; margin: 0 0 6px; }
+.head p { margin: 0 0 24px; color: #666; font-size: 0.9rem; }
+code { background: #f1f3f5; padding: 1px 6px; border-radius: 6px; }
+.panel { background: #fff; border: 1px solid #e9ecef; border-radius: 20px; padding: 20px 24px; margin-bottom: 20px; }
+.panel h2 { font-size: 1rem; margin: 0 0 16px; }
+.playground { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+.stage { background: linear-gradient(#dcebc9, #b9d39a); border-radius: 14px; padding: 20px 40px; }
+.controls { display: grid; grid-template-columns: repeat(3, auto); gap: 12px 18px; font-size: 0.85rem; font-weight: 600; }
+.controls label { display: flex; flex-direction: column; gap: 6px; }
+select, input[type=color] { font: inherit; padding: 6px 8px; border: 1px solid #dee2e6; border-radius: 8px; background: #fff; }
+input[type=color] { width: 60px; height: 34px; padding: 2px; }
+.grid { display: flex; flex-wrap: wrap; gap: 14px; }
+figure { margin: 0; background: #f8f9fa; border-radius: 12px; padding: 12px 10px 8px; text-align: center; }
+.color-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.color-item { display: flex; align-items: center; gap: 6px; background: #f8f9fa; border-radius: 12px; padding: 8px; }
+.color-item figure { padding: 4px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 52px; min-height: 52px; }
+.color-item figcaption { margin: 0; font-size: 0.8rem; }
+.color-item > span { font-size: 0.62rem; font-weight: 800; color: #868e96; word-break: break-all; }
+.fx-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fx-grid figure { padding: 0 0 8px; overflow: hidden; }
+.thumbs figure { min-width: 64px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+figcaption { font-size: 0.7rem; font-weight: 700; color: #495057; margin-top: 6px; }
+</style>

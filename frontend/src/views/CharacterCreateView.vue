@@ -1,0 +1,1107 @@
+<template>
+  <div class="character-create-root">
+    <div class="login-background-deco"></div>
+
+    <main class="create-card-container">
+      <div class="create-grid">
+        <!-- Left side: Visual Preview Box -->
+        <section class="preview-panel">
+          <div class="stage-spotlight">
+            <div class="avatar-circle">
+              <PixelCharacter :character="previewCharacter" :scale="5" />
+            </div>
+            <div class="spotlight-shadow"></div>
+          </div>
+
+          <div class="preview-badge">
+            PREVIEW
+          </div>
+
+          <div class="preview-info">
+            <h3>{{ nickname || '닉네임' }}</h3>
+          </div>
+        </section>
+
+        <!-- Right side: Creator Form -->
+        <section class="form-panel">
+          <div class="form-header">
+            <div class="flex-between">
+              <span class="step-badge">STEP 0{{ currentStep }} / 03</span>
+              <span v-if="isEditMode" class="edit-badge">수정 모드</span>
+            </div>
+            <h2>{{ isEditMode ? '캐릭터 정보 수정' : '나만의 캐릭터 생성' }}</h2>
+            <p>프로필과 시그니처 악기를 설정하세요.</p>
+          </div>
+
+          <!-- Step Indicator Bar -->
+          <div class="step-indicator-bar">
+            <div class="step-dot" :class="{ active: currentStep >= 1, complete: currentStep > 1 }">
+              <span class="dot-inner">1</span>
+              <span class="dot-label">프로필</span>
+            </div>
+            <div class="step-line" :class="{ fill: currentStep > 1 }"></div>
+            <div class="step-dot" :class="{ active: currentStep >= 2, complete: currentStep > 2 }">
+              <span class="dot-inner">2</span>
+              <span class="dot-label">스타일</span>
+            </div>
+            <div class="step-line" :class="{ fill: currentStep > 2 }"></div>
+            <div class="step-dot" :class="{ active: currentStep === 3 }">
+              <span class="dot-inner">3</span>
+              <span class="dot-label">악기</span>
+            </div>
+          </div>
+
+          <!-- Form Steps (Vertically Centered) -->
+          <div class="steps-container">
+            <!-- STEP 1: Basic Profile -->
+            <div v-show="currentStep === 1" class="step-content">
+              <div class="input-group">
+                <label for="nickname">닉네임</label>
+                <input
+                  id="nickname"
+                  type="text"
+                  v-model="nickname"
+                  placeholder="2~10자의 한글, 영문, 숫자"
+                  class="gz-input"
+                  maxLength="10"
+                  @input="validateNickname"
+                />
+                <p class="validation-tip" :class="{ error: !isNicknameValid && nickname.length > 0 }">
+                  {{ nicknameFeedback }}
+                </p>
+              </div>
+
+              <div class="input-group">
+                <label>성별 선택</label>
+                <div class="gender-selector">
+                  <button
+                    type="button"
+                    class="gender-card"
+                    :class="{ active: gender === 'MALE' }"
+                    @click="gender = 'MALE'"
+                  >
+                    <span class="gender-icon"><PixelSprite :parts="[['body', 'MALE'], ['hair', 'SHORT_CUT']]" :colors="{ skinColor, hairColor }" :region="HEAD_REGION" :box="36" label="남성" /></span>
+                    <span class="gender-label">남성</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="gender-card"
+                    :class="{ active: gender === 'FEMALE' }"
+                    @click="gender = 'FEMALE'"
+                  >
+                    <span class="gender-icon"><PixelSprite :parts="[['body', 'FEMALE'], ['hair', 'LONG_STRAIGHT']]" :colors="{ skinColor, hairColor }" :region="HEAD_REGION" :box="36" label="여성" /></span>
+                    <span class="gender-label">여성</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="input-group">
+                <div class="flex-between">
+                  <label>피부 색상</label>
+                  <span class="color-hex">{{ skinColor }}</span>
+                </div>
+                <div class="color-row">
+                  <button
+                    v-for="color in skinColorPresets"
+                    :key="color"
+                    type="button"
+                    class="color-preset"
+                    :style="{ backgroundColor: color }"
+                    :class="{ active: skinColor.toLowerCase() === color.toLowerCase() }"
+                    @click="skinColor = color"
+                  ></button>
+                  <div class="custom-color-picker">
+                    <input type="color" v-model="skinColor" class="picker-input" />
+                    <span class="picker-icon"><Palette :size="16" :stroke-width="2.2" /></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 2: Hair Style & Hair Color -->
+            <div v-show="currentStep === 2" class="step-content">
+              <div class="input-group">
+                <label>헤어 스타일</label>
+                <div class="style-grid">
+                  <button
+                    v-for="style in hairStyleOptions"
+                    :key="style.value"
+                    type="button"
+                    class="style-card"
+                    :class="{ active: hairStyle === style.value }"
+                    @click="hairStyle = style.value"
+                  >
+                    <span class="style-thumb">
+                      <PixelSprite :parts="[['body', gender === 'MALE' ? 'MALE' : 'FEMALE'], ['hair', style.value]]" :colors="{ skinColor, hairColor }" :region="HEAD_REGION" :box="48" :label="style.label" />
+                    </span>
+                    <span class="style-label">{{ style.label }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="input-group">
+                <div class="flex-between">
+                  <label>머리 색상</label>
+                  <span class="color-hex">{{ hairColor }}</span>
+                </div>
+                <div class="color-row">
+                  <button
+                    v-for="color in hairColorPresets"
+                    :key="color"
+                    type="button"
+                    class="color-preset"
+                    :style="{ backgroundColor: color }"
+                    :class="{ active: hairColor.toLowerCase() === color.toLowerCase() }"
+                    @click="hairColor = color"
+                  ></button>
+                  <div class="custom-color-picker">
+                    <input type="color" v-model="hairColor" class="picker-input" />
+                    <span class="picker-icon"><Palette :size="16" :stroke-width="2.2" /></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 3: Instrument & Instrument Color -->
+            <div v-show="currentStep === 3" class="step-content">
+              <div class="input-group">
+                <label>악기 종류</label>
+                <div class="instrument-grid-compact">
+                  <button
+                    v-for="inst in instrumentOptions"
+                    :key="inst.value"
+                    type="button"
+                    class="inst-card-grid"
+                    :class="{ active: instrumentType === inst.value }"
+                    @click="instrumentType = inst.value"
+                  >
+                    <span class="inst-grid-icon">
+                      <PixelSprite :parts="[['instrument', inst.value]]" :colors="{ instrumentColor }" :box="36 * (inst.thumb || 1)" exact :label="inst.label" />
+                    </span>
+                    <span class="inst-grid-label">{{ inst.label }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="input-group">
+                <div class="flex-between">
+                  <label>악기 색상</label>
+                  <span class="color-hex">{{ instrumentColor }}</span>
+                </div>
+                <div class="color-row">
+                  <button
+                    v-for="color in instColorPresets"
+                    :key="color"
+                    type="button"
+                    class="color-preset"
+                    :style="{ backgroundColor: color }"
+                    :class="{ active: instrumentColor.toLowerCase() === color.toLowerCase() }"
+                    @click="instrumentColor = color"
+                  ></button>
+                  <div class="custom-color-picker">
+                    <input type="color" v-model="instrumentColor" class="picker-input" />
+                    <span class="picker-icon"><Palette :size="16" :stroke-width="2.2" /></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sticky Navigation buttons at bottom -->
+          <div class="form-navigation">
+            <button
+              v-if="currentStep > 1"
+              type="button"
+              class="nav-btn-back"
+              @click="prevStep"
+              :disabled="isLoading"
+            >
+              이전 단계
+            </button>
+            <button
+              v-else
+              type="button"
+              class="nav-btn-cancel"
+              @click="handleCancelOrLogout"
+              :disabled="isLoading"
+            >
+              {{ isEditMode ? '취소' : '로그아웃' }}
+            </button>
+
+            <button
+              v-if="currentStep < 3"
+              type="button"
+              class="nav-btn-next"
+              :disabled="!isStepValid"
+              @click="nextStep"
+            >
+              다음 단계
+            </button>
+            <button
+              v-else
+              type="button"
+              class="nav-btn-submit"
+              :disabled="!isFormValid || isLoading"
+              @click="handleSubmit"
+            >
+              <span v-if="isLoading" class="spinner"></span>
+              {{ isLoading ? '처리 중...' : (isEditMode ? '수정 완료' : '생성 완료') }}
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script setup>
+import { Palette } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import { useDialogStore } from '../stores/dialog'
+import axiosInstance from '../api/axios'
+import PixelCharacter from '../components/PixelCharacter.vue'
+import PixelSprite from '../components/PixelSprite.vue'
+import { HEAD_REGION } from '../pixel/palette'
+import { DEFAULT_COLORS } from '../pixel/palette'
+import {
+  STARTER_HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS, INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS,
+} from '../constants/characterOptions'
+
+const router = useRouter()
+const dialog = useDialogStore()
+const route = useRoute()
+const authStore = useAuthStore()
+
+// Check if Edit mode
+const isEditMode = computed(() => route.query.edit === 'true')
+
+// Step state
+const currentStep = ref(1)
+
+// Form states
+const nickname = ref('')
+const gender = ref('MALE')
+const hairStyle = ref('SHORT_CUT')
+const hairColor = ref('#111827')
+const skinColor = ref(DEFAULT_COLORS.skinColor)
+const instrumentType = ref('GUITAR')
+const instrumentColor = ref('#B91C1C')
+
+const isLoading = ref(false)
+const isNicknameValid = ref(false)
+
+onMounted(async () => {
+  if (!authStore.isCharacterChecked) {
+    await authStore.fetchCharacter()
+  }
+
+  const char = authStore.character
+  if (char) {
+    nickname.value = char.nickname || ''
+    gender.value = char.gender || 'MALE'
+    hairStyle.value = char.hairStyle || 'SHORT_CUT'
+    hairColor.value = char.hairColor || '#111827'
+    skinColor.value = char.skinColor || DEFAULT_COLORS.skinColor
+    instrumentType.value = char.instrumentType || 'GUITAR'
+    instrumentColor.value = char.instrumentColor || '#B91C1C'
+    
+    if (nickname.value) {
+      validateNickname()
+    }
+  }
+})
+
+// 선택지는 옷장과 함께 쓰는 constants/characterOptions.js에서 가져온다
+const hairStyleOptions = STARTER_HAIR_STYLE_OPTIONS
+const skinColorPresets = SKIN_COLOR_PRESETS
+const hairColorPresets = HAIR_COLOR_PRESETS
+const instrumentOptions = INSTRUMENT_OPTIONS
+const instColorPresets = INSTRUMENT_COLOR_PRESETS
+
+// Feedback messages
+const nicknameFeedback = ref('')
+
+const validateNickname = () => {
+  const val = nickname.value.trim()
+  if (!val) {
+    nicknameFeedback.value = '닉네임은 필수 입력 항목입니다.'
+    isNicknameValid.value = false
+    return
+  }
+
+  if (val.length < 2 || val.length > 10) {
+    nicknameFeedback.value = '닉네임은 2자 이상 10자 이하로 입력해주세요.'
+    isNicknameValid.value = false
+    return
+  }
+
+  const regExp = /^[a-zA-Z0-9가-힣]+$/
+  if (!regExp.test(val)) {
+    nicknameFeedback.value = '특수문자 및 공백은 포함될 수 없습니다.'
+    isNicknameValid.value = false
+    return
+  }
+
+  nicknameFeedback.value = '멋진 이름이네요!'
+  isNicknameValid.value = true
+}
+
+// 선택한 값으로 바로 그려지는 픽셀 캐릭터 미리보기.
+// 아직 가지 않은 단계의 요소는 그리지 않는다 (1단계: 대머리·악기 없음, 2단계: 머리, 3단계: 악기). 수정 모드는 전부 표시.
+const previewCharacter = computed(() => {
+  const showHair = isEditMode.value || currentStep.value >= 2
+  const showInstrument = isEditMode.value || currentStep.value >= 3
+  return {
+    gender: gender.value,
+    skinColor: skinColor.value,
+    hairStyle: showHair ? hairStyle.value : null,
+    hairColor: hairColor.value,
+    instrumentType: showInstrument ? instrumentType.value : null,
+    instrumentColor: instrumentColor.value,
+  }
+})
+
+// Validation for current step
+const isStepValid = computed(() => {
+  if (currentStep.value === 1) {
+    return isNicknameValid.value && gender.value
+  }
+  if (currentStep.value === 2) {
+    return hairStyle.value && hairColor.value
+  }
+  if (currentStep.value === 3) {
+    return instrumentType.value && instrumentColor.value
+  }
+  return false
+})
+
+const isFormValid = computed(() => {
+  return isNicknameValid.value && gender.value && hairStyle.value && hairColor.value && instrumentType.value && instrumentColor.value
+})
+
+const nextStep = () => {
+  if (currentStep.value < 3 && isStepValid.value) {
+    currentStep.value++
+  }
+}
+
+const prevStep = () => {
+  if (currentStep.value > 1) {
+    currentStep.value--
+  }
+}
+
+const handleCancelOrLogout = async () => {
+  if (isEditMode.value) {
+    // Go back to home
+    router.push('/home')
+  } else {
+    // Log out and go back to login screen
+    await authStore.logout()
+    router.push('/')
+  }
+}
+
+const handleSubmit = async () => {
+  if (!isFormValid.value) return
+
+  isLoading.value = true
+
+  const payload = {
+    nickname: nickname.value.trim(),
+    instrumentType: instrumentType.value,
+    instrumentColor: instrumentColor.value,
+    gender: gender.value,
+    hairStyle: hairStyle.value,
+    hairColor: hairColor.value,
+    skinColor: skinColor.value
+  }
+
+  if (isEditMode.value) {
+    try {
+      await axiosInstance.put('/api/v1/characters/me', payload)
+      await authStore.fetchCharacter()
+      await dialog.alert({ title: '캐릭터를 수정했어요' })
+      router.push('/home')
+    } catch (error) {
+      console.error('Character update failed:', error)
+      if (error.response && error.response.data && error.response.data.message) {
+        await dialog.alert({ title: '캐릭터를 수정하지 못했어요', text: error.response.data.message })
+      } else {
+        await dialog.alert({ title: '캐릭터를 수정하지 못했어요', text: '잠시 후 다시 시도해 주세요.' })
+      }
+    } finally {
+      isLoading.value = false
+    }
+    return
+  }
+
+  try {
+    await axiosInstance.post('/api/v1/characters', payload)
+    await authStore.fetchCharacter()
+    await dialog.alert({ title: '캐릭터를 만들었어요', text: '합주실로 이동할게요.' })
+    router.push('/home')
+  } catch (error) {
+    console.error('Character creation failed:', error)
+    if (error.response) {
+      if (error.response.status === 409) {
+        const responseData = error.response.data
+        if (responseData && responseData.code === 'C001') {
+          await authStore.fetchCharacter()
+          await dialog.alert({ title: '이미 캐릭터가 있어요', text: '합주실로 이동할게요.' })
+          router.push('/home')
+        } else if (responseData && responseData.message) {
+          await dialog.alert({ title: '캐릭터를 만들지 못했어요', text: responseData.message })
+        } else {
+          await dialog.alert({ title: '캐릭터를 만들지 못했어요', text: '이미 쓰고 있는 닉네임이거나, 캐릭터가 이미 있어요.' })
+        }
+      } else {
+        await dialog.alert({ title: '캐릭터를 만들지 못했어요', text: '서버에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.' })
+      }
+    } else {
+      await dialog.alert({ title: '서버에 연결하지 못했어요', text: '네트워크 연결을 확인하고 다시 시도해 주세요.' })
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+</script>
+
+<style scoped>
+* {
+  box-sizing: border-box;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.character-create-root {
+  width: 100vw;
+  height: 100vh;
+  background: #f8f9fb;
+  color: var(--c-text);
+  font-family: 'Pretendard', sans-serif;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 20px;
+}
+
+.login-background-deco {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 30% 80%, color-mix(in srgb, var(--c-primary) 3%, transparent) 0%, transparent 50%);
+  z-index: 0;
+}
+
+.create-card-container {
+  width: 100%;
+  max-width: 980px;
+  height: 560px;
+  background: #ffffff;
+  border: 1px solid #edf0f3;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.create-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  height: 100%;
+}
+
+/* ==========================================================================
+   LEFT PANEL: VISUAL PREVIEW BOX
+   ========================================================================== */
+.preview-panel {
+  background: var(--c-line-soft);
+  border-right: 1px solid var(--c-line);
+  padding: 40px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  gap: 20px;
+  height: 100%;
+}
+
+.stage-spotlight {
+  width: 220px;
+  height: 220px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.avatar-circle {
+  width: 200px;
+  height: 200px;
+  background: #ffffff;
+  border: 2px solid var(--c-line);
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03);
+  z-index: 2;
+  transition: transform 0.3s ease;
+}
+
+.avatar-circle:hover {
+  transform: scale(1.05);
+}
+
+.spotlight-shadow {
+  position: absolute;
+  bottom: 5px;
+  width: 130px;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 50%;
+  filter: blur(2px);
+  z-index: 1;
+}
+
+.preview-badge {
+  display: inline-block;
+  background: var(--c-primary-soft);
+  border: 1px solid var(--c-primary-line);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--c-primary-text);
+}
+
+.preview-info {
+  text-align: center;
+  width: 100%;
+}
+
+.preview-info h3 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--c-text);
+  letter-spacing: -0.5px;
+}
+
+/* ==========================================================================
+   RIGHT PANEL: FORM CREATOR
+   ========================================================================== */
+.form-panel {
+  padding: 35px 45px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  overflow: hidden;
+}
+
+.form-header {
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.step-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--c-primary-text);
+  letter-spacing: 0.8px;
+}
+
+.edit-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: var(--c-danger-soft);
+  color: #fa5252;
+  border: 1px solid #ffe3e3;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.form-header h2 {
+  font-size: 1.45rem;
+  font-weight: 800;
+  margin: 4px 0;
+  color: var(--c-text);
+}
+
+.form-header p {
+  font-size: 0.82rem;
+  color: var(--c-muted);
+  line-height: 1.4;
+}
+
+/* Progress Step Dots */
+.step-indicator-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 0 10px;
+}
+
+.step-dot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  cursor: default;
+}
+
+.dot-inner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--c-line-soft);
+  border: 1.5px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--c-faint);
+  transition: all 0.3s ease;
+}
+
+.step-dot.active .dot-inner {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: #fff;
+}
+
+.step-dot.complete .dot-inner {
+  background: var(--c-primary-soft);
+  border-color: var(--c-primary);
+  color: var(--c-primary-text);
+}
+
+.dot-label {
+  position: absolute;
+  top: 30px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--c-faint);
+}
+
+.step-dot.active .dot-label,
+.step-dot.complete .dot-label {
+  color: var(--c-text);
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--c-line-soft);
+  margin: 0 15px;
+  position: relative;
+  top: 0;
+}
+
+.step-line.fill {
+  background: var(--c-primary);
+}
+
+.steps-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: 5px;
+  overflow: hidden;
+  padding: 6px;
+}
+
+.step-content {
+  animation: fadeIn 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.input-group label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--c-text-2);
+}
+
+.gz-input {
+  width: 100%;
+  padding: 11px 15px;
+  background: #ffffff;
+  border: 1.5px solid #eceff2;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  color: var(--c-text);
+  transition: all 0.2s;
+}
+
+.gz-input:focus {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 5%, transparent);
+}
+
+.validation-tip {
+  font-size: 0.75rem;
+  color: var(--c-muted);
+  margin-top: 1px;
+  padding-left: 2px;
+}
+
+.validation-tip.error {
+  color: #fa5252;
+  font-weight: 500;
+}
+
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+/* Gender selector */
+.gender-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.gender-card {
+  background: #ffffff;
+  border: 1.5px solid #eceff2;
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--c-muted);
+}
+
+.gender-card:hover {
+  border-color: #ced4da;
+  color: var(--c-text-2);
+}
+
+.gender-card.active {
+  background: var(--c-primary-soft);
+  border-color: var(--c-primary);
+  color: var(--c-primary-text);
+}
+
+.gender-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.gender-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* Hair style grid */
+.style-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.style-card {
+  background: #ffffff;
+  border: 1.5px solid #eceff2;
+  border-radius: 8px;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--c-muted);
+}
+
+.style-card:hover {
+  border-color: #ced4da;
+  color: var(--c-text-2);
+}
+
+.style-card.active {
+  background: var(--c-primary-soft);
+  border-color: var(--c-primary);
+  color: var(--c-primary-text);
+}
+
+.style-thumb {
+  display: flex; align-items: center; justify-content: center; height: 34px;
+}
+
+.style-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Color Palette Selector */
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.color-preset {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.color-preset:hover {
+  transform: scale(1.1);
+}
+
+.color-preset.active {
+  border-color: var(--c-text);
+  transform: scale(1.05);
+}
+
+.custom-color-picker {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid #eceff2;
+  background: var(--c-bg);
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-color-picker:hover {
+  background: var(--c-line);
+}
+
+.picker-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.picker-icon {
+  font-size: 0.72rem;
+  pointer-events: none;
+}
+
+.color-hex {
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--c-faint);
+}
+
+/* Instrument Grid Compact (Step 3) */
+.instrument-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.inst-card-grid {
+  background: #ffffff;
+  border: 1.5px solid #eceff2;
+  border-radius: 12px;
+  padding: 12px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--c-muted);
+  height: 80px;
+}
+
+.inst-card-grid:hover {
+  border-color: #ced4da;
+  color: var(--c-text-2);
+}
+
+.inst-card-grid.active {
+  background: var(--c-primary-soft);
+  border-color: var(--c-primary);
+  color: var(--c-primary-text);
+}
+
+.inst-grid-icon {
+  display: flex; align-items: center; justify-content: center; height: 40px;
+}
+
+.inst-grid-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   NAVIGATION / BOTTOM BUTTON BAR
+   ========================================================================== */
+.form-navigation {
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.nav-btn-back,
+.nav-btn-cancel {
+  flex: 1;
+  padding: 11px;
+  background: transparent;
+  border: 1.5px solid #eceff2;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--c-text-2);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.nav-btn-back:hover:not(:disabled),
+.nav-btn-cancel:hover:not(:disabled) {
+  background: var(--c-bg);
+  color: var(--c-text);
+  border-color: #ced4da;
+}
+
+.nav-btn-cancel {
+  border-color: #ffe3e3;
+  color: #fa5252;
+}
+
+.nav-btn-cancel:hover:not(:disabled) {
+  background: var(--c-danger-soft);
+  color: var(--c-danger);
+  border-color: #ffa8a8;
+}
+
+.nav-btn-back:disabled,
+.nav-btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nav-btn-next,
+.nav-btn-submit {
+  flex: 1;
+  padding: 11px;
+  background: var(--c-primary);
+  border: none;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.nav-btn-next:hover:not(:disabled),
+.nav-btn-submit:hover:not(:disabled) {
+  background: var(--c-primary-strong);
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--c-primary) 15%, transparent);
+}
+
+.nav-btn-next:disabled,
+.nav-btn-submit:disabled {
+  background: #ced4da;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 860px) {
+  .character-create-root {
+    height: auto;
+    overflow: visible;
+    padding: 30px 20px;
+    position: relative;
+  }
+  .create-card-container {
+    height: auto;
+  }
+  .create-grid {
+    grid-template-columns: 1fr;
+  }
+  .preview-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--c-line);
+    padding: 30px;
+    height: auto;
+  }
+  .form-panel {
+    padding: 30px;
+    height: auto;
+  }
+  .steps-container {
+    overflow: visible;
+    margin-bottom: 0;
+  }
+}
+</style>
