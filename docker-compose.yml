@@ -4,20 +4,19 @@
 # 첫 실행은 테이블을 만들어야 하므로 DDL_AUTO=update 로 한 번 띄운다 (README "Docker로 띄우기")
 
 services:
+  # 운영(Supabase)과 같은 PostgreSQL (#178)
   db:
-    image: mariadb:11
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: gain-z
-      MARIADB_USER: ${DB_USERNAME:-gainz}
-      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD 를 .env 에 적어 주세요}
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD 를 .env 에 적어 주세요}
+      POSTGRES_DB: gainz
+      POSTGRES_USER: ${DB_USERNAME:-gainz}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD 를 .env 에 적어 주세요}
       TZ: Asia/Seoul
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     volumes:
-      - db-data:/var/lib/mysql
+      - pg-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d gainz"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -38,7 +37,7 @@ services:
     build: ./backend
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:mariadb://db:3306/gain-z?serverTimezone=Asia/Seoul
+      DB_URL: jdbc:postgresql://db:5432/gainz
       DB_USERNAME: ${DB_USERNAME:-gainz}
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
@@ -53,6 +52,11 @@ services:
       NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:?}
       NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:?}
       DDL_AUTO: ${DDL_AUTO:-validate}
+      # 올린 파일: 기본은 아래 uploads 볼륨. supabase 로 두면 SUPABASE_URL·SUPABASE_SERVICE_KEY 도 필요
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_BUCKET: ${SUPABASE_BUCKET:-uploads}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
     volumes:
       # 올린 파일(악보·필기·녹음·프로필 사진). 컨테이너를 지워도 남는다
@@ -78,6 +82,6 @@ services:
         condition: service_healthy
 
 volumes:
-  db-data:
+  pg-data:
   redis-data:
   uploads:
