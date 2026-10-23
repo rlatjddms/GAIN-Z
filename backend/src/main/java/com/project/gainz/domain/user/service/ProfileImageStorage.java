@@ -3,22 +3,18 @@ package com.project.gainz.domain.user.service;
 import com.project.gainz.domain.sheet.service.SheetFileStorage;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.global.storage.FileStore;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
 
-// 프로필 사진 파일 저장 (업로드 폴더/profiles). 이미지(PNG·JPG·WEBP)만, 5MB까지
+// 프로필 사진 파일 저장 (FileStore의 profiles/, #178). 이미지(PNG·JPG·WEBP)만, 5MB까지
 @Slf4j
 @Component
 public class ProfileImageStorage {
@@ -29,10 +25,12 @@ public class ProfileImageStorage {
     public record StoredImage(String storedName, String contentType) {
     }
 
-    private final Path baseDir;
+    private static final String FOLDER = "profiles/";
 
-    public ProfileImageStorage(@Value("${gainz.upload-dir:${user.home}/.gainz/uploads}") String uploadDir) {
-        this.baseDir = Path.of(uploadDir, "profiles").toAbsolutePath().normalize();
+    private final FileStore fileStore;
+
+    public ProfileImageStorage(FileStore fileStore) {
+        this.fileStore = fileStore;
     }
 
     public StoredImage store(MultipartFile file) {
@@ -57,41 +55,44 @@ public class ProfileImageStorage {
             case "image/jpeg" -> ".jpg";
             default -> ".webp";
         };
-        try {
-            Files.createDirectories(baseDir);
-            try (InputStream in = file.getInputStream()) {
-                Files.copy(in, baseDir.resolve(storedName), StandardCopyOption.REPLACE_EXISTING);
-            }
+        try (InputStream in = file.getInputStream()) {
+            fileStore.put(FOLDER + storedName, in, file.getSize(), contentType);
         } catch (IOException e) {
-            log.error("프로필 사진 저장 실패: {}", baseDir, e);
+            log.error("프로필 사진 저장 실패: {}", storedName, e);
             throw new BusinessException(ErrorCode.PROFILE_IMAGE_STORAGE_FAILED);
         }
         return new StoredImage(storedName, contentType);
     }
 
     public Resource load(String storedName) {
-        Path path = resolve(storedName);
-        if (!Files.isReadable(path)) {
+        Resource resource;
+        try {
+            resource = fileStore.get(key(storedName));
+        } catch (IOException e) {
+            log.error("프로필 사진 읽기 실패: {}", storedName, e);
+            throw new BusinessException(ErrorCode.PROFILE_IMAGE_STORAGE_FAILED);
+        }
+        if (resource == null) {
             throw new BusinessException(ErrorCode.PROFILE_IMAGE_NOT_FOUND);
         }
-        return new FileSystemResource(path);
+        return resource;
     }
 
     // 지우다 실패해도 요청은 그대로 진행한다 (남은 파일은 로그로 확인)
     public void delete(String storedName) {
         if (storedName == null) return;
         try {
-            Files.deleteIfExists(resolve(storedName));
+            fileStore.delete(key(storedName));
         } catch (IOException | BusinessException e) {
             log.warn("프로필 사진 삭제 실패: {}", storedName);
         }
     }
 
-    private Path resolve(String storedName) {
-        Path path = baseDir.resolve(storedName).normalize();
-        if (!path.getParent().equals(baseDir)) {
+    // 저장할 때 붙인 이름(UUID.확장자)만 받는다. 다른 폴더를 가리키는 이름은 막는다
+    private static String key(String storedName) {
+        if (storedName == null || !storedName.matches("[A-Za-z0-9-]+\\.[a-z]+")) {
             throw new BusinessException(ErrorCode.PROFILE_IMAGE_NOT_FOUND);
         }
-        return path;
+        return FOLDER + storedName;
     }
 }

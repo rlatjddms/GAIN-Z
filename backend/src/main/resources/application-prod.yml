@@ -1,6 +1,7 @@
 # 운영 설정 (#174). 값은 전부 환경 변수로 받는다. 실행: SPRING_PROFILES_ACTIVE=prod
 # 필수: DB_URL, DB_USERNAME, DB_PASSWORD, REDIS_HOST, JWT_SECRET, FRONTEND_URL,
 #       GOOGLE_CLIENT_ID/SECRET, KAKAO_CLIENT_ID/SECRET, NAVER_CLIENT_ID/SECRET
+# 파일을 Supabase에 둘 때: STORAGE_TYPE=supabase, SUPABASE_URL, SUPABASE_SERVICE_KEY (버킷 이름 SUPABASE_BUCKET, 기본 uploads)
 spring:
   # 드라이버는 DB_URL로 정해진다. 예) jdbc:postgresql://호스트:5432/postgres?sslmode=require (#178)
   datasource:
@@ -45,6 +46,13 @@ gainz:
   frontend-url: ${FRONTEND_URL}
   allowed-origins: ${ALLOWED_ORIGINS:${FRONTEND_URL}}
   upload-dir: ${UPLOAD_DIR:/data/uploads}
+  # local: 위 폴더(docker compose 볼륨) / supabase: Supabase Storage 비공개 버킷 (#178)
+  storage:
+    type: ${STORAGE_TYPE:local}
+    supabase:
+      url: ${SUPABASE_URL:}
+      bucket: ${SUPABASE_BUCKET:uploads}
+      service-key: ${SUPABASE_SERVICE_KEY:}
 
 # API 문서는 운영에서 기본으로 끈다. 보려면 SWAGGER_ENABLED=true
 springdoc:

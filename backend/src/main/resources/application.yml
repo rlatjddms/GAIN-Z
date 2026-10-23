@@ -55,6 +55,9 @@ spring:
 gainz:
   # 올린 파일 저장 폴더 (기본: 사용자 홈/.gainz/uploads)
   upload-dir: ${user.home}/.gainz/uploads
+  # 올린 파일을 둘 곳: local(위 폴더) / supabase(Supabase Storage, 운영) (#178)
+  storage:
+    type: local
   # 프론트 주소. CORS 허용 출처이자 소셜 로그인이 끝나면 돌아갈 곳 (#174)
   frontend-url: http://localhost:5173
   # 여러 출처를 허용하려면 쉼표로 적는다. 비우면 frontend-url 하나만 허용
