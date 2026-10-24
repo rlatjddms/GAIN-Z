@@ -29,8 +29,9 @@ onMounted(() => {
     // Save tokens and update auth state with the correct storage persistence preference
     authStore.setTokens(accessToken, refreshToken, keepLoggedIn)
     
-    // Redirect to home
-    router.push('/home')
+    // 마이페이지에서 소셜을 연결하고 돌아왔으면 마이페이지로 (#189)
+    if (route.query.linked) router.replace({ path: '/mypage', query: { linked: route.query.linked } })
+    else router.push('/home')
   } else {
     // If tokens are missing, redirect back to login
     router.push('/')

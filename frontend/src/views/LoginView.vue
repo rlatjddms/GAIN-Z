@@ -78,12 +78,14 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppLogo from '../components/AppLogo.vue'
 import { API_BASE_URL } from '../api/axios'
+import { socialErrorMessage } from '../api/user'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -92,6 +94,12 @@ const keepLoggedIn = ref(true)
 const isPwVisible = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
+
+// 소셜 로그인이 막혀 돌아왔을 때 (?socialError=EMAIL_EXISTS&provider=NAVER, #189)
+if (route.query.socialError) {
+  errorMessage.value = socialErrorMessage(route.query.socialError, route.query.provider)
+  router.replace({ path: route.path })
+}
 
 const handleLogin = async () => {
   if (!email.value || !password.value) return

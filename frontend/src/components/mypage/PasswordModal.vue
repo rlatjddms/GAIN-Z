@@ -3,22 +3,22 @@
     <transition name="modal">
       <div v-if="open" class="backdrop" @click.self="!saving && emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="password-title">
-          <h2 id="password-title">비밀번호 바꾸기</h2>
-          <p class="sub">지금 비밀번호를 확인한 뒤 새 비밀번호로 바꿔요.</p>
+          <h2 id="password-title">{{ creating ? '비밀번호 만들기' : '비밀번호 바꾸기' }}</h2>
+          <p class="sub">{{ creating ? '비밀번호를 만들면 가입한 이메일로도 로그인할 수 있어요.' : '지금 비밀번호를 확인한 뒤 새 비밀번호로 바꿔요.' }}</p>
 
           <form @submit.prevent="submit">
-            <label class="field">
+            <label v-if="!creating" class="field">
               <span>지금 비밀번호</span>
               <input v-model="current" type="password" autocomplete="current-password" :disabled="saving">
             </label>
             <label class="field">
-              <span>새 비밀번호</span>
+              <span>{{ creating ? '비밀번호' : '새 비밀번호' }}</span>
               <input v-model="next" type="password" autocomplete="new-password" placeholder="8~16자 영문, 숫자, 특수문자" :disabled="saving">
             </label>
             <p v-if="next && !nextValid" class="hint bad">8~16자로 영문, 숫자, 특수문자를 모두 넣어 주세요. (공백 없이)</p>
-            <p v-else-if="next && next === current" class="hint bad">지금 비밀번호와 다르게 정해 주세요.</p>
+            <p v-else-if="!creating && next && next === current" class="hint bad">지금 비밀번호와 다르게 정해 주세요.</p>
             <label class="field">
-              <span>새 비밀번호 확인</span>
+              <span>{{ creating ? '비밀번호 확인' : '새 비밀번호 확인' }}</span>
               <input v-model="confirm" type="password" autocomplete="new-password" :disabled="saving">
             </label>
             <p v-if="confirm && confirm !== next" class="hint bad">새 비밀번호와 같지 않아요.</p>
@@ -27,7 +27,7 @@
 
             <div class="actions">
               <button type="button" class="btn" :disabled="saving" @click="emit('close')">취소</button>
-              <button type="submit" class="btn primary" :disabled="saving || !valid">{{ saving ? '바꾸는 중…' : '바꾸기' }}</button>
+              <button type="submit" class="btn primary" :disabled="saving || !valid">{{ saving ? '저장 중…' : creating ? '만들기' : '바꾸기' }}</button>
             </div>
           </form>
         </section>
@@ -38,13 +38,15 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { changePassword } from '../../api/user'
+import { changePassword, createPassword } from '../../api/user'
 import { apiErrorMessage } from '../../api/practice'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
+  // create: 비밀번호가 없는 계정이 처음 만들기 (#189), change: 지금 비밀번호 확인 후 바꾸기
+  mode: { type: String, default: 'change' },
 })
-// done: 바꾸기 성공
+// done: 저장 성공
 const emit = defineEmits(['close', 'done'])
 
 // 백엔드 SignupRequest·PasswordChangeRequest와 같은 규칙
@@ -56,8 +58,10 @@ const confirm = ref('')
 const saving = ref(false)
 const error = ref('')
 
+const creating = computed(() => props.mode === 'create')
 const nextValid = computed(() => PASSWORD_PATTERN.test(next.value))
-const valid = computed(() => current.value && nextValid.value && next.value !== current.value && confirm.value === next.value)
+const valid = computed(() => nextValid.value && confirm.value === next.value
+  && (creating.value || (current.value && next.value !== current.value)))
 
 watch(() => props.open, (open) => {
   if (!open) return
@@ -72,10 +76,11 @@ const submit = async () => {
   saving.value = true
   error.value = ''
   try {
-    await changePassword({ currentPassword: current.value, newPassword: next.value })
+    if (creating.value) await createPassword(next.value)
+    else await changePassword({ currentPassword: current.value, newPassword: next.value })
     emit('done')
   } catch (e) {
-    error.value = apiErrorMessage(e, '비밀번호를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.')
+    error.value = apiErrorMessage(e, '비밀번호를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
   } finally {
     saving.value = false
   }
