@@ -1,5 +1,6 @@
 package com.project.gainz.domain.band.controller;
 
+import com.project.gainz.domain.band.dto.response.BandBoardResponse.CommentPage;
 import com.project.gainz.domain.band.dto.response.BandBoardResponse.PostPage;
 import com.project.gainz.domain.band.service.BandBoardService;
 import com.project.gainz.domain.user.entity.User;
@@ -69,6 +70,23 @@ class BandBoardControllerTest {
         mvc.perform(get("/api/v1/bands/10/posts?mine=true&page=1&size=7&userId=999"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(9));
         verify(service).list(1L, 10L, 1, 7, null, true);
+    }
+
+    @Test void searchParamsAreBoundAsKeywordAndIsoDates() throws Exception {
+        when(service.list(1L, 10L, 0, 12, null, false, "합주", java.time.LocalDate.of(2029, 10, 1), java.time.LocalDate.of(2029, 10, 7)))
+                .thenReturn(new PostPage(List.of(), 0, 1, 3));
+        mvc.perform(get("/api/v1/bands/10/posts?q=합주&from=2029-10-01&to=2029-10-07"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(3));
+        verify(service).list(1L, 10L, 0, 12, null, false, "합주", java.time.LocalDate.of(2029, 10, 1), java.time.LocalDate.of(2029, 10, 7));
+        mvc.perform(get("/api/v1/bands/10/posts?from=10월1일")).andExpect(status().isBadRequest());
+    }
+
+    @Test void commentsWithPageParamReturnPage() throws Exception {
+        when(service.commentPage(1L, 10L, 20L, 2, 20)).thenReturn(new CommentPage(List.of(), 2, 3, 45, 50));
+        mvc.perform(get("/api/v1/bands/10/posts/20/comments?page=2"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.commentCount").value(50));
+        when(service.comments(1L, 10L, 20L)).thenReturn(List.of());
+        mvc.perform(get("/api/v1/bands/10/posts/20/comments")).andExpect(status().isOk()).andExpect(jsonPath("$.data").isArray());
     }
 
     @Test void archiveStreamsAllFilesWithSafeDistinctNames() throws Exception {
