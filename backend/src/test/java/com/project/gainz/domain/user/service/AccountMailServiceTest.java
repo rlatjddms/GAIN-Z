@@ -74,7 +74,7 @@ class AccountMailServiceTest {
     private String sentLink() {
         ArgumentCaptor<String> html = ArgumentCaptor.forClass(String.class);
         verify(mailClient).send(eq("me@test.invalid"), anyString(), html.capture());
-        Matcher m = Pattern.compile("href=\"([^\"]+)\"").matcher(html.getValue());
+        Matcher m = Pattern.compile("href=\"([^\"]+reset-password[^\"]+)\"").matcher(html.getValue());
         assertThat(m.find()).isTrue();
         return m.group(1);
     }
