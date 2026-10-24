@@ -284,13 +284,13 @@ const handleSignup = async () => {
     min-height: 100dvh;
     padding:
       calc(24px + env(safe-area-inset-top))
-      calc(20px + env(safe-area-inset-right))
+      calc(32px + env(safe-area-inset-right))
       calc(24px + env(safe-area-inset-bottom))
-      calc(20px + env(safe-area-inset-left));
+      calc(32px + env(safe-area-inset-left));
     background: #ffffff;
   }
   .login-background-deco { display: none; }
-  .signup-card-container { max-width: none; padding: 0; border: none; border-radius: 0; box-shadow: none; }
+  .signup-card-container { max-width: 360px; padding: 0; border: none; border-radius: 0; box-shadow: none; }
 }
 @media (max-width: 640px) {
   .gz-input { padding: 12px 14px; }
