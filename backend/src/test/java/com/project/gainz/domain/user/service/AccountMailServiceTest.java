@@ -154,16 +154,27 @@ class AccountMailServiceTest {
     }
 
     @Test
-    void 비밀번호_재설정_메일은_비밀번호가_있는_계정에만_30분짜리로() {
-        User social = user(true, null);
-        when(userRepository.findByEmail("social@test.invalid")).thenReturn(Optional.of(social));
-        service.requestPasswordReset("social@test.invalid");
-        verify(mailClient, never()).send(anyString(), anyString(), anyString());
+    void 비밀번호_재설정은_가입_안_된_이메일과_소셜로만_가입한_계정을_알려_주고_메일은_보내지_않는다() {
+        when(userRepository.findByEmail("none@test.invalid")).thenReturn(Optional.empty());
+        assertThat(service.requestPasswordReset("none@test.invalid").status()).isEqualTo("NOT_FOUND");
 
+        User social = User.builder().email("social@test.invalid").name("소셜").provider(SocialProvider.KAKAO)
+                .role(UserRole.ROLE_USER).emailVerified(true).build();
+        when(userRepository.findByEmail("social@test.invalid")).thenReturn(Optional.of(social));
+        var result = service.requestPasswordReset("social@test.invalid");
+        assertThat(result.status()).isEqualTo("SOCIAL_ONLY");
+        assertThat(result.provider()).isEqualTo(SocialProvider.KAKAO);
+
+        verify(mailClient, never()).send(anyString(), anyString(), anyString());
+        verify(emailTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void 비밀번호_재설정_메일은_비밀번호가_있는_계정에_30분짜리로() {
         User local = user(true, "encoded");
         when(userRepository.findByEmail("me@test.invalid")).thenReturn(Optional.of(local));
         when(emailTokenRepository.findTopByUserIdAndPurposeOrderByCreatedAtDesc(7L, EmailTokenPurpose.RESET_PASSWORD)).thenReturn(Optional.empty());
-        service.requestPasswordReset("me@test.invalid");
+        assertThat(service.requestPasswordReset("me@test.invalid").status()).isEqualTo("SENT");
 
         ArgumentCaptor<EmailToken> saved = ArgumentCaptor.forClass(EmailToken.class);
         verify(emailTokenRepository).save(saved.capture());
