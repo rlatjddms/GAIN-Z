@@ -25,10 +25,12 @@
     </div>
 
     <section class="comments-section" aria-label="댓글">
-      <h2><BoardIcon name="comment" :size="18" />댓글 <b>{{ comments.filter(c => !c.deleted).length }}</b></h2>
-      <p v-if="loading" class="quiet" role="status">댓글을 불러오는 중…</p>
+      <h2><BoardIcon name="comment" :size="18" />댓글 <b>{{ commentCount }}</b></h2>
+      <p v-if="loading && !comments.length" class="quiet" role="status">댓글을 불러오는 중…</p>
       <p v-else-if="commentsError" class="error" role="alert">{{ commentsError }} <button @click="loadComments">다시 불러오기</button></p>
       <p v-else-if="!comments.length" class="empty-comments">가장 먼저 이야기를 나눠 보세요.</p>
+      <!-- 댓글은 최근 것부터 한 번에 COMMENT_PAGE개씩, 위에서 이전 댓글을 더 불러온다 (#188) -->
+      <button v-if="hasOlder" class="older-comments" :disabled="loading" @click="loadOlder">{{ loading ? '불러오는 중…' : `이전 댓글 더 보기 (${olderCount})` }}</button>
       <template v-for="comment in orderedComments" :key="comment.id"><div class="comment" :class="{ reply: comment.parentId, deleted: comment.deleted }">
         <template v-if="comment.deleted"><p class="quiet">삭제된 댓글이에요.</p></template>
         <template v-else>
@@ -97,7 +99,14 @@ function escapeMenu(event) {
 }
 const visuals = computed(() => attachmentsOf(props.post).filter(f => /^(image|video)\//.test(f.type)))
 const documents = computed(() => attachmentsOf(props.post).filter(f => !/^(image|video)\//.test(f.type)))
+const COMMENT_PAGE = 20
 const comments = ref([])
+const commentPages = ref(1)        // 불러온 쪽 수 (0쪽이 가장 최근)
+const commentTotalPages = ref(0)
+const rootTotal = ref(0)
+const commentCount = ref(props.post.commentCount ?? 0)
+const hasOlder = computed(() => commentPages.value < commentTotalPages.value)
+const olderCount = computed(() => Math.max(0, rootTotal.value - comments.value.filter(c => c.parentId === null).length))
 const orderedComments = computed(() => comments.value.filter(c => c.parentId === null).flatMap(root => [root, ...(expanded.value.has(root.id) ? replies(root.id) : [])]))
 const loading = ref(false)
 const commentsError = ref('')
@@ -112,14 +121,36 @@ const editText = ref('')
 let active = true
 const message = e => e.response?.data?.message || '처리하지 못했어요. 다시 시도해 주세요.'
 onBeforeUnmount(() => { active = false })
+// 불러온 쪽들을 다시 받는다 (댓글을 쓰거나 지운 뒤). 오래된 쪽이 위
 async function loadComments() {
   loading.value = true
   commentsError.value = ''
   try {
-    const rows = await listBandComments(props.band.id, props.post.id)
-    if (active) comments.value = rows
+    const results = await Promise.all(Array.from({ length: commentPages.value }, (_, i) => listBandComments(props.band.id, props.post.id, i, COMMENT_PAGE)))
+    if (!active) return
+    comments.value = results.slice().reverse().flatMap(result => result.content)
+    applyMeta(results[0])
   } catch (e) { if (active) commentsError.value = message(e) }
   finally { if (active) loading.value = false }
+}
+async function loadOlder() {
+  if (loading.value || !hasOlder.value) return
+  loading.value = true
+  commentsError.value = ''
+  try {
+    const result = await listBandComments(props.band.id, props.post.id, commentPages.value, COMMENT_PAGE)
+    if (!active) return
+    comments.value = [...result.content.filter(c => !comments.value.some(row => row.id === c.id)), ...comments.value]
+    commentPages.value += 1
+    applyMeta(result)
+  } catch (e) { if (active) commentsError.value = message(e) }
+  finally { if (active) loading.value = false }
+}
+function applyMeta(result) {
+  commentTotalPages.value = result.totalPages
+  rootTotal.value = result.totalElements
+  commentCount.value = result.commentCount
+  commentPages.value = Math.max(1, Math.min(commentPages.value, result.totalPages))
 }
 onMounted(loadComments)
 async function action(work) {
@@ -185,6 +216,11 @@ async function removeComment(comment) {
 .media-gallery.single { grid-template-columns: minmax(0, 1fr); }
 .document-list { margin-top: 14px; display: grid; gap: 10px; }
 .comments-section { padding: 24px 32px 30px; background: #fafbfc; border-top: 1px solid #edf0f3; }
+.older-comments {
+  display: block; width: 100%; margin: -6px 0 14px; padding: 9px; border: 1px dashed var(--c-line); border-radius: 10px;
+  background: #fff; font: inherit; font-size: 12px; font-weight: 700; color: #687385; cursor: pointer;
+}
+.older-comments:hover:not(:disabled) { color: var(--c-primary-text); border-color: var(--c-primary-line); }
 .comments-section h2 { display: flex; align-items: center; gap: 7px; margin: 0 0 20px; font-size: 13px; font-weight: 800; }
 .comments-section h2 b { color: var(--c-primary-text); margin-left: 2px; }
 .comment { display: flex; gap: 10px; padding: 8px 0; }
