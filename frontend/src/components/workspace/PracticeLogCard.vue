@@ -24,15 +24,17 @@
       </div>
     </div>
 
-    <!-- 연습 잔디: 세로 7칸(월~일) × 가로 주, 맨 오른쪽이 이번 주. 칸에 마우스를 올리면 말풍선 -->
+    <!-- 연습 잔디: 세로 7칸(월~일) × 가로 주, 맨 오른쪽이 이번 주. 칸에 마우스를 올리거나 누르면 말풍선 (#211)
+         휴대폰은 최근 20주만 크게 (요약 숫자는 30주 기록으로 계산) -->
     <div ref="wrapRef" class="grass-wrap" @mouseleave="hovered = null">
-      <div class="grass" :class="{ loading: !loaded }">
+      <div class="grass" :class="{ loading: !loaded }" :style="{ gridTemplateColumns: `repeat(${shownWeeks}, minmax(0, 1fr))` }">
         <span
-          v-for="cell in cells"
+          v-for="cell in shownCells"
           :key="cell.key"
           class="g"
           :class="[`lv${cell.level}`, { future: cell.future, hover: hovered?.key === cell.key }]"
-          @mouseenter="showTip(cell, $event)"
+          @pointerenter="$event.pointerType === 'mouse' && showTip(cell, $event)"
+          @click="tapTip(cell, $event)"
         ></span>
       </div>
       <div v-if="hovered" class="tip" :style="tipStyle" role="tooltip">
@@ -48,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { usePracticeStore } from '../../stores/practice'
 import { useAuthStore } from '../../stores/auth'
 import { apiErrorMessage } from '../../api/practice'
@@ -56,6 +58,14 @@ import { getRoutineSummary } from '../../api/routine'
 import { addDays, dateKey, dateLabel, durationText, practiceLevel, startOfDay } from '../../constants/practice'
 
 const WEEKS = 30
+// 휴대폰(앱 화면)에서 보여 줄 주 수 (#211). 30주를 다 넣으면 한 칸이 9px 정도라 보기도 누르기도 어렵다
+const APP_WEEKS = 20
+const appQuery = window.matchMedia('(max-width: 640px)')
+const narrow = ref(appQuery.matches)
+// 화면 폭이 바뀌면 다시 맞춘다 (media query change가 안 오는 환경도 있어 resize도 본다)
+const onWidth = () => { narrow.value = appQuery.matches }
+appQuery.addEventListener('change', onWidth)
+window.addEventListener('resize', onWidth)
 const practice = usePracticeStore()
 
 const today = startOfDay()
@@ -109,6 +119,25 @@ const showTip = (cell, e) => {
   tipPos.value = { x, y: rect.top - wrap.top, align: x < 70 ? 'left' : x > wrap.width - 70 ? 'right' : 'center' }
   hovered.value = { ...cell, routine: routineSummary.value[cell.key] }
 }
+// 누르기 (휴대폰): 같은 칸을 다시 누르거나 바깥을 누르면 닫는다
+const tapTip = (cell, e) => {
+  // 마우스는 올리기만으로 보이니 눌러도 닫지 않는다
+  if (e.pointerType !== 'mouse' && hovered.value?.key === cell.key) {
+    hovered.value = null
+    return
+  }
+  showTip(cell, e)
+}
+const closeOnOutside = (e) => {
+  if (hovered.value && !wrapRef.value?.contains(e.target)) hovered.value = null
+}
+document.addEventListener('pointerdown', closeOnOutside)
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', closeOnOutside)
+  appQuery.removeEventListener('change', onWidth)
+  window.removeEventListener('resize', onWidth)
+})
+
 const tipStyle = computed(() => {
   const { x, y, align } = tipPos.value
   const shift = align === 'left' ? '-12px' : align === 'right' ? 'calc(-100% + 12px)' : '-50%'
@@ -120,6 +149,9 @@ const cells = computed(() => Array.from({ length: WEEKS * 7 }, (_, i) => {
   const seconds = totalOf(key)
   return { key, seconds, level: practiceLevel(seconds), future: key > todayKey }
 }))
+
+const shownWeeks = computed(() => (narrow.value ? APP_WEEKS : WEEKS))
+const shownCells = computed(() => cells.value.slice(-shownWeeks.value * 7))
 
 // 연속 연습: 오늘부터 거꾸로 연습한 날을 센다. 오늘 아직 안 했으면 어제부터 (오늘 하면 이어짐)
 const streak = computed(() => {
@@ -155,11 +187,11 @@ const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.secon
 .grass-wrap { position: relative; }
 .grass {
   display: grid; grid-auto-flow: column;
-  grid-template-rows: repeat(7, auto); grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px;
+  grid-template-rows: repeat(7, auto); gap: 3px;
   transition: opacity 0.2s;
 }
 .grass.loading { opacity: 0.4; }
-.g { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--c-line-soft); }
+.g { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--c-line-soft); cursor: pointer; }
 .g.future { visibility: hidden; }
 .g.hover { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--c-muted); }
 
@@ -185,8 +217,8 @@ const monthSeconds = computed(() => monthKeys.value.reduce((s, c) => s + c.secon
   .log-stat { padding: 8px 9px; border-radius: 10px; }
   .log-stat span { font-size: 0.66rem; }
   .log-stat strong { font-size: 0.85rem; }
-  .grass { gap: 2px; }
-  .g { border-radius: 2px; }
+  .grass { gap: 3px; }
+  .g { border-radius: 3px; }
 }
 
 .error { margin: 10px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
