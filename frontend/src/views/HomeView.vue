@@ -92,7 +92,7 @@
           </section>
 
           <section v-else-if="!activeBand" class="stage band-stage band-empty">
-            <div class="empty-icon"><PixelIcon name="guitar" :size="48" /></div>
+            <div class="empty-icon"><PixelIcon name="band" :size="48" /></div>
             <h2>아직 들어간 밴드가 없어요</h2>
             <p class="empty-text">밴드를 새로 만들거나, 리더에게 받은 초대 코드로 가입해 보세요.</p>
             <div class="empty-actions">
