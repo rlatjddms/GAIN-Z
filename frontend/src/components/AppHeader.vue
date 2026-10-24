@@ -148,7 +148,9 @@ button { -webkit-appearance: none; appearance: none; outline: none; }
 .name { font-weight: 700; font-size: 0.9rem; color: var(--c-text-2); }
 /* 휴대폰: 헤더를 낮추고 로고를 2배 크기로, 이름은 숨기고 사진만 */
 @media (max-width: 640px) {
-  .header-inner { padding: 0 12px; height: 56px; grid-template-columns: auto 1fr auto; gap: 8px; }
+  /* 좌우 칸을 같은 너비(1fr)로 두어 가운데(SOLO/BAND·화면 제목)가 화면 정가운데에 오게 (#214) */
+  .header-inner { padding: 0 12px; height: 56px; grid-template-columns: 1fr auto 1fr; gap: 8px; }
+  .header-center { min-width: 0; }
   .logo :deep(.app-logo) { width: auto; height: 14px; }
   .header-right { gap: 6px; }
   /* 휴대폰: SOLO/BAND 토글이 작아지는 만큼 프로필 버튼도 조금 작게 (사진 30px + 둘레 2px = 34px, 알림 버튼과 같음) */

@@ -1,7 +1,9 @@
 <template>
   <div class="sub-app">
     <AppHeader :back-to="backTo" :back-label="backLabel">
-      <div class="page-pill">{{ pill }}</div>
+      <!-- 넓은 화면은 SOLO·BAND·MY, 휴대폰은 화면 영어 제목 (#214, 본문 큰 제목은 휴대폰에서 숨김) -->
+      <div class="page-pill" :class="{ 'has-title': title }">{{ pill }}</div>
+      <span v-if="title" class="page-title">{{ title }}</span>
     </AppHeader>
 
     <main class="sub-body">
@@ -48,6 +50,7 @@ defineProps({
   background: var(--c-line-soft); color: var(--c-primary-text); font-weight: 800; font-size: 0.8rem;
   padding: 8px 18px; border-radius: var(--radius-md); letter-spacing: 0.5px;
 }
+.page-title { display: none; }
 .sub-body { max-width: 1040px; margin: 0 auto; padding: 24px 20px 48px; }
 .back {
   display: inline-flex; align-items: center; gap: 4px; margin-bottom: 16px; font-size: 0.85rem; font-weight: 800;
@@ -61,6 +64,13 @@ defineProps({
 }
 @media (max-width: 640px) {
   .page-pill { padding: 6px 12px; font-size: 0.72rem; }
+  .page-pill.has-title { display: none; }
+  .page-title {
+    display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 0.95rem; font-weight: 900; letter-spacing: 0.04em; color: var(--c-text);
+  }
+  /* 제목은 위로 올렸으니 본문에서는 한글 이름·설명과 버튼만 */
+  .head :deep(h1) { display: none; }
   .back { display: none; }
   .head { margin-bottom: 16px; }
 }
