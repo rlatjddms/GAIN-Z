@@ -277,10 +277,20 @@ const handleSignup = async () => {
 
 .signup-footer { margin-top: 45px; font-size: 0.9rem; color: #a0a8b1; }
 .signup-footer a { color: var(--c-primary-text); font-weight: 700; text-decoration: none; margin-left: 8px; }
-/* 휴대폰: 카드가 화면 끝에 붙지 않게 바깥 여백, 안쪽 여백은 줄인다 (#124) */
+/* 휴대폰·앱 (#190): 카드 없이 화면 전체를 쓴다. 노치·홈 표시줄 자리는 비워 둔다 */
 @media (max-width: 640px) {
-  .gain-z-signup-root { height: auto; min-height: 100dvh; padding: 24px 16px; }
-  .signup-card-container { padding: 40px 22px; }
+  .gain-z-signup-root {
+    height: auto;
+    min-height: 100dvh;
+    padding:
+      calc(24px + env(safe-area-inset-top))
+      calc(32px + env(safe-area-inset-right))
+      calc(24px + env(safe-area-inset-bottom))
+      calc(32px + env(safe-area-inset-left));
+    background: #ffffff;
+  }
+  .login-background-deco { display: none; }
+  .signup-card-container { max-width: 360px; padding: 0; border: none; border-radius: 0; box-shadow: none; }
 }
 @media (max-width: 640px) {
   .gz-input { padding: 12px 14px; }
