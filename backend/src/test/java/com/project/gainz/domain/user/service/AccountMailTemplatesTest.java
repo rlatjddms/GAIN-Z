@@ -11,9 +11,9 @@ class AccountMailTemplatesTest {
     void 인증_코드_메일에는_로고와_한_번에_선택되는_코드가_있다() {
         String html = AccountMailTemplates.signupCode("https://gainz.example", "012345");
 
-        assertThat(html).contains("src=\"https://gainz.example/mail/logo.png\"").contains("alt=\"GAIN-Z\"");
+        assertThat(html).contains("src=\"https://gainz.example/mail/logo-white.png\"").contains("alt=\"GAIN-Z\"");
         // 숫자 사이에 띄어쓰기가 없어야 복사하면 코드만 붙는다
-        assertThat(html).contains("user-select:all\">012345</div>");
+        assertThat(html).contains("user-select:all\">012345</span>");
         assertThat(html).contains("10분");
     }
 
