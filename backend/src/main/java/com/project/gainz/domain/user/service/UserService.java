@@ -145,10 +145,11 @@ public class UserService {
             }
         }
 
+        // 밴드 먼저 (#215): 리더를 넘겨야 할 밴드가 있으면 여기서 멈추고, 리더에게 보내는 알림에 캐릭터 닉네임을 쓴다
+        bandService.leaveAllBands(userId);
         // 리프레시 토큰은 이메일로 저장돼 있어서, 이메일을 비우기 전에 지운다
         refreshTokenRepository.deleteById(user.getEmail());
         characterRepository.findByUserId(userId).ifPresent(Character::delete);
-        bandService.leaveAllBands(userId);
         friendService.removeAll(userId);
         notificationService.removeAllOf(userId);
         recordService.removeAllOf(userId);

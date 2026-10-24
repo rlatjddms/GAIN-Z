@@ -9,6 +9,7 @@ import com.project.gainz.domain.band.dto.request.BandMemberOrderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberPartRequest;
 import com.project.gainz.domain.band.dto.request.BandStageRequest;
 import com.project.gainz.domain.band.dto.request.BandUpdateRequest;
+import com.project.gainz.domain.band.dto.response.BandHandOverResponse;
 import com.project.gainz.domain.band.dto.response.BandMemberResponse;
 import com.project.gainz.domain.band.dto.response.BandResponse;
 import com.project.gainz.domain.band.entity.Band;
@@ -245,23 +246,29 @@ public class BandService {
         return respond(me.getBand(), me, userId);
     }
 
-    // 회원 탈퇴: 모든 밴드에서 빠진다. 리더였던 밴드는 가장 먼저 들어온 멤버에게 넘기고, 혼자였으면 없앤다
+    // 회원 탈퇴: 모든 밴드에서 빠진다 (#215). 평소 밴드 나가기와 같게, 다른 멤버가 있는 밴드의 리더면
+    // 리더를 먼저 넘겨야 한다 (어느 밴드인지 data로 알려 줌). 혼자인 밴드는 없애고, 멤버로 있던 밴드는 리더에게 알린다.
+    // 알림에 닉네임을 쓰니 캐릭터를 지우기 전에 부른다
     public void leaveAllBands(Long userId) {
-        for (BandMember me : bandMemberRepository.findAllByUserIdOrderByIdAsc(userId)) {
+        List<BandMember> mine = activeMembers(bandMemberRepository.findAllByUserIdOrderByIdAsc(userId));
+        List<BandHandOverResponse.BandRef> handOver = mine.stream()
+                .filter(BandMember::isLeader)
+                .filter(me -> activeMembers(bandMemberRepository.findAllByBandIdOrderByIdAsc(me.getBand().getId())).size() > 1)
+                .map(me -> new BandHandOverResponse.BandRef(me.getBand().getId(), me.getBand().getName()))
+                .toList();
+        if (!handOver.isEmpty()) {
+            throw new BusinessException(ErrorCode.BAND_LEADER_MUST_HAND_OVER, new BandHandOverResponse(handOver));
+        }
+        for (BandMember me : mine) {
             Band band = me.getBand();
             if (me.isLeader()) {
-                BandMember next = activeMembers(bandMemberRepository.findAllByBandIdOrderByIdAsc(band.getId())).stream()
-                        .filter(m -> !m.getId().equals(me.getId()))
-                        .findFirst()
-                        .orElse(null);
-                if (next == null) {
-                    disband(band);
-                    continue;
-                }
-                next.changePosition(Position.LEADER);
-                band.changeLeader(next.getUser());
+                disband(band);
+                continue;
             }
+            String who = notificationService.nicknameOf(me.getUser());
             me.delete();
+            notificationService.notify(band.getLeader(), NotificationType.BAND_LEAVE, band.getName(),
+                    who + " 님이 탈퇴해서 밴드를 나갔어요", settingsUrl(band));
         }
     }
 
