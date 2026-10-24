@@ -16,7 +16,7 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = e.getErrorCode();
         return ResponseEntity
                 .status(errorCode.getStatus())
-                .body(ApiResponse.fail(errorCode));
+                .body(ApiResponse.fail(errorCode, e.getData()));
     }
 
     // 올린 파일이 multipart 크기 제한(application.yml)을 넘음

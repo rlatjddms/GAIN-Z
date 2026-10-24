@@ -27,6 +27,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final AccountMailService accountMailService;
 
     // 회원가입
     public void signup(SignupRequest request) {
@@ -34,6 +35,8 @@ public class AuthService {
         if (userRepository.existsByEmail(request.email())) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }
+        // 가입 화면에서 이메일 인증 코드를 맞힌 사람만 (#193)
+        accountMailService.useSignupTicket(request.email(), request.emailVerificationToken());
 
         String encodedPassword = passwordEncoder.encode(request.password());
 
@@ -43,6 +46,7 @@ public class AuthService {
                 .name(request.name())
                 .provider(SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER)
+                .emailVerified(true)
                 .build();
 
         userRepository.save(user);

@@ -33,6 +33,7 @@ cp src/main/resources/application-secret.yml.example src/main/resources/applicat
 
 - `http://localhost:8080`에서 뜹니다. API 문서: `http://localhost:8080/swagger-ui/index.html`
 - 테이블은 처음 띄울 때 JPA가 만듭니다 (`ddl-auto: update`).
+- 이메일로 가입하려면 메일로 받은 인증 코드가 필요한데, 로컬은 기본으로 메일을 보내지 않고 백엔드 콘솔에 `[메일 대신 로그]`로 인증 코드·비밀번호 재설정 링크를 찍습니다 (#193). `application-secret.yml`에 `gainz.mail.type: brevo`와 키를 넣으면 진짜 메일이 갑니다.
 - 올린 파일(악보·필기·녹음·프로필 사진)은 `~/.gainz/uploads`에 저장됩니다. `gainz.upload-dir`로 바꿀 수 있습니다.
 - 운영 DB가 PostgreSQL이므로 엔티티에 DB 전용 타입(`MEDIUMTEXT` 등)을 쓰지 않습니다. 긴 텍스트는 `@JdbcTypeCode(SqlTypes.LONG32VARCHAR)`를 씁니다.
 
@@ -110,6 +111,8 @@ Render(백엔드) + Supabase(DB·파일) + Vercel(프론트)에 무료로 올립
 | `STORAGE_TYPE` | | 기본 `local`(`UPLOAD_DIR`). 디스크가 재배포 때 지워지는 곳(Render 등)에서는 `supabase` |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | `supabase`일 때 ✅ | 프로젝트 주소(`https://<프로젝트>.supabase.co`)와 서버용 키(service_role 또는 `sb_secret_…`). 브라우저에 노출하지 않는다 |
 | `SUPABASE_BUCKET` | | 비공개 버킷 이름 (기본 `uploads`). 미리 만들어 둔다 |
+| `MAIL_TYPE` | | 이메일 인증·비밀번호 찾기 메일 (#193). 기본 `log`(보내지 않고 로그에 코드·링크), 운영은 `brevo` |
+| `BREVO_API_KEY`, `MAIL_FROM` | `brevo`일 때 ✅ | Brevo API 키와 Brevo에서 인증한 보내는 사람 이메일. `MAIL_FROM_NAME`(기본 `GAIN-Z`) |
 | `DDL_AUTO` | | 기본 `validate`(스키마 검사만). 첫 배포처럼 테이블을 만들어야 할 때만 `update`로 한 번 띄운다 |
 | `SWAGGER_ENABLED` | | 기본 `false`. API 문서를 운영에서 보려면 `true` |
 | `SERVER_PORT` | | 기본 `PORT`, 그것도 없으면 8080 |

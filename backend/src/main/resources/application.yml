@@ -62,6 +62,9 @@ gainz:
   # 올린 파일을 둘 곳: local(위 폴더) / supabase(Supabase Storage, 운영) (#178)
   storage:
     type: local
+  # 메일 (#193): log(기본, 메일 대신 로그에 링크) / brevo(운영)
+  mail:
+    type: log
   # 프론트 주소. CORS 허용 출처이자 소셜 로그인이 끝나면 돌아갈 곳 (#174)
   frontend-url: http://localhost:5173
   # 여러 출처를 허용하려면 쉼표로 적는다. 비우면 frontend-url 하나만 허용

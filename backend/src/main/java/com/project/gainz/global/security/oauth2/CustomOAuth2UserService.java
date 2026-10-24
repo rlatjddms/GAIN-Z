@@ -38,6 +38,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                         .name(userInfo.getName())
                         .role(UserRole.ROLE_USER)
                         .provider(SocialProvider.from(userInfo.getProvider()))
+                        .emailVerified(true)
                         .build()));
 
         return UserPrincipal.create(user, oAuth2User.getAttributes());

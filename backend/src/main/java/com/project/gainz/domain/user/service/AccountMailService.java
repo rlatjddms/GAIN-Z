@@ -1,0 +1,219 @@
+package com.project.gainz.domain.user.service;
+
+import com.project.gainz.domain.user.dto.response.MailRetryResponse;
+import com.project.gainz.domain.user.dto.response.PasswordResetRequestResponse;
+import com.project.gainz.domain.user.dto.response.SignupCodeVerifyResponse;
+import com.project.gainz.domain.user.entity.EmailToken;
+import com.project.gainz.domain.user.entity.SignupEmailCode;
+import com.project.gainz.domain.user.entity.User;
+import com.project.gainz.domain.user.enums.EmailTokenPurpose;
+import com.project.gainz.domain.user.repository.EmailTokenRepository;
+import com.project.gainz.domain.user.repository.RefreshTokenRepository;
+import com.project.gainz.domain.user.repository.SignupEmailCodeRepository;
+import com.project.gainz.domain.user.repository.UserRepository;
+import com.project.gainz.global.error.BusinessException;
+import com.project.gainz.global.error.ErrorCode;
+import com.project.gainz.global.mail.MailClient;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.HexFormat;
+import java.util.Optional;
+import java.util.function.LongSupplier;
+
+// 가입 전 이메일 인증 코드·비밀번호 찾기 메일 (#193). 같은 메일은 1분에 한 번, 하루 10번까지.
+// 못 보낼 때는 조용히 넘기지 않고 MAIL_SEND_TOO_SOON(남은 초)·MAIL_DAILY_LIMIT으로 알린다 (화면은 나갔다 오면 기다릴 시간을 잊는다)
+@Slf4j
+@Service
+@Transactional
+public class AccountMailService {
+
+    static final Duration CODE_TTL = Duration.ofMinutes(10);
+    // 코드를 맞힌 뒤 가입을 마쳐야 하는 시간
+    static final Duration SIGNUP_TICKET_TTL = Duration.ofMinutes(30);
+    static final int MAX_CODE_ATTEMPTS = 5;
+    static final Duration RESET_TTL = Duration.ofMinutes(30);
+    // 같은 메일은 1분에 한 번, 하루 10번까지
+    static final Duration RESEND_INTERVAL = Duration.ofSeconds(60);
+    static final int DAILY_LIMIT = 10;
+
+    private final UserRepository userRepository;
+    private final EmailTokenRepository emailTokenRepository;
+    private final SignupEmailCodeRepository signupEmailCodeRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final MailClient mailClient;
+    private final String frontendUrl;
+    private final SecureRandom random = new SecureRandom();
+
+    public AccountMailService(UserRepository userRepository, EmailTokenRepository emailTokenRepository,
+                              SignupEmailCodeRepository signupEmailCodeRepository, RefreshTokenRepository refreshTokenRepository, PasswordEncoder passwordEncoder,
+                              MailClient mailClient, @Value("${gainz.frontend-url}") String frontendUrl) {
+        this.userRepository = userRepository;
+        this.emailTokenRepository = emailTokenRepository;
+        this.signupEmailCodeRepository = signupEmailCodeRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.mailClient = mailClient;
+        this.frontendUrl = frontendUrl.replaceAll("/+$", "");
+    }
+
+    /* ---------- 가입 전 이메일 인증 ---------- */
+
+    // 회원가입 화면의 "인증하기". 이미 가입된 이메일이면 DUPLICATE_EMAIL
+    public void sendSignupCode(String rawEmail) {
+        String email = rawEmail.trim();
+        if (userRepository.existsByEmail(email)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        checkSendLimit(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc(email).map(SignupEmailCode::getCreatedAt),
+                () -> signupEmailCodeRepository.countByEmailAndCreatedAtAfter(email, now.minusDays(1)), now);
+        String code = "%06d".formatted(random.nextInt(1_000_000));
+        signupEmailCodeRepository.save(new SignupEmailCode(email, codeHash(email, code), now.plus(CODE_TTL)));
+        sendAfterCommit(email, "[GAIN-Z] 이메일 인증 코드 " + code, AccountMailTemplates.signupCode(code));
+    }
+
+    // 가장 최근 코드만 받는다. 틀린 횟수는 오류로 끝나도 저장해야 해서 롤백하지 않는다
+    @Transactional(noRollbackFor = BusinessException.class)
+    public SignupCodeVerifyResponse verifySignupCode(String rawEmail, String rawCode) {
+        String email = rawEmail.trim();
+        LocalDateTime now = LocalDateTime.now();
+        SignupEmailCode code = signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc(email)
+                .filter(c -> c.isCodeUsable(now, MAX_CODE_ATTEMPTS))
+                .orElseThrow(() -> new BusinessException(ErrorCode.EMAIL_CODE_EXPIRED));
+        if (!code.getCodeHash().equals(codeHash(email, rawCode.trim()))) {
+            code.fail();
+            throw new BusinessException(code.getAttempts() >= MAX_CODE_ATTEMPTS
+                    ? ErrorCode.EMAIL_CODE_TOO_MANY_ATTEMPTS : ErrorCode.INVALID_EMAIL_CODE);
+        }
+        String ticket = randomToken();
+        code.verify(hash(ticket), now);
+        return new SignupCodeVerifyResponse(ticket);
+    }
+
+    // 가입할 때 (AuthService.signup): 그 이메일로 인증한 표인지 확인하고 다 쓴다
+    public void useSignupTicket(String rawEmail, String rawTicket) {
+        LocalDateTime now = LocalDateTime.now();
+        SignupEmailCode code = signupEmailCodeRepository.findByTicketHash(hash(rawTicket.trim()))
+                .filter(c -> c.getEmail().equals(rawEmail.trim()))
+                .filter(c -> c.isTicketUsable(now, SIGNUP_TICKET_TTL))
+                .orElseThrow(() -> new BusinessException(ErrorCode.EMAIL_NOT_VERIFIED));
+        code.useTicket(now);
+    }
+
+    /* ---------- 비밀번호 찾기 ---------- */
+
+    // 가입되지 않은 이메일이면 NOT_FOUND, 비밀번호 없이 소셜로만 가입했으면 SOCIAL_ONLY(그 계정으로 로그인)
+    public PasswordResetRequestResponse requestPasswordReset(String email) {
+        User user = userRepository.findByEmail(email.trim()).orElse(null);
+        if (user == null) {
+            return PasswordResetRequestResponse.notFound();
+        }
+        if (user.getPassword() == null) {
+            return PasswordResetRequestResponse.socialOnly(user.getProvider());
+        }
+        LocalDateTime now = LocalDateTime.now();
+        checkSendLimit(emailTokenRepository.findTopByUserIdAndPurposeOrderByCreatedAtDesc(user.getId(), EmailTokenPurpose.RESET_PASSWORD)
+                        .map(EmailToken::getCreatedAt),
+                () -> emailTokenRepository.countByUserIdAndPurposeAndCreatedAtAfter(user.getId(), EmailTokenPurpose.RESET_PASSWORD, now.minusDays(1)), now);
+        String token = issue(user, EmailTokenPurpose.RESET_PASSWORD, RESET_TTL);
+        String link = frontendUrl + "/reset-password?token=" + token;
+        sendAfterCommit(user.getEmail(), "[GAIN-Z] 비밀번호를 다시 정해 주세요",
+                AccountMailTemplates.passwordReset(user.getName(), link));
+        return PasswordResetRequestResponse.sent();
+    }
+
+    // 새 비밀번호로 바꾸고, 다른 재설정 링크는 못 쓰게 하고, 모든 기기에서 로그아웃시킨다.
+    // 메일의 링크를 열었으니 이메일 인증도 된 것으로 본다
+    public void resetPassword(String rawToken, String newPassword) {
+        EmailToken token = usableToken(rawToken, EmailTokenPurpose.RESET_PASSWORD);
+        User user = token.getUser();
+        LocalDateTime now = LocalDateTime.now();
+        user.changePassword(passwordEncoder.encode(newPassword));
+        user.verifyEmail();
+        emailTokenRepository.findAllByUserIdAndPurposeAndUsedAtIsNull(user.getId(), EmailTokenPurpose.RESET_PASSWORD)
+                .forEach(t -> t.use(now));
+        token.use(now);
+        refreshTokenRepository.deleteById(user.getEmail());
+    }
+
+    /* ---------- 도움 ---------- */
+
+    // 마지막으로 보낸 지 1분이 안 됐으면 남은 초와 함께, 하루 10번을 넘었으면 막는다
+    private void checkSendLimit(Optional<LocalDateTime> lastSentAt, LongSupplier sentToday, LocalDateTime now) {
+        LocalDateTime nextAt = lastSentAt.map(at -> at.plus(RESEND_INTERVAL)).orElse(null);
+        if (nextAt != null && nextAt.isAfter(now)) {
+            long seconds = Math.max(1, (Duration.between(now, nextAt).toMillis() + 999) / 1000);
+            throw new BusinessException(ErrorCode.MAIL_SEND_TOO_SOON, new MailRetryResponse(seconds));
+        }
+        if (sentToday.getAsLong() >= DAILY_LIMIT) {
+            throw new BusinessException(ErrorCode.MAIL_DAILY_LIMIT);
+        }
+    }
+
+    // 원래 토큰(메일에 들어감)을 돌려주고 DB에는 해시만
+    private String issue(User user, EmailTokenPurpose purpose, Duration ttl) {
+        String raw = randomToken();
+        emailTokenRepository.save(new EmailToken(user, purpose, hash(raw), LocalDateTime.now().plus(ttl)));
+        return raw;
+    }
+
+    private String randomToken() {
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    // 6자리는 경우의 수가 적어서 이메일과 묶어 해시한다
+    static String codeHash(String email, String code) {
+        return hash(email + ":" + code);
+    }
+
+    private EmailToken usableToken(String rawToken, EmailTokenPurpose purpose) {
+        return emailTokenRepository.findByTokenHashAndPurpose(hash(rawToken.trim()), purpose)
+                .filter(t -> t.isUsable(LocalDateTime.now()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_EMAIL_TOKEN));
+    }
+
+    static String hash(String raw) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(raw.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    // DB에 토큰이 저장된 게 확정된 뒤에 보낸다. 메일 서비스가 실패해도 요청은 성공으로 두고 로그만 남긴다 (다시 보내기로 해결)
+    private void sendAfterCommit(String to, String subject, String html) {
+        Runnable send = () -> {
+            try {
+                mailClient.send(to, subject, html);
+            } catch (RuntimeException e) {
+                log.error("메일 전송 실패: {} ({})", subject, e.getMessage());
+            }
+        };
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            send.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                send.run();
+            }
+        });
+    }
+}
