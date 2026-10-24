@@ -19,9 +19,6 @@
 
       <p v-if="actionError" class="error">{{ actionError }}</p>
 
-      <!-- 연습 키를 바꾸면 악보를 보면서 볼 수 있게 구석에 코드표 (#192) -->
-      <ChordMapFloat v-if="sheet.originalKey && viewKey && viewKey !== sheet.originalKey" :original-key="sheet.originalKey" :view-key="viewKey" />
-
       <div class="layout" :class="{ wide }">
         <!-- 악보 -->
         <WsCard class="sheet-card">
@@ -67,15 +64,21 @@
           <p v-else class="empty">아직 악보 파일이 없어요.</p>
         </WsCard>
 
-        <div v-show="!wide" class="side">
+        <!-- 넓은 화면: 오른쪽 옆 카드. 좁은 화면(앱): 아래 막대에서 눌러 여는 작은 창 (#192) -->
+        <div v-show="narrow ? !!dockTab : !wide" class="side" :class="{ docked: narrow }">
+          <div v-if="narrow" class="dock-head">
+            <strong>{{ dockTab === 'key' ? '키 바꿔 치기' : '내 메모' }}</strong>
+            <button type="button" class="dock-close" aria-label="접기" @click="dockTab = null"><ChevronDown :size="18" :stroke-width="2.4" /></button>
+          </div>
           <!-- 키 바꿔 치기 -->
-          <WsCard title="키 바꿔 치기">
+          <WsCard v-show="!narrow || dockTab === 'key'" :title="narrow ? '' : '키 바꿔 치기'">
             <KeyHelper
               v-if="sheet.originalKey"
               :original-key="sheet.originalKey"
               :view-key="viewKey"
               :instrument-type="sheet.instrumentType"
               :status="keyStatus"
+              :storage-key="`sheetChords:${item.id}`"
               @change="setKey"
             />
             <p v-else class="muted">
@@ -85,7 +88,7 @@
           </WsCard>
 
           <!-- 메모 -->
-          <WsCard title="내 메모">
+          <WsCard v-show="!narrow || dockTab === 'memo'" :title="narrow ? '' : '내 메모'">
             <textarea
               v-model="memo"
               class="memo"
@@ -102,13 +105,27 @@
           </WsCard>
         </div>
       </div>
+
+      <!-- 좁은 화면(앱) 아래 막대: 악보가 길어도 내려가지 않고 키·메모를 연다 (#192) -->
+      <nav v-if="narrow" class="dock" aria-label="키 바꿔 치기·메모">
+        <button type="button" :class="{ on: dockTab === 'key' }" :aria-expanded="dockTab === 'key'" @click="toggleDock('key')">
+          <Music :size="15" :stroke-width="2.4" />
+          <span v-if="sheet.originalKey && viewKey && viewKey !== sheet.originalKey" class="dock-keys">{{ sheet.originalKey }} → {{ viewKey }}</span>
+          <span v-else>키 {{ sheet.originalKey || '' }}</span>
+        </button>
+        <button type="button" :class="{ on: dockTab === 'memo' }" :aria-expanded="dockTab === 'memo'" @click="toggleDock('memo')">
+          <NotebookPen :size="15" :stroke-width="2.4" />
+          <span>메모</span>
+          <span v-if="memo.trim()" class="dot" aria-label="메모 있음"></span>
+        </button>
+      </nav>
     </template>
   </div>
   </SubPageLayout>
 </template>
 
 <script setup>
-import { Star, PenLine } from 'lucide-vue-next'
+import { Star, PenLine, Music, NotebookPen, ChevronDown } from 'lucide-vue-next'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -118,7 +135,6 @@ import { tabRowsFromText } from '../../music/tabImport'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
 import MeasureSheet from '../../components/workspace/MeasureSheet.vue'
 import KeyHelper from '../../components/workspace/KeyHelper.vue'
-import ChordMapFloat from '../../components/workspace/ChordMapFloat.vue'
 import AnnotationToolbar from '../../components/workspace/AnnotationToolbar.vue'
 import { useAnnotationStore } from '../../stores/annotation'
 import { getWorkspaceItem, updateWorkspaceItem, removeWorkspaceItem, copyWorkspaceItem } from '../../api/sheet'
@@ -241,6 +257,15 @@ const saveMemo = async () => {
   }
 }
 
+/* ---------- 좁은 화면(앱): 키·메모는 아래 막대에서 연다 (#192) ---------- */
+const narrowQuery = typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)') : null
+const narrow = ref(!!narrowQuery?.matches)
+const onNarrow = (e) => { narrow.value = e.matches; if (!e.matches) dockTab.value = null }
+narrowQuery?.addEventListener('change', onNarrow)
+onBeforeUnmount(() => narrowQuery?.removeEventListener('change', onNarrow))
+const dockTab = ref(null)   // 'key' | 'memo' | null
+const toggleDock = (tab) => { dockTab.value = dockTab.value === tab ? null : tab }
+
 /* ---------- 수정: 남이 올린 악보는 내 사본으로 바꿔서 고친다 (#191) ---------- */
 const copying = ref(false)
 const openEdit = async () => {
@@ -328,11 +353,35 @@ figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight
 .loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 .error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
+/* 좁은 화면(앱) 아래 막대와, 막대에서 여는 작은 창 (#192) */
+.dock {
+  position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 46;
+  display: flex; gap: 6px; padding: 5px; border: 1px solid var(--c-line); border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96); box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+}
+.dock button {
+  display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: none; border-radius: 999px; background: none;
+  font: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-text-2); cursor: pointer; white-space: nowrap;
+}
+.dock button.on { background: var(--c-primary-soft); color: var(--c-primary-text); }
+.dock-keys { color: #e8590c; font-weight: 900; }
+.dock .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-primary); }
+.side.docked {
+  position: fixed; left: 12px; right: 12px; bottom: calc(66px + env(safe-area-inset-bottom)); top: auto; z-index: 45;
+  max-height: min(62dvh, 520px); overflow-y: auto; gap: 0;
+  background: #fff; border: 1px solid var(--c-line); border-radius: 18px; box-shadow: 0 14px 36px rgba(15, 23, 42, 0.18);
+}
+.side.docked :deep(.ws-card) { border: none; box-shadow: none; background: none; }
+.dock-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 0; }
+.dock-head strong { font-size: 0.9rem; font-weight: 900; }
+.dock-close { display: flex; padding: 4px; border: none; border-radius: 8px; background: none; color: var(--c-muted); cursor: pointer; }
+
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
-  .side { position: static; }
   .memo { min-height: 110px; }
   .toolbar .wide-toggle { display: none; }
+  /* 아래 막대가 악보 끝을 가리지 않게 */
+  .page { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
 }
 @media (max-width: 640px) {
   .annot-bar { top: 64px; }
