@@ -5,6 +5,22 @@
       <button v-else-if="isToday && editable" class="text-btn" :disabled="saving" @click="editing = date">시간 고치기</button>
     </template>
 
+    <!-- 연주 무대 (#212): 어두운 무대·나무 바닥에서 내 캐릭터가 타이머가 도는 동안 연주한다.
+         켜면 조명이 들어오고 음표가 떠오르고, 멈추면 조명이 꺼지고 가만히 -->
+    <div v-if="isToday && authStore.character" class="practice-stage" :class="{ playing: timer.running }">
+      <span class="spot" aria-hidden="true"></span>
+      <div class="performer">
+        <PixelCharacter :character="authStore.character" :outfit="authStore.character.currentOutfitSpriteKey || 'DEFAULT'"
+                        :scale="3" :animate="timer.running" />
+        <template v-if="timer.running">
+          <span class="note n1" aria-hidden="true">♪</span>
+          <span class="note n2" aria-hidden="true">♫</span>
+          <span class="note n3" aria-hidden="true">♪</span>
+        </template>
+      </div>
+      <span v-if="!timer.running" class="stage-hint">시작하면 연주해요</span>
+    </div>
+
     <div class="timer-display" :class="{ running: isToday && timer.running }">{{ clock(shownSeconds) }}</div>
 
     <!-- 오늘: 시작/정지 -->
@@ -48,6 +64,8 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import WsCard from './WsCard.vue'
+import PixelCharacter from '../PixelCharacter.vue'
+import { useAuthStore } from '../../stores/auth'
 import LevelUpModal from './LevelUpModal.vue'
 import EditDayModal from './EditDayModal.vue'
 import { usePracticeTimerStore } from '../../stores/practiceTimer'
@@ -60,6 +78,7 @@ import { clock, dateKey, dateLabel, durationText, isEditable, startOfDay } from 
 const props = defineProps({ date: { type: String, required: true } })
 const emit = defineEmits(['go-today'])
 const timer = usePracticeTimerStore()
+const authStore = useAuthStore()
 const practice = usePracticeStore()
 
 // 화면 갱신용 현재 시각
@@ -176,6 +195,43 @@ const showSaved = (exp) => {
 </script>
 
 <style scoped>
+.practice-stage {
+  position: relative; height: 140px; border-radius: 14px; overflow: hidden; margin-bottom: 4px;
+  /* 어두운 벽 + 나무 바닥 */
+  background: linear-gradient(#2b2f45 0 66%, #a0703f 66% 100%);
+}
+.practice-stage::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 66%; height: 4px; background: #8a5d31;
+}
+/* 조명: 연주할 때만 켜진다 */
+.spot {
+  position: absolute; top: 0; left: 50%; width: 220px; height: 100%; transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 0, rgba(255, 240, 180, 0.38), transparent 70%);
+  opacity: 0; transition: opacity 0.4s;
+}
+.playing .spot { opacity: 1; }
+.performer { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 1; line-height: 0; }
+.practice-stage:not(.playing) .performer { filter: brightness(0.8); }
+.stage-hint {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%); white-space: nowrap; z-index: 2;
+  padding: 3px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); color: #dee2e6; font-size: 0.72rem; font-weight: 800;
+}
+/* 음표: 캐릭터 위로 떠오르며 사라진다 */
+.note {
+  position: absolute; top: 4px; font-size: 15px; line-height: 1; color: #ffd43b;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); opacity: 0; pointer-events: none;
+  animation: note-fly 2.4s linear infinite;
+}
+.note.n1 { left: 82%; }
+.note.n2 { left: -6%; animation-delay: 0.8s; font-size: 13px; }
+.note.n3 { left: 46%; animation-delay: 1.6s; }
+@keyframes note-fly {
+  0% { opacity: 0; transform: translate(0, 0); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(10px, -46px); }
+}
+@media (prefers-reduced-motion: reduce) { .note { display: none; } }
+
 .timer-display {
   font-size: 3rem; font-weight: 900; letter-spacing: 2px; text-align: center;
   font-variant-numeric: tabular-nums; color: var(--c-muted); padding: 8px 0 16px; transition: color 0.2s;
