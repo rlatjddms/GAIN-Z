@@ -1,5 +1,6 @@
 package com.project.gainz.domain.user.service;
 
+import com.project.gainz.domain.user.dto.response.PasswordResetRequestResponse;
 import com.project.gainz.domain.user.entity.EmailToken;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.EmailTokenPurpose;
@@ -27,8 +28,7 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
 
-// 이메일 인증·비밀번호 찾기 메일 (#193).
-// 메일 요청 API는 가입 여부가 드러나지 않게 항상 성공으로 답하고, 보낼 수 없거나 너무 자주 요청하면 조용히 넘긴다
+// 이메일 인증·비밀번호 찾기 메일 (#193). 너무 자주 요청하면(1분 안·하루 10번 넘게) 보내지 않고 조용히 넘긴다
 @Slf4j
 @Service
 @Transactional
@@ -85,18 +85,23 @@ public class AccountMailService {
 
     /* ---------- 비밀번호 찾기 ---------- */
 
-    // 비밀번호가 있는 계정만 (소셜로만 가입한 계정은 그 계정으로 로그인)
-    public void requestPasswordReset(String email) {
-        userRepository.findByEmail(email.trim())
-                .filter(user -> user.getPassword() != null)
-                .filter(user -> canSend(user, EmailTokenPurpose.RESET_PASSWORD))
-                .ifPresent(user -> {
-                    String token = issue(user, EmailTokenPurpose.RESET_PASSWORD, RESET_TTL);
-                    String link = frontendUrl + "/reset-password?token=" + token;
-                    sendAfterCommit(user.getEmail(), "[GAIN-Z] 비밀번호를 다시 정해 주세요", page(user.getName(),
-                            "비밀번호 재설정을 요청하셨어요. 아래 버튼을 눌러 새 비밀번호를 정해 주세요.",
-                            "새 비밀번호 정하기", link, "이 링크는 30분 동안 한 번만 쓸 수 있어요. 직접 요청하지 않았다면 이 메일은 무시해 주세요. 비밀번호는 바뀌지 않아요."));
-                });
+    // 가입되지 않은 이메일이면 NOT_FOUND, 비밀번호 없이 소셜로만 가입했으면 SOCIAL_ONLY(그 계정으로 로그인)
+    public PasswordResetRequestResponse requestPasswordReset(String email) {
+        User user = userRepository.findByEmail(email.trim()).orElse(null);
+        if (user == null) {
+            return PasswordResetRequestResponse.notFound();
+        }
+        if (user.getPassword() == null) {
+            return PasswordResetRequestResponse.socialOnly(user.getProvider());
+        }
+        if (canSend(user, EmailTokenPurpose.RESET_PASSWORD)) {
+            String token = issue(user, EmailTokenPurpose.RESET_PASSWORD, RESET_TTL);
+            String link = frontendUrl + "/reset-password?token=" + token;
+            sendAfterCommit(user.getEmail(), "[GAIN-Z] 비밀번호를 다시 정해 주세요", page(user.getName(),
+                    "비밀번호 재설정을 요청하셨어요. 아래 버튼을 눌러 새 비밀번호를 정해 주세요.",
+                    "새 비밀번호 정하기", link, "이 링크는 30분 동안 한 번만 쓸 수 있어요. 직접 요청하지 않았다면 이 메일은 무시해 주세요. 비밀번호는 바뀌지 않아요."));
+        }
+        return PasswordResetRequestResponse.sent();
     }
 
     // 새 비밀번호로 바꾸고, 다른 재설정 링크는 못 쓰게 하고, 모든 기기에서 로그아웃시킨다.

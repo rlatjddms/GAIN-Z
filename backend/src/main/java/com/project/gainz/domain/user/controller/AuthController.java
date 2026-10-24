@@ -6,6 +6,7 @@ import com.project.gainz.domain.user.dto.request.LoginRequest;
 import com.project.gainz.domain.user.dto.request.PasswordResetConfirmRequest;
 import com.project.gainz.domain.user.dto.request.ReissueRequest;
 import com.project.gainz.domain.user.dto.request.SignupRequest;
+import com.project.gainz.domain.user.dto.response.PasswordResetRequestResponse;
 import com.project.gainz.domain.user.dto.response.TokenResponse;
 import com.project.gainz.domain.user.service.AccountMailService;
 import com.project.gainz.domain.user.service.AuthService;
@@ -74,7 +75,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    /* ---------- 이메일 인증·비밀번호 찾기 (#193). 메일 요청은 가입 여부와 상관없이 항상 성공 ---------- */
+    /* ---------- 이메일 인증·비밀번호 찾기 (#193) ---------- */
 
     @PostMapping("/email-verification/resend")
     public ResponseEntity<ApiResponse<Void>> resendVerification(@Valid @RequestBody EmailRequest request) {
@@ -88,10 +89,10 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
+    // 결과: SENT / NOT_FOUND(가입되지 않은 이메일) / SOCIAL_ONLY(provider로 로그인)
     @PostMapping("/password-reset/request")
-    public ResponseEntity<ApiResponse<Void>> requestPasswordReset(@Valid @RequestBody EmailRequest request) {
-        accountMailService.requestPasswordReset(request.email());
-        return ResponseEntity.ok(ApiResponse.success(null));
+    public ResponseEntity<ApiResponse<PasswordResetRequestResponse>> requestPasswordReset(@Valid @RequestBody EmailRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(accountMailService.requestPasswordReset(request.email())));
     }
 
     @PostMapping("/password-reset/confirm")
