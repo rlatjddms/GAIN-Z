@@ -83,7 +83,7 @@ public class AccountMailService {
         }
         String code = "%06d".formatted(random.nextInt(1_000_000));
         signupEmailCodeRepository.save(new SignupEmailCode(email, codeHash(email, code), now.plus(CODE_TTL)));
-        sendAfterCommit(email, "[GAIN-Z] 이메일 인증 코드 " + code, AccountMailTemplates.signupCode(frontendUrl, code));
+        sendAfterCommit(email, "[GAIN-Z] 이메일 인증 코드 " + code, AccountMailTemplates.signupCode(code));
     }
 
     // 가장 최근 코드만 받는다. 틀린 횟수는 오류로 끝나도 저장해야 해서 롤백하지 않는다
@@ -129,7 +129,7 @@ public class AccountMailService {
             String token = issue(user, EmailTokenPurpose.RESET_PASSWORD, RESET_TTL);
             String link = frontendUrl + "/reset-password?token=" + token;
             sendAfterCommit(user.getEmail(), "[GAIN-Z] 비밀번호를 다시 정해 주세요",
-                    AccountMailTemplates.passwordReset(frontendUrl, user.getName(), link));
+                    AccountMailTemplates.passwordReset(user.getName(), link));
         }
         return PasswordResetRequestResponse.sent();
     }
