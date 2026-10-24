@@ -1,12 +1,14 @@
 package com.project.gainz.domain.user.service;
 
 import com.project.gainz.domain.user.entity.EmailToken;
+import com.project.gainz.domain.user.entity.SignupEmailCode;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.EmailTokenPurpose;
 import com.project.gainz.domain.user.enums.SocialProvider;
 import com.project.gainz.domain.user.enums.UserRole;
 import com.project.gainz.domain.user.repository.EmailTokenRepository;
 import com.project.gainz.domain.user.repository.RefreshTokenRepository;
+import com.project.gainz.domain.user.repository.SignupEmailCodeRepository;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
@@ -37,12 +39,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// 이메일 인증·비밀번호 찾기 (#193)
+// 가입 전 이메일 인증 코드·비밀번호 찾기 (#193)
 @ExtendWith(MockitoExtension.class)
 class AccountMailServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private EmailTokenRepository emailTokenRepository;
+    @Mock private SignupEmailCodeRepository signupEmailCodeRepository;
     @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private MailClient mailClient;
@@ -51,7 +54,7 @@ class AccountMailServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new AccountMailService(userRepository, emailTokenRepository, refreshTokenRepository, passwordEncoder,
+        service = new AccountMailService(userRepository, emailTokenRepository, signupEmailCodeRepository, refreshTokenRepository, passwordEncoder,
                 mailClient, "https://gainz.example/");
     }
 
@@ -76,81 +79,129 @@ class AccountMailServiceTest {
         return m.group(1);
     }
 
-    @Test
-    void 인증_메일에는_원래_토큰을_DB에는_해시만_24시간짜리로_둔다() {
-        User user = user(false, "x");
-
-        service.sendVerification(user);
-
-        ArgumentCaptor<EmailToken> saved = ArgumentCaptor.forClass(EmailToken.class);
-        verify(emailTokenRepository).save(saved.capture());
-        String link = sentLink();
-        assertThat(link).startsWith("https://gainz.example/verify-email?token=");
-        String raw = link.substring(link.indexOf("token=") + 6);
-        assertThat(saved.getValue().getTokenHash()).isEqualTo(AccountMailService.hash(raw)).isNotEqualTo(raw);
-        assertThat(saved.getValue().getPurpose()).isEqualTo(EmailTokenPurpose.VERIFY_EMAIL);
-        assertThat(saved.getValue().getExpiresAt()).isAfter(LocalDateTime.now().plusHours(23));
+    private SignupEmailCode code(String email, String code, LocalDateTime expiresAt, LocalDateTime createdAt) {
+        SignupEmailCode c = new SignupEmailCode(email, AccountMailService.codeHash(email, code), expiresAt);
+        ReflectionTestUtils.setField(c, "createdAt", createdAt);
+        return c;
     }
 
     @Test
-    void 인증_메일_다시_보내기는_없는_이메일_인증된_계정_1분_안이면_조용히_넘긴다() {
-        when(userRepository.findByEmail("none@test.invalid")).thenReturn(Optional.empty());
-        service.resendVerification("none@test.invalid");
+    void 가입_인증_코드는_6자리를_메일로_DB에는_이메일과_묶은_해시만_10분짜리로() {
+        when(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc("new@test.invalid")).thenReturn(Optional.empty());
 
-        User verified = user(true, "x");
-        when(userRepository.findByEmail("me@test.invalid")).thenReturn(Optional.of(verified));
-        service.resendVerification("me@test.invalid");
+        service.sendSignupCode(" new@test.invalid ");
 
-        User fresh = user(false, "x");
-        when(userRepository.findByEmail("me@test.invalid")).thenReturn(Optional.of(fresh));
-        when(emailTokenRepository.findTopByUserIdAndPurposeOrderByCreatedAtDesc(7L, EmailTokenPurpose.VERIFY_EMAIL))
-                .thenReturn(Optional.of(token(fresh, EmailTokenPurpose.VERIFY_EMAIL, LocalDateTime.now().plusHours(1), LocalDateTime.now().minusSeconds(10))));
-        service.resendVerification("me@test.invalid");
-
-        verify(mailClient, never()).send(anyString(), anyString(), anyString());
-        verify(emailTokenRepository, never()).save(any());
+        ArgumentCaptor<SignupEmailCode> saved = ArgumentCaptor.forClass(SignupEmailCode.class);
+        verify(signupEmailCodeRepository).save(saved.capture());
+        ArgumentCaptor<String> subject = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> html = ArgumentCaptor.forClass(String.class);
+        verify(mailClient).send(eq("new@test.invalid"), subject.capture(), html.capture());
+        Matcher m = Pattern.compile("(\\d{6})").matcher(subject.getValue());
+        assertThat(m.find()).isTrue();
+        String sent = m.group(1);
+        assertThat(html.getValue()).contains(sent);
+        assertThat(saved.getValue().getEmail()).isEqualTo("new@test.invalid");
+        assertThat(saved.getValue().getCodeHash()).isEqualTo(AccountMailService.codeHash("new@test.invalid", sent)).doesNotContain(sent);
+        assertThat(saved.getValue().getExpiresAt()).isBetween(LocalDateTime.now().plusMinutes(9), LocalDateTime.now().plusMinutes(11));
     }
 
     @Test
-    void 인증_메일은_하루_10번까지() {
-        User fresh = user(false, "x");
-        when(userRepository.findByEmail("me@test.invalid")).thenReturn(Optional.of(fresh));
-        when(emailTokenRepository.findTopByUserIdAndPurposeOrderByCreatedAtDesc(7L, EmailTokenPurpose.VERIFY_EMAIL)).thenReturn(Optional.empty());
-        when(emailTokenRepository.countByUserIdAndPurposeAndCreatedAtAfter(eq(7L), eq(EmailTokenPurpose.VERIFY_EMAIL), any())).thenReturn(10L);
+    void 이미_가입된_이메일이면_코드를_보내지_않고_중복이라고_알린다() {
+        when(userRepository.existsByEmail("me@test.invalid")).thenReturn(true);
 
-        service.resendVerification(" me@test.invalid ");
-
+        assertThatThrownBy(() -> service.sendSignupCode("me@test.invalid"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.DUPLICATE_EMAIL);
         verify(mailClient, never()).send(anyString(), anyString(), anyString());
     }
 
     @Test
-    void 인증_링크를_열면_인증되고_토큰은_한_번만_쓴다() {
-        User user = user(false, "x");
-        EmailToken token = token(user, EmailTokenPurpose.VERIFY_EMAIL, LocalDateTime.now().plusHours(1), LocalDateTime.now());
-        when(emailTokenRepository.findByTokenHashAndPurpose(AccountMailService.hash("raw"), EmailTokenPurpose.VERIFY_EMAIL))
-                .thenReturn(Optional.of(token));
+    void 가입_인증_코드는_1분에_한_번_하루_10번까지() {
+        when(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc("new@test.invalid"))
+                .thenReturn(Optional.of(code("new@test.invalid", "123456", LocalDateTime.now().plusMinutes(9), LocalDateTime.now().minusSeconds(10))));
+        assertThatThrownBy(() -> service.sendSignupCode("new@test.invalid"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.MAIL_SEND_LIMIT);
 
-        service.confirmEmail("raw");
+        when(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc("new@test.invalid")).thenReturn(Optional.empty());
+        when(signupEmailCodeRepository.countByEmailAndCreatedAtAfter(eq("new@test.invalid"), any())).thenReturn(10L);
+        assertThatThrownBy(() -> service.sendSignupCode("new@test.invalid"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.MAIL_SEND_LIMIT);
 
-        assertThat(user.isEmailVerified()).isTrue();
-        assertThat(token.getUsedAt()).isNotNull();
-        assertThatThrownBy(() -> service.confirmEmail("raw"))
-                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_EMAIL_TOKEN);
+        verify(signupEmailCodeRepository, never()).save(any());
+        verify(mailClient, never()).send(anyString(), anyString(), anyString());
     }
 
     @Test
-    void 만료되거나_없는_토큰은_받지_않는다() {
-        User user = user(false, "x");
-        when(emailTokenRepository.findByTokenHashAndPurpose(AccountMailService.hash("old"), EmailTokenPurpose.VERIFY_EMAIL))
-                .thenReturn(Optional.of(token(user, EmailTokenPurpose.VERIFY_EMAIL, LocalDateTime.now().minusSeconds(1), LocalDateTime.now().minusDays(1))));
+    void 코드가_맞으면_가입용_인증_표를_주고_코드는_다시_못_쓴다() {
+        SignupEmailCode c = code("new@test.invalid", "123456", LocalDateTime.now().plusMinutes(5), LocalDateTime.now());
+        when(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc("new@test.invalid")).thenReturn(Optional.of(c));
+
+        String ticket = service.verifySignupCode("new@test.invalid", " 123456 ").emailVerificationToken();
+
+        assertThat(ticket).isNotBlank();
+        assertThat(c.getTicketHash()).isEqualTo(AccountMailService.hash(ticket));
+        assertThatThrownBy(() -> service.verifySignupCode("new@test.invalid", "123456"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.EMAIL_CODE_EXPIRED);
+    }
+
+    @Test
+    void 코드를_5번_틀리면_새_코드를_받아야_한다() {
+        SignupEmailCode c = code("new@test.invalid", "123456", LocalDateTime.now().plusMinutes(5), LocalDateTime.now());
+        when(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc("new@test.invalid")).thenReturn(Optional.of(c));
+
+        for (int i = 0; i < 4; i++) {
+            assertThatThrownBy(() -> service.verifySignupCode("new@test.invalid", "000000"))
+                    .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_EMAIL_CODE);
+        }
+        assertThatThrownBy(() -> service.verifySignupCode("new@test.invalid", "000000"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.EMAIL_CODE_TOO_MANY_ATTEMPTS);
+        // 이제는 맞는 코드도 받지 않는다
+        assertThatThrownBy(() -> service.verifySignupCode("new@test.invalid", "123456"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.EMAIL_CODE_EXPIRED);
+        assertThat(c.getTicketHash()).isNull();
+    }
+
+    @Test
+    void 만료된_코드는_받지_않는다() {
+        when(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc("new@test.invalid"))
+                .thenReturn(Optional.of(code("new@test.invalid", "123456", LocalDateTime.now().minusSeconds(1), LocalDateTime.now().minusMinutes(11))));
+
+        assertThatThrownBy(() -> service.verifySignupCode("new@test.invalid", "123456"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.EMAIL_CODE_EXPIRED);
+    }
+
+    @Test
+    void 인증_표는_그_이메일로_30분_안에_한_번만_쓴다() {
+        SignupEmailCode c = code("new@test.invalid", "123456", LocalDateTime.now().plusMinutes(5), LocalDateTime.now());
+        c.verify(AccountMailService.hash("ticket"), LocalDateTime.now());
+        when(signupEmailCodeRepository.findByTicketHash(AccountMailService.hash("ticket"))).thenReturn(Optional.of(c));
+
+        assertThatThrownBy(() -> service.useSignupTicket("other@test.invalid", "ticket"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.EMAIL_NOT_VERIFIED);
+        service.useSignupTicket("new@test.invalid", "ticket");
+        assertThat(c.getTicketUsedAt()).isNotNull();
+        assertThatThrownBy(() -> service.useSignupTicket("new@test.invalid", "ticket"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.EMAIL_NOT_VERIFIED);
+
+        SignupEmailCode old = code("old@test.invalid", "123456", LocalDateTime.now(), LocalDateTime.now().minusHours(1));
+        old.verify(AccountMailService.hash("old-ticket"), LocalDateTime.now().minusMinutes(31));
+        when(signupEmailCodeRepository.findByTicketHash(AccountMailService.hash("old-ticket"))).thenReturn(Optional.of(old));
+        assertThatThrownBy(() -> service.useSignupTicket("old@test.invalid", "old-ticket"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.EMAIL_NOT_VERIFIED);
+    }
+
+    @Test
+    void 없거나_만료된_재설정_링크는_받지_않는다() {
+        User user = user(true, "x");
+        when(emailTokenRepository.findByTokenHashAndPurpose(AccountMailService.hash("old"), EmailTokenPurpose.RESET_PASSWORD))
+                .thenReturn(Optional.of(token(user, EmailTokenPurpose.RESET_PASSWORD, LocalDateTime.now().minusSeconds(1), LocalDateTime.now().minusHours(1))));
         when(emailTokenRepository.findByTokenHashAndPurpose(AccountMailService.hash("nope"), EmailTokenPurpose.RESET_PASSWORD))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.confirmEmail("old"))
+        assertThatThrownBy(() -> service.resetPassword("old", "Test1234!"))
                 .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_EMAIL_TOKEN);
         assertThatThrownBy(() -> service.resetPassword("nope", "Test1234!"))
                 .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.INVALID_EMAIL_TOKEN);
-        assertThat(user.isEmailVerified()).isFalse();
+        verify(passwordEncoder, never()).encode(anyString());
     }
 
     @Test
@@ -206,7 +257,9 @@ class AccountMailServiceTest {
     void 메일_서비스가_실패해도_요청은_실패하지_않는다() {
         doThrow(new MailSendException("down", null)).when(mailClient).send(anyString(), anyString(), anyString());
 
-        service.sendVerification(user(false, "x"));
+        when(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc("new@test.invalid")).thenReturn(Optional.empty());
+
+        service.sendSignupCode("new@test.invalid");
 
         verify(mailClient).send(anyString(), anyString(), anyString());
     }
