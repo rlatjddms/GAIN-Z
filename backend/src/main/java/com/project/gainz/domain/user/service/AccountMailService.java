@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.web.util.HtmlUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -84,7 +83,7 @@ public class AccountMailService {
         }
         String code = "%06d".formatted(random.nextInt(1_000_000));
         signupEmailCodeRepository.save(new SignupEmailCode(email, codeHash(email, code), now.plus(CODE_TTL)));
-        sendAfterCommit(email, "[GAIN-Z] 이메일 인증 코드 " + code, codePage(code));
+        sendAfterCommit(email, "[GAIN-Z] 이메일 인증 코드 " + code, AccountMailTemplates.signupCode(frontendUrl, code));
     }
 
     // 가장 최근 코드만 받는다. 틀린 횟수는 오류로 끝나도 저장해야 해서 롤백하지 않는다
@@ -129,9 +128,8 @@ public class AccountMailService {
         if (canSend(user, EmailTokenPurpose.RESET_PASSWORD)) {
             String token = issue(user, EmailTokenPurpose.RESET_PASSWORD, RESET_TTL);
             String link = frontendUrl + "/reset-password?token=" + token;
-            sendAfterCommit(user.getEmail(), "[GAIN-Z] 비밀번호를 다시 정해 주세요", page(user.getName(),
-                    "비밀번호 재설정을 요청하셨어요. 아래 버튼을 눌러 새 비밀번호를 정해 주세요.",
-                    "새 비밀번호 정하기", link, "이 링크는 30분 동안 한 번만 쓸 수 있어요. 직접 요청하지 않았다면 이 메일은 무시해 주세요. 비밀번호는 바뀌지 않아요."));
+            sendAfterCommit(user.getEmail(), "[GAIN-Z] 비밀번호를 다시 정해 주세요",
+                    AccountMailTemplates.passwordReset(frontendUrl, user.getName(), link));
         }
         return PasswordResetRequestResponse.sent();
     }
@@ -212,30 +210,5 @@ public class AccountMailService {
                 send.run();
             }
         });
-    }
-
-    private static String codePage(String code) {
-        return """
-                <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
-                  <p style="margin:0 0 24px;font-size:22px;font-weight:900;color:#12b886">GAIN-Z</p>
-                  <p style="margin:0 0 12px;font-size:15px;line-height:1.7">회원가입 화면에 아래 인증 코드를 넣어 주세요.</p>
-                  <p style="margin:24px 0;font-size:32px;font-weight:900;letter-spacing:8px;color:#12b886">%s</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#868e96">코드는 10분 동안 쓸 수 있어요. 직접 요청하지 않았다면 이 메일은 무시해 주세요.</p>
-                </div>
-                """.formatted(code);
-    }
-
-    // 메일 본문 (표가 아닌 단순한 HTML. 메일 앱마다 CSS 지원이 달라 인라인 스타일만 쓴다)
-    private static String page(String name, String message, String button, String link, String note) {
-        String who = name == null || name.isBlank() ? "" : HtmlUtils.htmlEscape(name) + "님, ";
-        return """
-                <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
-                  <p style="margin:0 0 24px;font-size:22px;font-weight:900;color:#12b886">GAIN-Z</p>
-                  <p style="margin:0 0 12px;font-size:15px;line-height:1.7">%s%s</p>
-                  <p style="margin:28px 0"><a href="%s" style="display:inline-block;padding:14px 22px;border-radius:12px;background:#12b886;color:#ffffff;font-weight:700;text-decoration:none">%s</a></p>
-                  <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#868e96">%s</p>
-                  <p style="margin:0;font-size:12px;line-height:1.6;color:#adb5bd;word-break:break-all">버튼이 안 눌리면 이 주소를 브라우저에 붙여 넣어 주세요.<br>%s</p>
-                </div>
-                """.formatted(who, message, link, button, note, link);
     }
 }
