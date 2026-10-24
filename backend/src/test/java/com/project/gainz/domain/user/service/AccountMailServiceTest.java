@@ -1,5 +1,6 @@
 package com.project.gainz.domain.user.service;
 
+import com.project.gainz.domain.user.dto.response.MailRetryResponse;
 import com.project.gainz.domain.user.entity.EmailToken;
 import com.project.gainz.domain.user.entity.SignupEmailCode;
 import com.project.gainz.domain.user.entity.User;
@@ -118,15 +119,39 @@ class AccountMailServiceTest {
     void 가입_인증_코드는_1분에_한_번_하루_10번까지() {
         when(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc("new@test.invalid"))
                 .thenReturn(Optional.of(code("new@test.invalid", "123456", LocalDateTime.now().plusMinutes(9), LocalDateTime.now().minusSeconds(10))));
-        assertThatThrownBy(() -> service.sendSignupCode("new@test.invalid"))
-                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.MAIL_SEND_LIMIT);
+        assertTooSoon(() -> service.sendSignupCode("new@test.invalid"));
 
         when(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc("new@test.invalid")).thenReturn(Optional.empty());
         when(signupEmailCodeRepository.countByEmailAndCreatedAtAfter(eq("new@test.invalid"), any())).thenReturn(10L);
         assertThatThrownBy(() -> service.sendSignupCode("new@test.invalid"))
-                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.MAIL_SEND_LIMIT);
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.MAIL_DAILY_LIMIT);
 
         verify(signupEmailCodeRepository, never()).save(any());
+        verify(mailClient, never()).send(anyString(), anyString(), anyString());
+    }
+
+    // 10초 전에 보냈으면 남은 초(50 안팎)를 data로 알려 준다
+    private void assertTooSoon(org.assertj.core.api.ThrowableAssert.ThrowingCallable call) {
+        assertThatThrownBy(call).isInstanceOfSatisfying(BusinessException.class, e -> {
+            assertThat(e.getErrorCode()).isEqualTo(ErrorCode.MAIL_SEND_TOO_SOON);
+            assertThat(((MailRetryResponse) e.getData()).retryAfterSeconds()).isBetween(45L, 51L);
+        });
+    }
+
+    @Test
+    void 비밀번호_재설정도_1분_안이면_보냈다고_하지_않고_남은_초를_알려_준다() {
+        User local = user(true, "encoded");
+        when(userRepository.findByEmail("me@test.invalid")).thenReturn(Optional.of(local));
+        when(emailTokenRepository.findTopByUserIdAndPurposeOrderByCreatedAtDesc(7L, EmailTokenPurpose.RESET_PASSWORD))
+                .thenReturn(Optional.of(token(local, EmailTokenPurpose.RESET_PASSWORD, LocalDateTime.now().plusMinutes(29), LocalDateTime.now().minusSeconds(10))));
+        assertTooSoon(() -> service.requestPasswordReset("me@test.invalid"));
+
+        when(emailTokenRepository.findTopByUserIdAndPurposeOrderByCreatedAtDesc(7L, EmailTokenPurpose.RESET_PASSWORD)).thenReturn(Optional.empty());
+        when(emailTokenRepository.countByUserIdAndPurposeAndCreatedAtAfter(eq(7L), eq(EmailTokenPurpose.RESET_PASSWORD), any())).thenReturn(10L);
+        assertThatThrownBy(() -> service.requestPasswordReset("me@test.invalid"))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.MAIL_DAILY_LIMIT);
+
+        verify(emailTokenRepository, never()).save(any());
         verify(mailClient, never()).send(anyString(), anyString(), anyString());
     }
 
