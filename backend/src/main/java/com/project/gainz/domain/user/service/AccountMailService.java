@@ -1,11 +1,14 @@
 package com.project.gainz.domain.user.service;
 
 import com.project.gainz.domain.user.dto.response.PasswordResetRequestResponse;
+import com.project.gainz.domain.user.dto.response.SignupCodeVerifyResponse;
 import com.project.gainz.domain.user.entity.EmailToken;
+import com.project.gainz.domain.user.entity.SignupEmailCode;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.EmailTokenPurpose;
 import com.project.gainz.domain.user.repository.EmailTokenRepository;
 import com.project.gainz.domain.user.repository.RefreshTokenRepository;
+import com.project.gainz.domain.user.repository.SignupEmailCodeRepository;
 import com.project.gainz.domain.user.repository.UserRepository;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
@@ -28,13 +31,16 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
 
-// 이메일 인증·비밀번호 찾기 메일 (#193). 너무 자주 요청하면(1분 안·하루 10번 넘게) 보내지 않고 조용히 넘긴다
+// 가입 전 이메일 인증 코드·비밀번호 찾기 메일 (#193). 같은 메일은 1분에 한 번, 하루 10번까지
 @Slf4j
 @Service
 @Transactional
 public class AccountMailService {
 
-    static final Duration VERIFY_TTL = Duration.ofHours(24);
+    static final Duration CODE_TTL = Duration.ofMinutes(10);
+    // 코드를 맞힌 뒤 가입을 마쳐야 하는 시간
+    static final Duration SIGNUP_TICKET_TTL = Duration.ofMinutes(30);
+    static final int MAX_CODE_ATTEMPTS = 5;
     static final Duration RESET_TTL = Duration.ofMinutes(30);
     // 같은 메일은 1분에 한 번, 하루 10번까지
     static final Duration RESEND_INTERVAL = Duration.ofSeconds(60);
@@ -42,6 +48,7 @@ public class AccountMailService {
 
     private final UserRepository userRepository;
     private final EmailTokenRepository emailTokenRepository;
+    private final SignupEmailCodeRepository signupEmailCodeRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailClient mailClient;
@@ -49,38 +56,63 @@ public class AccountMailService {
     private final SecureRandom random = new SecureRandom();
 
     public AccountMailService(UserRepository userRepository, EmailTokenRepository emailTokenRepository,
-                              RefreshTokenRepository refreshTokenRepository, PasswordEncoder passwordEncoder,
+                              SignupEmailCodeRepository signupEmailCodeRepository, RefreshTokenRepository refreshTokenRepository, PasswordEncoder passwordEncoder,
                               MailClient mailClient, @Value("${gainz.frontend-url}") String frontendUrl) {
         this.userRepository = userRepository;
         this.emailTokenRepository = emailTokenRepository;
+        this.signupEmailCodeRepository = signupEmailCodeRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.mailClient = mailClient;
         this.frontendUrl = frontendUrl.replaceAll("/+$", "");
     }
 
-    /* ---------- 이메일 인증 ---------- */
+    /* ---------- 가입 전 이메일 인증 ---------- */
 
-    // 가입 직후 (AuthService.signup)
-    public void sendVerification(User user) {
-        String token = issue(user, EmailTokenPurpose.VERIFY_EMAIL, VERIFY_TTL);
-        String link = frontendUrl + "/verify-email?token=" + token;
-        sendAfterCommit(user.getEmail(), "[GAIN-Z] 이메일 인증을 마쳐 주세요", page(user.getName(),
-                "GAIN-Z에 가입해 주셔서 고마워요. 아래 버튼을 누르면 이메일 인증이 끝나요.",
-                "이메일 인증하기", link, "이 링크는 24시간 동안 쓸 수 있어요. 직접 가입하지 않았다면 이 메일은 무시해 주세요."));
+    // 회원가입 화면의 "인증하기". 이미 가입된 이메일이면 DUPLICATE_EMAIL, 너무 자주면 MAIL_SEND_LIMIT
+    public void sendSignupCode(String rawEmail) {
+        String email = rawEmail.trim();
+        if (userRepository.existsByEmail(email)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        boolean tooSoon = signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc(email)
+                .map(last -> last.getCreatedAt() != null && last.getCreatedAt().isAfter(now.minus(RESEND_INTERVAL)))
+                .orElse(false);
+        if (tooSoon || signupEmailCodeRepository.countByEmailAndCreatedAtAfter(email, now.minusDays(1)) >= DAILY_LIMIT) {
+            throw new BusinessException(ErrorCode.MAIL_SEND_LIMIT);
+        }
+        String code = "%06d".formatted(random.nextInt(1_000_000));
+        signupEmailCodeRepository.save(new SignupEmailCode(email, codeHash(email, code), now.plus(CODE_TTL)));
+        sendAfterCommit(email, "[GAIN-Z] 이메일 인증 코드 " + code, codePage(code));
     }
 
-    public void resendVerification(String email) {
-        userRepository.findByEmail(email.trim())
-                .filter(user -> !user.isEmailVerified())
-                .filter(user -> canSend(user, EmailTokenPurpose.VERIFY_EMAIL))
-                .ifPresent(this::sendVerification);
+    // 가장 최근 코드만 받는다. 틀린 횟수는 오류로 끝나도 저장해야 해서 롤백하지 않는다
+    @Transactional(noRollbackFor = BusinessException.class)
+    public SignupCodeVerifyResponse verifySignupCode(String rawEmail, String rawCode) {
+        String email = rawEmail.trim();
+        LocalDateTime now = LocalDateTime.now();
+        SignupEmailCode code = signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc(email)
+                .filter(c -> c.isCodeUsable(now, MAX_CODE_ATTEMPTS))
+                .orElseThrow(() -> new BusinessException(ErrorCode.EMAIL_CODE_EXPIRED));
+        if (!code.getCodeHash().equals(codeHash(email, rawCode.trim()))) {
+            code.fail();
+            throw new BusinessException(code.getAttempts() >= MAX_CODE_ATTEMPTS
+                    ? ErrorCode.EMAIL_CODE_TOO_MANY_ATTEMPTS : ErrorCode.INVALID_EMAIL_CODE);
+        }
+        String ticket = randomToken();
+        code.verify(hash(ticket), now);
+        return new SignupCodeVerifyResponse(ticket);
     }
 
-    public void confirmEmail(String rawToken) {
-        EmailToken token = usableToken(rawToken, EmailTokenPurpose.VERIFY_EMAIL);
-        token.getUser().verifyEmail();
-        token.use(LocalDateTime.now());
+    // 가입할 때 (AuthService.signup): 그 이메일로 인증한 표인지 확인하고 다 쓴다
+    public void useSignupTicket(String rawEmail, String rawTicket) {
+        LocalDateTime now = LocalDateTime.now();
+        SignupEmailCode code = signupEmailCodeRepository.findByTicketHash(hash(rawTicket.trim()))
+                .filter(c -> c.getEmail().equals(rawEmail.trim()))
+                .filter(c -> c.isTicketUsable(now, SIGNUP_TICKET_TTL))
+                .orElseThrow(() -> new BusinessException(ErrorCode.EMAIL_NOT_VERIFIED));
+        code.useTicket(now);
     }
 
     /* ---------- 비밀번호 찾기 ---------- */
@@ -131,11 +163,20 @@ public class AccountMailService {
 
     // 원래 토큰(메일에 들어감)을 돌려주고 DB에는 해시만
     private String issue(User user, EmailTokenPurpose purpose, Duration ttl) {
-        byte[] bytes = new byte[32];
-        random.nextBytes(bytes);
-        String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        String raw = randomToken();
         emailTokenRepository.save(new EmailToken(user, purpose, hash(raw), LocalDateTime.now().plus(ttl)));
         return raw;
+    }
+
+    private String randomToken() {
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    // 6자리는 경우의 수가 적어서 이메일과 묶어 해시한다
+    static String codeHash(String email, String code) {
+        return hash(email + ":" + code);
     }
 
     private EmailToken usableToken(String rawToken, EmailTokenPurpose purpose) {
@@ -171,6 +212,17 @@ public class AccountMailService {
                 send.run();
             }
         });
+    }
+
+    private static String codePage(String code) {
+        return """
+                <div style="font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
+                  <p style="margin:0 0 24px;font-size:22px;font-weight:900;color:#12b886">GAIN-Z</p>
+                  <p style="margin:0 0 12px;font-size:15px;line-height:1.7">회원가입 화면에 아래 인증 코드를 넣어 주세요.</p>
+                  <p style="margin:24px 0;font-size:32px;font-weight:900;letter-spacing:8px;color:#12b886">%s</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#868e96">코드는 10분 동안 쓸 수 있어요. 직접 요청하지 않았다면 이 메일은 무시해 주세요.</p>
+                </div>
+                """.formatted(code);
     }
 
     // 메일 본문 (표가 아닌 단순한 HTML. 메일 앱마다 CSS 지원이 달라 인라인 스타일만 쓴다)

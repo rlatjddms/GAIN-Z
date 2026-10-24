@@ -35,6 +35,8 @@ public class AuthService {
         if (userRepository.existsByEmail(request.email())) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }
+        // 가입 화면에서 이메일 인증 코드를 맞힌 사람만 (#193)
+        accountMailService.useSignupTicket(request.email(), request.emailVerificationToken());
 
         String encodedPassword = passwordEncoder.encode(request.password());
 
@@ -44,12 +46,10 @@ public class AuthService {
                 .name(request.name())
                 .provider(SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER)
-                .emailVerified(false)
+                .emailVerified(true)
                 .build();
 
         userRepository.save(user);
-        // 인증 메일의 링크를 눌러야 로그인할 수 있다 (#193)
-        accountMailService.sendVerification(user);
     }
 
     // 이메일 중복 확인
@@ -67,10 +67,6 @@ public class AuthService {
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BusinessException(ErrorCode.INVALID_PASSWORD);
-        }
-        // 비밀번호가 맞을 때만 알려 준다 (#193)
-        if (!user.isEmailVerified()) {
-            throw new BusinessException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
 
         String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), user.getRole().name());

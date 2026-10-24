@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// 메일 링크 토큰 (#193): 이메일 인증·비밀번호 재설정. 원래 값은 메일에만 있고 DB에는 SHA-256만 둔다. 한 번 쓰면 끝
+// 메일 링크 토큰 (#193): 비밀번호 재설정. 원래 값은 메일에만 있고 DB에는 SHA-256만 둔다. 한 번 쓰면 끝
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

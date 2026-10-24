@@ -1,12 +1,13 @@
 package com.project.gainz.domain.user.controller;
 
 import com.project.gainz.domain.user.dto.request.EmailRequest;
-import com.project.gainz.domain.user.dto.request.EmailTokenRequest;
 import com.project.gainz.domain.user.dto.request.LoginRequest;
 import com.project.gainz.domain.user.dto.request.PasswordResetConfirmRequest;
 import com.project.gainz.domain.user.dto.request.ReissueRequest;
+import com.project.gainz.domain.user.dto.request.SignupCodeVerifyRequest;
 import com.project.gainz.domain.user.dto.request.SignupRequest;
 import com.project.gainz.domain.user.dto.response.PasswordResetRequestResponse;
+import com.project.gainz.domain.user.dto.response.SignupCodeVerifyResponse;
 import com.project.gainz.domain.user.dto.response.TokenResponse;
 import com.project.gainz.domain.user.service.AccountMailService;
 import com.project.gainz.domain.user.service.AuthService;
@@ -77,16 +78,17 @@ public class AuthController {
 
     /* ---------- 이메일 인증·비밀번호 찾기 (#193) ---------- */
 
-    @PostMapping("/email-verification/resend")
-    public ResponseEntity<ApiResponse<Void>> resendVerification(@Valid @RequestBody EmailRequest request) {
-        accountMailService.resendVerification(request.email());
+    // 가입 화면 "인증하기": 이미 가입된 이메일이면 409(U001), 아니면 6자리 코드를 메일로
+    @PostMapping("/signup/email-code")
+    public ResponseEntity<ApiResponse<Void>> sendSignupCode(@Valid @RequestBody EmailRequest request) {
+        accountMailService.sendSignupCode(request.email());
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    @PostMapping("/email-verification/confirm")
-    public ResponseEntity<ApiResponse<Void>> confirmEmail(@Valid @RequestBody EmailTokenRequest request) {
-        accountMailService.confirmEmail(request.token());
-        return ResponseEntity.ok(ApiResponse.success(null));
+    // 코드가 맞으면 가입 요청에 넣을 emailVerificationToken
+    @PostMapping("/signup/email-code/verify")
+    public ResponseEntity<ApiResponse<SignupCodeVerifyResponse>> verifySignupCode(@Valid @RequestBody SignupCodeVerifyRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(accountMailService.verifySignupCode(request.email(), request.code())));
     }
 
     // 결과: SENT / NOT_FOUND(가입되지 않은 이메일) / SOCIAL_ONLY(provider로 로그인)
