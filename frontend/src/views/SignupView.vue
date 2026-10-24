@@ -1,93 +1,81 @@
 <template>
-  <!-- 회원가입 (#190): 로그인과 같은 톤. 휴대폰·앱에서는 카드 없이 화면 전체 -->
-  <div class="signup-root">
-    <main class="signup-panel">
-      <header class="top">
-        <router-link to="/" class="back" aria-label="로그인으로 돌아가기"><ChevronLeft :size="24" :stroke-width="2.2" /></router-link>
-        <AppLogo class="top-logo" :pixel="4" />
-        <h1 class="title">회원가입</h1>
-        <p class="sub">이메일로 GAIN-Z를 시작해요</p>
-      </header>
+  <div class="gain-z-signup-root">
+    <div class="login-background-deco"></div>
+
+    <main class="signup-card-container">
+      <div class="brand-header">
+        <div class="brand-logo"><AppLogo :pixel="5" /></div>
+        <p class="brand-sub">회원 정보를 입력해주세요</p>
+      </div>
 
       <form class="signup-form" @submit.prevent="handleSignup">
-        <div class="field">
-          <input
-            v-model="formData.name"
-            type="text"
-            autocomplete="name"
-            enterkeyhint="next"
-            placeholder="이름"
-            aria-label="이름"
-            class="gz-input"
-            required
-          />
-        </div>
-
-        <div class="field">
-          <div class="input-with-btn">
+        <div class="input-grid">
+          <div class="input-wrapper">
             <input
-              v-model="formData.email"
-              type="email"
-              inputmode="email"
-              autocomplete="email"
-              enterkeyhint="next"
-              placeholder="이메일 주소"
-              aria-label="이메일 주소"
+              v-model="formData.name"
+              type="text"
+              placeholder="이름"
               class="gz-input"
-              @input="resetEmailCheck"
               required
             />
-            <button type="button" class="check-btn" @click="checkEmail" :disabled="isCheckingEmail">
-              {{ isCheckingEmail ? '확인 중' : '중복 확인' }}
-            </button>
           </div>
-          <p v-if="emailMessage" :class="['status-msg', isEmailChecked ? 'success' : 'error']">
-            {{ emailMessage }}
-          </p>
+
+          <div class="input-wrapper">
+            <div class="input-with-btn">
+              <input
+                v-model="formData.email"
+                type="email"
+                placeholder="이메일 주소"
+                class="gz-input"
+                @input="resetEmailCheck"
+                required
+              />
+              <button type="button" class="check-btn" @click="checkEmail" :disabled="isCheckingEmail">
+                {{ isCheckingEmail ? '...' : '중복확인' }}
+              </button>
+            </div>
+            <p v-if="emailMessage" :class="['status-msg', isEmailChecked ? 'success' : 'error']">
+              {{ emailMessage }}
+            </p>
+          </div>
+
+          <div class="input-wrapper">
+            <input
+              v-model="formData.password"
+              type="password"
+              placeholder="비밀번호 (8~16자 영문, 숫자, 특수문자)"
+              class="gz-input"
+              @input="validatePassword"
+              required
+            />
+            <p v-if="pwValidationMessage" :class="['status-msg', isPwValidPattern ? 'success' : 'error']">
+              {{ pwValidationMessage }}
+            </p>
+          </div>
+
+          <div class="input-wrapper">
+            <input
+              v-model="formData.passwordConfirm"
+              type="password"
+              placeholder="비밀번호 확인"
+              class="gz-input"
+              :disabled="!isPwValidPattern"
+              required
+            />
+            <p v-if="formData.passwordConfirm && pwConfirmMessage" :class="['status-msg', isPwMatched ? 'success' : 'error']">
+              {{ pwConfirmMessage }}
+            </p>
+          </div>
         </div>
 
-        <div class="field">
-          <input
-            v-model="formData.password"
-            type="password"
-            autocomplete="new-password"
-            enterkeyhint="next"
-            placeholder="비밀번호 (8~16자 영문, 숫자, 특수문자)"
-            aria-label="비밀번호"
-            class="gz-input"
-            @input="validatePassword"
-            required
-          />
-          <p v-if="pwValidationMessage" :class="['status-msg', isPwValidPattern ? 'success' : 'error']">
-            {{ pwValidationMessage }}
-          </p>
-        </div>
-
-        <div class="field">
-          <input
-            v-model="formData.passwordConfirm"
-            type="password"
-            autocomplete="new-password"
-            enterkeyhint="done"
-            placeholder="비밀번호 확인"
-            aria-label="비밀번호 확인"
-            class="gz-input"
-            :disabled="!isPwValidPattern"
-            required
-          />
-          <p v-if="formData.passwordConfirm && pwConfirmMessage" :class="['status-msg', isPwMatched ? 'success' : 'error']">
-            {{ pwConfirmMessage }}
-          </p>
-        </div>
-
-        <button type="submit" class="signup-btn" :disabled="!isFormValid || isLoading">
-          {{ isLoading ? '가입 중…' : '가입하기' }}
+        <button type="submit" class="signup-btn-main" :disabled="!isFormValid || isLoading">
+          {{ isLoading ? '가입 중...' : '가입하기' }}
         </button>
       </form>
 
-      <p class="footer">
-        이미 회원이신가요? <router-link to="/">로그인</router-link>
-      </p>
+      <div class="signup-footer">
+        이미 회원이신가요? <router-link to="/">로그인으로 돌아가기</router-link>
+      </div>
     </main>
   </div>
 </template>
@@ -97,7 +85,6 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
-import { ChevronLeft } from 'lucide-vue-next'
 import AppLogo from '../components/AppLogo.vue'
 
 const router = useRouter()
@@ -234,128 +221,79 @@ const handleSignup = async () => {
 <style scoped>
 * { box-sizing: border-box; }
 
-.signup-root {
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 32px 16px;
-  background: var(--c-bg);
-  font-family: 'Pretendard', sans-serif;
+.gain-z-signup-root {
+  width: 100%; min-height: 100vh;
+  display: flex; justify-content: center; align-items: center;
+  background: #f8f9fb; font-family: 'Pretendard', sans-serif; position: relative;
 }
 
-/* 넓은 화면: 가운데 카드 */
-.signup-panel {
-  position: relative;
-  width: 100%;
-  max-width: 440px;
-  padding: 40px 40px 32px;
-  background: var(--c-surface);
-  border: 1px solid var(--c-line);
-  border-radius: 24px;
+.login-background-deco {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle at 30% 80%, color-mix(in srgb, var(--c-primary) 3%, transparent) 0%, transparent 50%);
 }
 
-.top { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 28px; text-align: center; }
-.back {
-  position: absolute;
-  top: 16px;
-  left: 12px;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  color: var(--c-text-2);
+.signup-card-container {
+  width: 100%; max-width: 480px;
+  padding: 60px 50px; background: #ffffff; border-radius: 24px;
+  border: 1px solid #edf0f3; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+  z-index: 1; text-align: center;
 }
-.back:hover { background: var(--c-line-soft); }
-.top-logo { margin-bottom: 8px; }
-.title { margin: 0; font-size: 1.35rem; font-weight: 800; color: var(--c-text); }
-.sub { margin: 0; font-size: 0.92rem; color: var(--c-muted); }
 
-.signup-form { display: flex; flex-direction: column; gap: 12px; }
-.field { text-align: left; }
+.brand-header { margin-bottom: 45px; }
+.brand-logo { display: flex; justify-content: center; margin-bottom: 10px; }
+.brand-sub { font-size: 0.95rem; color: #a0a8b1; letter-spacing: -0.3px; }
+
+.input-grid { display: flex; flex-direction: column; gap: 14px; }
+.input-wrapper { position: relative; text-align: left; }
+
 .input-with-btn { display: flex; gap: 8px; }
 
 .gz-input {
-  width: 100%;
-  height: 50px;
-  padding: 0 16px;
-  border: 1.5px solid var(--c-line);
-  border-radius: 12px;
-  /* 16px 아래면 아이폰이 누를 때 화면을 확대한다 */
-  font-size: 16px;
-  background: var(--c-surface);
-  color: var(--c-text);
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%; padding: 14px 18px; border: 1.5px solid #eceff2; border-radius: 12px;
+  font-size: 0.95rem; background: #fff; transition: all 0.2s; color: var(--c-text); outline: none;
 }
-.gz-input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 10%, transparent); }
-.gz-input:disabled { background: var(--c-bg); color: var(--c-faint); cursor: not-allowed; }
+.gz-input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 5%, transparent); }
+.gz-input:disabled { background: #f8f9fb; color: var(--c-faint); cursor: not-allowed; }
 
 .check-btn {
-  flex: none;
-  height: 50px;
-  padding: 0 16px;
-  background: var(--c-line-soft);
-  border: 1.5px solid var(--c-line);
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--c-text-2);
-  white-space: nowrap;
-  cursor: pointer;
+  padding: 0 16px; background: var(--c-line-soft); border: 1.5px solid #eceff2; border-radius: 12px;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; color: var(--c-text-2);
+  transition: background 0.2s;
 }
 .check-btn:hover:not(:disabled) { background: var(--c-line); }
 .check-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.status-msg { margin: 6px 4px 0; font-size: 0.8rem; line-height: 1.35; }
-.status-msg.error { color: var(--c-danger); font-weight: 500; }
-.status-msg.success { color: var(--c-success); font-weight: 600; }
+.status-msg { font-size: 0.78rem; margin: 6px 0 0 4px; line-height: 1.3; }
+.status-msg.error { color: #fa5252; font-weight: 500; }
+.status-msg.success { color: #37b24d; font-weight: 600; }
 
-.signup-btn {
-  width: 100%;
-  height: 52px;
-  margin-top: 12px;
-  background: var(--c-primary);
-  color: var(--c-on-primary);
-  border: none;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s;
+.signup-btn-main {
+  width: 100%; padding: 14px; background: var(--c-primary); color: #fff; border: none;
+  border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer;
+  transition: 0.25s ease; margin-top: 35px;
 }
-.signup-btn:hover:not(:disabled) { background: var(--c-primary-strong); }
-.signup-btn:disabled { background: var(--c-faint); cursor: not-allowed; }
+.signup-btn-main:disabled { background: #ced4da; cursor: not-allowed; box-shadow: none; }
+.signup-btn-main:hover:not(:disabled) { background: var(--c-primary-strong); box-shadow: 0 5px 15px color-mix(in srgb, var(--c-primary) 20%, transparent); }
 
-.footer { margin: 24px 0 0; text-align: center; font-size: 0.9rem; color: var(--c-muted); }
-.footer a { margin-left: 6px; color: var(--c-primary-text); font-weight: 700; text-decoration: none; }
-
-/* 휴대폰·앱: 카드 없이 화면 전체, 가입 버튼은 아래쪽 */
+.signup-footer { margin-top: 45px; font-size: 0.9rem; color: #a0a8b1; }
+.signup-footer a { color: var(--c-primary-text); font-weight: 700; text-decoration: none; margin-left: 8px; }
+/* 휴대폰·앱 (#190): 카드 없이 화면 전체를 쓴다. 노치·홈 표시줄 자리는 비워 둔다 */
 @media (max-width: 640px) {
-  .signup-root {
-    align-items: stretch;
+  .gain-z-signup-root {
+    height: auto;
+    min-height: 100dvh;
     padding:
-      calc(12px + env(safe-area-inset-top))
+      calc(24px + env(safe-area-inset-top))
       calc(20px + env(safe-area-inset-right))
-      calc(20px + env(safe-area-inset-bottom))
+      calc(24px + env(safe-area-inset-bottom))
       calc(20px + env(safe-area-inset-left));
-    background: var(--c-surface);
+    background: #ffffff;
   }
-  .signup-panel {
-    max-width: none;
-    display: flex;
-    flex-direction: column;
-    padding: 56px 0 0;
-    border: none;
-    border-radius: 0;
-  }
-  .back { top: 0; left: -8px; }
-  .top { align-items: flex-start; text-align: left; }
-  .top-logo { display: none; }
-  .signup-form { flex: 1; }
-  .signup-btn { margin-top: auto; }
+  .login-background-deco { display: none; }
+  .signup-card-container { max-width: none; padding: 0; border: none; border-radius: 0; box-shadow: none; }
+}
+@media (max-width: 640px) {
+  .gz-input { padding: 12px 14px; }
+  .signup-btn-main { padding: 12px; margin-top: 24px; }
 }
 </style>
