@@ -46,6 +46,14 @@ services:
         sync: false
       - key: SUPABASE_BUCKET
         value: uploads
+      # 메일 (#193): 이메일 인증·비밀번호 찾기. Render 무료는 SMTP를 막아서 Brevo HTTP API로 보낸다 (docs/deploy.md 6단계)
+      - key: MAIL_TYPE
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      # Brevo에서 인증한 보내는 사람 이메일
+      - key: MAIL_FROM
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       # Vercel 주소 (docs/deploy.md 3단계에서 정해지면 넣는다). 예) https://gain-z.vercel.app
