@@ -8,6 +8,7 @@ import com.project.gainz.global.security.principal.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -31,7 +33,13 @@ public class BandBoardController {
     public ApiResponse<PostPage> list(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
                                       @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "12") int size,
                                       @RequestParam(required = false) Boolean notice,
-                                      @RequestParam(defaultValue = "false") boolean mine) {
+                                      @RequestParam(defaultValue = "false") boolean mine,
+                                      @RequestParam(required = false) String q,
+                                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        if ((q != null && !q.isBlank()) || from != null || to != null) {
+            return ApiResponse.success(service.list(me.getUserId(), bandId, page, size, notice, mine, q, from, to));
+        }
         return ApiResponse.success(mine ? service.list(me.getUserId(), bandId, page, size, notice, true)
                 : service.list(me.getUserId(), bandId, page, size, notice));
     }
@@ -132,6 +140,14 @@ public class BandBoardController {
                 .header("X-Content-Type-Options", "nosniff")
                 .header("Cache-Control", "private, no-store")
                 .body(file.resource());
+    }
+
+    // page를 주면 쪽 단위 (#188), 안 주면 전부
+    @GetMapping(value = "/{postId}/comments", params = "page")
+    public ApiResponse<CommentPage> commentPage(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
+                                                @PathVariable Long postId, @RequestParam int page,
+                                                @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.success(service.commentPage(me.getUserId(), bandId, postId, page, size));
     }
 
     @GetMapping("/{postId}/comments")
