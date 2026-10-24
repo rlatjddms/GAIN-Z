@@ -50,10 +50,6 @@
               <dt>이메일</dt>
               <dd>{{ profile.email }}</dd>
             </div>
-            <div class="row">
-              <dt>가입 방식</dt>
-              <dd><span class="provider" :class="profile.provider.toLowerCase()">{{ providerLabel }}</span></dd>
-            </div>
             <div v-if="joinedText" class="row">
               <dt>가입일</dt>
               <dd>{{ joinedText }}</dd>
@@ -74,14 +70,11 @@
         <p v-if="visibilityError" class="field-error">{{ visibilityError }}</p>
       </WsCard>
 
+      <LoginMethodsCard @password="openPassword" />
+      <p v-if="passwordStatus" class="saved">{{ passwordStatus }}</p>
+
       <WsCard title="계정 설정" class="account-card">
         <div class="settings">
-          <button v-if="isLocal" class="setting" @click="passwordOpen = true">
-            <span>비밀번호 바꾸기</span><span class="chev">›</span>
-          </button>
-          <p v-else-if="profile" class="muted">{{ providerLabel }} 계정으로 가입해서 비밀번호는 {{ providerLabel }}에서 관리해요.</p>
-          <p v-if="passwordStatus" class="saved">{{ passwordStatus }}</p>
-
           <button class="setting" @click="logout">
             <span>로그아웃</span><span class="chev">›</span>
           </button>
@@ -99,8 +92,8 @@
       </div>
     </div>
 
-    <PasswordModal :open="passwordOpen" @close="passwordOpen = false" @done="onPasswordChanged" />
-    <WithdrawModal :open="withdrawOpen" :needs-password="isLocal" @close="withdrawOpen = false" @done="onWithdrawn" />
+    <PasswordModal :open="passwordOpen" :mode="passwordMode" @close="passwordOpen = false" @done="onPasswordChanged" />
+    <WithdrawModal :open="withdrawOpen" :needs-password="!!profile?.hasPassword" @close="withdrawOpen = false" @done="onWithdrawn" />
   </SubPageLayout>
 </template>
 
@@ -112,6 +105,7 @@ import WsCard from '../components/workspace/WsCard.vue'
 import ProfileAvatar from '../components/ProfileAvatar.vue'
 import PasswordModal from '../components/mypage/PasswordModal.vue'
 import WithdrawModal from '../components/mypage/WithdrawModal.vue'
+import LoginMethodsCard from '../components/mypage/LoginMethodsCard.vue'
 import NotificationSettingsCard from '../components/mypage/NotificationSettingsCard.vue'
 import ThemeCard from '../components/mypage/ThemeCard.vue'
 import { useAuthStore } from '../stores/auth'
@@ -120,7 +114,7 @@ import {
   updateMyName, uploadProfileImage, deleteProfileImage,
   updateProfileVisibility,
   PROFILE_IMAGE_ACCEPT, PROFILE_IMAGE_TYPES, MAX_PROFILE_IMAGE_MB,
-  PROFILE_VISIBILITY_OPTIONS,
+  PROFILE_VISIBILITY_OPTIONS, SOCIAL_PROVIDERS, socialErrorMessage,
 } from '../api/user'
 import { apiErrorMessage } from '../api/practice'
 
@@ -141,9 +135,6 @@ const profile = computed(() => authStore.profile)
 const loadError = ref('')
 const status = ref('')
 
-const PROVIDER_LABELS = { LOCAL: '이메일', GOOGLE: '구글', KAKAO: '카카오', NAVER: '네이버' }
-const providerLabel = computed(() => PROVIDER_LABELS[profile.value?.provider] || profile.value?.provider || '')
-const isLocal = computed(() => profile.value?.provider === 'LOCAL')
 const joinedText = computed(() => {
   const at = profile.value?.createdAt
   if (!at) return ''
@@ -155,7 +146,21 @@ onMounted(async () => {
   // 들어올 때마다 최신 정보로 (다른 기기에서 바꿨을 수도 있다)
   const result = await authStore.fetchProfile()
   if (!result && !authStore.profile) loadError.value = '내 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
+  showLinkResult()
 })
+
+// 소셜 연결(#189)을 마치고 돌아왔을 때 (?linked=KAKAO / ?linkError=코드&provider=KAKAO)
+const showLinkResult = async () => {
+  const { linked, linkError, provider } = route.query
+  if (!linked && !linkError) return
+  router.replace({ path: route.path, hash: route.hash })
+  if (linked) {
+    const name = SOCIAL_PROVIDERS.find(p => p.value === linked)?.label || '소셜'
+    status.value = `${name} 계정을 연결했어요. 다음부터 ${name}로도 로그인할 수 있어요.`
+  } else {
+    await dialog.alert({ title: '연결하지 못했어요', text: socialErrorMessage(linkError, provider) })
+  }
+}
 
 /* ---------- 프로필 사진 ---------- */
 const fileInput = ref(null)
@@ -259,10 +264,18 @@ const changeVisibility = async (value) => {
 
 /* ---------- 비밀번호·로그아웃·탈퇴 ---------- */
 const passwordOpen = ref(false)
+const passwordMode = ref('change')
 const passwordStatus = ref('')
-const onPasswordChanged = () => {
+const openPassword = (mode) => {
+  passwordMode.value = mode
+  passwordOpen.value = true
+}
+const onPasswordChanged = async () => {
   passwordOpen.value = false
-  passwordStatus.value = '비밀번호를 바꿨어요. 다음 로그인부터 새 비밀번호를 써 주세요.'
+  passwordStatus.value = passwordMode.value === 'create'
+    ? '비밀번호를 만들었어요. 이제 가입한 이메일과 비밀번호로도 로그인할 수 있어요.'
+    : '비밀번호를 바꿨어요. 다음 로그인부터 새 비밀번호를 써 주세요.'
+  await authStore.fetchProfile()
 }
 
 const logout = async () => {
@@ -309,14 +322,6 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
   font-family: inherit; font-size: 0.85rem; font-weight: 700; outline: none;
 }
 .field-error { margin: 8px 0 0; font-size: 0.75rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
-
-.provider {
-  display: inline-block; font-size: 0.72rem; font-weight: 800; padding: 3px 9px; border-radius: 999px;
-  background: var(--c-line-soft); color: var(--c-text-2);
-}
-.provider.google { background: #e7f5ff; color: #1971c2; }
-.provider.kakao { background: #fff9db; color: #946200; }
-.provider.naver { background: #ebfbee; color: #2b8a3e; }
 
 .settings { display: flex; flex-direction: column; }
 .setting {

@@ -69,7 +69,7 @@ const send = async () => {
     }
     if (status === 'SOCIAL_ONLY') {
       const name = PROVIDER_NAMES[provider] || '소셜'
-      notice.value = `${name}로 가입한 계정이라 비밀번호가 없어요. 로그인 화면에서 ${name}로 로그인해 주세요.`
+      notice.value = `${name}로 가입한 계정이라 비밀번호가 없어요. ${name}로 로그인한 뒤 마이페이지에서 비밀번호를 만들 수 있어요.`
       return
     }
     sentTo.value = target
