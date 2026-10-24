@@ -17,6 +17,22 @@ const routes = [
       name: 'signup',
       component: SignupView
     },
+    // 이메일 인증·비밀번호 찾기 (#193): 로그인 없이 들어오는 화면
+    {
+      path: '/verify-email',
+      name: 'verify-email',
+      component: () => import('../views/VerifyEmailView.vue')
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('../views/ForgotPasswordView.vue')
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('../views/ResetPasswordView.vue')
+    },
     {
       path: '/home',
       name: 'home',
@@ -138,7 +154,7 @@ const router = createRouter({
 
 // 브라우저 탭 제목: '연습 기록장 · GAIN-Z'
 const TITLES = {
-  login: '로그인', signup: '회원가입', home: '홈', practice: '연습 기록장', sheets: '악보 보관함',
+  login: '로그인', signup: '회원가입', 'verify-email': '이메일 인증', 'forgot-password': '비밀번호 찾기', 'reset-password': '새 비밀번호', home: '홈', practice: '연습 기록장', sheets: '악보 보관함',
   'sheet-new': '악보 만들기', 'sheet-detail': '악보', 'sheet-edit': '악보 고치기',
   wardrobe: '옷장', mypage: '마이페이지', notifications: '알림', friends: '친구',
   'band-setlists': '셋리스트', 'band-jams': '레이어 잼', 'band-settings': '밴드 설정', 'character-create': '캐릭터 만들기',

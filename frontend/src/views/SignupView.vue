@@ -8,7 +8,19 @@
         <p class="brand-sub">회원 정보를 입력해주세요</p>
       </div>
 
-      <form class="signup-form" @submit.prevent="handleSignup">
+      <!-- 가입 뒤: 인증 메일 안내 (#193) -->
+      <div v-if="sentTo" class="check-mail">
+        <h1 class="check-title">메일을 확인해 주세요</h1>
+        <p class="check-text"><strong>{{ sentTo }}</strong>(으)로 인증 메일을 보냈어요.<br>메일의 링크를 누르면 가입이 끝나요.</p>
+        <p class="check-note">메일이 안 보이면 스팸함도 확인해 주세요. 링크는 24시간 동안 쓸 수 있어요.</p>
+        <button type="button" class="resend-btn" :disabled="resending || cooldown > 0" @click="resendMail">
+          {{ resending ? '보내는 중…' : cooldown > 0 ? `${cooldown}초 뒤 다시 보낼 수 있어요` : '인증 메일 다시 보내기' }}
+        </button>
+        <p v-if="resendMessage" class="status-msg success">{{ resendMessage }}</p>
+        <router-link to="/" class="signup-btn-main as-link">로그인으로</router-link>
+      </div>
+
+      <form v-else class="signup-form" @submit.prevent="handleSignup">
         <div class="input-grid">
           <div class="input-wrapper">
             <input
@@ -73,7 +85,7 @@
         </button>
       </form>
 
-      <div class="signup-footer">
+      <div v-if="!sentTo" class="signup-footer">
         이미 회원이신가요? <router-link to="/">로그인으로 돌아가기</router-link>
       </div>
     </main>
@@ -86,6 +98,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
 import AppLogo from '../components/AppLogo.vue'
+import { useCooldown } from '../components/ui/useCooldown'
+import { resendVerificationMail, MAIL_RESEND_SECONDS } from '../api/auth'
 
 const router = useRouter()
 const dialog = useDialogStore()
@@ -106,6 +120,26 @@ const formData = ref({
   password: '',
   passwordConfirm: ''
 })
+
+// 가입 뒤 인증 메일 안내 (#193)
+const sentTo = ref('')
+const resending = ref(false)
+const resendMessage = ref('')
+const { left: cooldown, start } = useCooldown()
+const resendMail = async () => {
+  resending.value = true
+  resendMessage.value = ''
+  try {
+    await resendVerificationMail(sentTo.value)
+    resendMessage.value = '인증 메일을 다시 보냈어요.'
+    start(MAIL_RESEND_SECONDS)
+  } catch {
+    resendMessage.value = ''
+    await dialog.alert({ title: '메일을 보내지 못했어요', text: '잠시 후 다시 시도해 주세요.' })
+  } finally {
+    resending.value = false
+  }
+}
 
 // 이메일 입력 시 중복확인 상태 초기화
 const resetEmailCheck = () => {
@@ -203,8 +237,8 @@ const handleSignup = async () => {
       formData.value.password
     )
     localStorage.setItem(`firstLogin_${formData.value.email.trim()}`, 'true')
-    await dialog.alert({ title: 'GAIN-Z 가입을 축하해요!', text: '로그인하고 시작해 보세요.' })
-    router.push('/')
+    sentTo.value = formData.value.email.trim()
+    start(MAIL_RESEND_SECONDS)
   } catch (error) {
     console.error(error)
     if (error.response && error.response.data && error.response.data.message) {
@@ -275,6 +309,13 @@ const handleSignup = async () => {
 .signup-btn-main:disabled { background: #ced4da; cursor: not-allowed; box-shadow: none; }
 .signup-btn-main:hover:not(:disabled) { background: var(--c-primary-strong); box-shadow: 0 5px 15px color-mix(in srgb, var(--c-primary) 20%, transparent); }
 
+.check-mail { text-align: center; }
+.check-title { margin: 0 0 10px; font-size: 1.15rem; font-weight: 800; color: var(--c-text); }
+.check-text { margin: 0 0 12px; font-size: 0.92rem; line-height: 1.65; color: var(--c-text-2); }
+.check-note { margin: 0 0 16px; font-size: 0.8rem; line-height: 1.55; color: var(--c-muted); }
+.resend-btn { padding: 0; border: none; background: none; font: inherit; font-size: 0.88rem; font-weight: 700; color: var(--c-primary-text); cursor: pointer; }
+.resend-btn:disabled { color: var(--c-faint); cursor: default; }
+.as-link { display: block; text-align: center; text-decoration: none; box-sizing: border-box; }
 .signup-footer { margin-top: 45px; font-size: 0.9rem; color: #a0a8b1; }
 .signup-footer a { color: var(--c-primary-text); font-weight: 700; text-decoration: none; margin-left: 8px; }
 /* 휴대폰·앱 (#190): 카드 없이 화면 전체를 쓴다. 노치·홈 표시줄 자리는 비워 둔다 */
