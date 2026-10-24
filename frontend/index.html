@@ -16,8 +16,52 @@
     <!-- 기본(민트) 파비콘. 고른 테마 색으로는 stores/theme.js가 바꾼다 -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9' shape-rendering='crispEdges'%3E%3Crect width='9' height='9' rx='2' fill='%2312b886'/%3E%3Cg fill='%23fff'%3E%3Crect x='5' y='1' width='2' height='1'/%3E%3Crect x='4' y='2' width='2' height='1'/%3E%3Crect x='3' y='3' width='2' height='1'/%3E%3Crect x='2' y='4' width='5' height='1'/%3E%3Crect x='4' y='5' width='2' height='1'/%3E%3Crect x='3' y='6' width='2' height='1'/%3E%3Crect x='2' y='7' width='2' height='1'/%3E%3C/g%3E%3C/svg%3E" />
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+    <!-- 시작 화면 (#194): 홈 화면 앱으로 열 때만. 흰 바탕에 앱 아이콘(민트 타일 + 흰 번개 Z)으로 시작해서
+         타일이 녹아 사라지며 Z가 민트가 되고, Z가 비켜나며 G·A·I·N·-가 차라락 → GAIN-Z.
+         아이콘과 끊김 없이 이어지게 테마와 상관없이 민트로 둔다 (앱 안 로고·탭 아이콘은 테마를 따라감).
+         안드로이드가 먼저 보여 주는 화면(아이콘 + 흰 배경색, manifest)과 이어진다. 앱 스크립트보다 먼저 보이게 여기에 둔다 -->
+    <script>
+      if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) document.documentElement.classList.add('standalone')
+    </script>
+    <style>
+      #splash { display: none; }
+      .standalone #splash {
+        /* 한 칸을 정수 픽셀로 (소수점이면 애니메이션이 시작될 때 픽셀에 다시 맞춰지며 한 틱 흔들린다) */
+        --cell: 6px;
+        position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;
+        background: #fff; fill: #12b886; transition: opacity 0.35s ease;
+        /* 스크립트가 못 걷어 내도 화면을 막지 않게 */
+        animation: splash-away 0.3s ease 5s forwards;
+      }
+      #splash.done { opacity: 0; pointer-events: none; }
+      #splash svg { position: relative; width: calc(var(--cell) * 31); height: auto; overflow: visible; }
+      /* 앱 아이콘과 같은 타일: Z 높이가 타일의 55% */
+      #splash .tile {
+        position: absolute; left: 50%; top: 50%; width: calc(var(--cell) * 12.7); height: calc(var(--cell) * 12.7);
+        margin: calc(var(--cell) * -6.35) 0 0 calc(var(--cell) * -6.35); border-radius: 22.5%; background: #12b886;
+        animation: splash-tile 0.3s ease-in 0.12s both;
+      }
+      /* 움직일 것은 처음부터 따로 그려 두어, 애니메이션이 시작되는 순간 다시 그리지 않게 */
+      #splash .tile, #splash .z, #splash .l { will-change: transform, opacity; }
+      @media (max-width: 359px) { .standalone #splash { --cell: 5px; } }
+      /* Z(오른쪽 끝 5칸)를 가운데에 두었다가 제자리로. 흰색에서 민트로 바뀐 뒤, 타일이 다 사라지고 나서 움직인다 */
+      #splash .z { animation: splash-zc 0.25s ease 0.12s both, splash-z 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.46s both; }
+      #splash .l { animation: splash-l 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+      #splash .l1 { animation-delay: 0.59s; }
+      #splash .l2 { animation-delay: 0.66s; }
+      #splash .l3 { animation-delay: 0.73s; }
+      #splash .l4 { animation-delay: 0.8s; }
+      #splash .l5 { animation-delay: 0.87s; }
+      @keyframes splash-tile { to { opacity: 0; transform: scale(0.85); } }
+      @keyframes splash-zc { from { fill: #fff; } }
+      @keyframes splash-z { from { transform: translateX(-13px); } to { transform: none; } }
+      @keyframes splash-l { from { opacity: 0; transform: translateX(2px); } to { opacity: 1; transform: none; } }
+      @keyframes splash-away { to { opacity: 0; visibility: hidden; } }
+      @media (prefers-reduced-motion: reduce) { #splash .tile { display: none; } #splash .z, #splash .l { animation: none; } }
+    </style>
 </head>
 <body>
+<div id="splash"><div class="tile"></div><svg viewBox="0 0 31 7" shape-rendering="crispEdges" aria-hidden="true"><g class="l l5"><rect x="1" y="0" width="1" height="1"/><rect x="2" y="0" width="1" height="1"/><rect x="3" y="0" width="1" height="1"/><rect x="4" y="0" width="1" height="1"/><rect x="0" y="1" width="1" height="1"/><rect x="0" y="2" width="1" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="0" y="5" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="1" y="6" width="1" height="1"/><rect x="2" y="6" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/></g><g class="l l4"><rect x="7" y="0" width="1" height="1"/><rect x="8" y="0" width="1" height="1"/><rect x="9" y="0" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/><rect x="10" y="1" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="10" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="8" y="3" width="1" height="1"/><rect x="9" y="3" width="1" height="1"/><rect x="10" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="10" y="4" width="1" height="1"/><rect x="6" y="5" width="1" height="1"/><rect x="10" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="10" y="6" width="1" height="1"/></g><g class="l l3"><rect x="12" y="0" width="1" height="1"/><rect x="13" y="0" width="1" height="1"/><rect x="14" y="0" width="1" height="1"/><rect x="13" y="1" width="1" height="1"/><rect x="13" y="2" width="1" height="1"/><rect x="13" y="3" width="1" height="1"/><rect x="13" y="4" width="1" height="1"/><rect x="13" y="5" width="1" height="1"/><rect x="12" y="6" width="1" height="1"/><rect x="13" y="6" width="1" height="1"/><rect x="14" y="6" width="1" height="1"/></g><g class="l l2"><rect x="16" y="0" width="1" height="1"/><rect x="20" y="0" width="1" height="1"/><rect x="16" y="1" width="1" height="1"/><rect x="17" y="1" width="1" height="1"/><rect x="20" y="1" width="1" height="1"/><rect x="16" y="2" width="1" height="1"/><rect x="18" y="2" width="1" height="1"/><rect x="20" y="2" width="1" height="1"/><rect x="16" y="3" width="1" height="1"/><rect x="19" y="3" width="1" height="1"/><rect x="20" y="3" width="1" height="1"/><rect x="16" y="4" width="1" height="1"/><rect x="20" y="4" width="1" height="1"/><rect x="16" y="5" width="1" height="1"/><rect x="20" y="5" width="1" height="1"/><rect x="16" y="6" width="1" height="1"/><rect x="20" y="6" width="1" height="1"/></g><g class="l l1"><rect x="22" y="3" width="1" height="1"/><rect x="23" y="3" width="1" height="1"/><rect x="24" y="3" width="1" height="1"/></g><g class="z"><rect x="29" y="0" width="1" height="1"/><rect x="30" y="0" width="1" height="1"/><rect x="28" y="1" width="1" height="1"/><rect x="29" y="1" width="1" height="1"/><rect x="27" y="2" width="1" height="1"/><rect x="28" y="2" width="1" height="1"/><rect x="26" y="3" width="1" height="1"/><rect x="27" y="3" width="1" height="1"/><rect x="28" y="3" width="1" height="1"/><rect x="29" y="3" width="1" height="1"/><rect x="30" y="3" width="1" height="1"/><rect x="28" y="4" width="1" height="1"/><rect x="29" y="4" width="1" height="1"/><rect x="27" y="5" width="1" height="1"/><rect x="28" y="5" width="1" height="1"/><rect x="26" y="6" width="1" height="1"/><rect x="27" y="6" width="1" height="1"/></g></svg></div>
 <div id="app"></div>
 <script type="module" src="/src/main.js"></script>
 </body>
