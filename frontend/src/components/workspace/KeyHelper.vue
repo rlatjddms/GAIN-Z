@@ -36,7 +36,7 @@
           <td class="arrow"><ArrowRight :size="14" :stroke-width="2.4" /></td>
           <td class="to">{{ target[i].chord }}</td>
         </tr>
-        <!-- 내가 추가한 코드 (#192): 이 악보에 나오는 키 밖 코드. 이 기기에 악보마다 기억 -->
+        <!-- 내가 추가한 코드 (#192): 이 악보에 나오는 키 밖 코드. 보관함 항목에 저장돼 다른 기기에서도 보인다 -->
         <tr v-for="chord in custom" :key="chord" class="custom">
           <td class="degree">
             <button type="button" class="remove" :aria-label="`${chord} 빼기`" @click="removeChord(chord)"><X :size="12" :stroke-width="2.6" /></button>
@@ -67,7 +67,7 @@
 
 <script setup>
 import { ArrowRight, X } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { transposeKey, semitonesBetween, diatonicChords, capoFor, normalizeChord, transposeChord, transposeContext } from '../../music/transpose'
 
 const props = defineProps({
@@ -75,11 +75,11 @@ const props = defineProps({
   viewKey: { type: String, default: null },
   instrumentType: { type: String, default: null },
   status: { type: String, default: '' },
-  // 내가 추가한 코드를 기억할 이름 (악보마다 다르게, 예: sheetChords:12). 없으면 기억하지 않는다
-  storageKey: { type: String, default: '' },
+  // 내가 추가한 코드 (저장은 부모가 한다)
+  chords: { type: Array, default: () => [] },
 })
-// change: 새 연습 키
-const emit = defineEmits(['change'])
+// change: 새 연습 키 / chords-change: 내가 추가한 코드 목록이 바뀜
+const emit = defineEmits(['change', 'chords-change'])
 
 const current = computed(() => props.viewKey || props.originalKey)
 const changed = computed(() => current.value !== props.originalKey)
@@ -89,16 +89,7 @@ const rows = computed(() => diatonicChords(props.originalKey))
 const target = computed(() => diatonicChords(current.value))
 // 내가 추가한 코드 (#192): 쉼표·띄어쓰기로 여러 개를 한 번에, 겹치면 하나만, 20개까지
 const MAX_CUSTOM = 20
-const readCustom = () => {
-  if (!props.storageKey) return []
-  try { return JSON.parse(localStorage.getItem(props.storageKey)) || [] } catch { return [] }
-}
-const custom = ref(readCustom())
-watch(() => props.storageKey, () => { custom.value = readCustom() })
-const persist = () => {
-  if (!props.storageKey) return
-  try { localStorage.setItem(props.storageKey, JSON.stringify(custom.value)) } catch { /* 기억 못 해도 표는 그대로 */ }
-}
+const custom = computed(() => props.chords)
 const typed = ref('')
 const addError = ref('')
 const addChord = () => {
@@ -107,15 +98,11 @@ const addChord = () => {
   const bad = parts.filter((_, i) => !chords[i])
   const known = new Set([...rows.value.map(r => r.chord), ...custom.value])
   const fresh = [...new Set(chords.filter(c => c && !known.has(c)))]
-  custom.value = [...custom.value, ...fresh].slice(0, MAX_CUSTOM)
-  persist()
+  if (fresh.length) emit('chords-change', [...custom.value, ...fresh].slice(0, MAX_CUSTOM))
   addError.value = bad.length ? `코드로 읽지 못했어요: ${bad.join(', ')}` : ''
   typed.value = bad.join(' ')
 }
-const removeChord = (chord) => {
-  custom.value = custom.value.filter(c => c !== chord)
-  persist()
-}
+const removeChord = (chord) => emit('chords-change', custom.value.filter(c => c !== chord))
 const moved = (chord) => {
   const { semitones, preferFlat } = transposeContext(props.originalKey, current.value)
   return transposeChord(chord, semitones, preferFlat)

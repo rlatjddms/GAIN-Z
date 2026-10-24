@@ -65,7 +65,7 @@
         </WsCard>
 
         <!-- 넓은 화면: 오른쪽 옆 카드. 좁은 화면(앱): 아래 막대에서 눌러 여는 작은 창 (#192) -->
-        <div v-show="narrow ? !!dockTab : !wide" class="side" :class="{ docked: narrow }">
+        <div v-show="narrow ? !!dockTab : !wide" class="side" :class="{ docked: narrow, 'docked-memo': narrow && dockTab === 'memo' }">
           <div v-if="narrow" class="dock-head">
             <strong>{{ dockTab === 'key' ? '키 바꿔 치기' : '내 메모' }}</strong>
             <button type="button" class="dock-close" aria-label="접기" @click="dockTab = null"><ChevronDown :size="18" :stroke-width="2.4" /></button>
@@ -78,8 +78,9 @@
               :view-key="viewKey"
               :instrument-type="sheet.instrumentType"
               :status="keyStatus"
-              :storage-key="`sheetChords:${item.id}`"
+              :chords="customChords"
               @change="setKey"
+              @chords-change="saveChords"
             />
             <p v-else class="muted">
               원래 키를 적어 두면 다른 키로 칠 때 바꿔 칠 코드를 알려 드려요.
@@ -172,6 +173,8 @@ onMounted(async () => {
     item.value = await getWorkspaceItem(itemId)
     viewKey.value = item.value.customKey || item.value.sheet.originalKey
     memo.value = item.value.personalMemo || ''
+    customChords.value = item.value.customChords || []
+    moveLocalChords()
     if (pages.value.length) annot.load(item.value.sheet.id)
   } catch (e) {
     loadError.value = `악보를 불러오지 못했어요. ${apiErrorMessage(e)}`
@@ -255,6 +258,30 @@ const saveMemo = async () => {
   } finally {
     savingMemo.value = false
   }
+}
+
+/* ---------- 키 바꿔 치기 표에 내가 추가한 코드 (#192): 보관함 항목에 저장 ---------- */
+const customChords = ref([])
+const saveChords = async (chords) => {
+  const before = customChords.value
+  customChords.value = chords
+  try {
+    const result = await updateWorkspaceItem(itemId, { customChords: chords })
+    customChords.value = result.customChords || []
+  } catch (e) {
+    customChords.value = before
+    actionError.value = `코드를 저장하지 못했어요. ${apiErrorMessage(e)}`
+  }
+}
+// 이 기능의 첫 버전은 코드를 이 기기에만 기억했다. 남아 있으면 서버로 한 번 옮기고 지운다
+const moveLocalChords = () => {
+  const key = `sheetChords:${itemId}`
+  let local = []
+  try { local = JSON.parse(localStorage.getItem(key)) || [] } catch { /* 없으면 그만 */ }
+  if (!local.length) return
+  try { localStorage.removeItem(key) } catch { /* 지우지 못해도 다음에 다시 합친다 */ }
+  const merged = [...new Set([...customChords.value, ...local])].slice(0, 20)
+  if (merged.length !== customChords.value.length) saveChords(merged)
 }
 
 /* ---------- 좁은 화면(앱): 키·메모는 아래 막대에서 연다 (#192) ---------- */
@@ -366,13 +393,18 @@ figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight
 .dock button.on { background: var(--c-primary-soft); color: var(--c-primary-text); }
 .dock-keys { color: #e8590c; font-weight: 900; }
 .dock .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-primary); }
+/* 키 창은 악보가 위로 보이게 화면 절반쯤, 메모 창은 그보다 조금 낮게. 넘치면 창 안에서 스크롤 */
 .side.docked {
   position: fixed; left: 12px; right: 12px; bottom: calc(66px + env(safe-area-inset-bottom)); top: auto; z-index: 45;
-  max-height: min(62dvh, 520px); overflow-y: auto; gap: 0;
+  max-height: min(48dvh, 420px); overflow-y: auto; overscroll-behavior: contain; gap: 0;
   background: #fff; border: 1px solid var(--c-line); border-radius: 18px; box-shadow: 0 14px 36px rgba(15, 23, 42, 0.18);
 }
 .side.docked :deep(.ws-card) { border: none; box-shadow: none; background: none; }
-.dock-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 0; }
+.side.docked.docked-memo { max-height: min(38dvh, 320px); }
+.dock-head {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 4px; background: #fff;
+}
 .dock-head strong { font-size: 0.9rem; font-weight: 900; }
 .dock-close { display: flex; padding: 4px; border: none; border-radius: 8px; background: none; color: var(--c-muted); cursor: pointer; }
 
