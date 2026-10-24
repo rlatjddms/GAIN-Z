@@ -87,6 +87,19 @@ export async function deleteSheetPage(sheetId, pageId) {
   return response.data.data
 }
 
+// 장 순서 바꾸기 (#191): 지금 장 ID를 원하는 순서대로 모두 보낸다 → 악보
+export async function reorderSheetPages(sheetId, pageIds) {
+  const response = await axiosInstance.put(`/api/v1/sheets/${sheetId}/pages/order`, { pageIds })
+  return response.data.data
+}
+
+// 내 악보로 복사 (#191): 남이 올린 악보를 사본으로 만들어 이 보관함 항목을 사본으로 바꾼다
+// (내 메모·연습 키·필기도 사본으로 옮김) → 보관함 항목 상세 (항목 ID는 그대로)
+export async function copyWorkspaceItem(itemId) {
+  const response = await axiosInstance.post(`/api/v1/workspace/sheets/${itemId}/copy`)
+  return response.data.data
+}
+
 // 장 파일은 로그인 토큰이 필요해서 <img src>로 바로 못 쓴다. 받아서 화면용 주소(blob:)로 만든다 (다 쓰면 revoke)
 export async function loadSheetPageUrl(sheetId, pageId) {
   const response = await axiosInstance.get(`/api/v1/sheets/${sheetId}/pages/${pageId}`, { responseType: 'blob' })
