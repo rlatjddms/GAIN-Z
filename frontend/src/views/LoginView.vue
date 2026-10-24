@@ -37,11 +37,6 @@
 
         <div v-if="errorMessage" class="error-msg">
           {{ errorMessage }}
-          <!-- 이메일 인증 전 (#193): 인증 메일을 다시 보낼 수 있게 -->
-          <button v-if="needsVerify" type="button" class="resend-btn" :disabled="resending || cooldown > 0" @click="resendMail">
-            {{ resending ? '보내는 중…' : cooldown > 0 ? `${cooldown}초 뒤 다시 보낼 수 있어요` : '인증 메일 다시 보내기' }}
-          </button>
-          <span v-if="resent" class="resent">메일을 보냈어요. 스팸함도 확인해 주세요.</span>
         </div>
 
         <div class="form-options">
@@ -85,8 +80,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { useCooldown } from '../components/ui/useCooldown'
-import { resendVerificationMail, EMAIL_NOT_VERIFIED, MAIL_RESEND_SECONDS } from '../api/auth'
 import AppLogo from '../components/AppLogo.vue'
 import { API_BASE_URL } from '../api/axios'
 
@@ -105,8 +98,6 @@ const handleLogin = async () => {
 
   isLoading.value = true
   errorMessage.value = ''
-  needsVerify.value = false
-  resent.value = false
 
   try {
     await authStore.login(email.value, password.value, keepLoggedIn.value)
@@ -121,7 +112,6 @@ const handleLogin = async () => {
     }
   } catch (error) {
     console.error(error)
-    needsVerify.value = error.response?.data?.code === EMAIL_NOT_VERIFIED
     if (error.response && error.response.data && error.response.data.message) {
       errorMessage.value = error.response.data.message
     } else {
@@ -129,24 +119,6 @@ const handleLogin = async () => {
     }
   } finally {
     isLoading.value = false
-  }
-}
-
-// 이메일 인증 전 계정 (#193)
-const needsVerify = ref(false)
-const resending = ref(false)
-const resent = ref(false)
-const { left: cooldown, start } = useCooldown()
-const resendMail = async () => {
-  resending.value = true
-  try {
-    await resendVerificationMail(email.value.trim())
-    resent.value = true
-    start(MAIL_RESEND_SECONDS)
-  } catch {
-    errorMessage.value = '메일을 보내지 못했어요. 잠시 후 다시 시도해 주세요.'
-  } finally {
-    resending.value = false
   }
 }
 
@@ -277,13 +249,6 @@ const handleSocialLogin = (provider) => {
   color: #a0a8b1;
   text-decoration: none;
 }
-
-.resend-btn {
-  display: block; margin-top: 8px; padding: 0; border: none; background: none;
-  font: inherit; font-weight: 700; color: var(--c-primary-text); cursor: pointer;
-}
-.resend-btn:disabled { color: var(--c-faint); cursor: default; }
-.resent { display: block; margin-top: 4px; color: #37b24d; font-weight: 600; }
 
 .login-btn-main {
   width: 100%;
