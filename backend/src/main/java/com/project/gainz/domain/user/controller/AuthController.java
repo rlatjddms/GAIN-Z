@@ -1,9 +1,15 @@
 package com.project.gainz.domain.user.controller;
 
+import com.project.gainz.domain.user.dto.request.EmailRequest;
 import com.project.gainz.domain.user.dto.request.LoginRequest;
+import com.project.gainz.domain.user.dto.request.PasswordResetConfirmRequest;
 import com.project.gainz.domain.user.dto.request.ReissueRequest;
+import com.project.gainz.domain.user.dto.request.SignupCodeVerifyRequest;
 import com.project.gainz.domain.user.dto.request.SignupRequest;
+import com.project.gainz.domain.user.dto.response.PasswordResetRequestResponse;
+import com.project.gainz.domain.user.dto.response.SignupCodeVerifyResponse;
 import com.project.gainz.domain.user.dto.response.TokenResponse;
+import com.project.gainz.domain.user.service.AccountMailService;
 import com.project.gainz.domain.user.service.AuthService;
 import com.project.gainz.global.common.dto.ApiResponse;
 import com.project.gainz.global.security.principal.UserPrincipal;
@@ -24,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final AccountMailService accountMailService;
 
     // 회원가입
     @PostMapping("/signup")
@@ -66,6 +73,34 @@ public class AuthController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         authService.logout(principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    /* ---------- 이메일 인증·비밀번호 찾기 (#193) ---------- */
+
+    // 가입 화면 "인증하기": 이미 가입된 이메일이면 409(U001), 아니면 6자리 코드를 메일로.
+    // 1분 안에 다시 요청하면 429(U017, data.retryAfterSeconds), 하루 10번 넘으면 429(U018)
+    @PostMapping("/signup/email-code")
+    public ResponseEntity<ApiResponse<Void>> sendSignupCode(@Valid @RequestBody EmailRequest request) {
+        accountMailService.sendSignupCode(request.email());
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 코드가 맞으면 가입 요청에 넣을 emailVerificationToken
+    @PostMapping("/signup/email-code/verify")
+    public ResponseEntity<ApiResponse<SignupCodeVerifyResponse>> verifySignupCode(@Valid @RequestBody SignupCodeVerifyRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(accountMailService.verifySignupCode(request.email(), request.code())));
+    }
+
+    // 결과: SENT / NOT_FOUND(가입되지 않은 이메일) / SOCIAL_ONLY(provider로 로그인). 자주 요청하면 가입 인증과 같은 429
+    @PostMapping("/password-reset/request")
+    public ResponseEntity<ApiResponse<PasswordResetRequestResponse>> requestPasswordReset(@Valid @RequestBody EmailRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(accountMailService.requestPasswordReset(request.email())));
+    }
+
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody PasswordResetConfirmRequest request) {
+        accountMailService.resetPassword(request.token(), request.newPassword());
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

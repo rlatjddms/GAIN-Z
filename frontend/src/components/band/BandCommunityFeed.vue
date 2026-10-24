@@ -7,10 +7,14 @@
         <span class="post-total">{{ total }}</span>
       </div>
       <div class="head-actions">
+        <button class="search-btn" :class="{ on: searching }" :aria-pressed="searchOpen" aria-label="게시글 검색" @click="$emit('search-toggle')"><Search :size="15" :stroke-width="2.4" /></button>
         <button class="mine-btn" :aria-pressed="mine" @click="$emit('mine')">내가 쓴 글</button>
         <button class="write-btn" @click="$emit('write')"><BoardIcon name="edit" :size="14" />글쓰기</button>
       </div>
     </header>
+
+    <!-- 검색 막대 (#188) -->
+    <slot name="search" />
 
     <article v-for="notice in notices" :key="notice.id" class="notice" role="link" tabindex="0" @click="$emit('open', notice)" @keydown.enter.self="$emit('open', notice)">
       <span class="notice-tag">공지</span>
@@ -44,11 +48,12 @@
         </footer>
       </article>
     </div>
-    <p v-else-if="!notices.length" class="empty">{{ mine ? '아직 내가 쓴 글이 없어요.' : '아직 글이 없어요. 밴드원에게 첫 글을 남겨 보세요.' }}</p>
+    <p v-else-if="!notices.length" class="empty">{{ searching ? '조건에 맞는 글이 없어요.' : mine ? '아직 내가 쓴 글이 없어요.' : '아직 글이 없어요. 밴드원에게 첫 글을 남겨 보세요.' }}</p>
   </section>
 </template>
 
 <script setup>
+import { Search } from 'lucide-vue-next'
 import ProfileAvatar from '../ProfileAvatar.vue'
 import BandPostMenu from './BandPostMenu.vue'
 import BandPostAttachment from './BandPostAttachment.vue'
@@ -61,8 +66,11 @@ defineProps({
   total: { type: Number, default: 0 },
   loading: Boolean,
   mine: Boolean,
+  // 검색 조건이 걸려 있는지, 검색 줄이 펼쳐져 있는지 (#188)
+  searching: Boolean,
+  searchOpen: Boolean,
 })
-defineEmits(['open', 'write', 'mine', 'edit', 'delete'])
+defineEmits(['open', 'write', 'mine', 'edit', 'delete', 'search-toggle'])
 const firstVisual = post => attachmentsOf(post).find(file => /^(image|video)\//.test(file.type))
 
 const authorName = (post) => post.author?.nickname || '멤버'
@@ -74,6 +82,8 @@ const timeAgo = postTimeAgo
 .community { margin-top: 24px; }
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .head-actions { display: flex; gap: 8px; }
+.search-btn { display: flex; align-items: center; justify-content: center; width: 32px; border: 1px solid #dce2ed; background: white; color: #53627a; border-radius: 10px; cursor: pointer; }
+.search-btn[aria-pressed=true], .search-btn.on { background: var(--c-primary-soft); border-color: color-mix(in srgb, var(--c-primary) 55%, #fff); color: var(--c-primary-text); }
 .mine-btn { border: 1px solid #dce2ed; background: white; color: #53627a; border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .mine-btn[aria-pressed=true] { background: var(--c-primary-soft); border-color: color-mix(in srgb, var(--c-primary) 55%, #fff); color: var(--c-primary-text); }
 .title { font-weight: 800; font-size: 0.85rem; color: var(--c-text-2); display: flex; align-items: center; gap: 8px; }

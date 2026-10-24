@@ -20,6 +20,7 @@
             />
           </div>
 
+          <!-- 이메일 인증 (#193): 인증하기 → 메일로 받은 6자리 코드 → 맞으면 비밀번호 칸이 열린다 -->
           <div class="input-wrapper">
             <div class="input-with-btn">
               <input
@@ -27,24 +28,49 @@
                 type="email"
                 placeholder="이메일 주소"
                 class="gz-input"
-                @input="resetEmailCheck"
+                :disabled="emailVerified"
+                @input="resetEmailVerify"
                 required
               />
-              <button type="button" class="check-btn" @click="checkEmail" :disabled="isCheckingEmail">
-                {{ isCheckingEmail ? '...' : '중복확인' }}
+              <button v-if="emailVerified" type="button" class="check-btn" @click="resetEmailVerify">변경</button>
+              <button v-else type="button" class="check-btn" @click="sendCode" :disabled="sendingCode || cooldown > 0">
+                {{ sendingCode ? '...' : cooldown > 0 ? `${cooldown}초` : codeSent ? '다시 보내기' : '인증하기' }}
               </button>
             </div>
-            <p v-if="emailMessage" :class="['status-msg', isEmailChecked ? 'success' : 'error']">
+            <p v-if="emailMessage" :class="['status-msg', emailOk ? 'success' : 'error']">
               {{ emailMessage }}
             </p>
+          </div>
+
+          <div v-if="codeSent && !emailVerified" class="input-wrapper">
+            <div class="input-with-btn">
+              <input
+                ref="codeInput"
+                v-model="code"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                placeholder="인증 코드 6자리"
+                class="gz-input code-input"
+                @input="onCodeInput"
+                @keydown.enter.prevent="verifyCode"
+              />
+              <button type="button" class="check-btn" @click="verifyCode" :disabled="verifying || code.length !== 6">
+                {{ verifying ? '...' : '확인' }}
+              </button>
+            </div>
+            <p v-if="codeError" class="status-msg error">{{ codeError }}</p>
+            <p v-else class="status-msg hint">메일로 받은 코드를 넣어 주세요. 10분 동안 쓸 수 있고, 안 보이면 스팸함도 확인해 주세요.</p>
           </div>
 
           <div class="input-wrapper">
             <input
               v-model="formData.password"
               type="password"
-              placeholder="비밀번호 (8~16자 영문, 숫자, 특수문자)"
+              :placeholder="emailVerified ? '비밀번호 (8~16자 영문, 숫자, 특수문자)' : '이메일 인증 후 입력할 수 있어요'"
               class="gz-input"
+              :disabled="!emailVerified"
               @input="validatePassword"
               required
             />
@@ -59,7 +85,7 @@
               type="password"
               placeholder="비밀번호 확인"
               class="gz-input"
-              :disabled="!isPwValidPattern"
+              :disabled="!emailVerified || !isPwValidPattern"
               required
             />
             <p v-if="formData.passwordConfirm && pwConfirmMessage" :class="['status-msg', isPwMatched ? 'success' : 'error']">
@@ -81,19 +107,30 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
 import AppLogo from '../components/AppLogo.vue'
+import { useCooldown } from '../components/ui/useCooldown'
+import { sendSignupCode, verifySignupCode, retryAfterOf, DUPLICATE_EMAIL, EMAIL_NOT_VERIFIED, MAIL_RESEND_SECONDS } from '../api/auth'
 
 const router = useRouter()
 const dialog = useDialogStore()
 const authStore = useAuthStore()
 
-const isCheckingEmail = ref(false)
-const isEmailChecked = ref(false)
+// 이메일 인증 (#193)
+const sendingCode = ref(false)
+const codeSent = ref(false)
 const emailMessage = ref('')
+const emailOk = ref(false)
+const code = ref('')
+const codeInput = ref(null)
+const codeError = ref('')
+const verifying = ref(false)
+const emailVerificationToken = ref('')
+const emailVerified = computed(() => !!emailVerificationToken.value)
+const { left: cooldown, start } = useCooldown()
 
 const isPwValidPattern = ref(false)
 const pwValidationMessage = ref('')
@@ -107,44 +144,81 @@ const formData = ref({
   passwordConfirm: ''
 })
 
-// 이메일 입력 시 중복확인 상태 초기화
-const resetEmailCheck = () => {
-  isEmailChecked.value = false
+// 이메일을 고치면 인증을 처음부터 (보낸 코드도 버린다)
+const resetEmailVerify = () => {
+  emailVerificationToken.value = ''
+  codeSent.value = false
+  code.value = ''
+  codeError.value = ''
   emailMessage.value = ''
+  emailOk.value = false
 }
 
-// 이메일 중복확인
-const checkEmail = async () => {
-  if (!formData.value.email) {
+const errorMessageOf = (error, fallback) => error.response?.data?.message || fallback
+
+// 인증하기: 이미 가입된 이메일이면 빨간 글씨, 아니면 코드 메일
+const sendCode = async () => {
+  const email = formData.value.email.trim()
+  emailOk.value = false
+  if (!email) {
     emailMessage.value = '이메일을 입력해주세요.'
     return
   }
-
-  // Basic email validation regex
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(formData.value.email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     emailMessage.value = '올바른 이메일 형식이 아닙니다.'
     return
   }
 
-  isCheckingEmail.value = true
+  sendingCode.value = true
   emailMessage.value = ''
-
+  codeError.value = ''
   try {
-    const isDuplicate = await authStore.checkEmail(formData.value.email)
-    if (isDuplicate) {
-      emailMessage.value = '이미 가입된 이메일 주소입니다.'
-      isEmailChecked.value = false
-    } else {
-      emailMessage.value = '사용 가능한 이메일입니다.'
-      isEmailChecked.value = true
-    }
+    await sendSignupCode(email)
+    codeSent.value = true
+    code.value = ''
+    emailOk.value = true
+    emailMessage.value = `${email}(으)로 인증 코드를 보냈어요.`
+    start(MAIL_RESEND_SECONDS)
+    await nextTick()
+    codeInput.value?.focus()
   } catch (error) {
-    console.error(error)
-    emailMessage.value = '이메일 중복 확인에 실패했습니다. 다시 시도해주세요.'
-    isEmailChecked.value = false
+    // 1분 안에 보낸 코드가 아직 쓸 수 있으니 코드 칸을 열어 준다
+    const retryAfter = retryAfterOf(error)
+    if (retryAfter) {
+      codeSent.value = true
+      emailOk.value = true
+      emailMessage.value = '1분 안에 보낸 코드가 있어서 새로 보내지 않았어요. 받은 메일의 코드를 넣어 주세요.'
+      start(retryAfter)
+      await nextTick()
+      codeInput.value?.focus()
+      return
+    }
+    emailMessage.value = error.response?.data?.code === DUPLICATE_EMAIL
+      ? '이미 가입된 이메일이에요.'
+      : errorMessageOf(error, '인증 코드를 보내지 못했어요. 잠시 후 다시 시도해 주세요.')
   } finally {
-    isCheckingEmail.value = false
+    sendingCode.value = false
+  }
+}
+
+// 숫자만 남긴다
+const onCodeInput = () => {
+  code.value = code.value.replace(/\D/g, '').slice(0, 6)
+  codeError.value = ''
+}
+
+const verifyCode = async () => {
+  if (code.value.length !== 6 || verifying.value) return
+  verifying.value = true
+  codeError.value = ''
+  try {
+    emailVerificationToken.value = await verifySignupCode(formData.value.email.trim(), code.value)
+    emailOk.value = true
+    emailMessage.value = '이메일 인증을 마쳤어요.'
+  } catch (error) {
+    codeError.value = errorMessageOf(error, '확인하지 못했어요. 잠시 후 다시 시도해 주세요.')
+  } finally {
+    verifying.value = false
   }
 }
 
@@ -184,7 +258,7 @@ const pwConfirmMessage = computed(() => {
 const isFormValid = computed(() => {
   return (
     formData.value.name &&
-    isEmailChecked.value &&
+    emailVerified.value &&
     isPwValidPattern.value &&
     isPwMatched.value
   )
@@ -199,14 +273,21 @@ const handleSignup = async () => {
   try {
     await authStore.signup(
       formData.value.name,
-      formData.value.email,
-      formData.value.password
+      formData.value.email.trim(),
+      formData.value.password,
+      emailVerificationToken.value
     )
     localStorage.setItem(`firstLogin_${formData.value.email.trim()}`, 'true')
     await dialog.alert({ title: 'GAIN-Z 가입을 축하해요!', text: '로그인하고 시작해 보세요.' })
     router.push('/')
   } catch (error) {
     console.error(error)
+    // 인증한 지 30분이 지났으면 다시 인증
+    if (error.response?.data?.code === EMAIL_NOT_VERIFIED) {
+      resetEmailVerify()
+      emailMessage.value = error.response.data.message
+      return
+    }
     if (error.response && error.response.data && error.response.data.message) {
       await dialog.alert({ title: '가입하지 못했어요', text: error.response.data.message })
     } else {
@@ -266,6 +347,9 @@ const handleSignup = async () => {
 .status-msg { font-size: 0.78rem; margin: 6px 0 0 4px; line-height: 1.3; }
 .status-msg.error { color: #fa5252; font-weight: 500; }
 .status-msg.success { color: #37b24d; font-weight: 600; }
+.status-msg.hint { color: var(--c-muted); }
+.code-input { letter-spacing: 4px; font-variant-numeric: tabular-nums; }
+.code-input::placeholder { letter-spacing: normal; }
 
 .signup-btn-main {
   width: 100%; padding: 14px; background: var(--c-primary); color: #fff; border: none;
@@ -277,10 +361,20 @@ const handleSignup = async () => {
 
 .signup-footer { margin-top: 45px; font-size: 0.9rem; color: #a0a8b1; }
 .signup-footer a { color: var(--c-primary-text); font-weight: 700; text-decoration: none; margin-left: 8px; }
-/* 휴대폰: 카드가 화면 끝에 붙지 않게 바깥 여백, 안쪽 여백은 줄인다 (#124) */
+/* 휴대폰·앱 (#190): 카드 없이 화면 전체를 쓴다. 노치·홈 표시줄 자리는 비워 둔다 */
 @media (max-width: 640px) {
-  .gain-z-signup-root { height: auto; min-height: 100dvh; padding: 24px 16px; }
-  .signup-card-container { padding: 40px 22px; }
+  .gain-z-signup-root {
+    height: auto;
+    min-height: 100dvh;
+    padding:
+      calc(24px + env(safe-area-inset-top))
+      calc(32px + env(safe-area-inset-right))
+      calc(24px + env(safe-area-inset-bottom))
+      calc(32px + env(safe-area-inset-left));
+    background: #ffffff;
+  }
+  .login-background-deco { display: none; }
+  .signup-card-container { max-width: 360px; padding: 0; border: none; border-radius: 0; box-shadow: none; }
 }
 @media (max-width: 640px) {
   .gz-input { padding: 12px 14px; }

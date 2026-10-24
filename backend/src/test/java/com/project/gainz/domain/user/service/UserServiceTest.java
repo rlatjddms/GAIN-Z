@@ -9,6 +9,7 @@ import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
+import com.project.gainz.domain.user.dto.request.PasswordCreateRequest;
 import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
 import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
 import com.project.gainz.domain.user.dto.response.ProfileMusicResponse;
@@ -146,6 +147,12 @@ class UserServiceTest {
         userService.updateProfileMusic(USER_ID, new ProfileMusicRequest("Hysteria", "Muse", " https://youtu.be/abc "));
         assertThat(user.getProfileMusicUrl()).isEqualTo("https://youtu.be/abc");
 
+        // 곡 검색으로 고른 커버·미리듣기 (#187). 응답에도 함께 나간다
+        MyInfoResponse picked = userService.updateProfileMusic(USER_ID, new ProfileMusicRequest("Lilac", "IU", null,
+                "https://is1-ssl.mzstatic.com/a/200x200bb.jpg", " https://audio-ssl.itunes.apple.com/a.m4a "));
+        assertThat(picked.profileMusic()).isEqualTo(new ProfileMusicResponse("Lilac", "IU", null,
+                "https://is1-ssl.mzstatic.com/a/200x200bb.jpg", "https://audio-ssl.itunes.apple.com/a.m4a"));
+
         MyInfoResponse response = userService.deleteProfileMusic(USER_ID);
 
         assertThat(user.hasProfileMusic()).isFalse();
@@ -242,12 +249,25 @@ class UserServiceTest {
     /* ---------- 비밀번호 ---------- */
 
     @Test
-    void 소셜_가입자는_비밀번호를_바꿀_수_없다() {
+    void 비밀번호가_없는_계정은_비밀번호를_바꿀_수_없다() {
         user(SocialProvider.KAKAO, null);
 
         assertThatThrownBy(() -> userService.changePassword(USER_ID, new PasswordChangeRequest("old", "New1234!")))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SOCIAL_ACCOUNT_PASSWORD);
+    }
+
+    @Test
+    void 비밀번호가_없는_계정은_비밀번호를_만들고_있으면_만들지_않는다() {
+        User social = user(SocialProvider.KAKAO, null);
+        when(passwordEncoder.encode("New1234!")).thenReturn("new-encoded");
+
+        userService.createPassword(USER_ID, new PasswordCreateRequest("New1234!"));
+        assertThat(social.getPassword()).isEqualTo("new-encoded");
+
+        assertThatThrownBy(() -> userService.createPassword(USER_ID, new PasswordCreateRequest("Other1234!")))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PASSWORD_ALREADY_SET);
     }
 
     @Test
@@ -332,6 +352,41 @@ class UserServiceTest {
         assertThat(user.getEmail()).isNotEqualTo(EMAIL).endsWith("@gainz.invalid");
         assertThat(user.getPassword()).isNull();
         assertThat(character.getIsDeleted()).isTrue();
+    }
+
+    @Test
+    void 비밀번호를_만든_소셜_가입자는_탈퇴할_때_비밀번호를_확인한다() {
+        user(SocialProvider.KAKAO, ENCODED);
+        when(passwordEncoder.matches("wrong", ENCODED)).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.withdraw(USER_ID, new WithdrawRequest("wrong")))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
+    }
+
+    @Test
+    void 리더를_넘겨야_할_밴드가_있으면_아무것도_지우지_않고_멈춘다() {
+        User user = user(SocialProvider.GOOGLE, null);
+        org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.BAND_LEADER_MUST_HAND_OVER))
+                .when(bandService).leaveAllBands(USER_ID);
+
+        assertThatThrownBy(() -> userService.withdraw(USER_ID, null))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BAND_LEADER_MUST_HAND_OVER);
+        verify(refreshTokenRepository, never()).deleteById(anyString());
+        verify(characterRepository, never()).findByUserId(USER_ID);
+        assertThat(user.getIsDeleted()).isFalse();
+    }
+
+    @Test
+    void 탈퇴하면_소셜_연결을_지워_같은_소셜로_다시_가입할_수_있다() {
+        User user = user(SocialProvider.GOOGLE, null);
+        user.addSocialAccount(SocialProvider.GOOGLE, "g-1");
+        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        userService.withdraw(USER_ID, null);
+
+        assertThat(user.getSocialAccounts()).isEmpty();
     }
 
     @Test

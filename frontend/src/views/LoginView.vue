@@ -45,7 +45,7 @@
             <span class="checkmark"></span>
             로그인 상태 유지
           </label>
-          <a href="#" class="forgot-pw">비밀번호 찾기</a>
+          <router-link to="/forgot-password" class="forgot-pw">비밀번호 찾기</router-link>
         </div>
 
         <button type="submit" class="login-btn-main" :disabled="isLoading">
@@ -78,12 +78,14 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppLogo from '../components/AppLogo.vue'
 import { API_BASE_URL } from '../api/axios'
+import { socialErrorMessage } from '../api/user'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -92,6 +94,12 @@ const keepLoggedIn = ref(true)
 const isPwVisible = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
+
+// 소셜 로그인이 막혀 돌아왔을 때 (?socialError=EMAIL_EXISTS&provider=NAVER, #189)
+if (route.query.socialError) {
+  errorMessage.value = socialErrorMessage(route.query.socialError, route.query.provider)
+  router.replace({ path: route.path })
+}
 
 const handleLogin = async () => {
   if (!email.value || !password.value) return
@@ -344,10 +352,20 @@ const handleSocialLogin = (provider) => {
   text-decoration: none;
   margin-left: 8px;
 }
-/* 휴대폰: 카드가 화면 끝에 붙지 않게 바깥 여백, 안쪽 여백은 줄인다 (#124) */
+/* 휴대폰·앱 (#190): 카드 없이 화면 전체를 쓴다. 노치·홈 표시줄 자리는 비워 둔다 */
 @media (max-width: 640px) {
-  .gain-z-login-root { height: auto; min-height: 100dvh; padding: 24px 16px; }
-  .login-card-container { padding: 40px 22px; }
+  .gain-z-login-root {
+    height: auto;
+    min-height: 100dvh;
+    padding:
+      calc(24px + env(safe-area-inset-top))
+      calc(32px + env(safe-area-inset-right))
+      calc(24px + env(safe-area-inset-bottom))
+      calc(32px + env(safe-area-inset-left));
+    background: #ffffff;
+  }
+  .login-background-deco { display: none; }
+  .login-card-container { max-width: 360px; padding: 0; border: none; border-radius: 0; box-shadow: none; }
 }
 @media (max-width: 640px) {
   .gz-input { padding: 12px 14px; }

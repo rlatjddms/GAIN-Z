@@ -34,12 +34,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class BandBoardService {
     public static final int MAX_ATTACHMENTS = 8;
+    // 검색어 최대 길이, 기간 조건이 없을 때 쓰는 끝값 (#188)
+    static final int MAX_KEYWORD = 50;
+    private static final LocalDateTime SEARCH_MIN = LocalDateTime.of(2000, 1, 1, 0, 0);
+    private static final LocalDateTime SEARCH_MAX = LocalDateTime.of(3000, 1, 1, 0, 0);
+
     private final BandMemberRepository members;
     private final BandPostRepository posts;
     private final BandCommentRepository comments;
@@ -59,11 +67,33 @@ public class BandBoardService {
 
     @Transactional(readOnly = true)
     public PostPage list(Long userId, Long bandId, int page, int size, Boolean notice, boolean mine) {
+        return list(userId, bandId, page, size, notice, mine, null, null, null);
+    }
+
+    // 검색어(제목·내용·작성자)와 작성일 기간(from~to, 둘 다 포함)으로 걸러 본다 (#188). 조건이 없으면 기존 목록 쿼리
+    @Transactional(readOnly = true)
+    public PostPage list(Long userId, Long bandId, int page, int size, Boolean notice, boolean mine,
+                         String q, LocalDate from, LocalDate to) {
         requireMember(userId, bandId);
         var pageable = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(20, size)));
-        var result = posts.findVisible(bandId, userId, mine, notice, Instant.now(), pageable);
+        String keyword = q == null ? "" : q.strip();
+        if (keyword.length() > MAX_KEYWORD) keyword = keyword.substring(0, MAX_KEYWORD);
+        if (from == null) from = to;
+        if (to == null) to = from;
+        if (from != null && from.isAfter(to)) { LocalDate t = from; from = to; to = t; }
+        var result = keyword.isEmpty() && from == null
+                ? posts.findVisible(bandId, userId, mine, notice, Instant.now(), pageable)
+                : posts.search(bandId, userId, mine, notice, Instant.now(), likePattern(keyword),
+                        from == null ? SEARCH_MIN : from.atStartOfDay(), to == null ? SEARCH_MAX : to.plusDays(1).atStartOfDay(), pageable);
         return new PostPage(result.getContent().stream().map(p -> response(p, userId)).toList(),
                 result.getNumber(), result.getTotalPages(), result.getTotalElements());
+    }
+
+    // 소문자 '%검색어%'. LIKE의 특수 문자는 !로 이스케이프 (빈 검색어는 그대로 빈 문자열)
+    public static String likePattern(String keyword) {
+        if (keyword.isEmpty()) return "";
+        String escaped = keyword.toLowerCase(Locale.ROOT).replace("!", "!!").replace("%", "!%").replace("_", "!_");
+        return "%" + escaped + "%";
     }
 
     @Transactional(readOnly = true)
@@ -206,6 +236,26 @@ public class BandBoardService {
         BandPostFile file = post.getFiles().stream().filter(f -> f.getKey().equals(attachmentId)).findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND));
         return new AttachmentFile(storage.load(file.getKey()), file.getName(), file.getType());
+    }
+
+    // 댓글 한 쪽 (#188): 원댓글을 최근 것부터 size개 고르고, 화면에는 오래된 순으로 원댓글 뒤에 그 답글을 붙인다
+    @Transactional(readOnly = true)
+    public CommentPage commentPage(Long userId, Long bandId, Long postId, int page, int size) {
+        requireMember(userId, bandId);
+        findPost(bandId, postId);
+        var roots = comments.findRootPage(postId, PageRequest.of(Math.max(0, page), Math.max(1, Math.min(50, size))));
+        List<BandComment> ordered = new ArrayList<>(roots.getContent());
+        java.util.Collections.reverse(ordered);
+        Map<Long, List<BandComment>> replies = ordered.isEmpty() ? Map.of()
+                : comments.findAllByParentIdInOrderByCreatedAtAscIdAsc(ordered.stream().map(BandComment::getId).toList()).stream()
+                        .collect(Collectors.groupingBy(c -> c.getParent().getId(), LinkedHashMap::new, Collectors.toList()));
+        List<Comment> content = new ArrayList<>();
+        for (BandComment root : ordered) {
+            content.add(response(root, userId));
+            replies.getOrDefault(root.getId(), List.of()).forEach(reply -> content.add(response(reply, userId)));
+        }
+        return new CommentPage(content, roots.getNumber(), roots.getTotalPages(), roots.getTotalElements(),
+                comments.countByPostIdAndContentDeletedFalse(postId));
     }
 
     @Transactional(readOnly = true)

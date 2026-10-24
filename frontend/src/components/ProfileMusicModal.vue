@@ -4,9 +4,49 @@
       <div v-if="open" class="backdrop" @click.self="!busy && emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="music-title">
           <h2 id="music-title">요즘 듣는 음악</h2>
-          <p class="sub">친구와 밴드 멤버가 내 프로필에서 볼 수 있어요.</p>
+          <p class="sub">친구와 밴드 멤버가 내 프로필에서 보고 30초 미리듣기를 할 수 있어요.</p>
+
+          <!-- 곡 검색 (#187): 고르면 아래 칸이 채워지고 커버·미리듣기가 붙는다 -->
+          <div class="search">
+            <label class="search-box">
+              <Search :size="15" :stroke-width="2.4" aria-hidden="true" />
+              <input
+                ref="searchInput"
+                :value="term"
+                type="search"
+                enterkeyhint="search"
+                maxlength="60"
+                placeholder="곡 제목이나 가수로 찾기"
+                aria-label="곡 검색"
+                :disabled="busy"
+                @input="term = $event.target.value"
+                @keydown.enter.prevent="runSearch"
+              >
+            </label>
+            <p v-if="searching" class="search-note">찾는 중…</p>
+            <p v-else-if="searchError" class="search-note bad">{{ searchError }}</p>
+            <p v-else-if="searched && !results.length" class="search-note">찾는 곡이 없어요. 아래에 직접 적어도 돼요.</p>
+            <ul v-if="results.length" class="results">
+              <li v-for="r in results" :key="r.id">
+                <button type="button" class="result" :class="{ picked: isPicked(r) }" @click="pick(r)">
+                  <img v-if="r.artworkUrl" :src="r.artworkUrl" alt="" class="cover" loading="lazy">
+                  <span v-else class="cover empty"><Music :size="16" /></span>
+                  <span class="r-text"><strong>{{ r.title }}</strong><span>{{ r.artist }}<template v-if="r.album"> · {{ r.album }}</template></span></span>
+                </button>
+                <PreviewButton v-if="r.previewUrl" :url="r.previewUrl" />
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="artworkUrl" class="picked-card">
+            <img :src="artworkUrl" alt="" class="cover">
+            <span class="r-text"><strong>{{ title || '제목' }}</strong><span>{{ artist }}</span></span>
+            <PreviewButton v-if="previewUrl" :url="previewUrl" />
+            <button type="button" class="unpick" aria-label="고른 곡의 커버·미리듣기 빼기" :disabled="busy" @click="unpick"><X :size="15" :stroke-width="2.4" /></button>
+          </div>
 
           <form @submit.prevent="save">
+            <p class="manual-label">{{ artworkUrl ? '제목·가수는 고칠 수 있어요 (영어 제목을 한국어로 바꿔도 돼요)' : '직접 적기' }}</p>
             <label class="field">
               <span>곡 제목</span>
               <input ref="titleInput" v-model="title" type="text" :maxlength="PROFILE_MUSIC_TITLE_MAX" placeholder="예) Hysteria" :disabled="busy">
@@ -37,10 +77,12 @@
 
 <script setup>
 // 요즘 듣는 음악 등록·수정 팝업 (홈 음악 칩에서 연다). 저장하면 내 정보(authStore.profile)를 바로 바꾼다
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { Music, Search, X } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
+import PreviewButton from './PreviewButton.vue'
 import {
-  updateProfileMusic, deleteProfileMusic,
+  updateProfileMusic, deleteProfileMusic, searchSongs,
   PROFILE_MUSIC_TITLE_MAX, PROFILE_MUSIC_ARTIST_MAX, PROFILE_MUSIC_URL_MAX,
 } from '../api/user'
 import { apiErrorMessage } from '../api/practice'
@@ -57,21 +99,74 @@ const current = computed(() => authStore.profile?.profileMusic || null)
 const title = ref('')
 const artist = ref('')
 const url = ref('')
+// 곡 검색으로 골랐을 때만 있다
+const artworkUrl = ref(null)
+const previewUrl = ref(null)
 const busy = ref(false)
 const error = ref('')
 const titleInput = ref(null)
+const searchInput = ref(null)
 
 const urlValid = computed(() => /^https?:\/\/\S+$/i.test(url.value.trim()))
 const valid = computed(() => title.value.trim() && artist.value.trim() && (!url.value.trim() || urlValid.value))
+
+/* ---------- 곡 검색: 입력을 멈추면 잠시 뒤 찾는다 ----------
+   v-model은 한글을 조합하는 동안 값을 늦게 바꿔서 마지막 글자가 빠진 채로 찾게 되니, input 이벤트로 바로 받는다 */
+const term = ref('')
+const results = ref([])
+const searching = ref(false)
+const searched = ref(false)
+const searchError = ref('')
+let searchTimer = null
+let searchAbort = null
+
+const runSearch = async () => {
+  clearTimeout(searchTimer)
+  searchAbort?.abort()
+  const q = term.value.trim()
+  if (!q) { results.value = []; searched.value = false; searchError.value = ''; return }
+  searchAbort = new AbortController()
+  const signal = searchAbort.signal
+  searching.value = true
+  searchError.value = ''
+  try {
+    results.value = await searchSongs(q, signal)
+    searched.value = true
+  } catch (e) {
+    if (e.name === 'AbortError') return
+    results.value = []
+    searchError.value = '곡을 찾지 못했어요. 잠시 후 다시 해 보거나 아래에 직접 적어 주세요.'
+  } finally {
+    if (!signal.aborted) searching.value = false
+  }
+}
+watch(term, () => { clearTimeout(searchTimer); searchTimer = setTimeout(runSearch, 400) })
+onBeforeUnmount(() => { clearTimeout(searchTimer); searchAbort?.abort() })
+
+const isPicked = (r) => !!artworkUrl.value && artworkUrl.value === r.artworkUrl && previewUrl.value === r.previewUrl
+const pick = (r) => {
+  title.value = r.title
+  artist.value = r.artist
+  url.value = r.url || ''
+  artworkUrl.value = r.artworkUrl
+  previewUrl.value = r.previewUrl
+}
+const unpick = () => { artworkUrl.value = null; previewUrl.value = null }
 
 watch(() => props.open, async (open) => {
   if (!open) return
   title.value = current.value?.title || ''
   artist.value = current.value?.artist || ''
   url.value = current.value?.url || ''
+  artworkUrl.value = current.value?.artworkUrl || null
+  previewUrl.value = current.value?.previewUrl || null
+  term.value = ''
+  results.value = []
+  searched.value = false
+  searchError.value = ''
   error.value = ''
   await nextTick()
-  titleInput.value?.focus()
+  searchInput.value?.focus()
 })
 
 const run = async (action, fallback) => {
@@ -89,8 +184,10 @@ const run = async (action, fallback) => {
 
 const save = () => {
   if (!valid.value || busy.value) return
-  run(() => updateProfileMusic({ title: title.value.trim(), artist: artist.value.trim(), url: url.value.trim() || null }),
-    '음악을 저장하지 못했어요.')
+  run(() => updateProfileMusic({
+    title: title.value.trim(), artist: artist.value.trim(), url: url.value.trim() || null,
+    artworkUrl: artworkUrl.value, previewUrl: previewUrl.value,
+  }), '음악을 저장하지 못했어요.')
 }
 
 const remove = async () => {
@@ -105,14 +202,47 @@ const remove = async () => {
   display: flex; align-items: center; justify-content: center; padding: 16px;
 }
 .modal {
-  width: 100%; max-width: 380px; box-sizing: border-box;
+  width: 100%; max-width: 420px; max-height: calc(100dvh - 32px); overflow-y: auto; box-sizing: border-box;
   background: var(--c-surface); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-lg);
   font-family: 'Pretendard', sans-serif; color: var(--c-text);
 }
 h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
-.sub { margin: 0 0 18px; font-size: 0.8rem; color: var(--c-muted); }
+.sub { margin: 0 0 16px; font-size: 0.8rem; color: var(--c-muted); }
+
+.search { margin-bottom: 14px; }
+.search-box {
+  display: flex; align-items: center; gap: 8px; padding: 0 14px; height: 44px;
+  border: 1px solid var(--c-line); border-radius: 12px; background: var(--c-bg); color: var(--c-faint);
+}
+.search-box:focus-within { border-color: var(--c-primary); background: #fff; }
+.search-box input { flex: 1; min-width: 0; border: none; outline: none; background: none; font: inherit; font-size: 16px; color: var(--c-text); }
+.search-note { margin: 8px 2px 0; font-size: 0.75rem; color: var(--c-muted); }
+.search-note.bad { color: var(--c-danger); }
+.results { list-style: none; margin: 8px 0 0; padding: 0; max-height: 236px; overflow-y: auto; border: 1px solid var(--c-line); border-radius: 12px; }
+.results li { display: flex; align-items: center; gap: 8px; padding-right: 10px; }
+.results li + li { border-top: 1px solid var(--c-line-soft); }
+.result {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border: none; background: none; font: inherit; text-align: left; cursor: pointer; color: var(--c-text);
+}
+.result:hover { background: var(--c-line-soft); }
+.result.picked { background: var(--c-primary-soft); }
+.cover { flex: none; width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: var(--c-line-soft); }
+.cover.empty { display: flex; align-items: center; justify-content: center; color: var(--c-faint); }
+.r-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.r-text strong, .r-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-text strong { font-size: 0.86rem; font-weight: 800; }
+.r-text span { font-size: 0.74rem; color: var(--c-muted); }
+.picked-card {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 12px;
+  border: 1px solid var(--c-primary-line); border-radius: 14px; background: var(--c-primary-soft);
+}
+.unpick { flex: none; display: flex; padding: 6px; border: none; border-radius: 8px; background: none; color: var(--c-muted); cursor: pointer; }
+.unpick:hover { background: color-mix(in srgb, var(--c-primary) 12%, transparent); }
+.manual-label { margin: 0 0 8px; font-size: 0.72rem; font-weight: 700; color: var(--c-faint); }
+
 .field { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
-.field:first-of-type { margin-top: 0; }
+.manual-label + .field { margin-top: 0; }
 .field span { font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }
 .field em { font-style: normal; font-weight: 700; color: var(--c-faint); margin-left: 4px; }
 .field input {
@@ -136,5 +266,6 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
+  .field input { font-size: 16px; }
 }
 </style>

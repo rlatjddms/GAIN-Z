@@ -96,12 +96,13 @@ export const useAuthStore = defineStore('auth', {
     },
 
     // Signup action
-    async signup(name, email, password) {
+    async signup(name, email, password, emailVerificationToken) {
       try {
         const response = await axiosInstance.post('/api/v1/auth/signup', {
           name,
           email,
           password,
+          emailVerificationToken,
         })
 
         // On success, save the name locally for this email to enhance UX later

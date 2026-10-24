@@ -11,7 +11,7 @@ public enum ErrorCode {
     DUPLICATE_EMAIL(409, "U001", "이미 존재하는 이메일입니다."),
     USER_NOT_FOUND(404, "U002", "존재하지 않는 사용자입니다."),
     INVALID_PASSWORD(400, "U003", "비밀번호가 일치하지 않습니다."),
-    SOCIAL_ACCOUNT_PASSWORD(400, "U004", "소셜 로그인 계정은 비밀번호를 바꿀 수 없습니다."),
+    SOCIAL_ACCOUNT_PASSWORD(400, "U004", "비밀번호가 없는 계정이에요. 먼저 비밀번호를 만들어 주세요."),
     INVALID_TOKEN(401, "U005", "유효하지 않은 토큰입니다."),
     SAME_PASSWORD(400, "U006", "지금 비밀번호와 다른 비밀번호를 입력해 주세요."),
     PROFILE_IMAGE_REQUIRED(400, "U007", "프로필 사진 파일을 올려 주세요."),
@@ -19,6 +19,18 @@ public enum ErrorCode {
     PROFILE_IMAGE_TOO_LARGE(400, "U009", "프로필 사진은 5MB까지 올릴 수 있습니다."),
     PROFILE_IMAGE_NOT_FOUND(404, "U010", "프로필 사진이 없습니다."),
     PROFILE_IMAGE_STORAGE_FAILED(500, "U011", "프로필 사진을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+    EMAIL_NOT_VERIFIED(400, "U012", "이메일 인증을 먼저 마쳐 주세요. 인증한 지 30분이 지났다면 다시 인증해 주세요."),
+    INVALID_EMAIL_TOKEN(400, "U013", "링크가 만료됐거나 이미 사용됐어요. 다시 요청해 주세요."),
+    INVALID_EMAIL_CODE(400, "U014", "인증 코드가 맞지 않아요."),
+    EMAIL_CODE_EXPIRED(400, "U015", "인증 코드가 만료됐어요. 새 코드를 받아 주세요."),
+    EMAIL_CODE_TOO_MANY_ATTEMPTS(400, "U016", "인증 코드를 5번 틀렸어요. 새 코드를 받아 주세요."),
+    MAIL_SEND_TOO_SOON(429, "U017", "조금 전에 보낸 메일이 있어요. 잠시 후 다시 보낼 수 있어요."),
+    MAIL_DAILY_LIMIT(429, "U018", "오늘은 이 이메일로 메일을 더 보낼 수 없어요. 내일 다시 시도해 주세요."),
+    PASSWORD_NOT_SET(400, "U019", "비밀번호가 없는 계정이에요. 가입한 소셜 계정으로 로그인해 주세요. 마이페이지에서 비밀번호를 만들면 이메일로도 로그인할 수 있어요."),
+    PASSWORD_ALREADY_SET(400, "U020", "이미 비밀번호가 있어요. 비밀번호 바꾸기를 이용해 주세요."),
+    LAST_LOGIN_METHOD(400, "U021", "로그인 방법이 하나뿐이라 해제할 수 없어요. 다른 방법을 먼저 연결하거나 비밀번호를 만들어 주세요."),
+    SOCIAL_NOT_LINKED(400, "U022", "연결되지 않은 소셜 계정이에요."),
+    INVALID_SOCIAL_PROVIDER(400, "U023", "지원하지 않는 소셜 로그인이에요."),
 
     /* Friend (친구) */
     INVALID_FRIEND_CODE(404, "F001", "친구 코드가 올바르지 않습니다. 친구에게 코드를 다시 확인해 주세요."),
@@ -78,6 +90,8 @@ public enum ErrorCode {
     SHEET_CONTENT_REQUIRED(400, "S013", "악보 내용을 붙여 넣어 주세요."),
     ANNOTATION_TOO_LARGE(400, "S014", "필기가 너무 많아 저장하지 못했습니다. 일부를 지우고 다시 써 주세요."),
     INVALID_ANNOTATION(400, "S015", "필기 형식이 올바르지 않습니다."),
+    SHEET_PAGE_ORDER_INVALID(400, "S016", "악보 장 순서가 올바르지 않습니다. 새로고침 후 다시 시도해 주세요."),
+    SHEET_ALREADY_MINE(400, "S017", "이미 내가 만든 악보입니다."),
 
     /* Band (밴드) */
     BAND_NOT_FOUND(404, "B001", "존재하지 않는 밴드입니다."),
@@ -117,7 +131,8 @@ public enum ErrorCode {
     JAM_TRACK_LIMIT_EXCEEDED(400, "B035", "트랙은 잼마다 8개까지 올릴 수 있습니다."),
     JAM_TRACK_FILE_INVALID(400, "B036", "WebM·OGG·M4A·MP3·WAV 녹음 파일을 30MB까지 올릴 수 있습니다."),
     JAM_PERMISSION_DENIED(403, "B037", "만든 멤버나 리더만 할 수 있습니다."),
-    JAM_SONG_INVALID(400, "B038", "이 밴드 셋리스트에 없는 곡입니다.");
+    JAM_SONG_INVALID(400, "B038", "이 밴드 셋리스트에 없는 곡입니다."),
+    BAND_LEADER_MUST_HAND_OVER(400, "B039", "리더인 밴드가 있어요. 탈퇴하기 전에 다른 멤버에게 리더를 넘겨 주세요.");
 
     private final int status;
     private final String code;

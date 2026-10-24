@@ -115,6 +115,57 @@ class BandBoardServiceTest {
         return user;
     }
 
+    @Test void searchUsesEscapedPatternAndWholeDayRangeAndSwapsReversedDates() {
+        member(1, Position.MEMBER);
+        when(posts.search(eq(10L), eq(1L), eq(false), isNull(), any(), any(), any(), any(), any())).thenReturn(new PageImpl<>(List.of()));
+        service.list(1L, 10L, 0, 12, null, false, "  100%_합주  ", java.time.LocalDate.of(2029, 10, 7), java.time.LocalDate.of(2029, 10, 1));
+        verify(posts).search(eq(10L), eq(1L), eq(false), isNull(), any(), eq("%100!%!_합주%"),
+                eq(java.time.LocalDateTime.of(2029, 10, 1, 0, 0)), eq(java.time.LocalDateTime.of(2029, 10, 8, 0, 0)), any());
+        verify(posts, never()).findVisible(any(), any(), anyBoolean(), any(), any(), any());
+    }
+
+    @Test void searchWithOnlyOneDateMeansThatDayAndBlankKeywordUsesPlainList() {
+        member(1, Position.MEMBER);
+        when(posts.search(eq(10L), eq(1L), eq(true), eq(false), any(), eq(""), any(), any(), any())).thenReturn(new PageImpl<>(List.of()));
+        service.list(1L, 10L, 0, 12, false, true, null, java.time.LocalDate.of(2029, 10, 3), null);
+        verify(posts).search(eq(10L), eq(1L), eq(true), eq(false), any(), eq(""),
+                eq(java.time.LocalDateTime.of(2029, 10, 3, 0, 0)), eq(java.time.LocalDateTime.of(2029, 10, 4, 0, 0)), any());
+
+        when(posts.findVisible(eq(10L), eq(1L), eq(false), isNull(), any(), any())).thenReturn(new PageImpl<>(List.of()));
+        service.list(1L, 10L, 0, 12, null, false, "   ", null, null);
+        verify(posts).findVisible(eq(10L), eq(1L), eq(false), isNull(), any(), any());
+    }
+
+    @Test void likePatternEscapesWildcardsAndLowercases() {
+        assertThat(BandBoardService.likePattern("")).isEmpty();
+        assertThat(BandBoardService.likePattern("AbC!")).isEqualTo("%abc!!%");
+    }
+
+    @Test void commentPageListsRootsOldestFirstWithTheirRepliesAndCounts() {
+        BandPost post = post(member(1, Position.MEMBER));
+        BandComment older = new BandComment(post, post.getAuthor(), "오래된 댓글", null);
+        ReflectionTestUtils.setField(older, "id", 31L);
+        BandComment newer = new BandComment(post, post.getAuthor(), "최근 댓글", null);
+        ReflectionTestUtils.setField(newer, "id", 32L);
+        BandComment reply = new BandComment(post, post.getAuthor(), "답글", older);
+        ReflectionTestUtils.setField(reply, "id", 33L);
+        when(comments.findRootPage(eq(20L), argThat((Pageable p) -> p.getPageNumber() == 1 && p.getPageSize() == 50)))
+                .thenReturn(new PageImpl<>(List.of(newer, older), org.springframework.data.domain.PageRequest.of(1, 50), 120));
+        when(comments.findAllByParentIdInOrderByCreatedAtAscIdAsc(List.of(31L, 32L))).thenReturn(List.of(reply));
+        when(comments.countByPostIdAndContentDeletedFalse(20L)).thenReturn(7L);
+
+        var page = service.commentPage(1L, 10L, 20L, 1, 500);
+
+        assertThat(page.content()).extracting(c -> c.id()).containsExactly(31L, 33L, 32L);
+        assertThat(page.number()).isEqualTo(1);
+        assertThat(page.totalElements()).isEqualTo(120);
+        assertThat(page.commentCount()).isEqualTo(7);
+    }
+
+    @Test void commentPageRequiresMembership() {
+        fails(() -> service.commentPage(9L, 10L, 20L, 0, 20), ErrorCode.NOT_BAND_MEMBER);
+    }
+
     private BandMember member(long id, Position position) {
         Band band = Band.builder().name("밴드").leader(user(1)).inviteCode("ABCDEFGH").build();
         ReflectionTestUtils.setField(band, "id", 10L);

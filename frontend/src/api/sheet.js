@@ -23,8 +23,9 @@ export async function addToWorkspace(sheetId) {
 }
 
 // 메모·연습 키·즐겨찾기 중 보낸 것만 수정 (원래 키를 보내면 원래 키로, 빈 메모는 지움)
-export async function updateWorkspaceItem(id, { customKey, personalMemo, isFavorite }) {
-  const response = await axiosInstance.patch(`/api/v1/workspace/sheets/${id}`, { customKey, personalMemo, isFavorite })
+// customChords: 키 바꿔 치기 표에 내가 추가한 코드 목록 (#192, 보낸 것으로 통째로 바뀜)
+export async function updateWorkspaceItem(id, { customKey, personalMemo, isFavorite, customChords }) {
+  const response = await axiosInstance.patch(`/api/v1/workspace/sheets/${id}`, { customKey, personalMemo, isFavorite, customChords })
   return response.data.data
 }
 
@@ -84,6 +85,19 @@ export async function addSheetPages(sheetId, files, onProgress) {
 // 장 지우기 (마지막 한 장은 못 지움) → 악보
 export async function deleteSheetPage(sheetId, pageId) {
   const response = await axiosInstance.delete(`/api/v1/sheets/${sheetId}/pages/${pageId}`)
+  return response.data.data
+}
+
+// 장 순서 바꾸기 (#191): 지금 장 ID를 원하는 순서대로 모두 보낸다 → 악보
+export async function reorderSheetPages(sheetId, pageIds) {
+  const response = await axiosInstance.put(`/api/v1/sheets/${sheetId}/pages/order`, { pageIds })
+  return response.data.data
+}
+
+// 내 악보로 복사 (#191): 남이 올린 악보를 사본으로 만들어 이 보관함 항목을 사본으로 바꾼다
+// (내 메모·연습 키·필기도 사본으로 옮김) → 보관함 항목 상세 (항목 ID는 그대로)
+export async function copyWorkspaceItem(itemId) {
+  const response = await axiosInstance.post(`/api/v1/workspace/sheets/${itemId}/copy`)
   return response.data.data
 }
 

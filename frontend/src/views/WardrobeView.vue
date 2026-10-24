@@ -361,6 +361,9 @@ const snapshot = (c, wardrobe) => ({
 
 onMounted(async () => {
   if (!authStore.character) await authStore.fetchCharacter()
+  // 옷장 목록을 받기 전에도 내 캐릭터로 보이게 저장된 캐릭터로 먼저 채운다 (#213: draft 기본값이 잠깐 보였음)
+  original.value = snapshot(authStore.character || {}, null)
+  Object.assign(draft, original.value)
   let wardrobe = null
   try {
     wardrobe = await getWardrobe()
@@ -371,8 +374,10 @@ onMounted(async () => {
   } catch (e) {
     wardrobeError.value = `의상·배경 목록을 불러오지 못했어요. ${apiErrorMessage(e)}`
   }
+  // 목록의 입은 옷·무대로 다시 맞춘다. 기다리는 사이 이미 고르기 시작했으면 고른 값은 두고 기준만 바꾼다
+  const touched = appearanceDirty.value
   original.value = snapshot(authStore.character || {}, wardrobe)
-  Object.assign(draft, original.value)
+  if (!touched) Object.assign(draft, original.value)
 })
 
 const appearanceDirty = computed(() => !!original.value && APPEARANCE_KEYS.some((k) => draft[k] !== original.value[k]))
@@ -406,7 +411,7 @@ const looks = computed(() => ({ skinColor: draft.skinColor, hairColor: draft.hai
 
 // 미리보기 캐릭터 = 저장된 캐릭터 + 고르는 중인 값 (입을 옷의 그림 포함)
 const preview = computed(() => {
-  if (!authStore.character) return null
+  if (!authStore.character || !original.value) return null
   const outfit = outfits.value.find((o) => o.id === draft.outfitId)
   return { ...authStore.character, ...draft, currentOutfitSpriteKey: outfit?.spriteKey ?? authStore.character.currentOutfitSpriteKey }
 })

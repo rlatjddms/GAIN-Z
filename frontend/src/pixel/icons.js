@@ -100,6 +100,21 @@ export const PIXEL_ICONS = {
     '.x....xx....',
     '..xxxx......',
   ],
+  // 밴드 멤버 셋: 가운데 한 명과 양옆 두 명 (밴드가 없을 때 안내, #190)
+  band: [
+    '............',
+    '.....xx.....',
+    '....xxxx....',
+    '.x..xxxx..x.',
+    'xxx..xx..xxx',
+    'xxx......xxx',
+    '.x..xxxx..x.',
+    '...xxxxxx...',
+    'xxx.xxxx.xxx',
+    'xxx.xxxx.xxx',
+    'xxx.xxxx.xxx',
+    '............',
+  ],
   star: [
     '.....xx.....',
     '.....xx.....',

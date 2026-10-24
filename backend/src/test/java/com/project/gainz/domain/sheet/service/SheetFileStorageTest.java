@@ -78,4 +78,17 @@ class SheetFileStorageTest {
         assertThatThrownBy(() -> storage().load("../../secret.yml"))
                 .extracting("errorCode").isEqualTo(ErrorCode.SHEET_PAGE_NOT_FOUND);
     }
+
+    @Test
+    void 저장된_파일을_새_이름으로_복사한다() throws Exception {
+        SheetFileStorage storage = storage();
+        StoredFile saved = storage.store(new MockMultipartFile("files", "a.pdf", "application/pdf", PDF));
+
+        String copy = storage.copy(saved.storedName());
+
+        assertThat(copy).isNotEqualTo(saved.storedName()).endsWith(".pdf");
+        assertThat(Files.readAllBytes(dir.resolve("sheets").resolve(copy))).isEqualTo(PDF);
+        storage.delete(saved.storedName());
+        assertThat(storage.load(copy).contentLength()).isEqualTo(PDF.length);
+    }
 }

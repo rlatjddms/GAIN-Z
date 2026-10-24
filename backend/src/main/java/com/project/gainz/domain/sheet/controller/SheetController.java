@@ -1,6 +1,7 @@
 package com.project.gainz.domain.sheet.controller;
 
 import com.project.gainz.domain.sheet.dto.request.AnnotationRequest;
+import com.project.gainz.domain.sheet.dto.request.SheetPageOrderRequest;
 import com.project.gainz.domain.sheet.dto.request.SheetRequest;
 import com.project.gainz.domain.sheet.dto.response.AnnotationResponse;
 import com.project.gainz.domain.sheet.dto.response.SheetDetailResponse;
@@ -92,6 +93,16 @@ public class SheetController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(ApiResponse.success(sheetService.addPages(principal.getUserId(), sheetId, files)));
+    }
+
+    // 장 순서 바꾸기 (#191)
+    @PutMapping("/{sheetId}/pages/order")
+    public ResponseEntity<ApiResponse<SheetDetailResponse>> reorderPages(
+            @PathVariable Long sheetId,
+            @Valid @RequestBody SheetPageOrderRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(sheetService.reorderPages(principal.getUserId(), sheetId, request.pageIds())));
     }
 
     @DeleteMapping("/{sheetId}/pages/{pageId}")

@@ -1,5 +1,6 @@
 package com.project.gainz.domain.band.service;
 
+import com.project.gainz.domain.band.dto.response.BandHandOverResponse;
 import com.project.gainz.domain.band.dto.request.BandCreateRequest;
 import com.project.gainz.domain.band.dto.request.BandJoinRequest;
 import com.project.gainz.domain.band.dto.request.BandLeaderRequest;
@@ -573,7 +574,7 @@ class BandServiceTest {
     }
 
     @Test
-    void 탈퇴하면_리더였던_밴드는_가장_먼저_들어온_멤버에게_넘어간다() {
+    void 다른_멤버가_있는_밴드의_리더는_리더를_넘기기_전에_탈퇴할_수_없고_어느_밴드인지_알려_준다() {
         User leaderUser = user(LEADER_ID);
         Band band = band(leaderUser);
         BandMember leader = member(100L, band, leaderUser, Position.LEADER, InstrumentType.GUITAR);
@@ -582,13 +583,17 @@ class BandServiceTest {
         when(bandMemberRepository.findAllByUserIdOrderByIdAsc(LEADER_ID)).thenReturn(List.of(leader));
         when(bandMemberRepository.findAllByBandIdOrderByIdAsc(BAND_ID)).thenReturn(List.of(leader, first, second));
 
-        bandService.leaveAllBands(LEADER_ID);
+        assertThatThrownBy(() -> bandService.leaveAllBands(LEADER_ID))
+                .isInstanceOfSatisfying(BusinessException.class, e -> {
+                    assertThat(e.getErrorCode()).isEqualTo(ErrorCode.BAND_LEADER_MUST_HAND_OVER);
+                    assertThat(((BandHandOverResponse) e.getData()).bands())
+                            .containsExactly(new BandHandOverResponse.BandRef(BAND_ID, band.getName()));
+                });
 
-        assertThat(leader.getIsDeleted()).isTrue();
-        assertThat(first.getPosition()).isEqualTo(Position.LEADER);
-        assertThat(second.getPosition()).isEqualTo(Position.MEMBER);
-        assertThat(band.getLeader().getId()).isEqualTo(MEMBER_ID);
-        assertThat(band.getIsDeleted()).isFalse();
+        // 자동으로 넘기지 않는다
+        assertThat(leader.getIsDeleted()).isFalse();
+        assertThat(first.getPosition()).isEqualTo(Position.MEMBER);
+        assertThat(band.getLeader().getId()).isEqualTo(LEADER_ID);
     }
 
     @Test
@@ -606,14 +611,17 @@ class BandServiceTest {
     }
 
     @Test
-    void 탈퇴하면_일반_멤버로_있던_밴드에서_빠진다() {
+    void 탈퇴하면_일반_멤버로_있던_밴드에서_빠지고_리더에게_알린다() {
         Fixture f = fixture();
         when(bandMemberRepository.findAllByUserIdOrderByIdAsc(MEMBER_ID)).thenReturn(List.of(f.member()));
+        when(notificationService.nicknameOf(f.member().getUser())).thenReturn("드러머");
 
         bandService.leaveAllBands(MEMBER_ID);
 
         assertThat(f.member().getIsDeleted()).isTrue();
         assertThat(f.leader().getIsDeleted()).isFalse();
         assertThat(f.band().getIsDeleted()).isFalse();
+        verify(notificationService).notify(eq(f.leader().getUser()), eq(NotificationType.BAND_LEAVE), eq(f.band().getName()),
+                eq("드러머 님이 탈퇴해서 밴드를 나갔어요"), eq("/bands/" + BAND_ID + "/settings"));
     }
 }

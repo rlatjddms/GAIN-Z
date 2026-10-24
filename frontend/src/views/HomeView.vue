@@ -16,9 +16,11 @@
             <template #head-start>
               <div class="music-chip" :class="{ empty: !myMusic }">
                 <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
-                  <span class="note"><Music :size="13" :stroke-width="2.5" /></span>
+                  <img v-if="myMusic?.artworkUrl" :src="myMusic.artworkUrl" alt="" class="music-cover">
+                  <span v-else class="note"><Music :size="13" :stroke-width="2.5" /></span>
                   <span class="music-text">{{ myMusic ? myMusic.title : '요즘 듣는 음악 등록' }}<span v-if="myMusic" class="music-artist"> · {{ myMusic.artist }}</span></span>
                 </button>
+                <PreviewButton v-if="myMusic?.previewUrl" :url="myMusic.previewUrl" small class="music-play" />
                 <a v-if="myMusicUrl" class="music-link" :href="myMusicUrl" target="_blank" rel="noopener noreferrer" title="새 탭에서 듣기">
                   <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                 </a>
@@ -92,7 +94,7 @@
           </section>
 
           <section v-else-if="!activeBand" class="stage band-stage band-empty">
-            <div class="empty-icon"><PixelIcon name="guitar" :size="48" /></div>
+            <div class="empty-icon"><PixelIcon name="band" :size="48" /></div>
             <h2>아직 들어간 밴드가 없어요</h2>
             <p class="empty-text">밴드를 새로 만들거나, 리더에게 받은 초대 코드로 가입해 보세요.</p>
             <div class="empty-actions">
@@ -166,6 +168,7 @@ import AppHeader from '../components/AppHeader.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import RecordsModal from '../components/workspace/RecordsModal.vue'
 import ProfileMusicModal from '../components/ProfileMusicModal.vue'
+import PreviewButton from '../components/PreviewButton.vue'
 import PracticeLogCard from '../components/workspace/PracticeLogCard.vue'
 import RecordIcon from '../components/workspace/RecordIcon.vue'
 import { RECORD_RARITIES, rarityOf, progressRatio } from '../constants/records'
@@ -548,6 +551,8 @@ button::-moz-focus-inner { border: 0 !important; }
   flex: none; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   background: var(--c-primary); color: #fff; font-size: 0.7rem;
 }
+.music-cover { flex: none; width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+.music-play { margin-right: 3px; }
 .music-chip.empty .music-main { color: var(--c-faint); }
 .music-chip.empty .note { background: #ced4da; }
 .music-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

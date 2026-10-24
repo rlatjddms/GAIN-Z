@@ -6,6 +6,7 @@ import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.friend.service.FriendService;
 import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
+import com.project.gainz.domain.user.dto.request.PasswordCreateRequest;
 import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
 import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
 import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
@@ -56,12 +57,16 @@ public class UserService {
         return MyInfoResponse.from(user);
     }
 
-    // 요즘 듣는 음악 설정 (링크는 비우면 null)
+    // 요즘 듣는 음악 설정 (링크·커버·미리듣기는 비우면 null)
     public MyInfoResponse updateProfileMusic(Long userId, ProfileMusicRequest request) {
         User user = findUser(userId);
-        String url = request.url() == null || request.url().isBlank() ? null : request.url().trim();
-        user.changeProfileMusic(request.title().trim(), request.artist().trim(), url);
+        user.changeProfileMusic(request.title().trim(), request.artist().trim(),
+                blankToNull(request.url()), blankToNull(request.artworkUrl()), blankToNull(request.previewUrl()));
         return MyInfoResponse.from(user);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     public MyInfoResponse deleteProfileMusic(Long userId) {
@@ -104,10 +109,10 @@ public class UserService {
         return new ProfileImageFile(profileImageStorage.load(user.getProfileImage()), user.getProfileImageType());
     }
 
-    // 이메일 가입자만. 지금 비밀번호를 확인하고, 같은 비밀번호로는 바꾸지 않는다
+    // 비밀번호가 있는 계정만. 지금 비밀번호를 확인하고, 같은 비밀번호로는 바꾸지 않는다
     public void changePassword(Long userId, PasswordChangeRequest request) {
         User user = findUser(userId);
-        if (!user.isLocal()) {
+        if (!user.hasPassword()) {
             throw new BusinessException(ErrorCode.SOCIAL_ACCOUNT_PASSWORD);
         }
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
@@ -119,21 +124,32 @@ public class UserService {
         user.changePassword(passwordEncoder.encode(request.newPassword()));
     }
 
+    // 비밀번호가 없는 계정(소셜로만 가입)이 처음 만들기 (#189). 만들면 가입한 이메일로도 로그인할 수 있다
+    public void createPassword(Long userId, PasswordCreateRequest request) {
+        User user = findUser(userId);
+        if (user.hasPassword()) {
+            throw new BusinessException(ErrorCode.PASSWORD_ALREADY_SET);
+        }
+        user.changePassword(passwordEncoder.encode(request.newPassword()));
+    }
+
     // 회원 탈퇴: 리프레시 토큰과 프로필 사진을 지우고 유저·캐릭터를 소프트 삭제한다.
     // 연습 기록·루틴·보관함 등은 지우지 않고 남기지만, 유저가 삭제돼 다시 볼 수 없다
     public void withdraw(Long userId, WithdrawRequest request) {
         User user = findUser(userId);
-        if (user.isLocal()) {
+        // 비밀번호가 있으면 확인 (소셜로만 로그인하는 계정은 확인 없이)
+        if (user.hasPassword()) {
             String password = request == null ? null : request.password();
             if (password == null || !passwordEncoder.matches(password, user.getPassword())) {
                 throw new BusinessException(ErrorCode.INVALID_PASSWORD);
             }
         }
 
+        // 밴드 먼저 (#215): 리더를 넘겨야 할 밴드가 있으면 여기서 멈추고, 리더에게 보내는 알림에 캐릭터 닉네임을 쓴다
+        bandService.leaveAllBands(userId);
         // 리프레시 토큰은 이메일로 저장돼 있어서, 이메일을 비우기 전에 지운다
         refreshTokenRepository.deleteById(user.getEmail());
         characterRepository.findByUserId(userId).ifPresent(Character::delete);
-        bandService.leaveAllBands(userId);
         friendService.removeAll(userId);
         notificationService.removeAllOf(userId);
         recordService.removeAllOf(userId);

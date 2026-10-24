@@ -28,6 +28,19 @@ class ProfileMusicRequestTest {
     }
 
     @Test
+    void 커버와_미리듣기는_Apple_주소만_받는다() {
+        String art = "https://is1-ssl.mzstatic.com/image/thumb/Music/v4/ab/cd/200x200bb.jpg";
+        String preview = "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview/a.m4a";
+        assertThat(valid(new ProfileMusicRequest("Lilac", "IU", null, art, preview))).isTrue();
+        assertThat(valid(new ProfileMusicRequest("Lilac", "IU", null, "", " "))).isTrue();
+
+        assertThat(valid(new ProfileMusicRequest("Lilac", "IU", null, "https://evil.example/cover.jpg", null))).isFalse();
+        assertThat(valid(new ProfileMusicRequest("Lilac", "IU", null, "http://is1-ssl.mzstatic.com/a.jpg", null))).isFalse();
+        assertThat(valid(new ProfileMusicRequest("Lilac", "IU", null, null, "https://audio-ssl.itunes.apple.com.evil.example/a.m4a"))).isFalse();
+        assertThat(valid(new ProfileMusicRequest("Lilac", "IU", null, null, "javascript:alert(1)"))).isFalse();
+    }
+
+    @Test
     void 제목과_아티스트는_꼭_넣고_길이를_넘으면_안_된다() {
         assertThat(valid(new ProfileMusicRequest(" ", "Muse", null))).isFalse();
         assertThat(valid(new ProfileMusicRequest("Hysteria", "", null))).isFalse();

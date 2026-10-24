@@ -8,16 +8,30 @@ public record KakaoUserInfo(Map<String, Object> attributes) implements OAuth2Use
     public String getProvider() { return "kakao"; }
 
     @Override
-    @SuppressWarnings("unchecked")
+    public String getProviderId() { return String.valueOf(attributes.get("id")); }
+
+    @Override
     public String getEmail() {
-        Map<String, Object> account = (Map<String, Object>) attributes.get("kakao_account");
-        return (String) account.get("email");
+        return (String) account().get("email");
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public String getName() {
-        Map<String, Object> profile = (Map<String, Object>) attributes.get("properties");
-        return (String) profile.get("nickname");
+        Object profile = attributes.get("properties");
+        return profile instanceof Map<?, ?> map ? (String) ((Map<String, Object>) map).get("nickname") : null;
+    }
+
+    // 카카오는 인증된 이메일이면서 지금도 쓸 수 있는 이메일일 때만
+    @Override
+    public boolean isEmailVerified() {
+        Map<String, Object> account = account();
+        return OAuth2UserInfo.isTrue(account.get("is_email_verified")) && OAuth2UserInfo.isTrue(account.get("is_email_valid"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> account() {
+        Object account = attributes.get("kakao_account");
+        return account instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
     }
 }
