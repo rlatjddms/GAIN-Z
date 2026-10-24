@@ -1,5 +1,5 @@
 <template>
-  <!-- 키 바꿔 치기 도우미: 이미지 악보는 글자를 바꿀 수 없어서, 원래 키 코드 → 연습 키 코드 대응표를 보여 준다 -->
+  <!-- 키 바꿔 치기 도우미: 연습 키 고르기와 카포 안내. 바꿔 칠 코드표는 악보 위에 떠 있는 창(ChordMapFloat, #192)으로 -->
   <div class="key-helper">
     <div class="key-row">
       <div class="key-box">
@@ -19,33 +19,19 @@
 
     <p class="info">
       <template v-if="changed">{{ offsetLabel }} · <button class="text-btn" @click="emit('change', originalKey)">원래 키로</button></template>
-      <template v-else>−/+로 연습할 키를 고르면 코드 대응표가 나와요.</template>
+      <template v-else>−/+로 연습할 키를 고르면 악보 위에 바꿔 칠 코드표가 떠요.</template>
       <span v-if="status" class="saved">{{ status }}</span>
     </p>
 
     <p v-if="capo" class="capo">카포 {{ capo }}프렛에 끼우고 악보 코드 그대로 치면 {{ current }} 키예요.</p>
 
-    <table v-if="changed" class="map">
-      <thead>
-        <tr><th></th><th>악보</th><th></th><th>바꿔 칠 코드</th></tr>
-      </thead>
-      <tbody>
-        <tr v-for="(row, i) in rows" :key="row.degree">
-          <td class="degree">{{ row.degree }}</td>
-          <td>{{ row.chord }}</td>
-          <td class="arrow"><ArrowRight :size="14" :stroke-width="2.4" /></td>
-          <td class="to">{{ target[i].chord }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p v-if="changed" class="note">7, sus4, /베이스 같은 꼬리는 그대로 붙이면 돼요. (예: {{ rows[4].chord }}7 → {{ target[4].chord }}7)</p>
   </div>
 </template>
 
 <script setup>
 import { ArrowRight } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { transposeKey, semitonesBetween, diatonicChords, capoFor } from '../../music/transpose'
+import { transposeKey, semitonesBetween, capoFor } from '../../music/transpose'
 
 const props = defineProps({
   originalKey: { type: String, required: true },
@@ -60,8 +46,6 @@ const current = computed(() => props.viewKey || props.originalKey)
 const changed = computed(() => current.value !== props.originalKey)
 const offset = computed(() => semitonesBetween(props.originalKey, current.value))
 const offsetLabel = computed(() => `${offset.value > 0 ? '+' : ''}${offset.value}반음`)
-const rows = computed(() => diatonicChords(props.originalKey))
-const target = computed(() => diatonicChords(current.value))
 const capo = computed(() => (props.instrumentType === 'GUITAR' && changed.value ? capoFor(props.originalKey, current.value) : null))
 </script>
 
@@ -84,11 +68,4 @@ const capo = computed(() => (props.instrumentType === 'GUITAR' && changed.value 
 .text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; }
 .capo { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: #fff4e6; color: #d9480f; font-size: 0.75rem; font-weight: 700; line-height: 1.5; }
 
-.map { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 0.85rem; }
-.map th { font-size: 0.65rem; font-weight: 800; color: var(--c-faint); text-align: left; padding: 0 4px 6px; }
-.map td { padding: 5px 4px; border-top: 1px solid var(--c-line-soft); font-weight: 800; color: var(--c-text-2); }
-.map .degree { font-size: 0.7rem; color: var(--c-faint); width: 34px; }
-.map .arrow { width: 18px; text-align: center; }
-.map .to { color: #e8590c; font-weight: 900; }
-.note { margin: 8px 0 0; font-size: 0.7rem; color: var(--c-faint); line-height: 1.5; }
 </style>

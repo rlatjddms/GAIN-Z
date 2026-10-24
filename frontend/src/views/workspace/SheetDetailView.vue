@@ -19,6 +19,9 @@
 
       <p v-if="actionError" class="error">{{ actionError }}</p>
 
+      <!-- 연습 키를 바꾸면 악보를 보면서 볼 수 있게 구석에 코드표 (#192) -->
+      <ChordMapFloat v-if="sheet.originalKey && viewKey && viewKey !== sheet.originalKey" :original-key="sheet.originalKey" :view-key="viewKey" />
+
       <div class="layout" :class="{ wide }">
         <!-- 악보 -->
         <WsCard class="sheet-card">
@@ -115,6 +118,7 @@ import { tabRowsFromText } from '../../music/tabImport'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
 import MeasureSheet from '../../components/workspace/MeasureSheet.vue'
 import KeyHelper from '../../components/workspace/KeyHelper.vue'
+import ChordMapFloat from '../../components/workspace/ChordMapFloat.vue'
 import AnnotationToolbar from '../../components/workspace/AnnotationToolbar.vue'
 import { useAnnotationStore } from '../../stores/annotation'
 import { getWorkspaceItem, updateWorkspaceItem, removeWorkspaceItem, copyWorkspaceItem } from '../../api/sheet'
