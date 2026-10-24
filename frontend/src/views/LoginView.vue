@@ -45,6 +45,8 @@
             <span class="checkmark"></span>
             로그인 상태 유지
           </label>
+          <!-- 비밀번호 찾기는 #193에서 만든다. 그 전까지는 안내만 -->
+          <button type="button" class="forgot-pw" @click="showForgotPassword">비밀번호 찾기</button>
         </div>
 
         <button type="submit" class="login-btn-main" :disabled="isLoading">
@@ -79,11 +81,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useDialogStore } from '../stores/dialog'
 import AppLogo from '../components/AppLogo.vue'
 import { API_BASE_URL } from '../api/axios'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const dialog = useDialogStore()
 
 const email = ref('')
 const password = ref('')
@@ -119,6 +123,10 @@ const handleLogin = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+const showForgotPassword = () => {
+  dialog.alert({ title: '비밀번호 찾기를 준비하고 있어요', text: '이메일로 비밀번호를 다시 정하는 기능이 곧 열려요.' })
 }
 
 const handleSocialLogin = (provider) => {
@@ -241,6 +249,15 @@ const handleSocialLogin = (provider) => {
   align-items: center;
   gap: 8px;
   color: #64707d;
+  cursor: pointer;
+}
+
+.forgot-pw {
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  color: #a0a8b1;
   cursor: pointer;
 }
 
