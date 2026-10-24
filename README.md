@@ -89,7 +89,7 @@ docker compose up -d --build
 
 ## 배포
 
-Render(백엔드) + Supabase(DB·파일) + Vercel(프론트)에 무료로 올립니다. 순서대로 따라 하는 방법은 [docs/deploy.md](docs/deploy.md)에 있습니다. 설정 파일은 `render.yaml`, `frontend/vercel.json`, `.github/workflows/keep-awake.yml`입니다.
+Render(백엔드) + Supabase(DB·파일) + Vercel(프론트)에 무료로 올립니다. 순서대로 따라 하는 방법은 [docs/deploy.md](docs/deploy.md)에 있습니다. 설정 파일은 `render.yaml`, `frontend/vercel.json`이고, 잠든 백엔드는 UptimeRobot이 5분마다 깨웁니다.
 
 ## 운영 실행 (prod 프로필)
 
