@@ -365,6 +365,20 @@ class UserServiceTest {
     }
 
     @Test
+    void 리더를_넘겨야_할_밴드가_있으면_아무것도_지우지_않고_멈춘다() {
+        User user = user(SocialProvider.GOOGLE, null);
+        org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.BAND_LEADER_MUST_HAND_OVER))
+                .when(bandService).leaveAllBands(USER_ID);
+
+        assertThatThrownBy(() -> userService.withdraw(USER_ID, null))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BAND_LEADER_MUST_HAND_OVER);
+        verify(refreshTokenRepository, never()).deleteById(anyString());
+        verify(characterRepository, never()).findByUserId(USER_ID);
+        assertThat(user.getIsDeleted()).isFalse();
+    }
+
+    @Test
     void 탈퇴하면_소셜_연결을_지워_같은_소셜로_다시_가입할_수_있다() {
         User user = user(SocialProvider.GOOGLE, null);
         user.addSocialAccount(SocialProvider.GOOGLE, "g-1");
