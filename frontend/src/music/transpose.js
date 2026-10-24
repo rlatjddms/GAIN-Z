@@ -58,6 +58,15 @@ export function transposeChord(chord, semitones, preferFlat = false) {
   return `${newRoot}${quality}${newBass}`
 }
 
+// 사용자가 직접 친 코드 하나를 코드 표기로 맞춘다 (#192). 첫 글자는 대문자로, ♯·♭은 #·b로. 코드가 아니면 null
+// 예) 'bb' → 'Bb', 'e7' → 'E7', 'D/f#' → 'D/F#'
+export function normalizeChord(text) {
+  const t = (text || '').trim().replace(/♯/g, '#').replace(/♭/g, 'b')
+  if (!t) return null
+  const fixed = t[0].toUpperCase() + t.slice(1).replace(/\/([a-g])/, (_, n) => `/${n.toUpperCase()}`)
+  return CHORD_PATTERN.test(fixed) && /^[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|M|\d|\(|\+|-|°|ø|\/|$)/.test(fixed) ? fixed : null
+}
+
 // 원래 키 → 보는 키로 옮길 때 쓸 반음 수와 표기
 export function transposeContext(originalKey, viewKey) {
   return {

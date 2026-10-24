@@ -36,25 +36,50 @@
           <td class="arrow"><ArrowRight :size="14" :stroke-width="2.4" /></td>
           <td class="to">{{ target[i].chord }}</td>
         </tr>
+        <!-- 내가 추가한 코드 (#192): 이 악보에 나오는 키 밖 코드. 보관함 항목에 저장돼 다른 기기에서도 보인다 -->
+        <tr v-for="chord in custom" :key="chord" class="custom">
+          <td class="degree">
+            <button type="button" class="remove" :aria-label="`${chord} 빼기`" @click="removeChord(chord)"><X :size="12" :stroke-width="2.6" /></button>
+          </td>
+          <td>{{ chord }}</td>
+          <td class="arrow"><ArrowRight :size="14" :stroke-width="2.4" /></td>
+          <td class="to">{{ moved(chord) }}</td>
+        </tr>
       </tbody>
     </table>
+    <form v-if="changed" class="add-chord" @submit.prevent="addChord">
+      <input
+        v-model="typed"
+        type="text"
+        autocomplete="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        maxlength="40"
+        placeholder="악보에 있는 코드 추가 (예: Bb, E7)"
+        aria-label="표에 추가할 코드"
+      >
+      <button type="submit" class="add-btn" :disabled="!typed.trim()">추가</button>
+    </form>
+    <p v-if="addError" class="add-error">{{ addError }}</p>
     <p v-if="changed" class="note">7, sus4, /베이스 같은 꼬리는 그대로 붙이면 돼요. (예: {{ rows[4].chord }}7 → {{ target[4].chord }}7)</p>
   </div>
 </template>
 
 <script setup>
-import { ArrowRight } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { transposeKey, semitonesBetween, diatonicChords, capoFor } from '../../music/transpose'
+import { ArrowRight, X } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
+import { transposeKey, semitonesBetween, diatonicChords, capoFor, normalizeChord, transposeChord, transposeContext } from '../../music/transpose'
 
 const props = defineProps({
   originalKey: { type: String, required: true },
   viewKey: { type: String, default: null },
   instrumentType: { type: String, default: null },
   status: { type: String, default: '' },
+  // 내가 추가한 코드 (저장은 부모가 한다)
+  chords: { type: Array, default: () => [] },
 })
-// change: 새 연습 키
-const emit = defineEmits(['change'])
+// change: 새 연습 키 / chords-change: 내가 추가한 코드 목록이 바뀜
+const emit = defineEmits(['change', 'chords-change'])
 
 const current = computed(() => props.viewKey || props.originalKey)
 const changed = computed(() => current.value !== props.originalKey)
@@ -62,6 +87,26 @@ const offset = computed(() => semitonesBetween(props.originalKey, current.value)
 const offsetLabel = computed(() => `${offset.value > 0 ? '+' : ''}${offset.value}반음`)
 const rows = computed(() => diatonicChords(props.originalKey))
 const target = computed(() => diatonicChords(current.value))
+// 내가 추가한 코드 (#192): 쉼표·띄어쓰기로 여러 개를 한 번에, 겹치면 하나만, 20개까지
+const MAX_CUSTOM = 20
+const custom = computed(() => props.chords)
+const typed = ref('')
+const addError = ref('')
+const addChord = () => {
+  const parts = typed.value.split(/[\s,]+/).filter(Boolean)
+  const chords = parts.map(normalizeChord)
+  const bad = parts.filter((_, i) => !chords[i])
+  const known = new Set([...rows.value.map(r => r.chord), ...custom.value])
+  const fresh = [...new Set(chords.filter(c => c && !known.has(c)))]
+  if (fresh.length) emit('chords-change', [...custom.value, ...fresh].slice(0, MAX_CUSTOM))
+  addError.value = bad.length ? `코드로 읽지 못했어요: ${bad.join(', ')}` : ''
+  typed.value = bad.join(' ')
+}
+const removeChord = (chord) => emit('chords-change', custom.value.filter(c => c !== chord))
+const moved = (chord) => {
+  const { semitones, preferFlat } = transposeContext(props.originalKey, current.value)
+  return transposeChord(chord, semitones, preferFlat)
+}
 const capo = computed(() => (props.instrumentType === 'GUITAR' && changed.value ? capoFor(props.originalKey, current.value) : null))
 </script>
 
@@ -90,5 +135,20 @@ const capo = computed(() => (props.instrumentType === 'GUITAR' && changed.value 
 .map .degree { font-size: 0.7rem; color: var(--c-faint); width: 34px; }
 .map .arrow { width: 18px; text-align: center; }
 .map .to { color: #e8590c; font-weight: 900; }
+.map .custom td { background: #fffaf3; }
+.remove { display: flex; padding: 2px; border: none; border-radius: 6px; background: none; color: var(--c-faint); cursor: pointer; }
+.remove:hover { color: var(--c-danger); background: var(--c-danger-soft); }
+.add-chord { display: flex; gap: 6px; margin-top: 8px; }
+.add-chord input {
+  flex: 1; min-width: 0; height: 34px; padding: 0 10px; border: 1px solid var(--c-line); border-radius: 10px;
+  background: var(--c-bg); font: inherit; font-size: 16px; outline: none;
+}
+.add-chord input:focus { border-color: var(--c-primary); background: #fff; }
+.add-btn {
+  flex: none; height: 34px; padding: 0 12px; border: 1px solid var(--c-primary); border-radius: 10px; background: #fff;
+  font: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-primary-text); cursor: pointer;
+}
+.add-btn:disabled { border-color: var(--c-line); color: var(--c-faint); cursor: default; }
+.add-error { margin: 6px 2px 0; font-size: 0.72rem; font-weight: 700; color: #e8590c; }
 .note { margin: 8px 0 0; font-size: 0.7rem; color: var(--c-faint); line-height: 1.5; }
 </style>

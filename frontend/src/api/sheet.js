@@ -23,8 +23,9 @@ export async function addToWorkspace(sheetId) {
 }
 
 // 메모·연습 키·즐겨찾기 중 보낸 것만 수정 (원래 키를 보내면 원래 키로, 빈 메모는 지움)
-export async function updateWorkspaceItem(id, { customKey, personalMemo, isFavorite }) {
-  const response = await axiosInstance.patch(`/api/v1/workspace/sheets/${id}`, { customKey, personalMemo, isFavorite })
+// customChords: 키 바꿔 치기 표에 내가 추가한 코드 목록 (#192, 보낸 것으로 통째로 바뀜)
+export async function updateWorkspaceItem(id, { customKey, personalMemo, isFavorite, customChords }) {
+  const response = await axiosInstance.patch(`/api/v1/workspace/sheets/${id}`, { customKey, personalMemo, isFavorite, customChords })
   return response.data.data
 }
 

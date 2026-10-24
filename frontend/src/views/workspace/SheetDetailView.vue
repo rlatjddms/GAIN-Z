@@ -64,16 +64,23 @@
           <p v-else class="empty">아직 악보 파일이 없어요.</p>
         </WsCard>
 
-        <div v-show="!wide" class="side">
+        <!-- 넓은 화면: 오른쪽 옆 카드. 좁은 화면(앱): 아래 막대에서 눌러 여는 작은 창 (#192) -->
+        <div v-show="narrow ? !!dockTab : !wide" class="side" :class="{ docked: narrow, 'docked-memo': narrow && dockTab === 'memo' }">
+          <div v-if="narrow" class="dock-head">
+            <strong>{{ dockTab === 'key' ? '키 바꿔 치기' : '내 메모' }}</strong>
+            <button type="button" class="dock-close" aria-label="접기" @click="dockTab = null"><ChevronDown :size="18" :stroke-width="2.4" /></button>
+          </div>
           <!-- 키 바꿔 치기 -->
-          <WsCard title="키 바꿔 치기">
+          <WsCard v-show="!narrow || dockTab === 'key'" :title="narrow ? '' : '키 바꿔 치기'">
             <KeyHelper
               v-if="sheet.originalKey"
               :original-key="sheet.originalKey"
               :view-key="viewKey"
               :instrument-type="sheet.instrumentType"
               :status="keyStatus"
+              :chords="customChords"
               @change="setKey"
+              @chords-change="saveChords"
             />
             <p v-else class="muted">
               원래 키를 적어 두면 다른 키로 칠 때 바꿔 칠 코드를 알려 드려요.
@@ -82,7 +89,7 @@
           </WsCard>
 
           <!-- 메모 -->
-          <WsCard title="내 메모">
+          <WsCard v-show="!narrow || dockTab === 'memo'" :title="narrow ? '' : '내 메모'">
             <textarea
               v-model="memo"
               class="memo"
@@ -99,13 +106,27 @@
           </WsCard>
         </div>
       </div>
+
+      <!-- 좁은 화면(앱) 아래 막대: 악보가 길어도 내려가지 않고 키·메모를 연다 (#192) -->
+      <nav v-if="narrow" class="dock" aria-label="키 바꿔 치기·메모">
+        <button type="button" :class="{ on: dockTab === 'key' }" :aria-expanded="dockTab === 'key'" @click="toggleDock('key')">
+          <Music :size="15" :stroke-width="2.4" />
+          <span v-if="sheet.originalKey && viewKey && viewKey !== sheet.originalKey" class="dock-keys">{{ sheet.originalKey }} → {{ viewKey }}</span>
+          <span v-else>키 {{ sheet.originalKey || '' }}</span>
+        </button>
+        <button type="button" :class="{ on: dockTab === 'memo' }" :aria-expanded="dockTab === 'memo'" @click="toggleDock('memo')">
+          <NotebookPen :size="15" :stroke-width="2.4" />
+          <span>메모</span>
+          <span v-if="memo.trim()" class="dot" aria-label="메모 있음"></span>
+        </button>
+      </nav>
     </template>
   </div>
   </SubPageLayout>
 </template>
 
 <script setup>
-import { Star, PenLine } from 'lucide-vue-next'
+import { Star, PenLine, Music, NotebookPen, ChevronDown } from 'lucide-vue-next'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -152,6 +173,8 @@ onMounted(async () => {
     item.value = await getWorkspaceItem(itemId)
     viewKey.value = item.value.customKey || item.value.sheet.originalKey
     memo.value = item.value.personalMemo || ''
+    customChords.value = item.value.customChords || []
+    moveLocalChords()
     if (pages.value.length) annot.load(item.value.sheet.id)
   } catch (e) {
     loadError.value = `악보를 불러오지 못했어요. ${apiErrorMessage(e)}`
@@ -236,6 +259,39 @@ const saveMemo = async () => {
     savingMemo.value = false
   }
 }
+
+/* ---------- 키 바꿔 치기 표에 내가 추가한 코드 (#192): 보관함 항목에 저장 ---------- */
+const customChords = ref([])
+const saveChords = async (chords) => {
+  const before = customChords.value
+  customChords.value = chords
+  try {
+    const result = await updateWorkspaceItem(itemId, { customChords: chords })
+    customChords.value = result.customChords || []
+  } catch (e) {
+    customChords.value = before
+    actionError.value = `코드를 저장하지 못했어요. ${apiErrorMessage(e)}`
+  }
+}
+// 이 기능의 첫 버전은 코드를 이 기기에만 기억했다. 남아 있으면 서버로 한 번 옮기고 지운다
+const moveLocalChords = () => {
+  const key = `sheetChords:${itemId}`
+  let local = []
+  try { local = JSON.parse(localStorage.getItem(key)) || [] } catch { /* 없으면 그만 */ }
+  if (!local.length) return
+  try { localStorage.removeItem(key) } catch { /* 지우지 못해도 다음에 다시 합친다 */ }
+  const merged = [...new Set([...customChords.value, ...local])].slice(0, 20)
+  if (merged.length !== customChords.value.length) saveChords(merged)
+}
+
+/* ---------- 좁은 화면(앱): 키·메모는 아래 막대에서 연다 (#192) ---------- */
+const narrowQuery = typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)') : null
+const narrow = ref(!!narrowQuery?.matches)
+const onNarrow = (e) => { narrow.value = e.matches; if (!e.matches) dockTab.value = null }
+narrowQuery?.addEventListener('change', onNarrow)
+onBeforeUnmount(() => narrowQuery?.removeEventListener('change', onNarrow))
+const dockTab = ref(null)   // 'key' | 'memo' | null
+const toggleDock = (tab) => { dockTab.value = dockTab.value === tab ? null : tab }
 
 /* ---------- 수정: 남이 올린 악보는 내 사본으로 바꿔서 고친다 (#191) ---------- */
 const copying = ref(false)
@@ -324,11 +380,40 @@ figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight
 .loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 .error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
+/* 좁은 화면(앱) 아래 막대와, 막대에서 여는 작은 창 (#192) */
+.dock {
+  position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 46;
+  display: flex; gap: 6px; padding: 5px; border: 1px solid var(--c-line); border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96); box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+}
+.dock button {
+  display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: none; border-radius: 999px; background: none;
+  font: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-text-2); cursor: pointer; white-space: nowrap;
+}
+.dock button.on { background: var(--c-primary-soft); color: var(--c-primary-text); }
+.dock-keys { color: #e8590c; font-weight: 900; }
+.dock .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-primary); }
+/* 키 창은 악보가 위로 보이게 화면 절반쯤, 메모 창은 그보다 조금 낮게. 넘치면 창 안에서 스크롤 */
+.side.docked {
+  position: fixed; left: 12px; right: 12px; bottom: calc(66px + env(safe-area-inset-bottom)); top: auto; z-index: 45;
+  max-height: min(48dvh, 420px); overflow-y: auto; overscroll-behavior: contain; gap: 0;
+  background: #fff; border: 1px solid var(--c-line); border-radius: 18px; box-shadow: 0 14px 36px rgba(15, 23, 42, 0.18);
+}
+.side.docked :deep(.ws-card) { border: none; box-shadow: none; background: none; }
+.side.docked.docked-memo { max-height: min(38dvh, 320px); }
+.dock-head {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 4px; background: #fff;
+}
+.dock-head strong { font-size: 0.9rem; font-weight: 900; }
+.dock-close { display: flex; padding: 4px; border: none; border-radius: 8px; background: none; color: var(--c-muted); cursor: pointer; }
+
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
-  .side { position: static; }
   .memo { min-height: 110px; }
   .toolbar .wide-toggle { display: none; }
+  /* 아래 막대가 악보 끝을 가리지 않게 */
+  .page { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
 }
 @media (max-width: 640px) {
   .annot-bar { top: 64px; }
