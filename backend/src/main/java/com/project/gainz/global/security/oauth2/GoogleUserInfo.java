@@ -8,8 +8,14 @@ public record GoogleUserInfo(Map<String, Object> attributes) implements OAuth2Us
     public String getProvider() { return "google"; }
 
     @Override
+    public String getProviderId() { return String.valueOf(attributes.get("sub")); }
+
+    @Override
     public String getEmail(){ return (String) attributes.get("email"); }
 
     @Override
     public String getName() { return (String) attributes.get("name"); }
+
+    @Override
+    public boolean isEmailVerified() { return OAuth2UserInfo.isTrue(attributes.get("email_verified")); }
 }

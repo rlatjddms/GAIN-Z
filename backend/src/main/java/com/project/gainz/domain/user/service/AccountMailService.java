@@ -122,8 +122,8 @@ public class AccountMailService {
         if (user == null) {
             return PasswordResetRequestResponse.notFound();
         }
-        if (user.getPassword() == null) {
-            return PasswordResetRequestResponse.socialOnly(user.getProvider());
+        if (!user.hasPassword()) {
+            return PasswordResetRequestResponse.socialOnly(user.linkedProviders().stream().findFirst().orElse(user.getProvider()));
         }
         LocalDateTime now = LocalDateTime.now();
         checkSendLimit(emailTokenRepository.findTopByUserIdAndPurposeOrderByCreatedAtDesc(user.getId(), EmailTokenPurpose.RESET_PASSWORD)

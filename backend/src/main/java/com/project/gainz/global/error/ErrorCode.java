@@ -11,7 +11,7 @@ public enum ErrorCode {
     DUPLICATE_EMAIL(409, "U001", "이미 존재하는 이메일입니다."),
     USER_NOT_FOUND(404, "U002", "존재하지 않는 사용자입니다."),
     INVALID_PASSWORD(400, "U003", "비밀번호가 일치하지 않습니다."),
-    SOCIAL_ACCOUNT_PASSWORD(400, "U004", "소셜 로그인 계정은 비밀번호를 바꿀 수 없습니다."),
+    SOCIAL_ACCOUNT_PASSWORD(400, "U004", "비밀번호가 없는 계정이에요. 먼저 비밀번호를 만들어 주세요."),
     INVALID_TOKEN(401, "U005", "유효하지 않은 토큰입니다."),
     SAME_PASSWORD(400, "U006", "지금 비밀번호와 다른 비밀번호를 입력해 주세요."),
     PROFILE_IMAGE_REQUIRED(400, "U007", "프로필 사진 파일을 올려 주세요."),
@@ -26,6 +26,11 @@ public enum ErrorCode {
     EMAIL_CODE_TOO_MANY_ATTEMPTS(400, "U016", "인증 코드를 5번 틀렸어요. 새 코드를 받아 주세요."),
     MAIL_SEND_TOO_SOON(429, "U017", "조금 전에 보낸 메일이 있어요. 잠시 후 다시 보낼 수 있어요."),
     MAIL_DAILY_LIMIT(429, "U018", "오늘은 이 이메일로 메일을 더 보낼 수 없어요. 내일 다시 시도해 주세요."),
+    PASSWORD_NOT_SET(400, "U019", "비밀번호가 없는 계정이에요. 가입한 소셜 계정으로 로그인해 주세요. 마이페이지에서 비밀번호를 만들면 이메일로도 로그인할 수 있어요."),
+    PASSWORD_ALREADY_SET(400, "U020", "이미 비밀번호가 있어요. 비밀번호 바꾸기를 이용해 주세요."),
+    LAST_LOGIN_METHOD(400, "U021", "로그인 방법이 하나뿐이라 해제할 수 없어요. 다른 방법을 먼저 연결하거나 비밀번호를 만들어 주세요."),
+    SOCIAL_NOT_LINKED(400, "U022", "연결되지 않은 소셜 계정이에요."),
+    INVALID_SOCIAL_PROVIDER(400, "U023", "지원하지 않는 소셜 로그인이에요."),
 
     /* Friend (친구) */
     INVALID_FRIEND_CODE(404, "F001", "친구 코드가 올바르지 않습니다. 친구에게 코드를 다시 확인해 주세요."),

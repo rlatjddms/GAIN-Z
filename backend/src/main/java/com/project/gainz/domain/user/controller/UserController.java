@@ -1,5 +1,9 @@
 package com.project.gainz.domain.user.controller;
 
+import com.project.gainz.domain.user.dto.request.PasswordCreateRequest;
+import com.project.gainz.domain.user.dto.response.SocialLinkStartResponse;
+import com.project.gainz.domain.user.enums.SocialProvider;
+import com.project.gainz.domain.user.service.SocialAccountService;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
 import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
 import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
@@ -22,6 +26,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,6 +45,7 @@ public class UserController {
 
     private final UserService userService;
     private final UserProfileService userProfileService;
+    private final SocialAccountService socialAccountService;
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<MyInfoResponse>> getMyInfo(
@@ -127,7 +133,36 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    // 소셜 가입자는 본문 없이 보내도 된다
+    // 비밀번호가 없는 계정(소셜로만 가입)이 처음 만들기 (#189)
+    @PostMapping("/me/password")
+    public ResponseEntity<ApiResponse<Void>> createPassword(
+            @Valid @RequestBody PasswordCreateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        userService.createPassword(principal.getUserId(), request);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 소셜 연결 시작 (#189): 받은 표를 /oauth2/authorization/{provider}?link= 에 붙여 보낸다
+    @PostMapping("/me/social-links/{provider}/start")
+    public ResponseEntity<ApiResponse<SocialLinkStartResponse>> startSocialLink(
+            @PathVariable SocialProvider provider,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                new SocialLinkStartResponse(socialAccountService.startLink(principal.getUserId(), provider))));
+    }
+
+    // 소셜 연결 해제. 로그인 방법이 하나만 남으면 안 된다
+    @DeleteMapping("/me/social-links/{provider}")
+    public ResponseEntity<ApiResponse<MyInfoResponse>> unlinkSocial(
+            @PathVariable SocialProvider provider,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(socialAccountService.unlink(principal.getUserId(), provider)));
+    }
+
+    // 비밀번호가 없는 계정은 본문 없이 보내도 된다
     @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<Void>> withdraw(
             @RequestBody(required = false) WithdrawRequest request,

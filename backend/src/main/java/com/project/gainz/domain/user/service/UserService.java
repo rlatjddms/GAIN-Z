@@ -6,6 +6,7 @@ import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.friend.service.FriendService;
 import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
+import com.project.gainz.domain.user.dto.request.PasswordCreateRequest;
 import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
 import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
 import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
@@ -108,10 +109,10 @@ public class UserService {
         return new ProfileImageFile(profileImageStorage.load(user.getProfileImage()), user.getProfileImageType());
     }
 
-    // 이메일 가입자만. 지금 비밀번호를 확인하고, 같은 비밀번호로는 바꾸지 않는다
+    // 비밀번호가 있는 계정만. 지금 비밀번호를 확인하고, 같은 비밀번호로는 바꾸지 않는다
     public void changePassword(Long userId, PasswordChangeRequest request) {
         User user = findUser(userId);
-        if (!user.isLocal()) {
+        if (!user.hasPassword()) {
             throw new BusinessException(ErrorCode.SOCIAL_ACCOUNT_PASSWORD);
         }
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
@@ -123,11 +124,21 @@ public class UserService {
         user.changePassword(passwordEncoder.encode(request.newPassword()));
     }
 
+    // 비밀번호가 없는 계정(소셜로만 가입)이 처음 만들기 (#189). 만들면 가입한 이메일로도 로그인할 수 있다
+    public void createPassword(Long userId, PasswordCreateRequest request) {
+        User user = findUser(userId);
+        if (user.hasPassword()) {
+            throw new BusinessException(ErrorCode.PASSWORD_ALREADY_SET);
+        }
+        user.changePassword(passwordEncoder.encode(request.newPassword()));
+    }
+
     // 회원 탈퇴: 리프레시 토큰과 프로필 사진을 지우고 유저·캐릭터를 소프트 삭제한다.
     // 연습 기록·루틴·보관함 등은 지우지 않고 남기지만, 유저가 삭제돼 다시 볼 수 없다
     public void withdraw(Long userId, WithdrawRequest request) {
         User user = findUser(userId);
-        if (user.isLocal()) {
+        // 비밀번호가 있으면 확인 (소셜로만 로그인하는 계정은 확인 없이)
+        if (user.hasPassword()) {
             String password = request == null ? null : request.password();
             if (password == null || !passwordEncoder.matches(password, user.getPassword())) {
                 throw new BusinessException(ErrorCode.INVALID_PASSWORD);
