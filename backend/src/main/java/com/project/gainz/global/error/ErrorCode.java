@@ -24,7 +24,8 @@ public enum ErrorCode {
     INVALID_EMAIL_CODE(400, "U014", "인증 코드가 맞지 않아요."),
     EMAIL_CODE_EXPIRED(400, "U015", "인증 코드가 만료됐어요. 새 코드를 받아 주세요."),
     EMAIL_CODE_TOO_MANY_ATTEMPTS(400, "U016", "인증 코드를 5번 틀렸어요. 새 코드를 받아 주세요."),
-    MAIL_SEND_LIMIT(429, "U017", "메일을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요."),
+    MAIL_SEND_TOO_SOON(429, "U017", "조금 전에 보낸 메일이 있어요. 잠시 후 다시 보낼 수 있어요."),
+    MAIL_DAILY_LIMIT(429, "U018", "오늘은 이 이메일로 메일을 더 보낼 수 없어요. 내일 다시 시도해 주세요."),
 
     /* Friend (친구) */
     INVALID_FRIEND_CODE(404, "F001", "친구 코드가 올바르지 않습니다. 친구에게 코드를 다시 확인해 주세요."),

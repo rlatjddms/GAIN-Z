@@ -1,5 +1,6 @@
 package com.project.gainz.domain.user.service;
 
+import com.project.gainz.domain.user.dto.response.MailRetryResponse;
 import com.project.gainz.domain.user.dto.response.PasswordResetRequestResponse;
 import com.project.gainz.domain.user.dto.response.SignupCodeVerifyResponse;
 import com.project.gainz.domain.user.entity.EmailToken;
@@ -29,8 +30,11 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.Optional;
+import java.util.function.LongSupplier;
 
-// 가입 전 이메일 인증 코드·비밀번호 찾기 메일 (#193). 같은 메일은 1분에 한 번, 하루 10번까지
+// 가입 전 이메일 인증 코드·비밀번호 찾기 메일 (#193). 같은 메일은 1분에 한 번, 하루 10번까지.
+// 못 보낼 때는 조용히 넘기지 않고 MAIL_SEND_TOO_SOON(남은 초)·MAIL_DAILY_LIMIT으로 알린다 (화면은 나갔다 오면 기다릴 시간을 잊는다)
 @Slf4j
 @Service
 @Transactional
@@ -68,19 +72,15 @@ public class AccountMailService {
 
     /* ---------- 가입 전 이메일 인증 ---------- */
 
-    // 회원가입 화면의 "인증하기". 이미 가입된 이메일이면 DUPLICATE_EMAIL, 너무 자주면 MAIL_SEND_LIMIT
+    // 회원가입 화면의 "인증하기". 이미 가입된 이메일이면 DUPLICATE_EMAIL
     public void sendSignupCode(String rawEmail) {
         String email = rawEmail.trim();
         if (userRepository.existsByEmail(email)) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }
         LocalDateTime now = LocalDateTime.now();
-        boolean tooSoon = signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc(email)
-                .map(last -> last.getCreatedAt() != null && last.getCreatedAt().isAfter(now.minus(RESEND_INTERVAL)))
-                .orElse(false);
-        if (tooSoon || signupEmailCodeRepository.countByEmailAndCreatedAtAfter(email, now.minusDays(1)) >= DAILY_LIMIT) {
-            throw new BusinessException(ErrorCode.MAIL_SEND_LIMIT);
-        }
+        checkSendLimit(signupEmailCodeRepository.findTopByEmailOrderByCreatedAtDesc(email).map(SignupEmailCode::getCreatedAt),
+                () -> signupEmailCodeRepository.countByEmailAndCreatedAtAfter(email, now.minusDays(1)), now);
         String code = "%06d".formatted(random.nextInt(1_000_000));
         signupEmailCodeRepository.save(new SignupEmailCode(email, codeHash(email, code), now.plus(CODE_TTL)));
         sendAfterCommit(email, "[GAIN-Z] 이메일 인증 코드 " + code, AccountMailTemplates.signupCode(code));
@@ -125,12 +125,14 @@ public class AccountMailService {
         if (user.getPassword() == null) {
             return PasswordResetRequestResponse.socialOnly(user.getProvider());
         }
-        if (canSend(user, EmailTokenPurpose.RESET_PASSWORD)) {
-            String token = issue(user, EmailTokenPurpose.RESET_PASSWORD, RESET_TTL);
-            String link = frontendUrl + "/reset-password?token=" + token;
-            sendAfterCommit(user.getEmail(), "[GAIN-Z] 비밀번호를 다시 정해 주세요",
-                    AccountMailTemplates.passwordReset(user.getName(), link));
-        }
+        LocalDateTime now = LocalDateTime.now();
+        checkSendLimit(emailTokenRepository.findTopByUserIdAndPurposeOrderByCreatedAtDesc(user.getId(), EmailTokenPurpose.RESET_PASSWORD)
+                        .map(EmailToken::getCreatedAt),
+                () -> emailTokenRepository.countByUserIdAndPurposeAndCreatedAtAfter(user.getId(), EmailTokenPurpose.RESET_PASSWORD, now.minusDays(1)), now);
+        String token = issue(user, EmailTokenPurpose.RESET_PASSWORD, RESET_TTL);
+        String link = frontendUrl + "/reset-password?token=" + token;
+        sendAfterCommit(user.getEmail(), "[GAIN-Z] 비밀번호를 다시 정해 주세요",
+                AccountMailTemplates.passwordReset(user.getName(), link));
         return PasswordResetRequestResponse.sent();
     }
 
@@ -150,13 +152,16 @@ public class AccountMailService {
 
     /* ---------- 도움 ---------- */
 
-    private boolean canSend(User user, EmailTokenPurpose purpose) {
-        LocalDateTime now = LocalDateTime.now();
-        boolean tooSoon = emailTokenRepository.findTopByUserIdAndPurposeOrderByCreatedAtDesc(user.getId(), purpose)
-                .map(last -> last.getCreatedAt() != null && last.getCreatedAt().isAfter(now.minus(RESEND_INTERVAL)))
-                .orElse(false);
-        if (tooSoon) return false;
-        return emailTokenRepository.countByUserIdAndPurposeAndCreatedAtAfter(user.getId(), purpose, now.minusDays(1)) < DAILY_LIMIT;
+    // 마지막으로 보낸 지 1분이 안 됐으면 남은 초와 함께, 하루 10번을 넘었으면 막는다
+    private void checkSendLimit(Optional<LocalDateTime> lastSentAt, LongSupplier sentToday, LocalDateTime now) {
+        LocalDateTime nextAt = lastSentAt.map(at -> at.plus(RESEND_INTERVAL)).orElse(null);
+        if (nextAt != null && nextAt.isAfter(now)) {
+            long seconds = Math.max(1, (Duration.between(now, nextAt).toMillis() + 999) / 1000);
+            throw new BusinessException(ErrorCode.MAIL_SEND_TOO_SOON, new MailRetryResponse(seconds));
+        }
+        if (sentToday.getAsLong() >= DAILY_LIMIT) {
+            throw new BusinessException(ErrorCode.MAIL_DAILY_LIMIT);
+        }
     }
 
     // 원래 토큰(메일에 들어감)을 돌려주고 DB에는 해시만

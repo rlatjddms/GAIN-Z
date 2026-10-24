@@ -13,7 +13,11 @@ public record ApiResponse<T>(
     }
 
     public static <T> ApiResponse<T> fail(ErrorCode errorCode) {
-        return new ApiResponse<>(false, errorCode.getMessage(), errorCode.getCode(), null);
+        return fail(errorCode, null);
+    }
+
+    public static <T> ApiResponse<T> fail(ErrorCode errorCode, T data) {
+        return new ApiResponse<>(false, errorCode.getMessage(), errorCode.getCode(), data);
     }
 
     public static <T> ApiResponse<T> fail(int status, String code, String message) {

@@ -78,7 +78,8 @@ public class AuthController {
 
     /* ---------- 이메일 인증·비밀번호 찾기 (#193) ---------- */
 
-    // 가입 화면 "인증하기": 이미 가입된 이메일이면 409(U001), 아니면 6자리 코드를 메일로
+    // 가입 화면 "인증하기": 이미 가입된 이메일이면 409(U001), 아니면 6자리 코드를 메일로.
+    // 1분 안에 다시 요청하면 429(U017, data.retryAfterSeconds), 하루 10번 넘으면 429(U018)
     @PostMapping("/signup/email-code")
     public ResponseEntity<ApiResponse<Void>> sendSignupCode(@Valid @RequestBody EmailRequest request) {
         accountMailService.sendSignupCode(request.email());
@@ -91,7 +92,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(accountMailService.verifySignupCode(request.email(), request.code())));
     }
 
-    // 결과: SENT / NOT_FOUND(가입되지 않은 이메일) / SOCIAL_ONLY(provider로 로그인)
+    // 결과: SENT / NOT_FOUND(가입되지 않은 이메일) / SOCIAL_ONLY(provider로 로그인). 자주 요청하면 가입 인증과 같은 429
     @PostMapping("/password-reset/request")
     public ResponseEntity<ApiResponse<PasswordResetRequestResponse>> requestPasswordReset(@Valid @RequestBody EmailRequest request) {
         return ResponseEntity.ok(ApiResponse.success(accountMailService.requestPasswordReset(request.email())));
