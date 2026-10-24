@@ -12,13 +12,14 @@
               <Search :size="15" :stroke-width="2.4" aria-hidden="true" />
               <input
                 ref="searchInput"
-                v-model="term"
+                :value="term"
                 type="search"
                 enterkeyhint="search"
                 maxlength="60"
                 placeholder="곡 제목이나 가수로 찾기"
                 aria-label="곡 검색"
                 :disabled="busy"
+                @input="term = $event.target.value"
                 @keydown.enter.prevent="runSearch"
               >
             </label>
@@ -109,7 +110,8 @@ const searchInput = ref(null)
 const urlValid = computed(() => /^https?:\/\/\S+$/i.test(url.value.trim()))
 const valid = computed(() => title.value.trim() && artist.value.trim() && (!url.value.trim() || urlValid.value))
 
-/* ---------- 곡 검색: 입력을 멈추면 잠시 뒤 찾는다 ---------- */
+/* ---------- 곡 검색: 입력을 멈추면 잠시 뒤 찾는다 ----------
+   v-model은 한글을 조합하는 동안 값을 늦게 바꿔서 마지막 글자가 빠진 채로 찾게 되니, input 이벤트로 바로 받는다 */
 const term = ref('')
 const results = ref([])
 const searching = ref(false)

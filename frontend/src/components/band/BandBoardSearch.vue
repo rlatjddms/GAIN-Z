@@ -6,12 +6,13 @@
         <Search :size="15" :stroke-width="2.2" aria-hidden="true" />
         <input
           ref="input"
-          v-model="text"
+          :value="text"
           type="search"
           enterkeyhint="search"
           maxlength="50"
           placeholder="제목·내용·작성자"
           aria-label="검색어"
+          @input="text = $event.target.value"
         />
       </label>
       <div class="date-wrap">
@@ -47,6 +48,7 @@ const props = defineProps({
 // search: { q, from, to } / close: 검색 줄 접기
 const emit = defineEmits(['search', 'close'])
 
+// 검색어 칸. v-model 대신 input 이벤트로 받아 한글 조합 중인 마지막 글자도 바로 들어간다
 const text = ref(props.q)
 const input = ref(null)
 const calendarOpen = ref(false)
