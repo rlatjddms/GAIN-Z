@@ -222,7 +222,8 @@ const handleSignup = async () => {
 * { box-sizing: border-box; }
 
 .gain-z-signup-root {
-  width: 100%; min-height: 100vh;
+  /* 화면이 낮아도 카드가 위아래 끝에 붙지 않게 바깥 여백 (#190) */
+  width: 100%; min-height: 100vh; padding: 48px 24px;
   display: flex; justify-content: center; align-items: center;
   background: #f8f9fb; font-family: 'Pretendard', sans-serif; position: relative;
 }
@@ -233,13 +234,13 @@ const handleSignup = async () => {
 }
 
 .signup-card-container {
-  width: 100%; max-width: 480px;
-  padding: 60px 50px; background: #ffffff; border-radius: 24px;
+  width: 100%; max-width: 440px;
+  padding: 48px 44px; background: #ffffff; border-radius: 24px;
   border: 1px solid #edf0f3; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
   z-index: 1; text-align: center;
 }
 
-.brand-header { margin-bottom: 45px; }
+.brand-header { margin-bottom: 36px; }
 .brand-logo { display: flex; justify-content: center; margin-bottom: 10px; }
 .brand-sub { font-size: 0.95rem; color: #a0a8b1; letter-spacing: -0.3px; }
 
@@ -275,7 +276,7 @@ const handleSignup = async () => {
 .signup-btn-main:disabled { background: #ced4da; cursor: not-allowed; box-shadow: none; }
 .signup-btn-main:hover:not(:disabled) { background: var(--c-primary-strong); box-shadow: 0 5px 15px color-mix(in srgb, var(--c-primary) 20%, transparent); }
 
-.signup-footer { margin-top: 45px; font-size: 0.9rem; color: #a0a8b1; }
+.signup-footer { margin-top: 32px; font-size: 0.9rem; color: #a0a8b1; }
 .signup-footer a { color: var(--c-primary-text); font-weight: 700; text-decoration: none; margin-left: 8px; }
 /* 휴대폰·앱 (#190): 카드 없이 화면 전체를 쓴다. 노치·홈 표시줄 자리는 비워 둔다 */
 @media (max-width: 640px) {
