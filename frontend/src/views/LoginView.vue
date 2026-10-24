@@ -1,81 +1,76 @@
 <template>
-  <!-- 로그인 (#190): 휴대폰·앱(홈 화면 실행)에서는 카드 없이 화면 전체를 쓰고, 넓은 화면에서는 가운데 카드 -->
-  <div class="login-root">
-    <main class="login-panel">
-      <header class="hero">
-        <PixelCharacter class="hero-character" :scale="4" />
-        <AppLogo class="hero-logo" :pixel="5" />
-        <p class="hero-sub">당신의 합주가 시작되는 곳</p>
-      </header>
+  <div class="gain-z-login-root">
+    <div class="login-background-deco"></div>
 
-      <section class="actions">
-        <div class="social-list">
-          <button type="button" class="social-btn kakao" @click="handleSocialLogin('kakao')">
-            <span class="kakao-mark" aria-hidden="true"></span>
-            카카오로 시작하기
-          </button>
-          <button type="button" class="social-btn naver" @click="handleSocialLogin('naver')">
-            <span class="naver-mark" aria-hidden="true">N</span>
-            네이버로 시작하기
-          </button>
-          <button type="button" class="social-btn google" @click="handleSocialLogin('google')">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-            Google로 시작하기
-          </button>
-        </div>
+    <main class="login-card-container">
+      <div class="brand-header">
+        <div class="brand-logo"><AppLogo :pixel="5" /></div>
+        <p class="brand-sub">당신의 합주가 시작되는 곳</p>
+      </div>
 
-        <div class="divider"><span>또는 이메일로 로그인</span></div>
-
-        <form class="login-form" @submit.prevent="handleLogin">
-          <input
-            v-model="email"
-            type="email"
-            inputmode="email"
-            autocomplete="email"
-            enterkeyhint="next"
-            placeholder="이메일"
-            aria-label="이메일"
-            class="gz-input"
-            required
-          />
-          <div class="pw-group">
+      <form class="login-form" @submit.prevent="handleLogin">
+        <div class="input-grid">
+          <div class="input-wrapper">
             <input
-              v-model="password"
-              :type="isPwVisible ? 'text' : 'password'"
-              autocomplete="current-password"
-              enterkeyhint="go"
-              placeholder="비밀번호"
-              aria-label="비밀번호"
+              v-model="email"
+              type="email"
+              placeholder="이메일"
               class="gz-input"
               required
             />
-            <button
-              type="button"
-              class="pw-eye-btn"
-              :aria-label="isPwVisible ? '비밀번호 숨기기' : '비밀번호 보기'"
-              @click="isPwVisible = !isPwVisible"
-            >
-              <EyeOff v-if="isPwVisible" :size="18" :stroke-width="2" />
-              <Eye v-else :size="18" :stroke-width="2" />
-            </button>
           </div>
 
-          <p v-if="errorMessage" class="error-msg" role="alert">{{ errorMessage }}</p>
+          <div class="input-wrapper pw-group">
+            <input
+              v-model="password"
+              :type="isPwVisible ? 'text' : 'password'"
+              placeholder="비밀번호"
+              class="gz-input"
+              required
+            />
+            <button type="button" class="pw-eye-btn" @click="isPwVisible = !isPwVisible">
+              <svg v-if="!isPwVisible" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+            </button>
+          </div>
+        </div>
 
-          <label class="keep">
-            <input v-model="keepLoggedIn" type="checkbox">
+        <div v-if="errorMessage" class="error-msg">
+          {{ errorMessage }}
+        </div>
+
+        <div class="form-options">
+          <label class="check-container">
+            <input type="checkbox" v-model="keepLoggedIn">
+            <span class="checkmark"></span>
             로그인 상태 유지
           </label>
+        </div>
 
-          <button type="submit" class="login-btn" :disabled="isLoading">
-            {{ isLoading ? '로그인 중…' : '로그인' }}
-          </button>
-        </form>
+        <button type="submit" class="login-btn-main" :disabled="isLoading">
+          {{ isLoading ? '로그인 중...' : '로그인' }}
+        </button>
+      </form>
 
-        <p class="footer">
-          아직 계정이 없으신가요? <router-link to="/signup">회원가입</router-link>
-        </p>
-      </section>
+      <div class="social-divider">
+        <span>간편 로그인</span>
+      </div>
+
+      <div class="social-row">
+        <button class="social-btn kakao" title="카카오 로그인" @click="handleSocialLogin('kakao')">
+          <span class="s-icon"></span>
+        </button>
+        <button class="social-btn naver" title="네이버 로그인" @click="handleSocialLogin('naver')">
+          <span class="s-icon">N</span>
+        </button>
+        <button class="social-btn google" title="구글 로그인" @click="handleSocialLogin('google')">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        </button>
+      </div>
+
+      <div class="login-footer">
+        아직 계정이 없으신가요? <router-link to="/signup">회원가입</router-link>
+      </div>
     </main>
   </div>
 </template>
@@ -83,10 +78,8 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Eye, EyeOff } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import AppLogo from '../components/AppLogo.vue'
-import PixelCharacter from '../components/PixelCharacter.vue'
 import { API_BASE_URL } from '../api/axios'
 
 const router = useRouter()
@@ -139,167 +132,230 @@ const handleSocialLogin = (provider) => {
 <style scoped>
 * { box-sizing: border-box; }
 
-.login-root {
-  min-height: 100vh;
-  min-height: 100dvh;
+.gain-z-login-root {
+  width: 100%;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 32px 16px;
-  background: var(--c-bg);
+  background: #f8f9fb;
   font-family: 'Pretendard', sans-serif;
+  position: relative;
 }
 
-/* 넓은 화면: 가운데 카드 */
-.login-panel {
+.login-background-deco {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  max-width: 440px;
-  padding: 44px 40px 36px;
-  background: var(--c-surface);
-  border: 1px solid var(--c-line);
+  height: 100%;
+  background: radial-gradient(circle at 70% 20%, color-mix(in srgb, var(--c-primary) 3%, transparent) 0%, transparent 50%);
+}
+
+.login-card-container {
+  width: 100%;
+  max-width: 480px;
+  padding: 60px 50px;
+  background: #ffffff;
   border-radius: 24px;
+  border: 1px solid #edf0f3;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+  z-index: 1;
   text-align: center;
 }
 
-.hero {
+.brand-header {
+  margin-bottom: 45px;
+}
+
+.brand-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.brand-sub {
+  font-size: 0.95rem;
+  color: #a0a8b1;
+  letter-spacing: -0.3px;
+}
+
+.input-grid {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 32px;
-}
-.hero-character { margin-bottom: 4px; }
-.hero-sub { margin: 0; font-size: 0.95rem; color: var(--c-muted); letter-spacing: -0.3px; }
-
-/* 소셜 로그인: 가로로 꽉 찬 큰 버튼 */
-.social-list { display: flex; flex-direction: column; gap: 10px; }
-.social-btn {
-  width: 100%;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: none;
-  border-radius: 12px;
-  font-size: 0.97rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: filter 0.15s, transform 0.1s;
-}
-.social-btn:hover { filter: brightness(0.97); }
-.social-btn:active { transform: scale(0.99); }
-.kakao { background: #fee500; color: rgba(0, 0, 0, 0.85); }
-.kakao-mark {
-  width: 18px; height: 16px; background: #191600; border-radius: 50%; position: relative;
-}
-.kakao-mark::after {
-  content: ""; position: absolute; left: 3px; bottom: -3px;
-  border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #191600;
-}
-.naver { background: #03c75a; color: #fff; }
-.naver-mark { font-weight: 900; font-size: 1.05rem; line-height: 1; }
-.google { background: #fff; color: var(--c-text); border: 1px solid var(--c-line); }
-
-.divider {
-  display: flex;
-  align-items: center;
   gap: 12px;
-  margin: 24px 0 16px;
-  font-size: 0.8rem;
-  color: var(--c-faint);
 }
-.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--c-line); }
 
-.login-form { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.input-wrapper {
+  position: relative;
+}
+
 .gz-input {
   width: 100%;
-  height: 50px;
-  padding: 0 16px;
-  border: 1.5px solid var(--c-line);
+  padding: 14px 18px;
+  border: 1.5px solid #eceff2;
   border-radius: 12px;
-  /* 16px 아래면 아이폰이 누를 때 화면을 확대한다 */
-  font-size: 16px;
-  background: var(--c-surface);
+  font-size: 0.95rem;
+  background: #fff;
+  transition: all 0.2s;
   color: var(--c-text);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
 }
+
 .gz-input:focus {
   border-color: var(--c-primary);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 10%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 5%, transparent);
 }
-.pw-group { position: relative; }
-.pw-group .gz-input { padding-right: 48px; }
+
 .pw-eye-btn {
   position: absolute;
-  right: 4px;
+  right: 18px;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: none;
   border: none;
-  color: var(--c-faint);
+  color: #c1c8d0;
   cursor: pointer;
+  display: flex;
 }
 
-.error-msg { margin: 2px 4px 0; font-size: 0.85rem; font-weight: 500; color: var(--c-danger); }
+.error-msg {
+  color: #fa5252;
+  font-size: 0.82rem;
+  margin-top: 10px;
+  font-weight: 500;
+  text-align: left;
+  padding-left: 4px;
+}
 
-.keep {
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 2px 35px;
+  font-size: 0.85rem;
+}
+
+.check-container {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 32px;
-  padding: 0 2px;
-  font-size: 0.88rem;
-  color: var(--c-text-2);
+  color: #64707d;
   cursor: pointer;
 }
-.keep input { width: 18px; height: 18px; accent-color: var(--c-primary); }
 
-.login-btn {
+.login-btn-main {
   width: 100%;
-  height: 52px;
-  margin-top: 4px;
+  padding: 14px;
   background: var(--c-primary);
-  color: var(--c-on-primary);
+  color: #fff;
   border: none;
   border-radius: 12px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: 0.25s ease;
 }
-.login-btn:hover:not(:disabled) { background: var(--c-primary-strong); }
-.login-btn:disabled { background: var(--c-faint); cursor: not-allowed; }
 
-.footer { margin: 24px 0 0; font-size: 0.9rem; color: var(--c-muted); }
-.footer a { margin-left: 6px; color: var(--c-primary-text); font-weight: 700; text-decoration: none; }
+.login-btn-main:hover:not(:disabled) {
+  background: var(--c-primary-strong);
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--c-primary) 20%, transparent);
+}
 
-/* 휴대폰·앱: 카드 없이 화면 전체. 위는 캐릭터·로고, 아래는 엄지가 닿는 버튼 */
+.login-btn-main:disabled {
+  background: #ced4da;
+  cursor: not-allowed;
+}
+
+.social-divider {
+  margin: 45px 0 25px;
+  position: relative;
+}
+
+.social-divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--c-line-soft);
+}
+
+.social-divider span {
+  position: relative;
+  background: #fff;
+  padding: 0 15px;
+  font-size: 0.8rem;
+  color: var(--c-faint);
+}
+
+.social-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.social-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, filter 0.2s;
+}
+
+.social-btn:hover {
+  transform: translateY(-3px);
+  filter: brightness(0.98);
+}
+
+.kakao { background: #fee500; }
+.kakao .s-icon {
+  width: 18px; height: 17px; background: #3c1e1e; border-radius: 45%; position: relative;
+}
+.kakao .s-icon::after {
+  content: ""; position: absolute; left: 3px; bottom: -2px; width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #3c1e1e;
+}
+
+.naver { background: #03c75a; color: #fff; font-weight: 900; font-size: 1.1rem; }
+
+.google { background: #fff; border: 1px solid var(--c-line) !important; }
+
+.login-footer {
+  margin-top: 45px;
+  font-size: 0.9rem;
+  color: #a0a8b1;
+}
+
+.login-footer a {
+  color: var(--c-primary-text);
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: 8px;
+}
+/* 휴대폰·앱 (#190): 카드 없이 화면 전체를 쓴다. 노치·홈 표시줄 자리는 비워 둔다 */
 @media (max-width: 640px) {
-  .login-root {
-    align-items: stretch;
+  .gain-z-login-root {
+    height: auto;
+    min-height: 100dvh;
     padding:
       calc(24px + env(safe-area-inset-top))
       calc(20px + env(safe-area-inset-right))
-      calc(20px + env(safe-area-inset-bottom))
+      calc(24px + env(safe-area-inset-bottom))
       calc(20px + env(safe-area-inset-left));
-    background: var(--c-surface);
+    background: #ffffff;
   }
-  .login-panel {
-    max-width: none;
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-  }
-  .hero { flex: 1; justify-content: center; min-height: 200px; margin-bottom: 24px; }
-  .footer { margin-top: 20px; }
+  .login-background-deco { display: none; }
+  .login-card-container { max-width: none; padding: 0; border: none; border-radius: 0; box-shadow: none; }
+}
+@media (max-width: 640px) {
+  .gz-input { padding: 12px 14px; }
+  .login-btn-main { padding: 12px; }
+  .social-btn { width: 44px; height: 44px; }
 }
 </style>
