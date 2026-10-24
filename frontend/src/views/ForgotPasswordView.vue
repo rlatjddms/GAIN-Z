@@ -20,7 +20,9 @@
         <strong>{{ sentTo }}</strong>(으)로 비밀번호 재설정 링크를 보냈어요.
         링크는 30분 동안만 쓸 수 있어요.
       </p>
+      <p v-if="recent" class="auth-note">1분 안에 보낸 메일이 있어서 새로 보내지 않았어요. 받은 메일을 먼저 확인해 주세요.</p>
       <p class="auth-note">메일이 안 보이면 스팸함도 확인해 주세요.</p>
+      <p v-if="error" class="auth-msg error">{{ error }}</p>
       <button type="button" class="auth-btn ghost" :disabled="sending || cooldown > 0" @click="send">
         {{ sending ? '보내는 중…' : cooldown > 0 ? `${cooldown}초 뒤 다시 보낼 수 있어요` : '메일 다시 보내기' }}
       </button>
@@ -34,7 +36,7 @@
 import { ref } from 'vue'
 import AuthCard from '../components/ui/AuthCard.vue'
 import { useCooldown } from '../components/ui/useCooldown'
-import { requestPasswordReset, MAIL_RESEND_SECONDS } from '../api/auth'
+import { requestPasswordReset, retryAfterOf, MAIL_RESEND_SECONDS } from '../api/auth'
 
 const email = ref('')
 const sentTo = ref('')
@@ -44,6 +46,8 @@ const error = ref('')
 // 가입되지 않은 이메일·소셜로만 가입한 계정 안내 (다른 이메일로 가입했을 수도 있어서 바로 알려 준다)
 const notice = ref('')
 const noticeSignup = ref(false)
+// 1분 안에 다시 요청해서 이번에는 보내지 않음
+const recent = ref(false)
 const { left: cooldown, start } = useCooldown()
 
 const PROVIDER_NAMES = { GOOGLE: '구글', KAKAO: '카카오', NAVER: '네이버' } // 모두 받침이 없어 조사는 로
@@ -55,6 +59,7 @@ const send = async () => {
   error.value = ''
   notice.value = ''
   noticeSignup.value = false
+  recent.value = false
   try {
     const { status, provider } = await requestPasswordReset(target)
     if (status === 'NOT_FOUND') {
@@ -71,6 +76,14 @@ const send = async () => {
     sent.value = true
     start(MAIL_RESEND_SECONDS)
   } catch (e) {
+    const retryAfter = retryAfterOf(e)
+    if (retryAfter) {
+      sentTo.value = target
+      sent.value = true
+      recent.value = true
+      start(retryAfter)
+      return
+    }
     error.value = e.response?.data?.message || '메일을 보내지 못했어요. 잠시 후 다시 시도해 주세요.'
   } finally {
     sending.value = false

@@ -29,5 +29,13 @@ export async function resetPassword(token, newPassword) {
 export const DUPLICATE_EMAIL = 'U001'
 // 인증 표가 없거나 30분이 지남 → 다시 인증
 export const EMAIL_NOT_VERIFIED = 'U012'
+// 1분 안에 다시 요청함 → 메일은 새로 보내지 않았고, data.retryAfterSeconds 뒤에 다시 보낼 수 있다
+export const MAIL_SEND_TOO_SOON = 'U017'
+
+// 1분 안에 다시 요청한 오류면 남은 초, 아니면 null (화면을 나갔다 오면 기다릴 시간을 잊어서 서버가 알려 준다)
+export function retryAfterOf(error) {
+  const body = error.response?.data
+  return body?.code === MAIL_SEND_TOO_SOON ? (body.data?.retryAfterSeconds ?? MAIL_RESEND_SECONDS) : null
+}
 // 메일을 다시 보낼 수 있을 때까지 (백엔드와 같게)
 export const MAIL_RESEND_SECONDS = 60

@@ -113,7 +113,7 @@ import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
 import AppLogo from '../components/AppLogo.vue'
 import { useCooldown } from '../components/ui/useCooldown'
-import { sendSignupCode, verifySignupCode, DUPLICATE_EMAIL, EMAIL_NOT_VERIFIED, MAIL_RESEND_SECONDS } from '../api/auth'
+import { sendSignupCode, verifySignupCode, retryAfterOf, DUPLICATE_EMAIL, EMAIL_NOT_VERIFIED, MAIL_RESEND_SECONDS } from '../api/auth'
 
 const router = useRouter()
 const dialog = useDialogStore()
@@ -182,6 +182,17 @@ const sendCode = async () => {
     await nextTick()
     codeInput.value?.focus()
   } catch (error) {
+    // 1분 안에 보낸 코드가 아직 쓸 수 있으니 코드 칸을 열어 준다
+    const retryAfter = retryAfterOf(error)
+    if (retryAfter) {
+      codeSent.value = true
+      emailOk.value = true
+      emailMessage.value = '1분 안에 보낸 코드가 있어서 새로 보내지 않았어요. 받은 메일의 코드를 넣어 주세요.'
+      start(retryAfter)
+      await nextTick()
+      codeInput.value?.focus()
+      return
+    }
     emailMessage.value = error.response?.data?.code === DUPLICATE_EMAIL
       ? '이미 가입된 이메일이에요.'
       : errorMessageOf(error, '인증 코드를 보내지 못했어요. 잠시 후 다시 시도해 주세요.')
