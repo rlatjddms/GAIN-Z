@@ -14,8 +14,10 @@ export async function confirmEmail(token) {
 }
 
 // 비밀번호 재설정 메일 보내기
+// 결과 { status: 'SENT' | 'NOT_FOUND' | 'SOCIAL_ONLY', provider }
 export async function requestPasswordReset(email) {
-  await axiosInstance.post('/api/v1/auth/password-reset/request', { email })
+  const response = await axiosInstance.post('/api/v1/auth/password-reset/request', { email })
+  return response.data.data ?? { status: 'SENT', provider: null }
 }
 
 // 메일 링크의 토큰으로 새 비밀번호 정하기
