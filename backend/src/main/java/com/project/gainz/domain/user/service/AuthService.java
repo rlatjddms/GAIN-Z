@@ -64,6 +64,10 @@ public class AuthService {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        // 소셜로만 가입해 비밀번호가 없음 (#189)
+        if (!user.hasPassword()) {
+            throw new BusinessException(ErrorCode.PASSWORD_NOT_SET);
+        }
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BusinessException(ErrorCode.INVALID_PASSWORD);

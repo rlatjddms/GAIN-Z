@@ -13,6 +13,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -20,6 +21,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Getter
@@ -43,9 +48,14 @@ public class User extends BaseEntity {
     // 이메일 인증 여부 (#193). 이 칸이 생기기 전에 가입한 계정은 null → 인증된 것으로 본다
     private Boolean emailVerified;
 
+    // 처음 가입한 방법. 로그인할 수 있는 방법은 password(있으면 이메일)와 socialAccounts (#189)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SocialProvider provider;
+
+    // 연결한 소셜 로그인 (#189)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SocialAccount> socialAccounts = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -109,8 +119,31 @@ public class User extends BaseEntity {
         return this;
     }
 
-    public boolean isLocal() {
-        return provider == SocialProvider.LOCAL;
+    public boolean hasPassword() {
+        return password != null;
+    }
+
+    /* ---------- 소셜 연결 (#189) ---------- */
+
+    public Optional<SocialAccount> findSocialAccount(SocialProvider provider) {
+        return socialAccounts.stream().filter(a -> a.getProvider() == provider).findFirst();
+    }
+
+    public List<SocialProvider> linkedProviders() {
+        return socialAccounts.stream().map(SocialAccount::getProvider).sorted().toList();
+    }
+
+    public void addSocialAccount(SocialProvider provider, String providerId) {
+        socialAccounts.add(new SocialAccount(this, provider, providerId));
+    }
+
+    public void removeSocialAccount(SocialProvider provider) {
+        socialAccounts.removeIf(a -> a.getProvider() == provider);
+    }
+
+    // 비밀번호(이메일 로그인) + 연결된 소셜 수
+    public int loginMethodCount() {
+        return (hasPassword() ? 1 : 0) + socialAccounts.size();
     }
 
     public void changePassword(String encodedPassword) {
@@ -166,6 +199,8 @@ public class User extends BaseEntity {
         this.profileImage = null;
         this.profileImageType = null;
         this.friendCode = null;
+        // 같은 소셜 계정으로 다시 가입할 수 있게 연결을 지운다
+        socialAccounts.clear();
         clearProfileMusic();
         delete();
     }

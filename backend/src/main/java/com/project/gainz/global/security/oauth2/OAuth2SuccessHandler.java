@@ -44,10 +44,13 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 일반 로그인처럼 재발급용 토큰을 저장해야 접속 토큰이 만료돼도 재발급된다 (#144)
         refreshTokenRepository.save(new RefreshToken(email, refreshToken));
 
-        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth2/redirect")
+        UriComponentsBuilder target = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth2/redirect")
                 .queryParam("accessToken", accessToken)
-                .queryParam("refreshToken", refreshToken)
-                .build().toUriString();
+                .queryParam("refreshToken", refreshToken);
+        // 마이페이지에서 소셜을 연결한 경우 (#189) → 프론트가 마이페이지로 돌아가 결과를 알려 준다
+        Object linked = request.getAttribute(CustomOAuth2UserService.LINKED_PROVIDER);
+        if (linked != null) target.queryParam("linked", linked);
+        String targetUrl = target.build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }

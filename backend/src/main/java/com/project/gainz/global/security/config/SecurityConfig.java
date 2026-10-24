@@ -3,7 +3,10 @@ package com.project.gainz.global.security.config;
 import com.project.gainz.global.security.jwt.JwtAuthenticationFilter;
 import com.project.gainz.global.security.jwt.JwtTokenProvider;
 import com.project.gainz.global.security.oauth2.CustomOAuth2UserService;
+import com.project.gainz.global.security.oauth2.OAuth2FailureHandler;
 import com.project.gainz.global.security.oauth2.OAuth2SuccessHandler;
+import com.project.gainz.global.security.oauth2.SocialLinkTicketFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +36,7 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
 
     // 브라우저에서 API를 부를 수 있는 출처. 쉼표로 여러 개 (#174). 기본값은 프론트 주소 하나
     @Value("${gainz.allowed-origins:${gainz.frontend-url}}")
@@ -81,7 +85,10 @@ public class SecurityConfig {
                                 .userService(customOAuth2UserService)
                         )
                         .successHandler(oAuth2SuccessHandler)
-                );
+                        .failureHandler(oAuth2FailureHandler)
+                )
+                // 마이페이지에서 시작한 소셜 연결 표(?link=)를 세션에 둔다 (#189)
+                .addFilterBefore(new SocialLinkTicketFilter(), OAuth2AuthorizationRequestRedirectFilter.class);
 
         return http.build();
     }
