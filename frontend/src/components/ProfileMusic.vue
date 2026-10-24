@@ -6,11 +6,13 @@
     :class="{ compact, link: !!safeUrl }"
     v-bind="safeUrl ? { href: safeUrl, target: '_blank', rel: 'noopener noreferrer', title: '새 탭에서 듣기' } : {}"
   >
-    <span class="note" aria-hidden="true"><Music :size="13" :stroke-width="2.5" /></span>
+    <img v-if="music.artworkUrl" :src="music.artworkUrl" alt="" class="cover" loading="lazy">
+    <span v-else class="note" aria-hidden="true"><Music :size="13" :stroke-width="2.5" /></span>
     <span class="text">
       <strong>{{ music.title }}</strong>
       <span class="artist">{{ music.artist }}</span>
     </span>
+    <PreviewButton v-if="music.previewUrl" :url="music.previewUrl" :small="compact" />
     <svg v-if="safeUrl" class="out" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line>
     </svg>
@@ -20,9 +22,10 @@
 <script setup>
 import { Music } from 'lucide-vue-next'
 import { computed } from 'vue'
+import PreviewButton from './PreviewButton.vue'
 
 const props = defineProps({
-  // { title, artist, url | null }
+  // { title, artist, url | null, artworkUrl | null, previewUrl | null } (커버·미리듣기는 곡 검색으로 골랐을 때, #187)
   music: { type: Object, required: true },
   // 목록 안의 작은 한 줄 (목록 줄 전체가 버튼이라 링크는 열지 않는다)
   compact: { type: Boolean, default: false },
@@ -43,6 +46,7 @@ const safeUrl = computed(() => (!props.compact && /^https?:\/\//i.test(props.mus
   flex: none; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   background: var(--c-primary); color: #fff; font-size: 0.95rem; font-weight: 900;
 }
+.cover { flex: none; width: 36px; height: 36px; border-radius: 8px; object-fit: cover; background: var(--c-line-soft); }
 .text { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; overflow: hidden; }
 .text strong, .artist { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .text strong { font-size: 0.9rem; font-weight: 900; }
@@ -56,4 +60,5 @@ const safeUrl = computed(() => (!props.compact && /^https?:\/\//i.test(props.mus
 .profile-music.compact .text strong { font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }
 .profile-music.compact .artist { font-size: 0.72rem; }
 .profile-music.compact .out { width: 12px; height: 12px; }
+.profile-music.compact .cover { width: 18px; height: 18px; border-radius: 4px; }
 </style>

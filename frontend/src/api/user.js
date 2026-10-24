@@ -68,9 +68,32 @@ export const PROFILE_VISIBILITY_OPTIONS = [
 ]
 
 // 요즘 듣는 음악 설정 (url은 http/https만, 없으면 null) → 내 정보
-export async function updateProfileMusic({ title, artist, url }) {
-  const response = await axiosInstance.put('/api/v1/users/me/profile-music', { title, artist, url })
+// artworkUrl·previewUrl은 곡 검색으로 골랐을 때만 (Apple 주소만 저장된다, #187)
+export async function updateProfileMusic({ title, artist, url, artworkUrl = null, previewUrl = null }) {
+  const response = await axiosInstance.put('/api/v1/users/me/profile-music', { title, artist, url, artworkUrl, previewUrl })
   return response.data.data
+}
+
+// 곡 검색 (#187): Apple iTunes 검색 API를 브라우저에서 바로 부른다 (키 없음, 로그인 토큰을 보내지 않는다).
+// 한국 스토어는 음악 결과가 없어서 미국 스토어를 한국어로 찾는다. 일부 곡은 제목이 영어로 나온다
+// → [{ id, title, artist, album, artworkUrl, previewUrl, url }]
+export async function searchSongs(term, signal) {
+  const params = new URLSearchParams({ term, country: 'US', lang: 'ko_kr', media: 'music', entity: 'song', limit: '12' })
+  const response = await fetch(`https://itunes.apple.com/search?${params}`, { signal })
+  if (!response.ok) throw new Error('곡을 찾지 못했어요.')
+  const { results = [] } = await response.json()
+  return results
+    .filter(r => r.trackName && r.artistName)
+    .map(r => ({
+      id: r.trackId,
+      title: r.trackName.slice(0, PROFILE_MUSIC_TITLE_MAX),
+      artist: r.artistName.slice(0, PROFILE_MUSIC_ARTIST_MAX),
+      album: r.collectionName || '',
+      // 100px 커버를 화면용 200px로
+      artworkUrl: r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb', '200x200bb') : null,
+      previewUrl: r.previewUrl || null,
+      url: r.trackViewUrl && r.trackViewUrl.length <= PROFILE_MUSIC_URL_MAX ? r.trackViewUrl : null,
+    }))
 }
 
 // 요즘 듣는 음악 지우기 → 내 정보
