@@ -616,4 +616,117 @@ class SheetServiceTest {
 
         assertThat(sheetService.getSharedSheets()).isEmpty();
     }
+
+    /* ---------- 장 순서 바꾸기·내 악보로 복사 (#191) ---------- */
+
+    @Test
+    void 장_순서를_보낸_순서대로_다시_매긴다() {
+        SheetMusic sheet = sheet(5L, user(USER_ID), "곡");
+        SheetPage p1 = page(10L, sheet, 1, "image/png");
+        SheetPage p2 = page(11L, sheet, 2, "image/png");
+        SheetPage p3 = page(12L, sheet, 3, "application/pdf");
+        when(sheetMusicRepository.findById(5L)).thenReturn(Optional.of(sheet));
+        when(sheetPageRepository.findAllBySheetMusicIdOrderByPageNumberAsc(5L)).thenReturn(List.of(p1, p2, p3));
+        when(tabDataRepository.findAllBySheetMusicIdOrderByMeasureNumberAsc(5L)).thenReturn(List.of());
+
+        sheetService.reorderPages(USER_ID, 5L, List.of(12L, 10L, 11L));
+
+        assertThat(p3.getPageNumber()).isEqualTo(1);
+        assertThat(p1.getPageNumber()).isEqualTo(2);
+        assertThat(p2.getPageNumber()).isEqualTo(3);
+    }
+
+    @Test
+    void 장_순서는_빠지거나_겹치면_받지_않는다() {
+        SheetMusic sheet = sheet(5L, user(USER_ID), "곡");
+        when(sheetMusicRepository.findById(5L)).thenReturn(Optional.of(sheet));
+        when(sheetPageRepository.findAllBySheetMusicIdOrderByPageNumberAsc(5L))
+                .thenReturn(List.of(page(10L, sheet, 1, "image/png"), page(11L, sheet, 2, "image/png")));
+
+        assertThatThrownBy(() -> sheetService.reorderPages(USER_ID, 5L, List.of(10L, 10L)))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.SHEET_PAGE_ORDER_INVALID);
+        assertThatThrownBy(() -> sheetService.reorderPages(USER_ID, 5L, List.of(11L)))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.SHEET_PAGE_ORDER_INVALID);
+        assertThatThrownBy(() -> sheetService.reorderPages(USER_ID, 5L, List.of(10L, 99L)))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.SHEET_PAGE_ORDER_INVALID);
+    }
+
+    @Test
+    void 남의_악보는_장_순서를_바꿀_수_없다() {
+        SheetMusic others = sheet(5L, user(OTHER_ID), "곡");
+        when(sheetMusicRepository.findById(5L)).thenReturn(Optional.of(others));
+
+        assertThatThrownBy(() -> sheetService.reorderPages(USER_ID, 5L, List.of(10L)))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.SHEET_EDIT_DENIED);
+    }
+
+    @Test
+    void 내_악보로_복사하면_장_파일과_내_필기를_사본으로_옮기고_항목이_사본을_가리킨다() {
+        SheetMusic source = sheet(5L, user(OTHER_ID), "밴드 악보");
+        SheetPage p1 = page(10L, source, 1, "image/png");
+        SheetPage p2 = page(11L, source, 2, "application/pdf");
+        UserWorkspace item = item(1L, source);
+        item.changeCustomKey("D");
+        when(userWorkspaceRepository.findWithSheetByIdAndUserId(1L, USER_ID)).thenReturn(Optional.of(item));
+        when(sheetMusicRepository.save(any())).thenAnswer(inv -> {
+            SheetMusic saved = inv.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 99L);
+            return saved;
+        });
+        when(sheetPageRepository.findAllBySheetMusicIdOrderByPageNumberAsc(5L)).thenReturn(List.of(p1, p2));
+        when(fileStorage.copy("f10")).thenReturn("c10");
+        when(fileStorage.copy("f11")).thenReturn("c11");
+        when(sheetPageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        SheetAnnotation note = SheetAnnotation.builder().user(item.getUser()).sheetPage(p2).pdfPage(3).data("{}").build();
+        when(sheetAnnotationRepository.findAllByUserIdAndSheetPageSheetMusicId(USER_ID, 5L)).thenReturn(List.of(note));
+
+        sheetService.copyToMine(USER_ID, 1L);
+
+        SheetMusic copy = item.getSheetMusic();
+        assertThat(copy).isNotSameAs(source);
+        assertThat(copy.getId()).isEqualTo(99L);
+        assertThat(copy.getOwner()).isSameAs(item.getUser());
+        assertThat(copy.getTitle()).isEqualTo("밴드 악보");
+        assertThat(copy.getOriginalKey()).isEqualTo("C");
+        assertThat(item.getCustomKey()).isEqualTo("D");
+        ArgumentCaptor<SheetPage> pages = ArgumentCaptor.forClass(SheetPage.class);
+        verify(sheetPageRepository, org.mockito.Mockito.times(2)).save(pages.capture());
+        assertThat(pages.getAllValues()).extracting(SheetPage::getStoredName).containsExactly("c10", "c11");
+        assertThat(pages.getAllValues()).extracting(SheetPage::getSheetMusic).containsOnly(copy);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<SheetAnnotation>> moved = ArgumentCaptor.forClass(List.class);
+        verify(sheetAnnotationRepository).saveAll(moved.capture());
+        assertThat(moved.getValue()).singleElement().satisfies(a -> {
+            assertThat(a.getSheetPage().getStoredName()).isEqualTo("c11");
+            assertThat(a.getPdfPage()).isEqualTo(3);
+        });
+        verify(sheetAnnotationRepository).deleteAll(List.of(note));
+    }
+
+    @Test
+    void 이미_내_악보면_복사하지_않는다() {
+        UserWorkspace item = item(1L, sheet(5L, user(USER_ID), "내 곡"));
+        when(userWorkspaceRepository.findWithSheetByIdAndUserId(1L, USER_ID)).thenReturn(Optional.of(item));
+
+        assertThatThrownBy(() -> sheetService.copyToMine(USER_ID, 1L))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.SHEET_ALREADY_MINE);
+        verify(sheetMusicRepository, never()).save(any());
+    }
+
+    @Test
+    void 복사_중_파일_복사가_실패하면_먼저_복사한_파일을_지운다() {
+        SheetMusic source = sheet(5L, user(OTHER_ID), "곡");
+        UserWorkspace item = item(1L, source);
+        when(userWorkspaceRepository.findWithSheetByIdAndUserId(1L, USER_ID)).thenReturn(Optional.of(item));
+        when(sheetMusicRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(sheetPageRepository.findAllBySheetMusicIdOrderByPageNumberAsc(5L))
+                .thenReturn(List.of(page(10L, source, 1, "image/png"), page(11L, source, 2, "image/png")));
+        when(fileStorage.copy("f10")).thenReturn("c10");
+        when(fileStorage.copy("f11")).thenThrow(new BusinessException(ErrorCode.SHEET_FILE_STORAGE_FAILED));
+        when(sheetPageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThatThrownBy(() -> sheetService.copyToMine(USER_ID, 1L)).isInstanceOf(BusinessException.class);
+        verify(fileStorage).delete("c10");
+        assertThat(item.getSheetMusic()).isSameAs(source);
+    }
 }
