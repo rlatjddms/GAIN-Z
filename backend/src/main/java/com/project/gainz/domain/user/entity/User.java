@@ -40,6 +40,9 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
+    // 이메일 인증 여부 (#193). 이 칸이 생기기 전에 가입한 계정은 null → 인증된 것으로 본다
+    private Boolean emailVerified;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SocialProvider provider;
@@ -84,12 +87,21 @@ public class User extends BaseEntity {
     private String friendCode;
 
     @Builder
-    public User(String email, String password, String name, SocialProvider provider, UserRole role) {
+    public User(String email, String password, String name, SocialProvider provider, UserRole role, Boolean emailVerified) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.provider = provider;
         this.role = role;
+        this.emailVerified = emailVerified;
+    }
+
+    public boolean isEmailVerified() {
+        return !Boolean.FALSE.equals(emailVerified);
+    }
+
+    public void verifyEmail() {
+        this.emailVerified = true;
     }
 
     public User update(String name) {

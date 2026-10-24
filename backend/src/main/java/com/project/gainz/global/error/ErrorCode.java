@@ -19,6 +19,8 @@ public enum ErrorCode {
     PROFILE_IMAGE_TOO_LARGE(400, "U009", "프로필 사진은 5MB까지 올릴 수 있습니다."),
     PROFILE_IMAGE_NOT_FOUND(404, "U010", "프로필 사진이 없습니다."),
     PROFILE_IMAGE_STORAGE_FAILED(500, "U011", "프로필 사진을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+    EMAIL_NOT_VERIFIED(403, "U012", "이메일 인증을 마쳐야 로그인할 수 있어요. 가입할 때 받은 메일의 링크를 눌러 주세요."),
+    INVALID_EMAIL_TOKEN(400, "U013", "링크가 만료됐거나 이미 사용됐어요. 다시 요청해 주세요."),
 
     /* Friend (친구) */
     INVALID_FRIEND_CODE(404, "F001", "친구 코드가 올바르지 않습니다. 친구에게 코드를 다시 확인해 주세요."),

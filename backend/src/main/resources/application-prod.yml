@@ -51,6 +51,13 @@ gainz:
   allowed-origins: ${ALLOWED_ORIGINS:${FRONTEND_URL}}
   upload-dir: ${UPLOAD_DIR:/data/uploads}
   # local: 위 폴더(docker compose 볼륨) / supabase: Supabase Storage 비공개 버킷 (#178)
+  # 메일 (#193): brevo 로 두면 BREVO_API_KEY·MAIL_FROM 도 필요. 기본 log 는 보내지 않고 로그에만
+  mail:
+    type: ${MAIL_TYPE:log}
+    from: ${MAIL_FROM:}
+    from-name: ${MAIL_FROM_NAME:GAIN-Z}
+    brevo:
+      api-key: ${BREVO_API_KEY:}
   storage:
     type: ${STORAGE_TYPE:local}
     supabase:
