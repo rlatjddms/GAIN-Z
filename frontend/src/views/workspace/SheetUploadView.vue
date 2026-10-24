@@ -68,48 +68,50 @@
         <p v-if="fileError" class="error">{{ fileError }}</p>
         <div v-if="editing && adding" class="progress"><span :style="{ width: `${progress * 100}%` }"></span></div>
 
-        <!-- 올리기 전: 고른 파일 순서 정하기 -->
-        <ol v-if="!editing && picked.length" class="pages">
-          <li v-for="(p, i) in picked" :key="p.key">
-            <div class="thumb">
-              <img v-if="p.preview" :src="p.preview" alt="">
-              <span v-else class="pdf">PDF</span>
+        <!-- 올리기 전: 고른 파일 순서 정하기. ⠿를 잡고 끌어서 옮긴다 (#191) -->
+        <SmoothReorder v-if="!editing && picked.length" :items="pickedItems" :disabled="saving" class="pages" @reorder="reorderPicked">
+          <template #default="{ item: p, index: i, start, move }">
+            <div class="page-row">
+              <button class="drag-handle" :disabled="saving" :aria-label="`${i + 1}장 순서 변경`" title="끌어서 이동 · 위아래 방향키로 이동" @pointerdown="start" @keydown.up.prevent="move(-1)" @keydown.down.prevent="move(1)">⠿</button>
+              <div class="thumb">
+                <img v-if="p.preview" :src="p.preview" alt="">
+                <span v-else class="pdf">PDF</span>
+              </div>
+              <div class="page-info">
+                <strong>{{ i + 1 }}장</strong>
+                <span>{{ p.file.name }} · {{ fileSizeText(p.file.size) }}</span>
+              </div>
+              <div class="page-actions">
+                <button class="icon danger" :disabled="saving" aria-label="삭제" @click="unpick(i)"><X :size="14" :stroke-width="2.4" /></button>
+              </div>
             </div>
-            <div class="page-info">
-              <strong>{{ i + 1 }}장</strong>
-              <span>{{ p.file.name }} · {{ fileSizeText(p.file.size) }}</span>
-            </div>
-            <div class="page-actions">
-              <button class="icon" :disabled="i === 0 || saving" aria-label="앞으로" @click="move(i, -1)"><ArrowUp :size="14" :stroke-width="2.4" /></button>
-              <button class="icon" :disabled="i === picked.length - 1 || saving" aria-label="뒤로" @click="move(i, 1)"><ArrowDown :size="14" :stroke-width="2.4" /></button>
-              <button class="icon danger" :disabled="saving" aria-label="삭제" @click="unpick(i)"><X :size="14" :stroke-width="2.4" /></button>
-            </div>
-          </li>
-        </ol>
+          </template>
+        </SmoothReorder>
 
-        <!-- 수정: 이미 올린 장 -->
-        <ol v-if="editing" class="pages">
-          <li v-for="(p, i) in sheet.pages" :key="p.id">
-            <div class="thumb">
-              <SheetPageView :sheet-id="sheet.id" :page-id="p.id" :content-type="p.contentType" thumb />
+        <!-- 수정: 이미 올린 장. 끌어서 놓으면 바로 저장 (#191) -->
+        <SmoothReorder v-if="editing" :items="sheet.pages" :disabled="busy" class="pages" @reorder="reorderPages">
+          <template #default="{ item: p, index: i, start, move }">
+            <div class="page-row">
+              <button class="drag-handle" :disabled="busy" :aria-label="`${i + 1}장 순서 변경`" title="끌어서 이동 · 위아래 방향키로 이동" @pointerdown="start" @keydown.up.prevent="move(-1)" @keydown.down.prevent="move(1)">⠿</button>
+              <div class="thumb">
+                <SheetPageView :sheet-id="sheet.id" :page-id="p.id" :content-type="p.contentType" thumb />
+              </div>
+              <div class="page-info">
+                <strong>{{ i + 1 }}장</strong>
+                <span>{{ p.fileName }} · {{ fileSizeText(p.size) }}</span>
+              </div>
+              <div class="page-actions">
+                <button
+                  class="icon danger"
+                  :disabled="busy || sheet.pages.length <= 1"
+                  :title="sheet.pages.length <= 1 ? '마지막 한 장은 지울 수 없어요' : ''"
+                  aria-label="이 장 지우기"
+                  @click="removePage(p)"
+                ><X :size="14" :stroke-width="2.4" /></button>
+              </div>
             </div>
-            <div class="page-info">
-              <strong>{{ p.pageNumber }}장</strong>
-              <span>{{ p.fileName }} · {{ fileSizeText(p.size) }}</span>
-            </div>
-            <div class="page-actions">
-              <button class="icon" :disabled="busy || i === 0" aria-label="앞으로" @click="movePage(i, -1)"><ArrowUp :size="14" :stroke-width="2.4" /></button>
-              <button class="icon" :disabled="busy || i === sheet.pages.length - 1" aria-label="뒤로" @click="movePage(i, 1)"><ArrowDown :size="14" :stroke-width="2.4" /></button>
-              <button
-                class="icon danger"
-                :disabled="busy || sheet.pages.length <= 1"
-                :title="sheet.pages.length <= 1 ? '마지막 한 장은 지울 수 없어요' : ''"
-                aria-label="이 장 지우기"
-                @click="removePage(p)"
-              ><X :size="14" :stroke-width="2.4" /></button>
-            </div>
-          </li>
-        </ol>
+          </template>
+        </SmoothReorder>
       </WsCard>
 
       <!-- 곡 정보 -->
@@ -163,7 +165,8 @@
 </template>
 
 <script setup>
-import { ArrowUp, ArrowDown, X } from 'lucide-vue-next'
+import { X } from 'lucide-vue-next'
+import SmoothReorder from '../../components/band/SmoothReorder.vue'
 import PixelIcon from '../../components/PixelIcon.vue'
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
@@ -319,9 +322,11 @@ const addFiles = (fileList) => {
 
 const onPick = (e) => { addFiles(e.target.files); e.target.value = '' }
 const onDrop = (e) => { dragOver.value = false; if (!busy.value) addFiles(e.dataTransfer.files) }
-const move = (i, d) => {
-  const list = picked.value
-  ;[list[i], list[i + d]] = [list[i + d], list[i]]
+// 끌어서 놓은 순서 (SmoothReorder는 item.id로 순서를 알려 준다)
+const pickedItems = computed(() => picked.value.map((p) => ({ ...p, id: p.key })))
+const reorderPicked = (ids) => {
+  const byKey = new Map(picked.value.map((p) => [p.key, p]))
+  picked.value = ids.map((id) => byKey.get(id))
 }
 const unpick = (i) => {
   const [p] = picked.value.splice(i, 1)
@@ -343,15 +348,14 @@ const uploadMore = async (files) => {
   }
 }
 
-// 장 순서 바꾸기 (#191): 화면에서 먼저 바꾸고 바로 저장, 실패하면 되돌린다
-const movePage = async (i, d) => {
+// 장 순서 바꾸기 (#191): 놓은 순서로 화면을 먼저 바꾸고 바로 저장, 실패하면 되돌린다
+const reorderPages = async (ids) => {
   const before = sheet.value.pages
-  const next = [...before]
-  ;[next[i], next[i + d]] = [next[i + d], next[i]]
-  sheet.value.pages = next.map((p, index) => ({ ...p, pageNumber: index + 1 }))
+  const byId = new Map(before.map((p) => [p.id, p]))
+  sheet.value.pages = ids.map((id, index) => ({ ...byId.get(id), pageNumber: index + 1 }))
   adding.value = true
   try {
-    const result = await reorderSheetPages(sheet.value.id, next.map(p => p.id))
+    const result = await reorderSheetPages(sheet.value.id, ids)
     sheet.value.pages = result.pages
   } catch (e) {
     sheet.value.pages = before
@@ -463,7 +467,13 @@ onBeforeRouteLeave(() => (dirty.value && !loadError.value ? dialog.confirm({ tit
 .progress span { display: block; height: 100%; background: var(--c-primary); transition: width 0.2s; }
 
 .pages { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.pages li { display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid var(--c-line-soft); border-radius: 12px; }
+.page-row { display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 4px; border: 1px solid var(--c-line-soft); border-radius: 12px; background: #fff; }
+.drag-handle {
+  flex: none; width: 24px; height: 36px; border: 0; border-radius: 7px; background: transparent; color: var(--c-faint);
+  font-size: 20px; cursor: grab; touch-action: none; user-select: none;
+}
+.drag-handle:active { cursor: grabbing; }
+.drag-handle:disabled { cursor: default; opacity: 0.4; }
 .thumb {
   flex: none; width: 48px; height: 64px; border-radius: 6px; overflow: hidden; background: var(--c-bg);
   display: flex; align-items: center; justify-content: center; border: 1px solid var(--c-line-soft);

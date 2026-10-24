@@ -7,9 +7,8 @@
             :aria-pressed="item.favorite"
             @click="toggleFavorite"
           ><Star :size="14" :stroke-width="2.2" :fill="item.favorite ? 'currentColor' : 'none'" /> 즐겨찾기</button>
-          <router-link v-if="sheet.mine" :to="`/sheets/${item.id}/edit`" class="btn">수정</router-link>
-          <!-- 남이 올린 악보는 사본을 만들어 고친다 (#191) -->
-          <button v-else class="btn" :disabled="copying" @click="copyToMine"><Copy :size="14" :stroke-width="2.2" /> {{ copying ? '복사 중…' : '내 악보로 복사' }}</button>
+          <!-- 남이 올린 악보는 고치려고 할 때 내 사본으로 바꾼다 (#191) -->
+          <button class="btn" :disabled="copying" @click="openEdit">{{ copying ? '사본 만드는 중…' : '수정' }}</button>
           <button class="btn danger" :disabled="removing" @click="remove">삭제</button>
     </template>
   <div class="page">
@@ -78,8 +77,7 @@
             />
             <p v-else class="muted">
               원래 키를 적어 두면 다른 키로 칠 때 바꿔 칠 코드를 알려 드려요.
-              <router-link v-if="sheet.mine" :to="`/sheets/${item.id}/edit`" class="text-btn">원래 키 적기 ›</router-link>
-              <button v-else class="text-btn" :disabled="copying" @click="copyToMine">내 악보로 복사해서 적기 ›</button>
+              <button class="text-btn" :disabled="copying" @click="openEdit">원래 키 적기 ›</button>
             </p>
           </WsCard>
 
@@ -107,7 +105,7 @@
 </template>
 
 <script setup>
-import { Copy, Star, PenLine } from 'lucide-vue-next'
+import { Star, PenLine } from 'lucide-vue-next'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -239,13 +237,17 @@ const saveMemo = async () => {
   }
 }
 
-/* ---------- 내 악보로 복사 (#191) ---------- */
+/* ---------- 수정: 남이 올린 악보는 내 사본으로 바꿔서 고친다 (#191) ---------- */
 const copying = ref(false)
-const copyToMine = async () => {
+const openEdit = async () => {
+  if (sheet.value.mine) {
+    router.push(`/sheets/${itemId}/edit`)
+    return
+  }
   const ok = await dialog.confirm({
-    title: '내 악보로 복사할까요?',
-    text: `「${sheet.value.title}」의 사본을 만들어 내 보관함에 둬요.\n장 순서·제목·원래 키를 마음대로 고칠 수 있고, 원본과 다른 사람 악보는 바뀌지 않아요.\n내 메모·연습 키·필기도 사본으로 옮겨요.`,
-    okText: '복사',
+    title: '내 악보로 바꿔서 고칠까요?',
+    text: '다른 사람이 올린 악보라, 고치면 내 보관함의 이 악보가 내 사본으로 바뀌어요.\n원본과 다른 사람 악보는 그대로이고, 내 메모·연습 키·필기는 사본으로 옮겨져요.',
+    okText: '고치기',
   })
   if (!ok) return
   copying.value = true
