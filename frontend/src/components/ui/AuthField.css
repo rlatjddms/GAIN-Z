@@ -1,0 +1,24 @@
+/* 이메일 인증·비밀번호 찾기 화면 공통 입력·버튼 (#193). 로그인 화면과 같은 모양 */
+.auth-form { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.auth-input {
+  width: 100%; box-sizing: border-box; padding: 14px 18px; border: 1.5px solid #eceff2; border-radius: 12px;
+  font-family: inherit; font-size: 16px; background: #fff; color: var(--c-text); outline: none; transition: all 0.2s;
+}
+.auth-input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-primary) 5%, transparent); }
+.auth-btn {
+  width: 100%; padding: 14px; margin-top: 8px; border: none; border-radius: 12px; background: var(--c-primary); color: #fff;
+  font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.2s;
+}
+.auth-btn:hover:not(:disabled) { background: var(--c-primary-strong); }
+.auth-btn:disabled { background: #ced4da; cursor: not-allowed; }
+.auth-btn.ghost { background: #fff; color: var(--c-text-2); border: 1.5px solid #eceff2; }
+.auth-btn.ghost:hover:not(:disabled) { background: var(--c-line-soft); }
+.auth-text { margin: 0 0 20px; font-size: 0.92rem; line-height: 1.65; color: var(--c-text-2); }
+.auth-text strong { color: var(--c-text); }
+.auth-note { margin: 4px 0 0; font-size: 0.8rem; line-height: 1.55; color: var(--c-muted); }
+.auth-msg { margin: 2px 4px 0; font-size: 0.82rem; line-height: 1.4; }
+.auth-msg.error { color: #fa5252; font-weight: 500; }
+.auth-msg.success { color: #37b24d; font-weight: 600; }
+.auth-footer { margin-top: 28px; font-size: 0.9rem; color: #a0a8b1; }
+.auth-footer a { margin-left: 8px; color: var(--c-primary-text); font-weight: 700; text-decoration: none; }
+.auth-title { margin: 0 0 10px; font-size: 1.15rem; font-weight: 800; color: var(--c-text); }
