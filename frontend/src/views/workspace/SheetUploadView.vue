@@ -89,7 +89,7 @@
 
         <!-- 수정: 이미 올린 장 -->
         <ol v-if="editing" class="pages">
-          <li v-for="p in sheet.pages" :key="p.id">
+          <li v-for="(p, i) in sheet.pages" :key="p.id">
             <div class="thumb">
               <SheetPageView :sheet-id="sheet.id" :page-id="p.id" :content-type="p.contentType" thumb />
             </div>
@@ -98,6 +98,8 @@
               <span>{{ p.fileName }} · {{ fileSizeText(p.size) }}</span>
             </div>
             <div class="page-actions">
+              <button class="icon" :disabled="busy || i === 0" aria-label="앞으로" @click="movePage(i, -1)"><ArrowUp :size="14" :stroke-width="2.4" /></button>
+              <button class="icon" :disabled="busy || i === sheet.pages.length - 1" aria-label="뒤로" @click="movePage(i, 1)"><ArrowDown :size="14" :stroke-width="2.4" /></button>
               <button
                 class="icon danger"
                 :disabled="busy || sheet.pages.length <= 1"
@@ -170,7 +172,7 @@ import WsCard from '../../components/workspace/WsCard.vue'
 import SheetPageView from '../../components/workspace/SheetPageView.vue'
 import ChordSheet from '../../components/workspace/ChordSheet.vue'
 import MeasureSheet from '../../components/workspace/MeasureSheet.vue'
-import { getWorkspaceItem, uploadSheet, createTextSheet, updateSheet, addSheetPages, deleteSheetPage } from '../../api/sheet'
+import { getWorkspaceItem, uploadSheet, createTextSheet, updateSheet, addSheetPages, deleteSheetPage, reorderSheetPages } from '../../api/sheet'
 import { importTabText, toTabRows } from '../../music/tabImport'
 import { importChordText } from '../../music/chordImport'
 import { countChords } from '../../music/chordSheet'
@@ -336,6 +338,24 @@ const uploadMore = async (files) => {
     sheet.value.pages = result.pages
   } catch (e) {
     fileError.value = `올리지 못했어요. ${apiErrorMessage(e)}`
+  } finally {
+    adding.value = false
+  }
+}
+
+// 장 순서 바꾸기 (#191): 화면에서 먼저 바꾸고 바로 저장, 실패하면 되돌린다
+const movePage = async (i, d) => {
+  const before = sheet.value.pages
+  const next = [...before]
+  ;[next[i], next[i + d]] = [next[i + d], next[i]]
+  sheet.value.pages = next.map((p, index) => ({ ...p, pageNumber: index + 1 }))
+  adding.value = true
+  try {
+    const result = await reorderSheetPages(sheet.value.id, next.map(p => p.id))
+    sheet.value.pages = result.pages
+  } catch (e) {
+    sheet.value.pages = before
+    fileError.value = `순서를 바꾸지 못했어요. ${apiErrorMessage(e)}`
   } finally {
     adding.value = false
   }

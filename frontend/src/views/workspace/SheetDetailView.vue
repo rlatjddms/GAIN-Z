@@ -8,6 +8,8 @@
             @click="toggleFavorite"
           ><Star :size="14" :stroke-width="2.2" :fill="item.favorite ? 'currentColor' : 'none'" /> 즐겨찾기</button>
           <router-link v-if="sheet.mine" :to="`/sheets/${item.id}/edit`" class="btn">수정</router-link>
+          <!-- 남이 올린 악보는 사본을 만들어 고친다 (#191) -->
+          <button v-else class="btn" :disabled="copying" @click="copyToMine"><Copy :size="14" :stroke-width="2.2" /> {{ copying ? '복사 중…' : '내 악보로 복사' }}</button>
           <button class="btn danger" :disabled="removing" @click="remove">삭제</button>
     </template>
   <div class="page">
@@ -77,6 +79,7 @@
             <p v-else class="muted">
               원래 키를 적어 두면 다른 키로 칠 때 바꿔 칠 코드를 알려 드려요.
               <router-link v-if="sheet.mine" :to="`/sheets/${item.id}/edit`" class="text-btn">원래 키 적기 ›</router-link>
+              <button v-else class="text-btn" :disabled="copying" @click="copyToMine">내 악보로 복사해서 적기 ›</button>
             </p>
           </WsCard>
 
@@ -104,7 +107,7 @@
 </template>
 
 <script setup>
-import { Star, PenLine } from 'lucide-vue-next'
+import { Copy, Star, PenLine } from 'lucide-vue-next'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -116,7 +119,7 @@ import MeasureSheet from '../../components/workspace/MeasureSheet.vue'
 import KeyHelper from '../../components/workspace/KeyHelper.vue'
 import AnnotationToolbar from '../../components/workspace/AnnotationToolbar.vue'
 import { useAnnotationStore } from '../../stores/annotation'
-import { getWorkspaceItem, updateWorkspaceItem, removeWorkspaceItem } from '../../api/sheet'
+import { getWorkspaceItem, updateWorkspaceItem, removeWorkspaceItem, copyWorkspaceItem } from '../../api/sheet'
 import { useDialogStore } from '../../stores/dialog'
 import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
@@ -233,6 +236,27 @@ const saveMemo = async () => {
     actionError.value = `메모를 저장하지 못했어요. ${apiErrorMessage(e)}`
   } finally {
     savingMemo.value = false
+  }
+}
+
+/* ---------- 내 악보로 복사 (#191) ---------- */
+const copying = ref(false)
+const copyToMine = async () => {
+  const ok = await dialog.confirm({
+    title: '내 악보로 복사할까요?',
+    text: `「${sheet.value.title}」의 사본을 만들어 내 보관함에 둬요.\n장 순서·제목·원래 키를 마음대로 고칠 수 있고, 원본과 다른 사람 악보는 바뀌지 않아요.\n내 메모·연습 키·필기도 사본으로 옮겨요.`,
+    okText: '복사',
+  })
+  if (!ok) return
+  copying.value = true
+  try {
+    if (memoDirty.value) await saveMemo()
+    await copyWorkspaceItem(itemId)
+    router.push(`/sheets/${itemId}/edit`)
+  } catch (e) {
+    actionError.value = `복사하지 못했어요. ${apiErrorMessage(e)}`
+  } finally {
+    copying.value = false
   }
 }
 
