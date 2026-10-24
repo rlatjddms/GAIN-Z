@@ -59,6 +59,17 @@ class AuthServiceTest {
     }
 
     @Test
+    void 비밀번호가_없는_소셜_계정으로_이메일_로그인하면_소셜로_로그인하라고_알린다() {
+        User social = User.builder().email("me@test.invalid").name("나")
+                .provider(com.project.gainz.domain.user.enums.SocialProvider.KAKAO)
+                .role(com.project.gainz.domain.user.enums.UserRole.ROLE_USER).build();
+        when(userRepository.findByEmail("me@test.invalid")).thenReturn(java.util.Optional.of(social));
+
+        assertThatThrownBy(() -> authService.login(new com.project.gainz.domain.user.dto.request.LoginRequest("me@test.invalid", "Test1234!")))
+                .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.PASSWORD_NOT_SET);
+    }
+
+    @Test
     void 이미_가입된_이메일이면_인증_표를_쓰지_않는다() {
         when(userRepository.existsByEmail("me@test.invalid")).thenReturn(true);
 
