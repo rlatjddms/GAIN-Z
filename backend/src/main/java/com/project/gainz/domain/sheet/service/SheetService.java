@@ -325,6 +325,9 @@ public class SheetService {
         if (request.isFavorite() != null) {
             item.changeFavorite(request.isFavorite());
         }
+        if (request.customChords() != null) {
+            item.changeCustomChords(request.customChords());
+        }
         return workspaceDetail(item, userId);
     }
 
