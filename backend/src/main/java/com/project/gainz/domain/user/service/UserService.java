@@ -56,12 +56,16 @@ public class UserService {
         return MyInfoResponse.from(user);
     }
 
-    // 요즘 듣는 음악 설정 (링크는 비우면 null)
+    // 요즘 듣는 음악 설정 (링크·커버·미리듣기는 비우면 null)
     public MyInfoResponse updateProfileMusic(Long userId, ProfileMusicRequest request) {
         User user = findUser(userId);
-        String url = request.url() == null || request.url().isBlank() ? null : request.url().trim();
-        user.changeProfileMusic(request.title().trim(), request.artist().trim(), url);
+        user.changeProfileMusic(request.title().trim(), request.artist().trim(),
+                blankToNull(request.url()), blankToNull(request.artworkUrl()), blankToNull(request.previewUrl()));
         return MyInfoResponse.from(user);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     public MyInfoResponse deleteProfileMusic(Long userId) {
