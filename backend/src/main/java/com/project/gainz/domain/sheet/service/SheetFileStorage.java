@@ -59,6 +59,24 @@ public class SheetFileStorage {
         return new StoredFile(storedName, contentType, displayName(file.getOriginalFilename()), file.getSize());
     }
 
+    // 저장된 파일을 새 이름으로 하나 더 저장한다 (내 악보로 복사, #191) → 새 이름
+    public String copy(String storedName) {
+        String copyName = UUID.randomUUID() + storedName.substring(storedName.lastIndexOf('.'));
+        try {
+            Resource source = fileStore.get(key(storedName));
+            if (source == null) {
+                throw new BusinessException(ErrorCode.SHEET_PAGE_NOT_FOUND);
+            }
+            try (InputStream in = source.getInputStream()) {
+                fileStore.put(FOLDER + copyName, in, source.contentLength(), contentTypeOf(copyName));
+            }
+        } catch (IOException e) {
+            log.error("악보 파일 복사 실패: {}", storedName, e);
+            throw new BusinessException(ErrorCode.SHEET_FILE_STORAGE_FAILED);
+        }
+        return copyName;
+    }
+
     public Resource load(String storedName) {
         Resource resource;
         try {
@@ -106,6 +124,14 @@ public class SheetFileStorage {
             if ((head[i] & 0xFF) != prefix[i]) return false;
         }
         return true;
+    }
+
+    private static String contentTypeOf(String storedName) {
+        String lower = storedName.toLowerCase();
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg")) return "image/jpeg";
+        if (lower.endsWith(".webp")) return "image/webp";
+        return "application/pdf";
     }
 
     private static String extensionOf(String contentType) {

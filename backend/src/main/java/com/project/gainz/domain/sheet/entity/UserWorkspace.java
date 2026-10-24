@@ -51,6 +51,11 @@ public class UserWorkspace extends BaseEntity {
     }
 
     // 원래 키와 같으면 따로 저장하지 않는다
+    // 내 악보로 복사했을 때 이 항목이 가리키는 악보를 사본으로 바꾼다 (#191)
+    public void changeSheet(SheetMusic sheetMusic) {
+        this.sheetMusic = sheetMusic;
+    }
+
     public void changeCustomKey(String key) {
         this.customKey = (key == null || key.equals(sheetMusic.getOriginalKey())) ? null : key;
     }
