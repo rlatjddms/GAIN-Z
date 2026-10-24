@@ -35,6 +35,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -166,6 +168,21 @@ public class SheetService {
         int next = current.isEmpty() ? 1 : current.get(current.size() - 1).getPageNumber() + 1;
         savePages(sheet, uploads, next);
         return detail(sheet, userId);
+    }
+
+    // 장 순서를 바꾼다 (#191). 지금 있는 장 ID가 빠짐없이 한 번씩 와야 한다
+    public SheetDetailResponse reorderPages(Long userId, Long sheetId, List<Long> pageIds) {
+        SheetMusic sheet = findOwnSheet(userId, sheetId);
+        List<SheetPage> pages = sheetPageRepository.findAllBySheetMusicIdOrderByPageNumberAsc(sheetId);
+        Map<Long, SheetPage> byId = pages.stream().collect(Collectors.toMap(SheetPage::getId, p -> p));
+        if (pageIds.size() != pages.size() || !byId.keySet().equals(new HashSet<>(pageIds))) {
+            throw new BusinessException(ErrorCode.SHEET_PAGE_ORDER_INVALID);
+        }
+        List<SheetPage> ordered = pageIds.stream().map(byId::get).toList();
+        for (int i = 0; i < ordered.size(); i++) {
+            ordered.get(i).changePageNumber(i + 1);
+        }
+        return SheetDetailResponse.of(sheet, ordered, tabDataRepository.findAllBySheetMusicIdOrderByMeasureNumberAsc(sheetId), userId);
     }
 
     // 장 하나를 지우고 뒤 장 번호를 당긴다 (마지막 한 장은 못 지움)
@@ -308,6 +325,61 @@ public class SheetService {
         if (request.isFavorite() != null) {
             item.changeFavorite(request.isFavorite());
         }
+        return workspaceDetail(item, userId);
+    }
+
+    // 내 악보로 복사 (#191): 남이 올린(또는 공용) 악보의 사본을 내 것으로 만들고, 이 보관함 항목을 사본으로 바꾼다.
+    // 장 파일까지 새로 저장하고, 내 메모·연습 키·즐겨찾기는 항목에 그대로, 내 필기는 사본의 장으로 옮긴다. 원본은 그대로
+    public WorkspaceDetailResponse copyToMine(Long userId, Long itemId) {
+        UserWorkspace item = findOwnItem(userId, itemId);
+        SheetMusic source = item.getSheetMusic();
+        if (source.isOwnedBy(userId)) {
+            throw new BusinessException(ErrorCode.SHEET_ALREADY_MINE);
+        }
+        SheetMusic copy = sheetMusicRepository.save(SheetMusic.builder()
+                .owner(item.getUser())
+                .title(source.getTitle())
+                .artist(source.getArtist())
+                .originalAudioUrl(source.getOriginalAudioUrl())
+                .bpm(source.getBpm())
+                .originalKey(source.getOriginalKey())
+                .content(source.getContent())
+                .instrumentType(source.getInstrumentType())
+                .sheetTypes(new ArrayList<>(source.getSheetTypes()))
+                .build());
+        tabDataRepository.saveAll(tabDataRepository.findAllBySheetMusicIdOrderByMeasureNumberAsc(source.getId()).stream()
+                .map(tab -> tab.copyTo(copy)).toList());
+
+        Map<Long, SheetPage> copiedPages = new HashMap<>();
+        List<String> stored = new ArrayList<>();
+        try {
+            for (SheetPage page : sheetPageRepository.findAllBySheetMusicIdOrderByPageNumberAsc(source.getId())) {
+                String copyName = fileStorage.copy(page.getStoredName());
+                stored.add(copyName);
+                copiedPages.put(page.getId(), sheetPageRepository.save(SheetPage.builder()
+                        .sheetMusic(copy)
+                        .pageNumber(page.getPageNumber())
+                        .storedName(copyName)
+                        .contentType(page.getContentType())
+                        .fileName(page.getFileName())
+                        .size(page.getSize())
+                        .build()));
+            }
+        } catch (RuntimeException e) {
+            stored.forEach(fileStorage::delete);
+            throw e;
+        }
+        deleteFilesOnRollback(stored);
+
+        List<SheetAnnotation> mine = sheetAnnotationRepository.findAllByUserIdAndSheetPageSheetMusicId(userId, source.getId());
+        sheetAnnotationRepository.saveAll(mine.stream()
+                .filter(a -> copiedPages.containsKey(a.getSheetPage().getId()))
+                .map(a -> SheetAnnotation.builder().user(a.getUser()).sheetPage(copiedPages.get(a.getSheetPage().getId()))
+                        .pdfPage(a.getPdfPage()).data(a.getData()).build())
+                .toList());
+        sheetAnnotationRepository.deleteAll(mine);
+
+        item.changeSheet(copy);
         return workspaceDetail(item, userId);
     }
 

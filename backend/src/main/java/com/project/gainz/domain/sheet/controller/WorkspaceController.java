@@ -67,6 +67,15 @@ public class WorkspaceController {
         return ResponseEntity.ok(ApiResponse.success(sheetService.updateWorkspaceItem(principal.getUserId(), itemId, request)));
     }
 
+    // 내 악보로 복사 (#191): 이 항목이 사본을 가리키게 된다 (항목 ID는 그대로)
+    @PostMapping("/{itemId}/copy")
+    public ResponseEntity<ApiResponse<WorkspaceDetailResponse>> copyToMine(
+            @PathVariable Long itemId,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(sheetService.copyToMine(principal.getUserId(), itemId)));
+    }
+
     @DeleteMapping("/{itemId}")
     public ResponseEntity<ApiResponse<Void>> removeFromWorkspace(
             @PathVariable Long itemId,

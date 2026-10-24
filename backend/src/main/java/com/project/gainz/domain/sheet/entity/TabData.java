@@ -36,4 +36,14 @@ public class TabData extends BaseEntity {
     // 이 마디의 운지 안내 문구 (원래 키 기준)
 
     private String recommendedFingering;
+
+    // 다른 악보로 그대로 옮긴 사본 (내 악보로 복사, #191)
+    public TabData copyTo(SheetMusic target) {
+        TabData copy = new TabData();
+        copy.sheetMusic = target;
+        copy.measureNumber = measureNumber;
+        copy.noteData = noteData;
+        copy.recommendedFingering = recommendedFingering;
+        return copy;
+    }
 }

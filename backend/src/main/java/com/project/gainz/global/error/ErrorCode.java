@@ -78,6 +78,8 @@ public enum ErrorCode {
     SHEET_CONTENT_REQUIRED(400, "S013", "악보 내용을 붙여 넣어 주세요."),
     ANNOTATION_TOO_LARGE(400, "S014", "필기가 너무 많아 저장하지 못했습니다. 일부를 지우고 다시 써 주세요."),
     INVALID_ANNOTATION(400, "S015", "필기 형식이 올바르지 않습니다."),
+    SHEET_PAGE_ORDER_INVALID(400, "S016", "악보 장 순서가 올바르지 않습니다. 새로고침 후 다시 시도해 주세요."),
+    SHEET_ALREADY_MINE(400, "S017", "이미 내가 만든 악보입니다."),
 
     /* Band (밴드) */
     BAND_NOT_FOUND(404, "B001", "존재하지 않는 밴드입니다."),
