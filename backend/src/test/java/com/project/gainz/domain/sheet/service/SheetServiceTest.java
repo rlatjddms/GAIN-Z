@@ -729,4 +729,24 @@ class SheetServiceTest {
         verify(fileStorage).delete("c10");
         assertThat(item.getSheetMusic()).isSameAs(source);
     }
+
+    /* ---------- 키 바꿔 치기에 내가 추가한 코드 (#192) ---------- */
+
+    @Test
+    void 내가_추가한_코드는_겹치지_않게_저장하고_빈_목록이면_지운다() {
+        UserWorkspace item = item(1L, sheet(5L, null, "공용"));
+        when(userWorkspaceRepository.findWithSheetByIdAndUserId(1L, USER_ID)).thenReturn(Optional.of(item));
+
+        WorkspaceDetailResponse saved = sheetService.updateWorkspaceItem(USER_ID, 1L,
+                new WorkspaceUpdateRequest(null, null, null, List.of("Bb", "E7", "Bb", " D/F# ")));
+        assertThat(saved.customChords()).containsExactly("Bb", "E7", "D/F#");
+        assertThat(item.getCustomChords()).isEqualTo("Bb E7 D/F#");
+
+        WorkspaceDetailResponse untouched = sheetService.updateWorkspaceItem(USER_ID, 1L, new WorkspaceUpdateRequest(null, "메모", null));
+        assertThat(untouched.customChords()).containsExactly("Bb", "E7", "D/F#");
+
+        WorkspaceDetailResponse cleared = sheetService.updateWorkspaceItem(USER_ID, 1L, new WorkspaceUpdateRequest(null, null, null, List.of()));
+        assertThat(cleared.customChords()).isEmpty();
+        assertThat(item.getCustomChords()).isNull();
+    }
 }

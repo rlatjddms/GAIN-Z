@@ -14,10 +14,12 @@ public record WorkspaceDetailResponse(
         String customKey,
         String personalMemo,
         boolean favorite,
-        LocalDateTime addedAt
+        LocalDateTime addedAt,
+        List<String> customChords     // 키 바꿔 치기 표에 내가 추가한 코드 (#192)
 ) {
     public static WorkspaceDetailResponse of(UserWorkspace item, List<SheetPage> pages, List<TabData> tabs, Long userId) {
         return new WorkspaceDetailResponse(item.getId(), SheetDetailResponse.of(item.getSheetMusic(), pages, tabs, userId),
-                item.getCustomKey(), item.getPersonalMemo(), Boolean.TRUE.equals(item.getIsFavorite()), item.getCreatedAt());
+                item.getCustomKey(), item.getPersonalMemo(), Boolean.TRUE.equals(item.getIsFavorite()), item.getCreatedAt(),
+                item.getCustomChordList());
     }
 }
