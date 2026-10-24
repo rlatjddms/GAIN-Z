@@ -17,39 +17,32 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9' shape-rendering='crispEdges'%3E%3Crect width='9' height='9' rx='2' fill='%2312b886'/%3E%3Cg fill='%23fff'%3E%3Crect x='5' y='1' width='2' height='1'/%3E%3Crect x='4' y='2' width='2' height='1'/%3E%3Crect x='3' y='3' width='2' height='1'/%3E%3Crect x='2' y='4' width='5' height='1'/%3E%3Crect x='4' y='5' width='2' height='1'/%3E%3Crect x='3' y='6' width='2' height='1'/%3E%3Crect x='2' y='7' width='2' height='1'/%3E%3C/g%3E%3C/svg%3E" />
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
     <!-- 시작 화면 (#194): 홈 화면 앱으로 열 때만. 흰 바탕에 앱 아이콘(민트 타일 + 흰 번개 Z)으로 시작해서
-         타일이 녹아 사라지며 Z가 테마 색이 되고, Z가 비켜나며 G·A·I·N·-가 차라락 → GAIN-Z.
+         타일이 녹아 사라지며 Z가 민트가 되고, Z가 비켜나며 G·A·I·N·-가 차라락 → GAIN-Z.
+         아이콘과 끊김 없이 이어지게 테마와 상관없이 민트로 둔다 (앱 안 로고·탭 아이콘은 테마를 따라감).
          안드로이드가 먼저 보여 주는 화면(아이콘 + 흰 배경색, manifest)과 이어진다. 앱 스크립트보다 먼저 보이게 여기에 둔다 -->
     <script>
-      (function () {
-        var root = document.documentElement
-        if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) root.classList.add('standalone')
-        // 고른 테마 색 (stores/theme.js의 'gainz-theme', 값은 constants/themes.js와 같게)
-        var colors = { mint: '#12b886', teal: '#0c8599', cherry: '#e64980', cobalt: '#2d5bff', lavender: '#7950f2', amber: '#f08c00', graphite: '#343a40' }
-        var theme = null
-        try { theme = localStorage.getItem('gainz-theme') } catch (e) {}
-        root.style.setProperty('--splash-color', colors[theme] || colors.mint)
-      })()
+      if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) document.documentElement.classList.add('standalone')
     </script>
     <style>
       #splash { display: none; }
       .standalone #splash {
         --cell: calc(min(248px, 62vw) / 31);
         position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;
-        background: #fff; transition: opacity 0.35s ease;
+        background: #fff; fill: #12b886; transition: opacity 0.35s ease;
         /* 스크립트가 못 걷어 내도 화면을 막지 않게 */
         animation: splash-away 0.3s ease 5s forwards;
       }
       #splash.done { opacity: 0; pointer-events: none; }
       #splash svg { position: relative; width: calc(var(--cell) * 31); height: auto; overflow: visible; }
-      /* 앱 아이콘과 같은 타일: Z 높이가 타일의 55%, 아이콘 색은 항상 민트 */
+      /* 앱 아이콘과 같은 타일: Z 높이가 타일의 55% */
       #splash .tile {
         position: absolute; left: 50%; top: 50%; width: calc(var(--cell) * 12.7); height: calc(var(--cell) * 12.7);
         margin: calc(var(--cell) * -6.35) 0 0 calc(var(--cell) * -6.35); border-radius: 22.5%; background: #12b886;
         animation: splash-tile 0.32s ease-in 0.15s both;
       }
-      /* Z(오른쪽 끝 5칸)를 가운데에 두었다가 제자리로. 흰색에서 테마 색으로 */
-      #splash .z { fill: var(--splash-color); animation: splash-zc 0.25s ease 0.15s both, splash-z 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.42s both; }
-      #splash .l { fill: var(--splash-color); animation: splash-l 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+      /* Z(오른쪽 끝 5칸)를 가운데에 두었다가 제자리로. 흰색에서 민트로 */
+      #splash .z { animation: splash-zc 0.25s ease 0.15s both, splash-z 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.42s both; }
+      #splash .l { animation: splash-l 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
       #splash .l1 { animation-delay: 0.55s; }
       #splash .l2 { animation-delay: 0.62s; }
       #splash .l3 { animation-delay: 0.69s; }
