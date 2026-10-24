@@ -134,9 +134,7 @@ const handleSocialLogin = (provider) => {
 
 .gain-z-login-root {
   width: 100%;
-  min-height: 100vh;
-  /* 화면이 낮아도 카드가 위아래 끝에 붙지 않게 바깥 여백 (#190) */
-  padding: 48px 24px;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -156,8 +154,8 @@ const handleSocialLogin = (provider) => {
 
 .login-card-container {
   width: 100%;
-  max-width: 440px;
-  padding: 48px 44px;
+  max-width: 480px;
+  padding: 60px 50px;
   background: #ffffff;
   border-radius: 24px;
   border: 1px solid #edf0f3;
@@ -167,7 +165,7 @@ const handleSocialLogin = (provider) => {
 }
 
 .brand-header {
-  margin-bottom: 36px;
+  margin-bottom: 45px;
 }
 
 .brand-logo {
@@ -234,7 +232,7 @@ const handleSocialLogin = (provider) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 18px 2px 28px;
+  margin: 20px 2px 35px;
   font-size: 0.85rem;
 }
 
@@ -270,7 +268,7 @@ const handleSocialLogin = (provider) => {
 }
 
 .social-divider {
-  margin: 32px 0 20px;
+  margin: 45px 0 25px;
   position: relative;
 }
 
@@ -329,7 +327,7 @@ const handleSocialLogin = (provider) => {
 .google { background: #fff; border: 1px solid var(--c-line) !important; }
 
 .login-footer {
-  margin-top: 32px;
+  margin-top: 45px;
   font-size: 0.9rem;
   color: #a0a8b1;
 }
