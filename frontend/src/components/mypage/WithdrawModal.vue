@@ -19,10 +19,20 @@
             </label>
             <label class="field">
               <span>확인을 위해 <b>{{ CONFIRM_WORD }}</b>라고 입력해 주세요</span>
-              <input v-model="typed" type="text" :placeholder="CONFIRM_WORD" :disabled="saving">
+              <!-- 한글은 조합이 끝나야 v-model이 값을 받아 버튼이 늦게 켜진다 (#215) → 입력할 때마다 직접 받는다 -->
+              <input :value="typed" type="text" :placeholder="CONFIRM_WORD" :disabled="saving" @input="typed = $event.target.value">
             </label>
 
-            <p v-if="error" class="error">{{ error }}</p>
+            <!-- 다른 멤버가 있는 밴드의 리더 (#215): 평소 밴드 나가기처럼 리더를 넘긴 뒤 탈퇴 -->
+            <div v-if="leaderBands.length" class="leader-box">
+              <p>리더인 밴드가 있어요. 탈퇴하기 전에 다른 멤버에게 리더를 넘겨 주세요.</p>
+              <ul>
+                <li v-for="b in leaderBands" :key="b.id">
+                  <router-link :to="`/bands/${b.id}/settings`" @click="emit('close')">{{ b.name }} 설정에서 리더 넘기기 ›</router-link>
+                </li>
+              </ul>
+            </div>
+            <p v-else-if="error" class="error">{{ error }}</p>
 
             <div class="actions">
               <button type="button" class="btn" :disabled="saving" @click="emit('close')">취소</button>
@@ -54,6 +64,10 @@ const password = ref('')
 const typed = ref('')
 const saving = ref(false)
 const error = ref('')
+// 리더를 넘겨야 하는 밴드 [{ id, name }]
+const leaderBands = ref([])
+// 백엔드 ErrorCode.BAND_LEADER_MUST_HAND_OVER
+const BAND_LEADER_MUST_HAND_OVER = 'B039'
 
 const valid = computed(() => typed.value.trim() === CONFIRM_WORD && (!props.needsPassword || password.value))
 
@@ -62,16 +76,20 @@ watch(() => props.open, (open) => {
   password.value = ''
   typed.value = ''
   error.value = ''
+  leaderBands.value = []
 })
 
 const submit = async () => {
   if (!valid.value || saving.value) return
   saving.value = true
   error.value = ''
+  leaderBands.value = []
   try {
     await withdraw(props.needsPassword ? password.value : null)
     emit('done')
   } catch (e) {
+    const body = e.response?.data
+    if (body?.code === BAND_LEADER_MUST_HAND_OVER) leaderBands.value = body.data?.bands || []
     error.value = apiErrorMessage(e, '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.')
     saving.value = false
   }
@@ -105,6 +123,10 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; color: var(--c-dange
   font-size: 0.9rem; outline: none; background: var(--c-bg);
 }
 .field input:focus { border-color: var(--c-danger); background: #fff; }
+.leader-box { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--c-danger-soft); font-size: 0.8rem; line-height: 1.5; }
+.leader-box p { margin: 0 0 6px; font-weight: 700; color: var(--c-danger); }
+.leader-box ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.leader-box a { font-weight: 800; color: var(--c-text); text-decoration: none; }
 .error { margin: 12px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
 .actions { display: flex; gap: 8px; margin-top: 20px; }
