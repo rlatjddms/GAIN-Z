@@ -67,6 +67,13 @@ public class User extends BaseEntity {
     @Column(length = 500)
     private String profileMusicUrl;
 
+    // 곡 검색으로 골랐을 때만 (Apple 커버·30초 미리듣기 주소, #187)
+    @Column(length = 500)
+    private String profileMusicArtworkUrl;
+
+    @Column(length = 500)
+    private String profileMusicPreviewUrl;
+
     // 프로필 공개 범위. 컬럼이 나중에 생겨서 기존 사용자는 null → 전체 공개로 본다
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
@@ -108,13 +115,19 @@ public class User extends BaseEntity {
     }
 
     public void changeProfileMusic(String title, String artist, String url) {
+        changeProfileMusic(title, artist, url, null, null);
+    }
+
+    public void changeProfileMusic(String title, String artist, String url, String artworkUrl, String previewUrl) {
         this.profileMusicTitle = title;
         this.profileMusicArtist = artist;
         this.profileMusicUrl = url;
+        this.profileMusicArtworkUrl = artworkUrl;
+        this.profileMusicPreviewUrl = previewUrl;
     }
 
     public void clearProfileMusic() {
-        changeProfileMusic(null, null, null);
+        changeProfileMusic(null, null, null, null, null);
     }
 
     public boolean hasProfileMusic() {

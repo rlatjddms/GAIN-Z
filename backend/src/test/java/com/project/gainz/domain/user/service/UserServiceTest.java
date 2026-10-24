@@ -146,6 +146,12 @@ class UserServiceTest {
         userService.updateProfileMusic(USER_ID, new ProfileMusicRequest("Hysteria", "Muse", " https://youtu.be/abc "));
         assertThat(user.getProfileMusicUrl()).isEqualTo("https://youtu.be/abc");
 
+        // 곡 검색으로 고른 커버·미리듣기 (#187). 응답에도 함께 나간다
+        MyInfoResponse picked = userService.updateProfileMusic(USER_ID, new ProfileMusicRequest("Lilac", "IU", null,
+                "https://is1-ssl.mzstatic.com/a/200x200bb.jpg", " https://audio-ssl.itunes.apple.com/a.m4a "));
+        assertThat(picked.profileMusic()).isEqualTo(new ProfileMusicResponse("Lilac", "IU", null,
+                "https://is1-ssl.mzstatic.com/a/200x200bb.jpg", "https://audio-ssl.itunes.apple.com/a.m4a"));
+
         MyInfoResponse response = userService.deleteProfileMusic(USER_ID);
 
         assertThat(user.hasProfileMusic()).isFalse();
