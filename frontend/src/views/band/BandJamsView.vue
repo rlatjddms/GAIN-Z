@@ -672,7 +672,7 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .rename:hover:not(:disabled) { color:var(--c-text-2); background:var(--c-line-soft); }
 .rename-space { flex:none; width:24px; }
 /* 목록 검색·접기 (#254, 셋리스트와 같은 모양) */
-.list-search { display:flex; align-items:center; gap:7px; height:36px; padding:0 10px; margin-bottom:10px; border:1px solid var(--c-line); border-radius:10px; background:var(--c-bg); color:var(--c-faint); }
+.list-search { display:flex; flex-direction:row; align-items:center; gap:7px; height:36px; padding:0 10px; margin-bottom:10px; border:1px solid var(--c-line); border-radius:10px; background:var(--c-bg); color:var(--c-faint); }
 .list-search:focus-within { border-color:var(--c-primary); background:#fff; }
 .list-search input { flex:1; min-width:0; border:none; outline:none; background:none; font:inherit; font-size:16px; color:var(--c-text); }
 .fold { display:inline-flex; align-items:center; gap:3px; }

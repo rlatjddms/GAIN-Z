@@ -414,10 +414,11 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .list-link strong { font-size:.79rem; }
 .list-link span { color:var(--c-muted); font-size:.7rem; }
 .star { background:transparent; border:0; color:#ced4da; font-size:20px; cursor:pointer; padding:3px; }
-/* 목록 검색·접기 (#254) */
-.list-search { display:flex; align-items:center; gap:7px; height:36px; padding:0 10px; margin-bottom:10px; border:1px solid var(--c-line); border-radius:10px; background:var(--c-bg); color:var(--c-faint); }
+/* 목록 검색·접기 (#254). 검색칸도 label이라 이 화면의 label 규칙(세로 쌓기)을 가로로 되돌린다 */
+.list-search { display:flex; flex-direction:row; align-items:center; gap:7px; height:36px; padding:0 10px; margin-bottom:10px; border:1px solid var(--c-line); border-radius:10px; background:var(--c-bg); color:var(--c-faint); }
 .list-search:focus-within { border-color:var(--c-primary); background:#fff; }
-.list-search input { flex:1; min-width:0; border:none; outline:none; background:none; font:inherit; font-size:16px; color:var(--c-text); }
+/* 아래 입력칸 공통 규칙(input:not(…))보다 우선하도록 .sidebar를 붙인다 */
+.sidebar .list-search input[type=search] { flex:1; width:auto; min-width:0; height:100%; padding:0; border:none; border-radius:0; outline:none; background:none; font:inherit; font-size:16px; line-height:normal; color:var(--c-text); }
 .fold { display:inline-flex; align-items:center; gap:3px; }
 .list-summary { width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--c-primary-line); border-radius:12px; background:var(--c-primary-soft); font:inherit; text-align:left; color:var(--c-primary-text); cursor:pointer; }
 .list-summary strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.82rem; }
