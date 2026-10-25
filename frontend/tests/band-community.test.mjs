@@ -542,3 +542,29 @@ test('앱으로 돌아오거나 연결이 다시 붙고 새 공지 알림이 오
   await page.getByText('이번 주 합주 공지', { exact: true }).first().waitFor({ timeout: 15000 })
   assert.deepEqual(errors, [])
 })
+
+test('켜 둔 화면에서 다른 밴드 신호는 넘기고, 같은 밴드의 글이 바뀌었다는 신호면 바로 다시 불러온다', async t => {
+  const { page, state, errors } = await fixture(t, { posts: [makePost(2), makePost(3)] })
+  await page.goto(`${origin}/home?band=10`)
+  await page.locator('.community .post').filter({ hasText: '합주 이야기 3' }).waitFor()
+  const listCalls = () => state.requests.filter(r => r.method === 'GET' && r.path === '/api/v1/bands/10/posts').length
+
+  // 알림이 없는 일반 글 (#259): 다른 밴드 신호에는 다시 부르지 않는다
+  // (unread 없이 change만 보내서, 다시 붙을 때 놓친 것을 불러오는 #224 동작과 섞이지 않게 한다)
+  state.posts.push(makePost(4, { title: '알림 없는 일반 글', mine: false }))
+  const before = listCalls()
+  state.streamEvents = [['change', { topic: 'BAND_BOARD', bandId: 99 }]]
+  // 화면이 신호를 받아 갈 때까지 (연결 실패 뒤 다시 붙는 데 몇 초 걸린다)
+  for (let i = 0; state.streamEvents && i < 300; i++) await new Promise(resolve => setTimeout(resolve, 100))
+  assert.equal(state.streamEvents, null)
+  await page.waitForTimeout(1000)
+  assert.equal(listCalls(), before)
+  assert.equal(await page.getByText('알림 없는 일반 글').count(), 0)
+
+  // 같은 밴드 신호 → 바로. 연달아 온 신호는 한 번만 불러온다 (공지 목록 + 일반 목록 = 요청 2개)
+  state.streamEvents = [['change', { topic: 'BAND_BOARD', bandId: 10, postId: 4 }], ['change', { topic: 'BAND_BOARD', bandId: 10, postId: 4 }]]
+  await page.getByText('알림 없는 일반 글').waitFor({ timeout: 15000 })
+  await page.waitForTimeout(800)
+  assert.equal(listCalls() - before, 2)
+  assert.deepEqual(errors, [])
+})
