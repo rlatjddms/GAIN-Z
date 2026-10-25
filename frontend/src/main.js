@@ -6,6 +6,7 @@ import './styles/theme.css'
 import './styles/ui.css'
 import { useThemeStore } from './stores/theme'
 import { watchKeyboardInset } from './components/ui/keyboardInset'
+import { watchImeInput } from './components/ui/imeInput'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -13,6 +14,8 @@ const pinia = createPinia()
 app.use(pinia)
 // 휴대폰 키보드가 아래 팝업을 가리지 않게 (#226)
 watchKeyboardInset()
+// 한글 조합 중인 글자도 입력 칸 값으로 바로 (#263)
+watchImeInput()
 // 화면이 그려지기 전에 고른 테마 색을 적용 (깜빡임 방지)
 useThemeStore(pinia).init()
 app.use(router)

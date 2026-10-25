@@ -20,7 +20,7 @@
                 aria-label="곡 검색"
                 :disabled="busy"
                 @input="term = $event.target.value"
-                @keydown.enter.prevent="runSearch"
+                @keydown.enter.prevent="!$event.isComposing && runSearch()"
               >
             </label>
             <p v-if="searching" class="search-note">찾는 중…</p>
