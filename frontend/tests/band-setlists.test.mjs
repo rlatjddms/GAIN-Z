@@ -103,6 +103,19 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
       await page.getByRole('dialog').getByRole('button', { name: '만들기', exact: true }).click()
       await page.getByRole('dialog').waitFor({ state: 'hidden' })
     }
+    // 한글 조합 중인 첫 글자도 바로 값으로 (#263): "가"를 조합하는 동안에도 만들기 버튼이 켜진다
+    await create.click()
+    const nameInput = page.getByRole('dialog').getByPlaceholder('셋리스트 이름을 적어주세요')
+    await nameInput.focus()
+    const ime = await page.context().newCDPSession(page)
+    await ime.send('Input.imeSetComposition', { text: '가', selectionStart: 1, selectionEnd: 1 })
+    assert.equal(await nameInput.inputValue(), '가')
+    await page.waitForFunction(() => !document.querySelector('dialog[open] .btn.primary').disabled, null, { timeout: 2000 })
+    await ime.send('Input.insertText', { text: '가' })
+    assert.equal(await nameInput.inputValue(), '가')
+    await page.getByRole('dialog').getByRole('button', { name: '취소', exact: true }).click()
+    await page.getByRole('dialog').waitFor({ state: 'hidden' })
+
     await createList('정기 합주')
     assert.equal(await page.getByRole('button', { name: '수정', exact: true }).count(), 0)
     const songs = page.locator('.songs > .reorder-item')
