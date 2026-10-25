@@ -14,7 +14,6 @@ import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
 import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
 import com.project.gainz.domain.user.dto.response.ProfileMusicResponse;
 import com.project.gainz.domain.user.enums.ProfileVisibility;
-import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
 import com.project.gainz.domain.user.dto.request.WithdrawRequest;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
 import com.project.gainz.domain.user.entity.User;
@@ -73,7 +72,6 @@ class UserServiceTest {
         User user = User.builder()
                 .email(EMAIL)
                 .password(password)
-                .name("테스터")
                 .provider(provider)
                 .role(UserRole.ROLE_USER)
                 .build();
@@ -115,16 +113,6 @@ class UserServiceTest {
         assertThatThrownBy(() -> userService.getMyInfo(USER_ID))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
-    }
-
-    @Test
-    void 이름을_앞뒤_공백_없이_바꾼다() {
-        User user = localUser();
-
-        MyInfoResponse response = userService.updateName(USER_ID, new UpdateNameRequest("  새이름 "));
-
-        assertThat(user.getName()).isEqualTo("새이름");
-        assertThat(response.name()).isEqualTo("새이름");
     }
 
     /* ---------- 프로필 뮤직·공개 범위 ---------- */

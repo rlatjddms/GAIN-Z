@@ -18,7 +18,7 @@ public record FriendResponse(
         ProfileMusicResponse profileMusic
 ) {
     public static FriendResponse of(User user, Character character, LocalDateTime since) {
-        return new FriendResponse(user.getId(), user.getName(), MyInfoResponse.profileImageUrl(user),
+        return new FriendResponse(user.getId(), MyInfoResponse.displayName(user, character), MyInfoResponse.profileImageUrl(user),
                 character != null ? CharacterResponse.from(character) : null, since, ProfileMusicResponse.from(user));
     }
 }

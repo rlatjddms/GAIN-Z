@@ -1,6 +1,8 @@
 package com.project.gainz.domain.user.service;
 
+import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.user.dto.response.MailRetryResponse;
+import com.project.gainz.domain.user.dto.response.MyInfoResponse;
 import com.project.gainz.domain.user.dto.response.PasswordResetRequestResponse;
 import com.project.gainz.domain.user.dto.response.SignupCodeVerifyResponse;
 import com.project.gainz.domain.user.entity.EmailToken;
@@ -50,6 +52,7 @@ public class AccountMailService {
     static final int DAILY_LIMIT = 10;
 
     private final UserRepository userRepository;
+    private final CharacterRepository characterRepository;
     private final EmailTokenRepository emailTokenRepository;
     private final SignupEmailCodeRepository signupEmailCodeRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -58,10 +61,11 @@ public class AccountMailService {
     private final String frontendUrl;
     private final SecureRandom random = new SecureRandom();
 
-    public AccountMailService(UserRepository userRepository, EmailTokenRepository emailTokenRepository,
+    public AccountMailService(UserRepository userRepository, CharacterRepository characterRepository, EmailTokenRepository emailTokenRepository,
                               SignupEmailCodeRepository signupEmailCodeRepository, RefreshTokenRepository refreshTokenRepository, PasswordEncoder passwordEncoder,
                               MailClient mailClient, @Value("${gainz.frontend-url}") String frontendUrl) {
         this.userRepository = userRepository;
+        this.characterRepository = characterRepository;
         this.emailTokenRepository = emailTokenRepository;
         this.signupEmailCodeRepository = signupEmailCodeRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -132,7 +136,7 @@ public class AccountMailService {
         String token = issue(user, EmailTokenPurpose.RESET_PASSWORD, RESET_TTL);
         String link = frontendUrl + "/reset-password?token=" + token;
         sendAfterCommit(user.getEmail(), "[GAIN-Z] 비밀번호를 다시 정해 주세요",
-                AccountMailTemplates.passwordReset(user.getName(), link));
+                AccountMailTemplates.passwordReset(displayName(user), link));
         return PasswordResetRequestResponse.sent();
     }
 
@@ -215,5 +219,9 @@ public class AccountMailService {
                 send.run();
             }
         });
+    }
+
+    private String displayName(User user) {
+        return MyInfoResponse.displayName(user, characterRepository.findByUserId(user.getId()).orElse(null));
     }
 }

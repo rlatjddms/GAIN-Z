@@ -9,7 +9,6 @@ import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
 import com.project.gainz.domain.user.dto.request.PasswordCreateRequest;
 import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
 import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
-import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
 import com.project.gainz.domain.user.dto.request.WithdrawRequest;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
 import com.project.gainz.domain.user.entity.User;
@@ -48,13 +47,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public MyInfoResponse getMyInfo(Long userId) {
-        return MyInfoResponse.from(findUser(userId));
-    }
-
-    public MyInfoResponse updateName(Long userId, UpdateNameRequest request) {
-        User user = findUser(userId);
-        user.update(request.name().trim());
-        return MyInfoResponse.from(user);
+        return myInfo(findUser(userId));
     }
 
     // 요즘 듣는 음악 설정 (링크·커버·미리듣기는 비우면 null)
@@ -62,7 +55,7 @@ public class UserService {
         User user = findUser(userId);
         user.changeProfileMusic(request.title().trim(), request.artist().trim(),
                 blankToNull(request.url()), blankToNull(request.artworkUrl()), blankToNull(request.previewUrl()));
-        return MyInfoResponse.from(user);
+        return myInfo(user);
     }
 
     private static String blankToNull(String value) {
@@ -72,13 +65,13 @@ public class UserService {
     public MyInfoResponse deleteProfileMusic(Long userId) {
         User user = findUser(userId);
         user.clearProfileMusic();
-        return MyInfoResponse.from(user);
+        return myInfo(user);
     }
 
     public MyInfoResponse changeProfileVisibility(Long userId, ProfileVisibilityRequest request) {
         User user = findUser(userId);
         user.changeProfileVisibility(request.visibility());
-        return MyInfoResponse.from(user);
+        return myInfo(user);
     }
 
     // 사진 바꾸기: 새 파일을 저장하고, 저장이 끝나면(커밋 뒤) 예전 파일을 지운다
@@ -88,7 +81,7 @@ public class UserService {
         String old = user.getProfileImage();
         user.changeProfileImage(stored.storedName(), stored.contentType());
         deleteFileAfterCommit(old);
-        return MyInfoResponse.from(user);
+        return myInfo(user);
     }
 
     public MyInfoResponse deleteProfileImage(Long userId) {
@@ -96,7 +89,7 @@ public class UserService {
         String old = user.getProfileImage();
         user.changeProfileImage(null, null);
         deleteFileAfterCommit(old);
-        return MyInfoResponse.from(user);
+        return myInfo(user);
     }
 
     // 프로필 사진 파일 (로그인한 사람이면 누구 사진이든 볼 수 있다: 밴드 멤버 목록 등)
@@ -155,6 +148,10 @@ public class UserService {
         recordService.removeAllOf(userId);
         deleteFileAfterCommit(user.getProfileImage());
         user.withdraw();
+    }
+
+    private MyInfoResponse myInfo(User user) {
+        return MyInfoResponse.from(user, characterRepository.findByUserId(user.getId()).orElse(null));
     }
 
     private User findUser(Long userId) {

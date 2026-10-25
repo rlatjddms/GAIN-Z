@@ -47,7 +47,7 @@ class NotificationAfterCommitTest {
     @Test void savedAfterCommitAndNotSavedOnRollback() {
         TransactionTemplate tx = new TransactionTemplate(transactionManager);
         User receiver = tx.execute(s -> users.save(User.builder().email("r" + System.nanoTime() + "@test.invalid")
-                .name("받는 사람").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build()));
+                .provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build()));
         long before = notifications.countByReceiverIdAndIsReadFalse(receiver.getId());
 
         // 원래 일 안에서 알림을 만들면, 커밋된 뒤 저장된다

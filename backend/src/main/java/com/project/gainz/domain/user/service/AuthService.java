@@ -43,7 +43,6 @@ public class AuthService {
         User user = User.builder()
                 .email(request.email())
                 .password(encodedPassword)
-                .name(request.name())
                 .provider(SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER)
                 .emailVerified(true)

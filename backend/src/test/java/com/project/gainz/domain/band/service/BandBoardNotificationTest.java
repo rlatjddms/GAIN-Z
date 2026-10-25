@@ -192,7 +192,7 @@ class BandBoardNotificationTest {
     }
 
     private User user(long id, String name) {
-        User user = User.builder().name(name).email(id + "@example.com").build();
+        User user = User.builder().email(id + "@example.com").build();
         ReflectionTestUtils.setField(user, "id", id);
         return user;
     }

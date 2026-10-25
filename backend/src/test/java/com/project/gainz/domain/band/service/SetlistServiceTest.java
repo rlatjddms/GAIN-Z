@@ -241,7 +241,7 @@ class SetlistServiceTest {
     }
 
     private User user(long id) {
-        User user = User.builder().name("멤버").email(id + "@example.com").build();
+        User user = User.builder().email(id + "@example.com").build();
         ReflectionTestUtils.setField(user, "id", id);
         return user;
     }

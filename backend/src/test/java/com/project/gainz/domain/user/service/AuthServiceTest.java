@@ -39,7 +39,7 @@ class AuthServiceTest {
     void 이메일_인증_표를_쓰고_인증된_계정으로_가입한다() {
         when(passwordEncoder.encode("Test1234!")).thenReturn("encoded");
 
-        authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "나", "ticket"));
+        authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "ticket"));
 
         verify(accountMailService).useSignupTicket("me@test.invalid", "ticket");
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
@@ -53,14 +53,14 @@ class AuthServiceTest {
         doThrow(new BusinessException(ErrorCode.EMAIL_NOT_VERIFIED))
                 .when(accountMailService).useSignupTicket("me@test.invalid", "bad");
 
-        assertThatThrownBy(() -> authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "나", "bad")))
+        assertThatThrownBy(() -> authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "bad")))
                 .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.EMAIL_NOT_VERIFIED);
         verify(userRepository, never()).save(any());
     }
 
     @Test
     void 비밀번호가_없는_소셜_계정으로_이메일_로그인하면_소셜로_로그인하라고_알린다() {
-        User social = User.builder().email("me@test.invalid").name("나")
+        User social = User.builder().email("me@test.invalid")
                 .provider(com.project.gainz.domain.user.enums.SocialProvider.KAKAO)
                 .role(com.project.gainz.domain.user.enums.UserRole.ROLE_USER).build();
         when(userRepository.findByEmail("me@test.invalid")).thenReturn(java.util.Optional.of(social));
@@ -73,7 +73,7 @@ class AuthServiceTest {
     void 이미_가입된_이메일이면_인증_표를_쓰지_않는다() {
         when(userRepository.existsByEmail("me@test.invalid")).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "나", "ticket")))
+        assertThatThrownBy(() -> authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "ticket")))
                 .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.DUPLICATE_EMAIL);
         verify(accountMailService, never()).useSignupTicket(anyString(), anyString());
     }

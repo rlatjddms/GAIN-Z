@@ -42,11 +42,11 @@ public class UserProfileService {
         User target = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         FriendRelation relation = friendService.relationOf(viewerId, targetUserId);
-        if (!canView(target, relation)) {
-            return UserProfileResponse.hidden(target.getId(), target.getName(), MyInfoResponse.profileImageUrl(target), relation);
-        }
-
         Character character = characterRepository.findByUserId(targetUserId).orElse(null);
+        String name = MyInfoResponse.displayName(target, character);
+        if (!canView(target, relation)) {
+            return UserProfileResponse.hidden(target.getId(), name, MyInfoResponse.profileImageUrl(target), relation);
+        }
 
         LocalDate today = LocalDate.now();
         List<UserProfileResponse.PracticeDay> daily = practiceLogRepository
@@ -62,7 +62,7 @@ public class UserProfileService {
                 .map(m -> UserProfileResponse.ProfileBand.of(m, viewerBandIds.contains(m.getBand().getId())))
                 .toList();
 
-        return new UserProfileResponse(target.getId(), target.getName(), MyInfoResponse.profileImageUrl(target), true,
+        return new UserProfileResponse(target.getId(), name, MyInfoResponse.profileImageUrl(target), true,
                 relation, ProfileMusicResponse.from(target),
                 character != null ? CharacterResponse.from(character) : null, daily, bands);
     }

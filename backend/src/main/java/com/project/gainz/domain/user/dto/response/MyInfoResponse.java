@@ -1,5 +1,6 @@
 package com.project.gainz.domain.user.dto.response;
 
+import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.domain.user.enums.ProfileVisibility;
 import com.project.gainz.domain.user.enums.SocialProvider;
@@ -7,7 +8,7 @@ import com.project.gainz.domain.user.enums.SocialProvider;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// 내 계정 정보 (마이페이지). 프로필 사진이 없으면 profileImageUrl은 null, 음악을 안 정했으면 profileMusic은 null
+// 내 계정 정보 (마이페이지). name은 캐릭터 닉네임 (#227). 프로필 사진이 없으면 profileImageUrl은 null, 음악을 안 정했으면 profileMusic은 null
 public record MyInfoResponse(
         Long id,
         String email,
@@ -21,10 +22,15 @@ public record MyInfoResponse(
         boolean hasPassword,
         List<SocialProvider> socialLinks
 ) {
-    public static MyInfoResponse from(User user) {
-        return new MyInfoResponse(user.getId(), user.getEmail(), user.getName(), user.getProvider(),
+    public static MyInfoResponse from(User user, Character character) {
+        return new MyInfoResponse(user.getId(), user.getEmail(), displayName(user, character), user.getProvider(),
                 user.getCreatedAt(), profileImageUrl(user), ProfileMusicResponse.from(user), user.getProfileVisibility(),
                 user.hasPassword(), user.linkedProviders());
+    }
+
+    // 화면에 보이는 이름: 캐릭터 닉네임, 캐릭터가 없으면 User.nameWithoutCharacter (#227)
+    public static String displayName(User user, Character character) {
+        return character != null ? character.getNickname() : user.nameWithoutCharacter();
     }
 
     // 사진을 바꾸면 주소도 바뀌게 파일 이름(UUID)을 붙인다 (브라우저 캐시 무효화)

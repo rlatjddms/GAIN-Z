@@ -295,7 +295,7 @@ public class BandBoardService {
         Set<Long> mentioned = BandMentions.mentionedUserIds(post.getContent(), nicknames);
         mentioned.removeAll(BandMentions.mentionedUserIds(oldContent, nicknames));
         mentioned.remove(author.getUser().getId());
-        String who = nicknames.getOrDefault(author.getUser().getId(), author.getUser().getName());
+        String who = nicknames.getOrDefault(author.getUser().getId(), author.getUser().nameWithoutCharacter());
         notificationService.notifyAll(usersWithIds(post.getBand().getId(), mentioned), author.getUser().getId(),
                 NotificationType.MENTION, post.getBand().getName(),
                 who + " 님이 글에서 나를 불렀어요: " + post.getTitle(), postUrl(post));
@@ -317,7 +317,7 @@ public class BandBoardService {
         Long actorId = me.getUser().getId();
         Long bandId = post.getBand().getId();
         Map<Long, String> nicknames = nicknamesOf(activeUsers(bandId));
-        String who = nicknames.getOrDefault(actorId, me.getUser().getName());
+        String who = nicknames.getOrDefault(actorId, me.getUser().nameWithoutCharacter());
         String excerpt = excerpt(content);
         String bandName = post.getBand().getName();
         String url = postUrl(post);
@@ -358,7 +358,7 @@ public class BandBoardService {
         Map<Long, String> byUser = characters.findAllByUserIdIn(users.stream().map(User::getId).toList()).stream()
                 .collect(Collectors.toMap(c -> c.getUser().getId(), Character::getNickname, (a, b) -> a));
         Map<Long, String> result = new LinkedHashMap<>();
-        users.forEach(u -> result.put(u.getId(), byUser.getOrDefault(u.getId(), u.getName())));
+        users.forEach(u -> result.put(u.getId(), byUser.getOrDefault(u.getId(), u.nameWithoutCharacter())));
         return result;
     }
 
@@ -413,7 +413,7 @@ public class BandBoardService {
 
     private Author author(User user) {
         String nickname = characters.findByUserId(user.getId()).map(c -> c.getNickname()).orElse("멤버");
-        return new Author(user.getId(), nickname, MyInfoResponse.from(user).profileImageUrl());
+        return new Author(user.getId(), nickname, MyInfoResponse.profileImageUrl(user));
     }
 
     private Post response(BandPost post, Long userId) {

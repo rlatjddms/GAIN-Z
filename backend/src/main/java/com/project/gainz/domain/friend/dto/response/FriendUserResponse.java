@@ -13,7 +13,7 @@ public record FriendUserResponse(
         CharacterResponse character
 ) {
     public static FriendUserResponse of(User user, Character character) {
-        return new FriendUserResponse(user.getId(), user.getName(), MyInfoResponse.profileImageUrl(user),
+        return new FriendUserResponse(user.getId(), MyInfoResponse.displayName(user, character), MyInfoResponse.profileImageUrl(user),
                 character != null ? CharacterResponse.from(character) : null);
     }
 }
