@@ -364,6 +364,10 @@ const handleSignup = async () => {
   .signup-card-container { max-width: 360px; padding: 0; border: none; border-radius: 0; box-shadow: none; }
 }
 @media (max-width: 640px) {
+  /* 로그인 화면과 같은 로고·제목 크기 (#226) */
+  .brand-header { margin-bottom: 28px; }
+  .brand-logo :deep(svg) { width: auto; height: 28px; }
+  .brand-sub { font-size: 0.85rem; }
   .gz-input { padding: 12px 14px; }
   .signup-btn-main { padding: 12px; margin-top: 24px; }
 }
