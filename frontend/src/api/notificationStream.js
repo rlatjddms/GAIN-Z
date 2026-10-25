@@ -1,13 +1,14 @@
 import axiosInstance from './axios'
 
 // 실시간 알림 연결 (SSE). 브라우저 EventSource는 로그인 토큰을 헤더에 못 실어서 fetch로 직접 읽는다.
-// 이벤트: unread → { count } (붙자마자), notification → 알림 (새 알림마다)
+// 이벤트: unread → { count } (붙자마자), notification → 알림 (새 알림마다),
+//        change → { topic, bandId?, postId? } (알림 없이 화면만 다시 불러오라는 신호, #259)
 // 연결이 끝나면(서버가 30분마다 끊음) 정상 종료, 실패하면 { status } 를 가진 에러를 던진다
 // 서버는 25초마다 빈 신호(ping)를 보낸다. 휴대폰이 잠들었다 깨면 연결이 끊긴 줄 모르고 멈춰 있을 수 있어서 (#224)
 // IDLE_MS 동안 아무것도 안 오면 끊긴 것으로 보고 에러를 던진다 (다시 붙는 건 부르는 쪽)
 const IDLE_MS = 60_000
 
-export async function openNotificationStream({ onUnread, onNotification, onActivity, signal }) {
+export async function openNotificationStream({ onUnread, onNotification, onChange, onActivity, signal }) {
   const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
   if (!token) throw Object.assign(new Error('로그인 필요'), { status: 401 })
 
@@ -36,6 +37,7 @@ export async function openNotificationStream({ onUnread, onNotification, onActiv
         const payload = JSON.parse(data.join('\n'))
         if (event === 'unread') onUnread?.(payload.count)
         else if (event === 'notification') onNotification?.(payload)
+        else if (event === 'change') onChange?.(payload)
       } catch {
         // 알 수 없는 이벤트는 넘긴다
       }

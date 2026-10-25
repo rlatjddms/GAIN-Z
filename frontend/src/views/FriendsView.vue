@@ -194,8 +194,8 @@ const loadAll = async () => {
 }
 
 onMounted(loadAll)
-// 친구 신청·수락이 새로고침 없이 보이게 (#224)
-useLiveRefresh(loadAll, { types: ['FRIEND_REQUEST', 'FRIEND_ACCEPT'] })
+// 친구 신청·수락·취소·삭제가 새로고침 없이 보이게 (#224, #259)
+useLiveRefresh(loadAll, { types: ['FRIEND_REQUEST', 'FRIEND_ACCEPT'], changes: c => c.topic === 'FRIENDS' })
 
 /* ---------- 내 친구 코드 ---------- */
 const copied = ref(false)

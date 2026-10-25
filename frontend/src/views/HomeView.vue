@@ -257,9 +257,11 @@ const activeBand = computed(() => bandStore.selectedBand)
 
 // BAND 탭을 열 때마다 내 밴드를 새로 불러온다 (설정 화면에서 바꾼 내용 반영)
 watch(isBandMode, (on) => { if (on) bandStore.fetchMyBands() }, { immediate: true })
-// 멤버가 들어오고 나간 것이 새로고침 없이 보이게 (#224)
-useLiveRefresh(() => { if (isBandMode.value) return bandStore.fetchMyBands() },
-  { types: ['BAND_JOIN', 'BAND_KICKED', 'BAND_LEADER', 'BAND_DISBAND', 'BAND_LEAVE'] })
+// 멤버가 들어오고 나간 것·밴드 이름·무대·파트 바꾼 것이 새로고침 없이 보이게 (#224, #259)
+useLiveRefresh(() => { if (isBandMode.value) return bandStore.fetchMyBands() }, {
+  types: ['BAND_JOIN', 'BAND_KICKED', 'BAND_LEADER', 'BAND_DISBAND', 'BAND_LEAVE'],
+  changes: c => c.topic === 'BAND',
+})
 
 const isStartOpen = ref(false)
 const startTab = ref('create')

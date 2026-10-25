@@ -128,8 +128,11 @@ async function remove(post) {
 }
 watch(() => props.band.id, () => { rows.value = []; noticeRows.value = []; regularTotal.value = 0; totalPages.value = 0 })
 watch(() => [props.band.id, mine.value, page.value, filters.value.q, filters.value.from, filters.value.to], () => load(), { immediate: true })
-// 앱으로 돌아왔을 때·새 공지나 댓글 알림이 왔을 때 글 목록을 다시 (#224)
-useLiveRefresh(load, { types: ['NOTICE', 'COMMENT', 'REPLY', 'MENTION'] })
+// 앱으로 돌아왔을 때·새 공지나 댓글 알림이 왔을 때 (#224)·같은 밴드에서 누가 글이나 댓글을 바꿨을 때 (#259) 글 목록을 다시
+useLiveRefresh(load, {
+  types: ['NOTICE', 'COMMENT', 'REPLY', 'MENTION'],
+  changes: c => c.topic === 'BAND_BOARD' && c.bandId === props.band.id,
+})
 </script>
 
 <style scoped>

@@ -154,8 +154,11 @@ function applyMeta(result) {
   commentPages.value = Math.max(1, Math.min(commentPages.value, result.totalPages))
 }
 onMounted(loadComments)
-// 다른 사람이 단 댓글도 보이게: 앱으로 돌아왔을 때·댓글 알림이 왔을 때 (#224)
-useLiveRefresh(loadComments, { types: ['COMMENT', 'REPLY', 'MENTION'] })
+// 다른 사람이 단 댓글도 보이게: 앱으로 돌아왔을 때·댓글 알림이 왔을 때 (#224)·이 글의 댓글이 바뀌었을 때 (#259)
+useLiveRefresh(loadComments, {
+  types: ['COMMENT', 'REPLY', 'MENTION'],
+  changes: c => c.topic === 'BAND_BOARD' && c.postId === props.post.id,
+})
 async function action(work) {
   if (busy.value) return
   busy.value = true

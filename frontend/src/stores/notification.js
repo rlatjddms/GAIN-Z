@@ -13,6 +13,7 @@ let lastActivity = 0      // 마지막으로 서버에서 뭐라도 받은 시�
 let dropped = false       // 연결이 잘못 끊겼었는지 (서버가 30분마다 끊는 정상 종료는 빼고). 다시 붙으면 resync
 const STALE_MS = 35_000   // 앱으로 돌아왔을 때 이만큼 조용했으면 끊긴 것으로 보고 새로 붙는다 (서버 ping은 25초마다)
 let toastSeq = 0
+let changeSeq = 0
 
 // 헤더 배지의 안 읽은 개수, 실시간 연결, 화면 오른쪽 위 알림 팝업
 export const useNotificationStore = defineStore('notification', {
@@ -25,6 +26,8 @@ export const useNotificationStore = defineStore('notification', {
     latest: null,
     // 끊겼다가 다시 붙을 때마다 1씩 오른다. 그동안 놓친 내용이 있을 수 있어서 화면들이 지켜보다가 다시 불러온다 (#224)
     resync: 0,
+    // 다른 사람이 바꾼 것 (알림 없이 오는 신호) { topic: 'BAND_BOARD' | 'BAND' | 'FRIENDS', bandId?, postId?, seq } (#259)
+    change: null,
   }),
 
   actions: {
@@ -93,6 +96,7 @@ export const useNotificationStore = defineStore('notification', {
             dropped = false
           },
           onNotification: (n) => this.receive(n),
+          onChange: (c) => { this.change = { ...c, seq: ++changeSeq } },
         })
         nextAttempt = 0       // 서버가 시간이 다 돼서 끊은 것: 바로 다시
       } catch (e) {
