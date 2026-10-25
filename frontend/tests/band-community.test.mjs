@@ -35,7 +35,7 @@ before(async () => {
 after(async () => { await browser?.close(); vite?.kill() })
 
 async function fixture(t, options = {}) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 960 }, timezoneId: options.timezoneId || 'Asia/Seoul' })
+  const context = await browser.newContext({ viewport: { width: 1280, height: 960 }, timezoneId: options.timezoneId || 'Asia/Seoul', deviceScaleFactor: options.scale || 1 })
   t.after(() => context.close())
   await context.addInitScript(() => localStorage.setItem('accessToken', 'ui-test-token'))
   const page = await context.newPage()
@@ -77,7 +77,14 @@ async function fixture(t, options = {}) {
     if (path.endsWith('/profile-image')) return route.fulfill({ headers, contentType: 'image/png', body: photo })
     const band = { id: 10, name: '리듬 메이커스', myPosition: state.leader ? 'LEADER' : 'MEMBER', stage: 'STUDIO', members: [{ memberId: 1, userId: 1, me: true, part: 'GUITAR', position: 'LEADER', character: { nickname: '리듬냥', instrumentType: 'GUITAR', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' } }, { memberId: 2, userId: 2, part: 'BASS', position: 'MEMBER', character: { nickname: '베이스곰', instrumentType: 'BASS', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' } }], description: '함께 합주하는 밴드' }
     if (path === '/api/v1/bands/10') return respond(band)
-    if (path === '/api/v1/bands/me') return respond([band])
+    // 내 밴드 탭 순서 (#266): bandOrder에 든 밴드를 그 순서로. 10번 말고는 이름만 다른 밴드
+    const myBand = id => id === 10 ? band : { ...band, id, name: `밴드 ${id}`, myPosition: 'MEMBER' }
+    if (path === '/api/v1/bands/me/order') {
+      if (state.failOrder) return respond('순서를 저장하지 못했어요', 500)
+      state.bandOrder = request.postDataJSON().bandIds
+      return respond(state.bandOrder.map(myBand))
+    }
+    if (path === '/api/v1/bands/me') return respond((state.bandOrder || [10]).map(myBand))
     // 실시간 알림 (#224): 보낼 이벤트가 있으면 한 번 보내고 끊는다. 없으면 실패해서 화면은 다시 붙으려고 기다린다
     if (path === '/api/v1/notifications/stream') {
       if (!state.streamEvents) return respond('연결 안 됨', 503)
@@ -566,5 +573,72 @@ test('켜 둔 화면에서 다른 밴드 신호는 넘기고, 같은 밴드의 �
   await page.getByText('알림 없는 일반 글').waitFor({ timeout: 15000 })
   await page.waitForTimeout(800)
   assert.equal(listCalls() - before, 2)
+  assert.deepEqual(errors, [])
+})
+
+test('홈 밴드 탭을 끌어서 순서를 바꾸고, 휴대폰은 꾹 눌러서 끌고, 저장 실패면 되돌린다', async t => {
+  const { page, state, errors } = await fixture(t, { posts: [makePost(2)], bandOrder: [10, 11, 12] })
+  await page.goto(`${origin}/home?band=10`)
+  const tabs = page.locator('.band-tabs-left [data-tab-id]')
+  await page.waitForFunction(() => document.querySelectorAll('.band-tabs-left [data-tab-id]').length === 3)
+  const names = () => tabs.allTextContents().then(list => list.map(name => name.trim()))
+  assert.deepEqual(await names(), ['리듬 메이커스', '밴드 11', '밴드 12'])
+
+  // 마우스: 맨 오른쪽 탭을 맨 왼쪽으로 끌기. 고른 밴드는 그대로
+  const last = await tabs.nth(2).boundingBox()
+  const first = await tabs.nth(0).boundingBox()
+  // 고른(흰) 탭을 잡았을 때 모양: 아래 무대에 회색 그림자가 번지지 않게 (눈으로 보려고 저장). 조금만 움직였다 놓으면 순서는 그대로
+  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(first.x + first.width / 2 + 24, first.y + first.height / 2)
+  await page.locator('.band-tabs-left.dragging').waitFor()
+  assert.equal(await page.locator('.band-tabs-left button.held').evaluate(el => getComputedStyle(el).borderBottomColor), 'rgb(255, 255, 255)')
+  await page.screenshot({ path: fileURLToPath(new URL('../test-results/band-tab-held.png', import.meta.url)),
+    clip: { x: first.x - 10, y: first.y - 10, width: first.width + 60, height: first.height + 30 }, scale: "device" })
+  await page.mouse.up()
+  assert.deepEqual(state.bandOrder, [10, 11, 12])
+  await page.mouse.move(last.x + last.width / 2, last.y + last.height / 2)
+  await page.mouse.down()
+  for (let i = 1; i <= 10; i++) await page.mouse.move(last.x + last.width / 2 - (last.x - first.x + 10) * i / 10, last.y + last.height / 2)
+  await page.mouse.up()
+  await page.waitForFunction(() => document.querySelector('.band-tabs-left [data-tab-id]').textContent.includes('밴드 12'))
+  assert.deepEqual(state.bandOrder, [12, 10, 11])
+  assert.deepEqual(await names(), ['밴드 12', '리듬 메이커스', '밴드 11'])
+  assert.equal((await page.locator('.band-tabs-left button.active').textContent()).trim(), '리듬 메이커스')
+
+  // 그냥 누르면 지금처럼 탭 고르기 (끌기로 치지 않음)
+  const requestsBefore = state.requests.filter(r => r.path === '/api/v1/bands/me/order').length
+  await tabs.nth(1).click()
+  assert.equal(state.requests.filter(r => r.path === '/api/v1/bands/me/order').length, requestsBefore)
+
+  // 저장에 실패하면 원래 순서로 되돌리고 알려 준다
+  state.failOrder = true
+  const a = await tabs.nth(0).boundingBox()
+  const b = await tabs.nth(2).boundingBox()
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2)
+  await page.mouse.down()
+  for (let i = 1; i <= 10; i++) await page.mouse.move(a.x + a.width / 2 + (b.x + b.width - a.x) * i / 10, a.y + a.height / 2)
+  await page.mouse.up()
+  await page.getByText('순서를 저장하지 못했어요').waitFor()
+  assert.deepEqual(await names(), ['밴드 12', '리듬 메이커스', '밴드 11'])
+  state.failOrder = false
+
+  // 휴대폰: 꾹 누르고(0.35초) 끌기. 바로 밀면 끌기가 아니다
+  const cdp = await page.context().newCDPSession(page)
+  const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] })
+  const m = await tabs.nth(1).boundingBox()
+  const z = await tabs.nth(0).boundingBox()
+  const y = m.y + m.height / 2
+  await touch('touchStart', m.x + m.width / 2, y)
+  await touch('touchMove', z.x + 4, y)
+  await touch('touchEnd')
+  await page.waitForTimeout(300)
+  assert.deepEqual(await names(), ['밴드 12', '리듬 메이커스', '밴드 11'])
+  await touch('touchStart', m.x + m.width / 2, y)
+  await page.waitForTimeout(500)
+  for (let i = 1; i <= 8; i++) await touch('touchMove', m.x + m.width / 2 - (m.x + m.width / 2 - z.x + 6) * i / 8, y)
+  await touch('touchEnd')
+  await page.waitForFunction(() => document.querySelector('.band-tabs-left [data-tab-id]').textContent.includes('리듬'))
+  assert.deepEqual(state.bandOrder, [10, 12, 11])
   assert.deepEqual(errors, [])
 })
