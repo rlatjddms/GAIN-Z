@@ -17,6 +17,7 @@
                   <input v-if="selecting" v-model="checkedIds" type="checkbox" :value="list.id" :aria-label="`${list.title} 선택`">
                   <button v-else-if="!favoritesOnly" class="drag-handle list-handle" :disabled="busy" :aria-label="`${list.title} 셋리스트 순서 변경`" @pointerdown="start" @keydown.up.prevent="move(-1)" @keydown.down.prevent="move(1)">⠿</button>
                   <button class="list-link" :aria-pressed="selectedId === list.id" @click="selectList(list.id)"><strong>{{ list.title }}</strong><span>{{ list.songs.length }}곡</span></button>
+                  <button v-if="!selecting" class="rename" :disabled="busy" :aria-label="`${list.title} 이름 변경`" title="이름 변경" @click="openRename(list)"><Pencil :size="14" :stroke-width="2.2" /></button>
                   <button class="star" :class="{ on: list.favorite }" :disabled="busy" :aria-pressed="list.favorite" :aria-label="`${list.title} 즐겨찾기`" @click="toggleFavorite(list)"><Star :size="16" :stroke-width="2.2" :fill="list.favorite ? 'currentColor' : 'none'" /></button>
                 </div>
               </template>
@@ -26,7 +27,7 @@
         <WsCard :title="current?.title || '합주할 곡'" class="detail">
           <template v-if="selected" #actions>
             <button class="btn" :disabled="busy" @click="addSong">+ 곡 추가</button>
-            <button class="btn" :disabled="busy" @click="openRename">이름 변경</button>
+            <button class="btn" :disabled="busy" @click="openRename(selected)">이름 변경</button>
             <button class="btn danger" :disabled="busy" @click="askDelete([selected.id])">삭제</button>
           </template>
           <template v-if="current">
@@ -77,7 +78,7 @@
 </template>
 
 <script setup>
-import { ChevronRight, Star, Check, Mic } from 'lucide-vue-next'
+import { ChevronRight, Star, Check, Mic, Pencil } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -100,6 +101,8 @@ const store = useBandStore()
 const band = ref(null), error = ref(''), saveError = ref(''), notice = ref(''), busy = ref(false)
 const lists = ref([]), selectedId = ref(null), drafts = ref({}), songOrder = ref([])
 const listTitle = ref(''), renaming = ref(false)
+// 이름을 바꿀 셋리스트 (목록에서 고르지 않은 셋리스트도 바꿀 수 있다, #233)
+const renameId = ref(null)
 const createDialog = ref(null), deleteDialog = ref(null), deleteIds = ref([])
 const expandedIds = ref([]), favoritesOnly = ref(false), selecting = ref(false), checkedIds = ref([])
 const sheets = ref(null), sheetsLoading = ref(false), sheetsError = ref('')
@@ -296,7 +299,7 @@ async function removeSong(song) {
   }, '곡을 삭제하지 못했어요.')
 }
 function openCreate() { renaming.value = false; listTitle.value = ''; createDialog.value.showModal() }
-function openRename() { renaming.value = true; listTitle.value = selected.value.title; createDialog.value.showModal() }
+function openRename(list) { renaming.value = true; renameId.value = list.id; listTitle.value = list.title; createDialog.value.showModal() }
 function closeOnBackdrop(event, dialog) {
   if (event.target !== dialog) return
   const r = dialog.getBoundingClientRect()
@@ -306,7 +309,7 @@ async function submitList() {
   const title = listTitle.value.trim()
   if (!title) return
   if (renaming.value) {
-    if (await run(async () => replaceList(await updateSetlist(bandId(), selectedId.value, { title })))) createDialog.value.close()
+    if (await run(async () => replaceList(await updateSetlist(bandId(), renameId.value, { title })))) createDialog.value.close()
     return
   }
   if (!await discardAllowed()) return
@@ -383,6 +386,8 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .list-link strong { font-size:.79rem; }
 .list-link span { color:var(--c-muted); font-size:.7rem; }
 .star { background:transparent; border:0; color:#ced4da; font-size:20px; cursor:pointer; padding:3px; }
+.rename { flex:none; display:flex; padding:5px; border:0; border-radius:8px; background:transparent; color:var(--c-faint); cursor:pointer; }
+.rename:hover:not(:disabled) { color:var(--c-text-2); background:var(--c-line-soft); }
 .star.on { color:#fab005; }
 .summary { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; padding:10px 12px; background:var(--c-bg); border-radius:10px; color:var(--c-muted); font-size:.75rem; }
 .summary b { color:var(--c-text-2); }
@@ -459,6 +464,9 @@ legend span { margin-left:6px; font-weight:400; }
 @media(prefers-reduced-motion:reduce) { .song-collapse,.chevron { transition:none; } }
 /* 휴대폰: 팝업은 아래에서 올라오는 시트로 (#124) */
 @media (max-width: 640px) {
+  /* 휴대폰: 만들기 버튼은 목록 아래로 (#233) */
+  .sidebar { display:flex; flex-direction:column; }
+  .add-list { order:1; margin:12px 0 0; }
   .setlist-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 }
 </style>

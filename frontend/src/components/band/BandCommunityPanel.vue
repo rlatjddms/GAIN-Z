@@ -15,6 +15,13 @@
   </section>
 </template>
 
+<script>
+// 마지막으로 불러온 목록을 기억한다 (#233). 셋리스트 등에 다녀와 홈이 새로 그려질 때 빈 카드(불러오는 중) 대신
+// 기억한 글을 바로 보여 주고 뒤에서 새로 불러온다. 밴드·쪽·검색 조건마다 따로.
+// <script setup> 안에 두면 화면이 그려질 때마다 새로 만들어져서 파일 수준에 둔다
+const lastLoaded = new Map()
+</script>
+
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -59,13 +66,23 @@ const posts = computed(() => rows.value.filter(p => !notices.value.some(n => n.i
 const selectedPost = computed(() => Number(route.query.post) || null)
 const dialogMode = computed(() => route.query.compose === '1' ? 'new' : selectedPost.value ? (route.query.edit === '1' ? 'edit' : 'detail') : null)
 let sequence = 0
+function showList(list) {
+  noticeRows.value = list.noticeRows
+  rows.value = list.rows
+  regularTotal.value = list.regularTotal
+  totalPages.value = list.totalPages
+}
 async function fetchNotices() {
   const first = await listBandPosts(props.band.id, { page: 0, size: 20, notice: true, mine: mine.value })
   const rest = await Promise.all(Array.from({ length: Math.max(0, first.totalPages - 1) }, (_, i) => listBandPosts(props.band.id, { page: i + 1, size: 20, notice: true, mine: mine.value })))
   return [first, ...rest].flatMap(result => result.content)
 }
+const cacheKey = () => JSON.stringify([props.band.id, page.value, mine.value, filters.value])
 async function load() {
   const current = ++sequence
+  const key = cacheKey()
+  const cached = lastLoaded.get(key)
+  if (cached) showList(cached)
   loading.value = true
   error.value = ''
   try {
@@ -75,10 +92,9 @@ async function load() {
       listBandPosts(props.band.id, { page: page.value, size: PAGE_SIZE, notice: searching.value ? null : false, mine: mine.value, ...filters.value }),
     ])
     if (current !== sequence) return
-    noticeRows.value = pinned
-    rows.value = result.content
-    regularTotal.value = result.totalElements
-    totalPages.value = result.totalPages
+    const list = { noticeRows: pinned, rows: result.content, regularTotal: result.totalElements, totalPages: result.totalPages }
+    showList(list)
+    lastLoaded.set(key, list)
     // 글이 지워져 쪽이 줄었으면 마지막 쪽으로
     if (result.totalPages > 0 && page.value >= result.totalPages) goPage(result.totalPages - 1, false)
   } catch (e) { if (current === sequence) error.value = e.response?.data?.message || '게시글을 불러오지 못했어요.' }
