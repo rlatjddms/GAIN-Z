@@ -7,6 +7,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ErrorCode {
 
+    /* Global (공통) */
+    INVALID_INPUT(400, "G001", "입력한 값이 올바르지 않아요."),
+    // 문구의 크기는 GlobalExceptionHandler가 설정값(spring.servlet.multipart)으로 채운다 (#280)
+    FILE_TOO_LARGE(400, "G002", "파일이 너무 커요."),
+
     /* User (유저) */
     DUPLICATE_EMAIL(409, "U001", "이미 존재하는 이메일입니다."),
     USER_NOT_FOUND(404, "U002", "존재하지 않는 사용자입니다."),
