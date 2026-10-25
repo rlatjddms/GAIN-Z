@@ -50,9 +50,9 @@
 
           <div v-else-if="pages.length" ref="pagesBox" class="pages">
             <figure v-for="(p, i) in pages" :key="p.id" class="page-frame" :style="{ width: `${zoom}%` }">
-              <!-- 필기 중이 아닐 때 장을 두 번 누르면 크게 보기 (#231) -->
+              <!-- 필기 중이 아닐 때 장을 누르면 크게 보기 (#231). 필기 중에는 누르는 게 곧 그리기라 열지 않는다 -->
               <SheetPageView :sheet-id="sheet.id" :page-id="p.id" :content-type="p.contentType" :alt="`${sheet.title} ${p.pageNumber}장`" annotate
-                             @dblclick="!annot.enabled && openViewer(i)" />
+                             :class="{ 'can-open': !annot.enabled }" @click="!annot.enabled && openViewer(i)" />
               <figcaption v-if="pages.length > 1">{{ p.pageNumber }} / {{ pages.length }}</figcaption>
             </figure>
           </div>
@@ -440,4 +440,6 @@ figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight
 @media (max-width: 640px) {
   .annot-bar { top: 64px; }
 }
+/* 누르면 크게 보기 (#231) */
+.pages :deep(.sheet-page.can-open) { cursor: zoom-in; }
 </style>
