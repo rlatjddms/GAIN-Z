@@ -127,8 +127,8 @@
                   <label class="check"><input v-model="countInOn" type="checkbox" :disabled="recording"> 한 마디 카운트인</label>
                   <button v-if="!recording" class="btn record" :disabled="busy || measuring || uploading || trackLimitReached" @click="startRecording">● 녹음 시작</button>
                   <button v-else class="btn record on" @click="stopRecording">■ 녹음 끝내기</button>
-                  <!-- 카운트인 중에는 박 숫자를 크게 (#234) -->
-                  <span v-if="recording && countInBeat" class="count-in" role="status" :aria-label="`카운트인 ${countInBeat}`">{{ countInBeat }}<small>/ {{ COUNT_IN_BEATS }}</small></span>
+                  <!-- 카운트인 중에는 녹음 시작까지 남은 박을 4·3·2·1로 크게 (#234) -->
+                  <span v-if="recording && countInBeat" class="count-in" role="status" :aria-label="`녹음 시작까지 ${countInLeft}박`">{{ countInLeft }}</span>
                   <span v-else-if="recording" class="rec-time" role="status">녹음 중 {{ formatTime(position) }}</span>
                 </div>
                   </template>
@@ -218,6 +218,7 @@ const recording = ref(false), take = ref(null), uploading = ref(false), uploadPr
 // 한 마디 카운트인 박 수, 지금 몇 번째 박인지 (카운트인 중이 아니면 0)
 const COUNT_IN_BEATS = 4
 const countInBeat = ref(0)
+const countInLeft = computed(() => COUNT_IN_BEATS - countInBeat.value + 1)
 const formDialog = ref(null), form = ref({}), formError = ref(''), setlistSongs = ref([]), songQuery = ref(''), songsLoading = ref(false)
 const deleteDialog = ref(null), deleteTarget = ref(null)
 let session = null, frame = 0, request = 0, jamRequest = 0
@@ -664,8 +665,7 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .offset input { width:96px; border:1px solid var(--c-line); padding:5px 8px; border-radius:8px; font-family:inherit; font-size:.76rem; color:#343a40; outline:none; }
 .remove { border:0; background:transparent; color:var(--c-faint); font-size:20px; cursor:pointer; padding:2px 6px; }
 .remove:hover:not(:disabled) { color:var(--c-danger); }
-.count-in { display:inline-flex; align-items:baseline; gap:3px; min-width:56px; justify-content:center; padding:4px 12px; border-radius:999px; background:#fff0f0; color:#e03131; font-size:1.4rem; font-weight:900; line-height:1.2; font-variant-numeric:tabular-nums; }
-.count-in small { font-size:.7rem; font-weight:700; color:#fa5252; }
+.count-in { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; background:#fff0f0; color:#e03131; font-size:1.5rem; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; }
 .nudge { display:flex; align-items:flex-end; flex-wrap:wrap; gap:6px; }
 .nudge .btn { min-height:30px; padding:5px 9px; }
 .take-hint { flex-basis:100%; margin:0; font-size:.7rem; color:var(--c-muted); }
