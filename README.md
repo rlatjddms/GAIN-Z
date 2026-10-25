@@ -26,11 +26,6 @@
 - **연습 기록**: 연습 시간과 루틴을 기록하면 경험치와 레벨이 쌓이고, 캐릭터의 의상과 무대 배경이 바뀝니다.
 - **밴드 합주**: 악보·셋리스트·녹음을 밴드가 한곳에서 관리하고, 각자 시간이 될 때 트랙을 쌓는 레이어 잼으로 자주 만나지 못해도 합주를 이어갈 수 있습니다.
 
-## 스크린샷
-
-<img src="docs/images/screenshots-desktop.png" alt="데스크톱 화면" />
-<img src="docs/images/screenshots-mobile.png" alt="모바일 화면 (PWA)" />
-
 ## 주요 기능
 
 - **회원·인증**: 이메일 인증 가입, 구글·카카오·네이버 소셜 로그인, 비밀번호 재설정, 토큰 재발급
@@ -39,6 +34,11 @@
 - **악보**: PDF·텍스트 악보 등록, 페이지 순서 편집, 필기, 타브·코드 악보 렌더링
 - **밴드**: 초대 코드 가입, 리더·멤버 관리, 커뮤니티(공지·댓글·첨부), 셋리스트, 레이어 잼(트랙 녹음)
 - **소셜**: 친구 코드·요청, 알림과 알림 설정, 프로필 음악
+
+## 스크린샷
+
+<img src="docs/images/screenshots-desktop.png" alt="데스크톱 화면" />
+<img src="docs/images/screenshots-mobile.png" alt="모바일 화면 (PWA)" />
 
 ## 기술 스택
 
@@ -91,21 +91,3 @@ UptimeRobot → 5분마다 백엔드 호출 (무료 플랜 서버 휴면 방지)
 - [AI 악보 변환 조사](docs/ai-transcription-research.md): 구현은 정확도 문제로 악보 사이트 연결로 대체
 - [밴드 게시판 API](backend/docs/band-board-api.md)
 - [로컬 실행·설정값·Docker·운영 실행](docs/setup.md)
-
-## 빠른 실행
-
-```bash
-# 백엔드 (Java 17, DB, Redis 필요)
-cd backend
-cp src/main/resources/application-secret.yml.example src/main/resources/application-secret.yml
-# application-secret.yml에 DB·Redis·소셜 로그인·JWT 비밀값을 채운다
-./gradlew bootRun
-
-# 프론트 (Node.js 18 이상)
-cd frontend
-cp .env.example .env
-npm install
-npm run dev
-```
-
-백엔드는 `http://localhost:8080`, 프론트는 `http://localhost:5173`에서 뜹니다. 설정값, Docker Compose, 운영 배포는 [docs/setup.md](docs/setup.md)를 참고하세요.
