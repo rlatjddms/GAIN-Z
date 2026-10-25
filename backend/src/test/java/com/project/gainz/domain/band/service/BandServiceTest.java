@@ -30,6 +30,7 @@ import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.record.enums.RecordMetric;
 import com.project.gainz.domain.record.event.RecordCheckEvent;
 import org.junit.jupiter.api.Test;
@@ -686,5 +687,17 @@ class BandServiceTest {
         assertThat(f.band().getIsDeleted()).isFalse();
         verify(notificationService).notify(eq(f.leader().getUser()), eq(NotificationType.BAND_LEAVE), eq(f.band().getName()),
                 eq("드러머 님이 탈퇴해서 밴드를 나갔어요"), eq("/bands/" + BAND_ID + "/settings"));
+    }
+
+    // 내보낸 사람도 홈의 밴드 목록이 바뀌어야 하니 남은 멤버와 함께 신호를 받는다 (#259)
+    @Test
+    void 내보내면_남은_멤버와_내보낸_사람에게_밴드_신호를_보낸다() {
+        Fixture f = fixture();
+        when(bandMemberRepository.findByIdAndBandId(200L, BAND_ID)).thenReturn(Optional.of(f.member()));
+        membersAre(f.all());
+
+        bandService.removeMember(LEADER_ID, BAND_ID, 200L);
+
+        verify(notificationService).change(List.of(LEADER_ID, MEMBER_ID), LEADER_ID, LiveChange.band(BAND_ID));
     }
 }

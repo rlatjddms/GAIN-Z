@@ -12,6 +12,7 @@ import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.BandPostRepository;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.notification.service.NotificationService;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
@@ -410,5 +411,19 @@ class BandBoardServiceTest {
         TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
         verify(storage).delete("new");
         verify(storage, never()).delete("old");
+    }
+
+    // 글·댓글이 바뀌면 같은 밴드의 (나간 사람 빼고) 멤버에게 신호를 보낸다. 한 사람은 NotificationService가 뺀다 (#259)
+    @Test void commentChangeIsSignalledToActiveBandMembers() {
+        BandMember me = member(1, Position.MEMBER);
+        BandMember other = BandMember.builder().band(me.getBand()).user(user(2)).position(Position.MEMBER).build();
+        BandMember left = BandMember.builder().band(me.getBand()).user(user(3)).position(Position.MEMBER).build();
+        left.delete();
+        comment(post(me), 30, null);
+        when(members.findAllByBandIdOrderByIdAsc(10L)).thenReturn(List.of(me, other, left));
+
+        service.deleteComment(1L, 10L, 20L, 30L);
+
+        verify(notificationService).change(List.of(1L, 2L), 1L, LiveChange.bandBoard(10L, 20L));
     }
 }

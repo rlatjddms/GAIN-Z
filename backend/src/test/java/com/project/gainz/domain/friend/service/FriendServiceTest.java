@@ -27,6 +27,7 @@ import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.record.enums.RecordMetric;
 import com.project.gainz.domain.record.event.RecordCheckEvent;
 import org.junit.jupiter.api.Test;
@@ -543,5 +544,16 @@ class FriendServiceTest {
         friendService.removeAll(ME);
 
         verify(friendshipRepository).deleteAll(all);
+    }
+
+    // 신청을 거절·취소하면 (알림은 없지만) 상대의 친구 화면에 신호를 보낸다 (#259)
+    @Test
+    void 신청을_지우면_상대에게_친구_신호를_보낸다() {
+        Friendship received = friendship(7L, user(OTHER), user(ME), false);
+        when(friendshipRepository.findById(7L)).thenReturn(Optional.of(received));
+
+        friendService.deleteRequest(ME, 7L);
+
+        verify(notificationService).change(List.of(OTHER), ME, LiveChange.friends());
     }
 }

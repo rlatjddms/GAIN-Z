@@ -1,5 +1,6 @@
 package com.project.gainz.domain.notification.service;
 
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.notification.dto.response.NotificationResponse;
 import com.project.gainz.domain.notification.enums.NotificationType;
 import org.junit.jupiter.api.Test;
@@ -88,5 +89,19 @@ class NotificationStreamTest {
 
         assertThat(stream.connectionCount(1L)).isEqualTo(NotificationStream.MAX_CONNECTIONS_PER_USER);
         assertThat(created.get(0).completed).isTrue();
+    }
+
+    // 바뀌었다는 신호 (#259)는 그 사람의 모든 연결로, 다른 사람에게는 안 간다
+    @Test void sendsChangeToEveryConnectionOfThatUser() {
+        stream.subscribe(1L, 0);
+        stream.subscribe(1L, 0);
+        stream.subscribe(2L, 0);
+
+        stream.sendChange(1L, LiveChange.band(10L));
+
+        assertThat(created.get(0).sent).hasSize(2);
+        assertThat(created.get(0).sent.get(1)).contains("event:change").contains("topic=BAND").contains("bandId=10");
+        assertThat(created.get(1).sent).hasSize(2);
+        assertThat(created.get(2).sent).hasSize(1);
     }
 }
