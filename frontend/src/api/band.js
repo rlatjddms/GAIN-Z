@@ -49,6 +49,12 @@ export async function reorderMembers(bandId, memberIds) {
   return response.data.data
 }
 
+// 홈 밴드 탭 순서 바꾸기 (나한테만, #266) bandIds: 내 밴드 전부를 왼쪽부터 → 내 밴드 목록 (그 순서로)
+export async function reorderMyBands(bandIds) {
+  const response = await axiosInstance.put('/api/v1/bands/me/order', { bandIds })
+  return response.data.data
+}
+
 // 밴드 없애기 (리더만)
 export async function deleteBand(bandId) {
   await axiosInstance.delete(`/api/v1/bands/${bandId}`)
