@@ -81,6 +81,8 @@
         </div>
         <button class="withdraw-link" :disabled="!profile" @click="withdrawOpen = true">회원 탈퇴</button>
       </WsCard>
+
+      <AppInfoCard />
       </div>
 
       <div class="col">
@@ -108,6 +110,7 @@ import WithdrawModal from '../components/mypage/WithdrawModal.vue'
 import LoginMethodsCard from '../components/mypage/LoginMethodsCard.vue'
 import NotificationSettingsCard from '../components/mypage/NotificationSettingsCard.vue'
 import ThemeCard from '../components/mypage/ThemeCard.vue'
+import AppInfoCard from '../components/mypage/AppInfoCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
 import {
