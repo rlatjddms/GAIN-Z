@@ -1,5 +1,6 @@
 package com.project.gainz.domain.band.service;
 
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.notification.enums.NotificationType;
 import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.band.dto.request.BandCreateRequest;
@@ -34,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -120,12 +122,14 @@ public class BandService {
     public BandResponse updateBand(Long userId, Long bandId, BandUpdateRequest request) {
         BandMember me = requireLeader(userId, bandId);
         me.getBand().update(request.name().trim(), blankToNull(request.description()));
+        changed(bandId, userId);
         return respond(me.getBand(), me, userId);
     }
 
     public BandResponse changeStage(Long userId, Long bandId, BandStageRequest request) {
         BandMember me = requireLeader(userId, bandId);
         me.getBand().changeStage(request.stage());
+        changed(bandId, userId);
         return respond(me.getBand(), me, userId);
     }
 
@@ -142,6 +146,7 @@ public class BandService {
         for (int i = 0; i < order.size(); i++) {
             members.get(order.get(i)).changeStageOrder(i);
         }
+        changed(bandId, userId);
         return respond(me.getBand(), me, userId);
     }
 
@@ -153,6 +158,7 @@ public class BandService {
         disband(band);
         notificationService.notifyAll(others, userId, NotificationType.BAND_DISBAND, band.getName(),
                 "리더가 밴드를 없앴어요", HOME_URL);
+        notificationService.change(others.stream().map(User::getId).toList(), userId, LiveChange.band(bandId));
     }
 
     /* ---------- 초대 코드 ---------- */
@@ -161,6 +167,7 @@ public class BandService {
     public BandResponse regenerateInviteCode(Long userId, Long bandId) {
         BandMember me = requireLeader(userId, bandId);
         me.getBand().changeInviteCode(newInviteCode());
+        changed(bandId, userId);
         return respond(me.getBand(), me, userId);
     }
 
@@ -194,6 +201,7 @@ public class BandService {
                 .build());
         notificationService.notifyAll(usersOf(members), userId, NotificationType.BAND_JOIN, band.getName(),
                 notificationService.nicknameOf(user) + " 님이 밴드에 들어왔어요", settingsUrl(band));
+        changed(band.getId(), userId);
         eventPublisher.publishEvent(RecordCheckEvent.of(userId, RecordMetric.BANDS));
         return respond(band, me, userId);
     }
@@ -230,6 +238,7 @@ public class BandService {
             throw new BusinessException(ErrorCode.BAND_PART_CHANGE_DENIED);
         }
         target.changePart(request.part());
+        changed(bandId, userId);
         return respond(me.getBand(), me, userId);
     }
 
@@ -242,6 +251,7 @@ public class BandService {
         target.delete();
         notificationService.notify(target.getUser(), NotificationType.BAND_KICKED, me.getBand().getName(),
                 "밴드에서 내보내졌어요", HOME_URL);
+        changed(bandId, userId, target.getUser().getId());
         return respond(me.getBand(), me, userId);
     }
 
@@ -255,6 +265,7 @@ public class BandService {
         Band band = me.getBand();
         notificationService.notify(band.getLeader(), NotificationType.BAND_LEAVE, band.getName(),
                 notificationService.nicknameOf(me.getUser()) + " 님이 밴드를 나갔어요", settingsUrl(band));
+        changed(bandId, userId);
     }
 
     public BandResponse transferLeader(Long userId, Long bandId, BandLeaderRequest request) {
@@ -269,6 +280,7 @@ public class BandService {
         notificationService.notify(target.getUser(), NotificationType.BAND_LEADER, me.getBand().getName(),
                 notificationService.nicknameOf(me.getUser()) + " 님이 리더를 넘겨줬어요. 이제 내가 리더예요",
                 settingsUrl(me.getBand()));
+        changed(bandId, userId);
         return respond(me.getBand(), me, userId);
     }
 
@@ -295,10 +307,19 @@ public class BandService {
             me.delete();
             notificationService.notify(band.getLeader(), NotificationType.BAND_LEAVE, band.getName(),
                     who + " 님이 탈퇴해서 밴드를 나갔어요", settingsUrl(band));
+            changed(band.getId(), userId);
         }
     }
 
     /* ---------- 내부 ---------- */
+
+    // 멤버·밴드 정보가 바뀌었다는 신호를 다른 멤버(와 내보낸 사람)의 열린 화면으로 (#259)
+    private void changed(Long bandId, Long actorId, Long... also) {
+        List<Long> ids = new ArrayList<>(usersOf(activeMembers(bandMemberRepository.findAllByBandIdOrderByIdAsc(bandId)))
+                .stream().map(User::getId).toList());
+        ids.addAll(List.of(also));
+        notificationService.change(ids, actorId, LiveChange.band(bandId));
+    }
 
     private BandMember requireMember(Long userId, Long bandId) {
         return bandMemberRepository.findByBandIdAndUserId(bandId, userId)
