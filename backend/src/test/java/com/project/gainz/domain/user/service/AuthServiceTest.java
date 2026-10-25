@@ -39,13 +39,15 @@ class AuthServiceTest {
     void 이메일_인증_표를_쓰고_인증된_계정으로_가입한다() {
         when(passwordEncoder.encode("Test1234!")).thenReturn("encoded");
 
-        authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "나", "ticket"));
+        authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "ticket"));
 
         verify(accountMailService).useSignupTicket("me@test.invalid", "ticket");
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(saved.capture());
         assertThat(saved.getValue().isEmailVerified()).isTrue();
         assertThat(saved.getValue().getPassword()).isEqualTo("encoded");
+        // 이름은 받지 않는다 (#227): 캐릭터를 만들기 전에는 이메일 앞부분
+        assertThat(saved.getValue().getName()).isEqualTo("me");
     }
 
     @Test
@@ -53,7 +55,7 @@ class AuthServiceTest {
         doThrow(new BusinessException(ErrorCode.EMAIL_NOT_VERIFIED))
                 .when(accountMailService).useSignupTicket("me@test.invalid", "bad");
 
-        assertThatThrownBy(() -> authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "나", "bad")))
+        assertThatThrownBy(() -> authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "bad")))
                 .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.EMAIL_NOT_VERIFIED);
         verify(userRepository, never()).save(any());
     }
@@ -73,7 +75,7 @@ class AuthServiceTest {
     void 이미_가입된_이메일이면_인증_표를_쓰지_않는다() {
         when(userRepository.existsByEmail("me@test.invalid")).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "나", "ticket")))
+        assertThatThrownBy(() -> authService.signup(new SignupRequest("me@test.invalid", "Test1234!", "ticket")))
                 .isInstanceOf(BusinessException.class).extracting("errorCode").isEqualTo(ErrorCode.DUPLICATE_EMAIL);
         verify(accountMailService, never()).useSignupTicket(anyString(), anyString());
     }

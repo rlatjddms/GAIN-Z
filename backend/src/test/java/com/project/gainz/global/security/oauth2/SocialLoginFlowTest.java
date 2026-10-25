@@ -71,7 +71,7 @@ class SocialLoginFlowTest {
 
         ArgumentCaptor<SocialProfile> profile = ArgumentCaptor.forClass(SocialProfile.class);
         verify(socialAccountService).link(org.mockito.ArgumentMatchers.eq("ticket"), profile.capture());
-        assertThat(profile.getValue()).isEqualTo(new SocialProfile(SocialProvider.GOOGLE, "g-1", "me@test.invalid", "나", true));
+        assertThat(profile.getValue()).isEqualTo(new SocialProfile(SocialProvider.GOOGLE, "g-1", "me@test.invalid", true));
         assertThat(principal.getUsername()).isEqualTo("me@test.invalid");
         assertThat(callback.getAttribute(CustomOAuth2UserService.LINKED_PROVIDER)).isEqualTo("GOOGLE");
         assertThat(callback.getSession().getAttribute(SocialLinkTicketFilter.SESSION_KEY)).isNull();
@@ -120,7 +120,6 @@ class SocialLoginFlowTest {
         assertThat(new KakaoUserInfo(kakao).getProviderId()).isEqualTo("123");
         // 인증됐어도 지금 쓸 수 없는 이메일이면 인증되지 않은 것으로
         assertThat(new KakaoUserInfo(kakao).isEmailVerified()).isFalse();
-        assertThat(new KakaoUserInfo(Map.of("id", 1L)).getName()).isNull();
 
         // 네이버는 인증 여부를 주지 않는다
         assertThat(new NaverUserInfo(Map.of("response", Map.of("id", "n-1"))).isEmailVerified()).isFalse();

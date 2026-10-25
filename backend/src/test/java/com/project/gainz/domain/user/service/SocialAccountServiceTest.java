@@ -47,7 +47,7 @@ class SocialAccountServiceTest {
     }
 
     private static SocialProfile google(String email, boolean verified) {
-        return new SocialProfile(SocialProvider.GOOGLE, "g-1", email, "구글 이름", verified);
+        return new SocialProfile(SocialProvider.GOOGLE, "g-1", email, verified);
     }
 
     private static void assertSocialError(ThrowingCallable call, String code) {
@@ -112,7 +112,7 @@ class SocialAccountServiceTest {
         when(userRepository.findByEmail("new@test.invalid")).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        User created = service.login(new SocialProfile(SocialProvider.NAVER, "n-1", "new@test.invalid", null, false));
+        User created = service.login(new SocialProfile(SocialProvider.NAVER, "n-1", "new@test.invalid", false));
 
         assertThat(created.hasPassword()).isFalse();
         assertThat(created.getProvider()).isEqualTo(SocialProvider.NAVER);
@@ -123,7 +123,7 @@ class SocialAccountServiceTest {
 
     @Test
     void 소셜에서_이메일을_받지_못하면_가입하지_않는다() {
-        assertSocialError(() -> service.login(new SocialProfile(SocialProvider.KAKAO, "k-1", null, "카카오", false)),
+        assertSocialError(() -> service.login(new SocialProfile(SocialProvider.KAKAO, "k-1", null, false)),
                 SocialLoginException.EMAIL_REQUIRED);
         verify(userRepository, never()).save(any());
     }
