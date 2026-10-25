@@ -17,7 +17,12 @@
                 <p v-if="profile.character">Lv.{{ profile.character.level ?? 1 }}</p>
                 <p v-else-if="profile.visible">아직 캐릭터가 없어요</p>
               </div>
-              <button v-if="profile.relation === 'FRIEND'" class="head-btn danger" :disabled="busy" @click="emit('remove', profile)">
+              <!-- 친구 목록에서 열면 밴드 초대 버튼, 친구 삭제는 ⋯ 메뉴로 (#229) -->
+              <template v-if="profile.relation === 'FRIEND' && canInvite">
+                <button class="head-btn primary" :disabled="busy" @click="emit('invite', { userId: profile.userId, name: profile.name })">밴드 초대</button>
+                <FriendMenu :name="profile.name" :can-invite="false" :disabled="busy" @remove="emit('remove', profile)" />
+              </template>
+              <button v-else-if="profile.relation === 'FRIEND'" class="head-btn danger" :disabled="busy" @click="emit('remove', profile)">
                 {{ busy ? '삭제하는 중…' : '친구 삭제' }}
               </button>
               <button v-else-if="profile.relation === 'RECEIVED'" class="head-btn primary" :disabled="busy" @click="acceptRequest">친구 수락</button>
@@ -73,6 +78,7 @@ import PixelIcon from '../components/PixelIcon.vue'
 import { ref, watch } from 'vue'
 import ProfileAvatar from './ProfileAvatar.vue'
 import ProfileMusic from './ProfileMusic.vue'
+import FriendMenu from './friend/FriendMenu.vue'
 import CharacterStage from './CharacterStage.vue'
 import PracticeLogCard from './workspace/PracticeLogCard.vue'
 import { getUserProfile } from '../api/user'
@@ -85,10 +91,13 @@ const props = defineProps({
   userId: { type: Number, default: null },
   // 친구 신청 버튼을 보일지 (같은 밴드 멤버에게만 코드 없이 신청할 수 있다)
   canRequest: { type: Boolean, default: false },
+  // 친구면 밴드 초대 버튼을 보일지 (친구 목록에서 열 때, #229)
+  canInvite: { type: Boolean, default: false },
 })
 // remove: 친구 삭제를 눌렀을 때 (확인·삭제는 부르는 쪽에서)
 // changed: 친구 신청·수락으로 관계가 바뀌었을 때
-const emit = defineEmits(['close', 'remove', 'changed'])
+// invite({ userId, name }): 밴드 초대를 눌렀을 때 (초대 창은 부르는 쪽에서)
+const emit = defineEmits(['close', 'remove', 'changed', 'invite'])
 
 const profile = ref(null)
 const loadError = ref('')
@@ -158,6 +167,8 @@ defineExpose({
   font-family: 'Pretendard', sans-serif; color: var(--c-text);
   display: flex; flex-direction: column; gap: 14px;
 }
+/* 높이가 모자라도 무대·잔디가 찌그러지지 않고 팝업 안에서 스크롤 (#229) */
+.modal > * { flex-shrink: 0; }
 .close {
   position: absolute; top: 14px; right: 16px; border: none; background: none; cursor: pointer;
   font-size: 1.5rem; line-height: 1; color: var(--c-faint);
@@ -187,14 +198,16 @@ defineExpose({
 .hidden-box p { margin: 0; font-size: 0.85rem; font-weight: 800; color: var(--c-muted); }
 
 .bands-card { background: #fff; border: 1px solid var(--c-line); border-radius: 24px; padding: 20px 24px; }
-h3 { margin: 0 0 12px; font-size: 0.85rem; font-weight: 800; color: var(--c-text-2); }
+h3 { margin: 0 0 14px; font-size: 0.85rem; font-weight: 800; color: var(--c-text-2); }
 .count { color: var(--c-faint); }
-.bands { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.band { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-top: 1px solid var(--c-line-soft); }
-.band:first-child { border-top: none; padding-top: 0; }
-.band-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+/* 밴드마다 연한 칸으로 (#229): 제목 바로 밑에 줄이 붙어 보이던 것을 칸으로 나눈다 */
+.bands { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.band { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 14px; background: var(--c-bg); }
+.band-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
 .band-name { min-width: 0; font-size: 0.88rem; font-weight: 900; color: #343a40; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.part { font-size: 0.75rem; font-weight: 700; color: var(--c-muted); }
+/* 리더 왕관: 홈 밴드 무대와 같은 노란 왕관, 이름과 띄움 */
+.crown { margin-right: 6px; color: #f08c00; vertical-align: -1px; }
+.part { flex: none; font-size: 0.75rem; font-weight: 700; color: var(--c-muted); }
 .badge { flex: none; font-size: 0.68rem; font-weight: 800; color: var(--c-success); background: #ebfbee; padding: 3px 8px; border-radius: 999px; }
 
 .error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
@@ -206,7 +219,7 @@ h3 { margin: 0 0 12px; font-size: 0.85rem; font-weight: 800; color: var(--c-text
 @media (max-width: 640px) {
   .backdrop { align-items: flex-end; padding: 0; }
   .modal {
-    width: 100%; max-width: none; max-height: 92dvh;
+    width: 100%; max-width: none; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }

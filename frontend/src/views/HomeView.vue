@@ -135,7 +135,7 @@
             </div>
           </section>
 
-          <BandStartModal :open="isStartOpen" :initial-tab="startTab"
+          <BandStartModal :open="isStartOpen" :initial-tab="startTab" :initial-code="startCode"
                           :default-part="authStore.character?.instrumentType || 'GUITAR'"
                           @close="isStartOpen = false" @done="onBandStarted" />
 
@@ -259,10 +259,19 @@ watch(isBandMode, (on) => { if (on) bandStore.fetchMyBands() }, { immediate: tru
 
 const isStartOpen = ref(false)
 const startTab = ref('create')
-const openStart = (tab) => {
+const startCode = ref('')
+const openStart = (tab, code = '') => {
   startTab.value = tab
+  startCode.value = code
   isStartOpen.value = true
 }
+// 친구가 보낸 밴드 초대 알림(/home?join=코드, #229): BAND 탭에서 코드가 채워진 가입 창을 연다
+watch(() => route.query.join, (code) => {
+  if (!code) return
+  isBandMode.value = true
+  openStart('join', String(code))
+  router.replace({ query: { ...route.query, join: undefined } })
+}, { immediate: true })
 const onBandStarted = (band) => {
   isStartOpen.value = false
   bandStore.upsertBand(band, true)

@@ -66,6 +66,11 @@ export async function joinBand({ inviteCode, part }) {
   return response.data.data
 }
 
+// 친구에게 밴드 초대 보내기 (#229). 친구는 알림을 눌러 초대 코드가 채워진 가입 창에서 파트를 골라 들어온다
+export async function inviteFriendToBand(bandId, userId) {
+  await axiosInstance.post(`/api/v1/bands/${bandId}/invitations`, { userId })
+}
+
 // 파트 바꾸기 (본인 또는 리더) → 밴드 상세
 export async function changeMemberPart(bandId, memberId, part) {
   const response = await axiosInstance.patch(`/api/v1/bands/${bandId}/members/${memberId}`, { part })

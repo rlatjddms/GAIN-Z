@@ -27,8 +27,16 @@
           <p v-if="loadError" class="error">{{ loadError }}</p>
           <div v-else-if="!loaded" class="loading">불러오는 중…</div>
           <p v-else-if="!friends.length" class="empty">아직 친구가 없어요. 친구 코드로 신청해 보세요!</p>
+          <template v-else>
+          <!-- 친구 검색 (#229): 닉네임으로 거른다 -->
+          <label class="friend-search">
+            <Search :size="15" :stroke-width="2.4" aria-hidden="true" />
+            <input v-model="friendQuery" type="search" placeholder="친구 닉네임 검색" aria-label="친구 검색" maxlength="20">
+          </label>
+          <p v-if="inviteStatus" class="saved">{{ inviteStatus }}</p>
+          <p v-if="!shownFriends.length" class="empty">'{{ friendQuery.trim() }}' 친구가 없어요.</p>
           <ul v-else class="people">
-            <li v-for="f in friends" :key="f.userId" class="friend-row">
+            <li v-for="f in shownFriends" :key="f.userId" class="friend-row">
               <button class="person clickable" title="프로필 보기" @click="selectedId = f.userId">
                 <ProfileAvatar :src="f.profileImageUrl" :size="44" :alt="`${f.name} 프로필 사진`" />
                 <div class="who">
@@ -37,9 +45,10 @@
                   <ProfileMusic v-if="f.profileMusic" :music="f.profileMusic" compact />
                 </div>
               </button>
-              <button class="remove-btn" :disabled="removingId === f.userId" @click="unfriend(f)">{{ removingId === f.userId ? '삭제 중…' : '삭제' }}</button>
+              <FriendMenu :name="f.name" :disabled="removingId === f.userId" @invite="inviteTarget = f" @remove="unfriend(f)" />
             </li>
           </ul>
+          </template>
         </WsCard>
       </div>
 
@@ -112,7 +121,8 @@
       </div>
     </div>
 
-    <ProfileModal ref="profileModal" :user-id="selectedId" @close="selectedId = null" @remove="unfriend" @changed="loadAll" />
+    <ProfileModal ref="profileModal" :user-id="selectedId" can-invite @close="selectedId = null" @remove="unfriend" @invite="inviteTarget = $event" @changed="loadAll" />
+    <BandInviteModal :friend="inviteTarget" @close="inviteTarget = null" @sent="onInviteSent" />
   </SubPageLayout>
 </template>
 
@@ -123,6 +133,9 @@ import WsCard from '../components/workspace/WsCard.vue'
 import ProfileAvatar from '../components/ProfileAvatar.vue'
 import ProfileModal from '../components/ProfileModal.vue'
 import ProfileMusic from '../components/ProfileMusic.vue'
+import FriendMenu from '../components/friend/FriendMenu.vue'
+import BandInviteModal from '../components/friend/BandInviteModal.vue'
+import { Search } from 'lucide-vue-next'
 import {
   getMyFriendCode, regenerateFriendCode, sendFriendRequest,
   getReceivedRequests, getSentRequests, acceptFriendRequest, deleteFriendRequest,
@@ -292,6 +305,20 @@ const cancel = (r) => runAction(r.requestId, async () => {
   sent.value = sent.value.filter((x) => x.requestId !== r.requestId)
 }, '신청을 취소하지 못했어요.')
 
+/* ---------- 친구 검색·밴드 초대 (#229) ---------- */
+const friendQuery = ref('')
+const shownFriends = computed(() => {
+  const q = friendQuery.value.trim().toLocaleLowerCase()
+  return q ? friends.value.filter((f) => f.name.toLocaleLowerCase().includes(q)) : friends.value
+})
+
+const inviteTarget = ref(null)
+const inviteStatus = ref('')
+const onInviteSent = (friend, band) => {
+  inviteTarget.value = null
+  inviteStatus.value = `${friend.name} 님에게 '${band.name}' 초대를 보냈어요`
+}
+
 /* ---------- 친구 삭제 (목록·프로필 팝업 공통) ---------- */
 const profileModal = ref(null)
 const removingId = ref(null)
@@ -353,12 +380,12 @@ const unfriend = async (friend) => {
 .people > li + li { border-top: 1px solid var(--c-line-soft); }
 .person { display: flex; align-items: center; gap: 12px; padding: 10px 2px; }
 .friend-row { display: flex; align-items: center; gap: 4px; }
-.remove-btn {
-  flex: none; border: 1px solid var(--c-line); background: #fff; border-radius: 10px; padding: 7px 11px; cursor: pointer;
-  font-family: inherit; font-size: 0.75rem; font-weight: 800; color: var(--c-muted); white-space: nowrap; transition: 0.15s;
+.friend-search {
+  display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; margin-bottom: 6px;
+  border: 1px solid var(--c-line); border-radius: 12px; background: var(--c-bg); color: var(--c-faint);
 }
-.remove-btn:hover:not(:disabled) { color: var(--c-danger); border-color: #ffc9c9; background: var(--c-danger-soft); }
-.remove-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.friend-search:focus-within { border-color: var(--c-primary); background: #fff; }
+.friend-search input { flex: 1; min-width: 0; border: none; outline: none; background: none; font: inherit; font-size: 0.85rem; color: var(--c-text); }
 .person.clickable {
   flex: 1; min-width: 0; border: none; background: none; cursor: pointer; text-align: left; font-family: inherit;
   border-radius: 12px; transition: background 0.15s;
