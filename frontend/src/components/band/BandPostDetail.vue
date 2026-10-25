@@ -72,6 +72,7 @@ import { attachmentsOf, postDate, postTimeAgo, mentionMembers, isActiveNotice } 
 import { deleteBandPost, listBandComments, addBandComment, updateBandComment, deleteBandComment } from '../../api/bandBoard'
 
 import { useDialogStore } from '../../stores/dialog'
+import { useLiveRefresh } from '../../composables/useLiveRefresh'
 const props = defineProps({ post: { type: Object, required: true }, band: { type: Object, required: true } })
 const dialog = useDialogStore()
 const emit = defineEmits(['edit', 'deleted', 'changed', 'busy'])
@@ -153,6 +154,8 @@ function applyMeta(result) {
   commentPages.value = Math.max(1, Math.min(commentPages.value, result.totalPages))
 }
 onMounted(loadComments)
+// 다른 사람이 단 댓글도 보이게: 앱으로 돌아왔을 때·댓글 알림이 왔을 때 (#224)
+useLiveRefresh(loadComments, { types: ['COMMENT', 'REPLY', 'MENTION'] })
 async function action(work) {
   if (busy.value) return
   busy.value = true

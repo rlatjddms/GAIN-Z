@@ -33,6 +33,7 @@ import BandBoardSearch from './BandBoardSearch.vue'
 import BandPostDialog from './BandPostDialog.vue'
 import PageNav from '../ui/PageNav.vue'
 import { useDialogStore } from '../../stores/dialog'
+import { useLiveRefresh } from '../../composables/useLiveRefresh'
 
 // 한 쪽 글 수: 3열(넓은 화면)·2열(휴대폰) 모두 줄이 딱 맞게
 const PAGE_SIZE = 12
@@ -127,6 +128,8 @@ async function remove(post) {
 }
 watch(() => props.band.id, () => { rows.value = []; noticeRows.value = []; regularTotal.value = 0; totalPages.value = 0 })
 watch(() => [props.band.id, mine.value, page.value, filters.value.q, filters.value.from, filters.value.to], () => load(), { immediate: true })
+// 앱으로 돌아왔을 때·새 공지나 댓글 알림이 왔을 때 글 목록을 다시 (#224)
+useLiveRefresh(load, { types: ['NOTICE', 'COMMENT', 'REPLY', 'MENTION'] })
 </script>
 
 <style scoped>

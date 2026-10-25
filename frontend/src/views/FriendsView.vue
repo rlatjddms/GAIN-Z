@@ -144,6 +144,7 @@ import {
 import { apiErrorMessage } from '../api/practice'
 import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
 import { useDialogStore } from '../stores/dialog'
+import { useLiveRefresh } from '../composables/useLiveRefresh'
 
 const dialog = useDialogStore()
 
@@ -193,6 +194,8 @@ const loadAll = async () => {
 }
 
 onMounted(loadAll)
+// 친구 신청·수락이 새로고침 없이 보이게 (#224)
+useLiveRefresh(loadAll, { types: ['FRIEND_REQUEST', 'FRIEND_ACCEPT'] })
 
 /* ---------- 내 친구 코드 ---------- */
 const copied = ref(false)

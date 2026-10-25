@@ -78,6 +78,7 @@ import {
 } from '../api/notification'
 import { apiErrorMessage } from '../api/practice'
 import { NOTIFICATION_CATEGORIES, agoText, categoryOf, groupByDate } from '../constants/notification'
+import { useLiveRefresh } from '../composables/useLiveRefresh'
 
 const dialog = useDialogStore()
 
@@ -106,9 +107,10 @@ const filter = () => ({
 })
 
 let token = 0
-const reload = async () => {
+// quiet: 목록을 그대로 둔 채 새로 받아 바꾼다 (앱으로 돌아왔을 때 등)
+const reload = async (quiet = false) => {
   const mine = ++token
-  loaded.value = false
+  if (!quiet) loaded.value = false
   error.value = ''
   try {
     const result = await getNotifications({ page: 0, size: PAGE_SIZE, ...filter() })
@@ -231,6 +233,8 @@ watch(() => store.latest, (n) => {
 
 // 탭을 바꾸면 고르기를 끝내고 다시 불러온다 (처음 열 때도). 위의 함수들을 쓰므로 맨 아래에 둔다
 watch(tab, () => { stopSelect(); reload() }, { immediate: true })
+// 연결이 끊긴 동안 놓친 알림까지 보이게 (#224). 고르는 중이거나 아래 쪽까지 더 불러왔으면 목록을 건드리지 않는다
+useLiveRefresh(() => { if (!selecting.value && page.value === 0) return reload(true) })
 </script>
 
 <style scoped>
