@@ -5,7 +5,7 @@ Claude Code와 팀원이 함께 따르는 규칙입니다. Claude는 세션을 �
 ## 프로젝트
 
 - `backend/`: Spring Boot (Java 17, JPA, MariaDB, Redis). 테스트는 `./gradlew test` (Mockito 단위 테스트, DB 불필요).
-- `frontend/`: Vue 3 + Vite + Pinia. 빌드는 `npm run build`. 개발 모드 전용 미리보기 `/dev/sprites`.
+- `frontend/`: Vue 3 + Vite + Pinia. 빌드는 `npm run build`. 테스트는 `npm test` (Playwright 브라우저 테스트, 가짜 API 응답, 약 40초). 개발 모드 전용 미리보기 `/dev/sprites`.
 - `tools/dot-studio/`: 캐릭터 스프라이트 PNG 편집기. `node tools/dot-studio/server.cjs`.
 - 비밀값은 `backend/src/main/resources/application-secret.yml`에만 두고 커밋하지 않습니다 (`.gitignore`에 있음).
 
@@ -48,7 +48,7 @@ Claude Code와 팀원이 함께 따르는 규칙입니다. Claude는 세션을 �
 - `.github/PULL_REQUEST_TEMPLATE.md`를 채웁니다. `Closes #이슈번호`, 작업 내용 체크리스트, 테스트 결과, 주의 사항.
 - 제목은 이슈 제목과 같게 (`[feat] …`). 라벨은 이슈와 같게.
 - 머지 방식은 squash. 머지 후 원격 브랜치는 삭제합니다.
-- 레포에 CI는 없습니다. PR을 올리기 전에 로컬에서 백엔드 `./gradlew test`, 프론트 `npm run build`를 통과시키고 결과를 PR에 적습니다.
+- 레포에 CI는 없습니다. PR을 올리기 전에 로컬에서 백엔드 `./gradlew test`, 프론트 `npm run build`와 `npm test`를 통과시키고 결과를 PR에 적습니다. 화면을 바꿔서 프론트 테스트가 깨지면 테스트도 같이 고칩니다.
 
 ## 코드
 
