@@ -27,9 +27,8 @@
           <div class="form-header">
             <div class="flex-between">
               <span class="step-badge">STEP 0{{ currentStep }} / 03</span>
-              <span v-if="isEditMode" class="edit-badge">수정 모드</span>
             </div>
-            <h2>{{ isEditMode ? '캐릭터 정보 수정' : '나만의 캐릭터 생성' }}</h2>
+            <h2>나만의 캐릭터 생성</h2>
             <p>프로필과 시그니처 악기를 설정하세요.</p>
           </div>
 
@@ -222,10 +221,10 @@
               v-else
               type="button"
               class="nav-btn-cancel"
-              @click="handleCancelOrLogout"
+              @click="logout"
               :disabled="isLoading"
             >
-              {{ isEditMode ? '취소' : '로그아웃' }}
+              로그아웃
             </button>
 
             <button
@@ -245,7 +244,7 @@
               @click="handleSubmit"
             >
               <span v-if="isLoading" class="spinner"></span>
-              {{ isLoading ? '처리 중...' : (isEditMode ? '수정 완료' : '생성 완료') }}
+              {{ isLoading ? '처리 중...' : '생성 완료' }}
             </button>
           </div>
         </section>
@@ -256,8 +255,8 @@
 
 <script setup>
 import { Palette } from 'lucide-vue-next'
-import { ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import axiosInstance from '../api/axios'
 import PixelCharacter from '../components/PixelCharacter.vue'
@@ -272,11 +271,7 @@ import { useToastStore } from '../stores/toast'
 const toast = useToastStore()
 
 const router = useRouter()
-const route = useRoute()
 const authStore = useAuthStore()
-
-// Check if Edit mode
-const isEditMode = computed(() => route.query.edit === 'true')
 
 // Step state
 const currentStep = ref(1)
@@ -292,27 +287,6 @@ const instrumentColor = ref('#B91C1C')
 
 const isLoading = ref(false)
 const isNicknameValid = ref(false)
-
-onMounted(async () => {
-  if (!authStore.isCharacterChecked) {
-    await authStore.fetchCharacter()
-  }
-
-  const char = authStore.character
-  if (char) {
-    nickname.value = char.nickname || ''
-    gender.value = char.gender || 'MALE'
-    hairStyle.value = char.hairStyle || 'SHORT_CUT'
-    hairColor.value = char.hairColor || '#111827'
-    skinColor.value = char.skinColor || DEFAULT_COLORS.skinColor
-    instrumentType.value = char.instrumentType || 'GUITAR'
-    instrumentColor.value = char.instrumentColor || '#B91C1C'
-    
-    if (nickname.value) {
-      validateNickname()
-    }
-  }
-})
 
 // 선택지는 옷장과 함께 쓰는 constants/characterOptions.js에서 가져온다
 const hairStyleOptions = STARTER_HAIR_STYLE_OPTIONS
@@ -350,10 +324,11 @@ const validateNickname = () => {
 }
 
 // 선택한 값으로 바로 그려지는 픽셀 캐릭터 미리보기.
-// 아직 가지 않은 단계의 요소는 그리지 않는다 (1단계: 대머리·악기 없음, 2단계: 머리, 3단계: 악기). 수정 모드는 전부 표시.
+// 아직 가지 않은 단계의 요소는 그리지 않는다 (1단계: 대머리·악기 없음, 2단계: 머리, 3단계: 악기)
+// 캐릭터 고치기는 옷장에서 한다 (예전 ?edit=true는 라우터가 옷장으로 보낸다)
 const previewCharacter = computed(() => {
-  const showHair = isEditMode.value || currentStep.value >= 2
-  const showInstrument = isEditMode.value || currentStep.value >= 3
+  const showHair = currentStep.value >= 2
+  const showInstrument = currentStep.value >= 3
   return {
     gender: gender.value,
     skinColor: skinColor.value,
@@ -394,15 +369,9 @@ const prevStep = () => {
   }
 }
 
-const handleCancelOrLogout = async () => {
-  if (isEditMode.value) {
-    // Go back to home
-    router.push('/home')
-  } else {
-    // Log out and go back to login screen
-    await authStore.logout()
-    router.push('/')
-  }
+const logout = async () => {
+  await authStore.logout()
+  router.push('/')
 }
 
 const handleSubmit = async () => {
@@ -420,24 +389,6 @@ const handleSubmit = async () => {
     skinColor: skinColor.value
   }
 
-  if (isEditMode.value) {
-    try {
-      await axiosInstance.put('/api/v1/characters/me', payload)
-      await authStore.fetchCharacter()
-      toast.success('캐릭터를 수정했어요')
-      router.push('/home')
-    } catch (error) {
-      console.error('Character update failed:', error)
-      if (error.response && error.response.data && error.response.data.message) {
-        toast.error(`캐릭터를 수정하지 못했어요. ${error.response.data.message}`)
-      } else {
-        toast.error('캐릭터를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.')
-      }
-    } finally {
-      isLoading.value = false
-    }
-    return
-  }
 
   try {
     await axiosInstance.post('/api/v1/characters', payload)
@@ -445,7 +396,6 @@ const handleSubmit = async () => {
     toast.success('캐릭터를 만들었어요')
     router.push('/home')
   } catch (error) {
-    console.error('Character creation failed:', error)
     if (error.response) {
       if (error.response.status === 409) {
         const responseData = error.response.data
@@ -623,16 +573,6 @@ const handleSubmit = async () => {
   font-weight: 800;
   color: var(--c-primary-text);
   letter-spacing: 0.8px;
-}
-
-.edit-badge {
-  font-size: 0.72rem;
-  font-weight: 800;
-  background: var(--c-danger-soft);
-  color: #fa5252;
-  border: 1px solid #ffe3e3;
-  padding: 3px 10px;
-  border-radius: 20px;
 }
 
 .form-header h2 {

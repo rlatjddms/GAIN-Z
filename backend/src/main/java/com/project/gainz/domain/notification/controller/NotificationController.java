@@ -136,13 +136,4 @@ public class NotificationController {
         notificationService.delete(principal.getUserId(), notificationId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
-
-    // 내 알림 모두 지우기
-    @DeleteMapping
-    public ResponseEntity<ApiResponse<Void>> deleteAll(
-            @AuthenticationPrincipal UserPrincipal principal
-    ) {
-        notificationService.deleteAll(principal.getUserId());
-        return ResponseEntity.ok(ApiResponse.success(null));
-    }
 }

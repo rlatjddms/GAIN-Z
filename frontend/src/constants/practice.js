@@ -46,10 +46,6 @@ export function dateLabel(key) {
   return `${m}월 ${d}일 (${DOW[date.getDay()]})`
 }
 
-export function dowLabel(date) {
-  return DOW[new Date(date).getDay()]
-}
-
 // 시작~끝 시각(ms)을 자정 기준으로 나눠 날짜별 초로 바꾼다
 export function splitByDay(startMs, endMs) {
   const parts = []

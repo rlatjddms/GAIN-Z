@@ -271,7 +271,6 @@ const handleSignup = async () => {
     await dialog.alert({ title: 'GAIN-Z 가입을 축하해요!', text: '로그인하고 시작해 보세요.' })
     router.push('/')
   } catch (error) {
-    console.error(error)
     // 인증한 지 30분이 지났으면 다시 인증
     if (error.response?.data?.code === EMAIL_NOT_VERIFIED) {
       resetEmailVerify()

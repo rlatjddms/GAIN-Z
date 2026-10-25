@@ -20,7 +20,8 @@ spring:
         connection:
           handling_mode: DELAYED_ACQUISITION_AND_RELEASE_AFTER_TRANSACTION
 
-  # 악보 파일 올리기: 한 장 10MB (SheetFileStorage.MAX_FILE_BYTES와 같게), 한 번에 100MB
+  # 파일 올리기: 한 파일 30MB(잼 음원 BandAttachmentStorage.AUDIO_MAX_BYTES가 가장 큼), 한 번에 100MB.
+  # 종류별 한도(악보 10MB·첨부 10MB 등)는 각 저장소 코드에서 따로 확인한다
   servlet:
     multipart:
       max-file-size: 30MB

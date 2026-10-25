@@ -54,11 +54,6 @@ export async function deleteReadNotifications() {
   await axiosInstance.delete('/api/v1/notifications/read')
 }
 
-// 내 알림 모두 지우기
-export async function deleteAllNotifications() {
-  await axiosInstance.delete('/api/v1/notifications')
-}
-
 /* ---------- 알림 설정 (종류별 켜기·끄기, 꺼 둔 종류는 알림을 만들지 않는다) ---------- */
 
 // → { settings: { FRIEND_REQUEST: true, BAND_JOIN: false, … } }  (키는 constants/notification.js NOTIFICATION_SETTING_GROUPS)

@@ -26,10 +26,6 @@ public enum RoomDecor {
         this.rack = rack;
     }
 
-    public RecordRarity getRarity() {
-        return rarity;
-    }
-
     // 알림 문구: "카세트를 모두 모았어요! 카세트 데크와 테이프 보관함으로 방을 꾸밀 수 있어요"
     public String completedMessage() {
         return recordLabel + "를 모두 모았어요! " + player + "와 " + rack + "으로 방을 꾸밀 수 있어요";

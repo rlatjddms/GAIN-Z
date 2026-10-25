@@ -201,7 +201,6 @@ public class Character extends BaseEntity {
         this.currentOutfit = outfit;
     }
 
-    // 옷장: 얻은 무대 배경 중 하나 고르기 (해금 여부는 서비스에서 확인)
     // 레벨 규칙이 바뀌었을 때 새 규칙의 레벨·경험치로 옮긴다 (CharacterLevelMigration)
     public void migrateLevel(int level, int exp, int ruleVersion) {
         this.level = level;
@@ -209,6 +208,7 @@ public class Character extends BaseEntity {
         this.levelRule = ruleVersion;
     }
 
+    // 옷장: 얻은 무대 배경 중 하나 고르기 (해금 여부는 서비스에서 확인)
     public void changeStageBackground(StageBackground background) {
         this.stageBackground = background;
     }
