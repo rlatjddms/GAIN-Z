@@ -2,6 +2,7 @@ package com.project.gainz.global.security.oauth2;
 
 import com.project.gainz.domain.user.entity.RefreshToken;
 import com.project.gainz.domain.user.repository.RefreshTokenRepository;
+import com.project.gainz.domain.user.service.OAuthLoginCodeService;
 import com.project.gainz.global.security.jwt.JwtTokenProvider;
 import com.project.gainz.global.security.principal.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,15 +20,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final OAuthLoginCodeService oAuthLoginCodeService;
     private final String frontendUrl;
 
     public OAuth2SuccessHandler(
             JwtTokenProvider jwtTokenProvider,
             RefreshTokenRepository refreshTokenRepository,
+            OAuthLoginCodeService oAuthLoginCodeService,
             // 로그인이 끝나면 돌아갈 프론트 주소. 환경마다 다르므로 설정값으로 받는다 (#174)
             @Value("${gainz.frontend-url}") String frontendUrl) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.oAuthLoginCodeService = oAuthLoginCodeService;
         this.frontendUrl = frontendUrl;
     }
 
@@ -44,9 +48,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 일반 로그인처럼 재발급용 토큰을 저장해야 접속 토큰이 만료돼도 재발급된다 (#144)
         refreshTokenRepository.save(new RefreshToken(email, refreshToken));
 
+        // 토큰은 주소에 싣지 않고 1분짜리 한 번용 코드만 (#281). 프론트가 POST /api/v1/auth/oauth2/token 으로 바꾼다
         UriComponentsBuilder target = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth2/redirect")
-                .queryParam("accessToken", accessToken)
-                .queryParam("refreshToken", refreshToken);
+                .queryParam("code", oAuthLoginCodeService.issue(accessToken, refreshToken));
         // 마이페이지에서 소셜을 연결한 경우 (#189) → 프론트가 마이페이지로 돌아가 결과를 알려 준다
         Object linked = request.getAttribute(CustomOAuth2UserService.LINKED_PROVIDER);
         if (linked != null) target.queryParam("linked", linked);
