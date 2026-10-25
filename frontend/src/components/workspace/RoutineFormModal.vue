@@ -10,12 +10,11 @@
             <input ref="nameInput" v-model="form.content" class="input" maxlength="50" placeholder="루틴 이름을 입력해 주세요">
           </label>
 
-          <label class="field">
+          <!-- label로 감싸면 글자를 눌렀을 때 − 버튼이 눌려서 div로 둔다 -->
+          <div class="field">
             <span class="label">목표 횟수</span>
-            <span class="inline">
-              <input v-model.number="form.targetCount" class="input count" type="number" min="1" max="99">회
-            </span>
-          </label>
+            <NumberStepper v-model="form.targetCount" :min="1" :max="99" label="목표 횟수" unit="회" />
+          </div>
 
           <div class="field">
             <span class="label">반복</span>
@@ -73,6 +72,7 @@ import { apiErrorMessage } from '../../api/practice'
 import { useDialogStore } from '../../stores/dialog'
 import { dateKey } from '../../constants/practice'
 import { REPEAT_TYPES, WEEK_DAYS } from '../../constants/routine'
+import NumberStepper from '../ui/NumberStepper.vue'
 
 // routine: 수정할 루틴 (null이면 새로 추가)
 const props = defineProps({
@@ -82,7 +82,7 @@ const props = defineProps({
 // saved: 추가·수정·그만하기 후 목록을 다시 불러오게 알린다
 const emit = defineEmits(['close', 'saved'])
 
-const form = reactive({ content: '', targetCount: 10, repeatType: 'DAILY', repeatDays: [], startDate: '', endDate: '' })
+const form = reactive({ content: '', targetCount: 1, repeatType: 'DAILY', repeatDays: [], startDate: '', endDate: '' })
 const saving = ref(false)
 const error = ref('')
 const nameInput = ref(null)
@@ -92,7 +92,7 @@ watch(() => props.open, async (v) => {
   const r = props.routine
   Object.assign(form, r
     ? { content: r.content, targetCount: r.targetCount, repeatType: r.repeatType || 'DAILY', repeatDays: [...(r.repeatDays || [])], startDate: r.startDate || dateKey(), endDate: r.endDate || '' }
-    : { content: '', targetCount: 10, repeatType: 'DAILY', repeatDays: [], startDate: dateKey(), endDate: '' })
+    : { content: '', targetCount: 1, repeatType: 'DAILY', repeatDays: [], startDate: dateKey(), endDate: '' })
   error.value = ''
   saving.value = false
   await nextTick()
@@ -173,8 +173,6 @@ h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
   outline: none; min-width: 0; box-sizing: border-box;
 }
 .input:focus { border-color: var(--c-primary); }
-.inline { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 700; color: var(--c-muted); }
-.input.count { width: 72px; text-align: right; }
 
 
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
