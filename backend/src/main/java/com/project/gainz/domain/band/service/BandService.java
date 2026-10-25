@@ -10,6 +10,7 @@ import com.project.gainz.domain.friend.enums.FriendRelation;
 import com.project.gainz.domain.friend.service.FriendService;
 import com.project.gainz.domain.band.dto.request.BandLeaderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberOrderRequest;
+import com.project.gainz.domain.band.dto.request.BandOrderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberPartRequest;
 import com.project.gainz.domain.band.dto.request.BandStageRequest;
 import com.project.gainz.domain.band.dto.request.BandUpdateRequest;
@@ -77,7 +78,7 @@ public class BandService {
     // 내가 들어간 밴드 (들어간 순서). 멤버와 캐릭터는 한 번에 모아서 불러온다
     @Transactional(readOnly = true)
     public List<BandResponse> getMyBands(Long userId) {
-        List<BandMember> mine = bandMemberRepository.findAllByUserIdOrderByIdAsc(userId);
+        List<BandMember> mine = myBandsInTabOrder(userId);
         if (mine.isEmpty()) {
             return List.of();
         }
@@ -94,6 +95,21 @@ public class BandService {
     public BandResponse getBand(Long userId, Long bandId) {
         BandMember me = requireMember(userId, bandId);
         return respond(me.getBand(), me, userId);
+    }
+
+    // 홈 밴드 탭 순서 (#266): 내 밴드 전부를 왼쪽부터 한 번씩 보내야 한다
+    public List<BandResponse> reorderMyBands(Long userId, BandOrderRequest request) {
+        Map<Long, BandMember> mine = bandMemberRepository.findAllByUserIdOrderByIdAsc(userId).stream()
+                .collect(Collectors.toMap(m -> m.getBand().getId(), Function.identity()));
+        List<Long> order = request.bandIds();
+        if (order.size() != mine.size() || new HashSet<>(order).size() != order.size()
+                || !mine.keySet().containsAll(order)) {
+            throw new BusinessException(ErrorCode.INVALID_BAND_ORDER);
+        }
+        for (int i = 0; i < order.size(); i++) {
+            mine.get(order.get(i)).changeTabOrder(i);
+        }
+        return getMyBands(userId);
     }
 
     /* ---------- 만들기·고치기·없애기 ---------- */
@@ -312,6 +328,14 @@ public class BandService {
     }
 
     /* ---------- 내부 ---------- */
+
+    // 내가 놓은 탭 순서대로, 순서가 없는 밴드(새로 들어온 밴드)는 들어온 순서로 맨 뒤에
+    private List<BandMember> myBandsInTabOrder(Long userId) {
+        return bandMemberRepository.findAllByUserIdOrderByIdAsc(userId).stream()
+                .sorted(Comparator.comparing(BandMember::getTabOrder, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(BandMember::getId))
+                .toList();
+    }
 
     // 멤버·밴드 정보가 바뀌었다는 신호를 다른 멤버(와 내보낸 사람)의 열린 화면으로 (#259)
     private void changed(Long bandId, Long actorId, Long... also) {
