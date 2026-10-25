@@ -135,7 +135,8 @@ public enum ErrorCode {
     JAM_SONG_INVALID(400, "B038", "이 밴드 셋리스트에 없는 곡입니다."),
     BAND_LEADER_MUST_HAND_OVER(400, "B039", "리더인 밴드가 있어요. 탈퇴하기 전에 다른 멤버에게 리더를 넘겨 주세요."),
     BAND_INVITE_NOT_FRIEND(400, "B040", "친구에게만 밴드 초대를 보낼 수 있어요."),
-    BAND_INVITE_ALREADY_MEMBER(409, "B041", "이미 이 밴드에 있는 친구예요.");
+    BAND_INVITE_ALREADY_MEMBER(409, "B041", "이미 이 밴드에 있는 친구예요."),
+    INVALID_BAND_ORDER(400, "B042", "밴드 순서가 지금 내 밴드와 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요.");
 
     private final int status;
     private final String code;

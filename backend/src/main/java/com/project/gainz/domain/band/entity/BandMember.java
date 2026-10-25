@@ -52,6 +52,9 @@ public class BandMember extends BaseEntity {
     // 합주실 무대에 선 순서 (작을수록 왼쪽). 예전 멤버는 비어 있어서 들어온 순서로 본다
     private Integer stageOrder;
 
+    // 홈 밴드 탭에서 이 밴드를 놓은 순서 (#266, 이 멤버 본인에게만 적용). 비어 있으면 들어온 순서로 맨 뒤에
+    private Integer tabOrder;
+
     @Builder
     public BandMember(Band band, User user, Position position, InstrumentType part, Integer stageOrder) {
         this.band = band;
@@ -75,5 +78,9 @@ public class BandMember extends BaseEntity {
 
     public void changeStageOrder(Integer stageOrder) {
         this.stageOrder = stageOrder;
+    }
+
+    public void changeTabOrder(Integer tabOrder) {
+        this.tabOrder = tabOrder;
     }
 }
