@@ -8,6 +8,12 @@ import listeningStage from '../assets/stages/listening.png'
 // 한쪽을 바꾸면 같이 바꾼다
 export const MAX_LEVEL = 30
 
+// 백엔드 ExpPolicy와 같은 규칙 (#237 경험치 안내): 연습 1분 = 1 EXP, 하루 300분까지, 직접 입력은 하루 30분까지
+// 한쪽을 바꾸면 같이 바꾼다
+export const EXP_PER_MINUTE = 1
+export const MAX_EXP_MINUTES_PER_DAY = 300
+export const MANUAL_EXP_MINUTES_PER_DAY = 30
+
 // 레벨 구간별 무대(배경) 및 캐릭터 연출 에셋
 export const LEVEL_TIERS = [
   {

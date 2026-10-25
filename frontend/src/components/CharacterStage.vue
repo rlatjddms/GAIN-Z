@@ -27,12 +27,15 @@
     </StageScene>
 
     <div v-if="!bare" class="exp-area">
-      <div class="exp-main">
+      <!-- expInfo면 경험치 줄을 눌러 경험치 안내를 연다 (#237) -->
+      <component :is="expInfo ? 'button' : 'div'" class="exp-main" :class="{ clickable: expInfo }"
+                 :type="expInfo ? 'button' : undefined" :aria-label="expInfo ? `${expLabel} · 경험치 안내 보기` : undefined"
+                 @click="expInfo && emit('exp-info')">
         <div class="exp-bar">
           <div class="exp-fill" :style="{ width: `${progress}%` }"></div>
         </div>
-        <div class="exp-text">{{ expLabel }}</div>
-      </div>
+        <div class="exp-text"><span>{{ expLabel }}</span><Info v-if="expInfo" class="info-icon" :size="13" :stroke-width="2.6" aria-hidden="true" /></div>
+      </component>
       <!-- 경험치 줄 오른쪽 끝에 붙일 것 (홈: 옷장 버튼) -->
       <slot name="exp-end" />
     </div>
@@ -53,9 +56,10 @@ import {
   getRequiredExp,
   getExpProgress,
 } from '../constants/levelTier'
+import { Info } from 'lucide-vue-next'
 import StageScene from './StageScene.vue'
 
-const emit = defineEmits(['decor-move'])
+const emit = defineEmits(['decor-move', 'exp-info'])
 const props = defineProps({
   // 옷장 미리보기에서 방 꾸미기 소품을 끌어 옮기기 → decor-move(key, x, y)
   decorEditable: { type: Boolean, default: false },
@@ -64,6 +68,8 @@ const props = defineProps({
   bare: { type: Boolean, default: false },
   // 무대 중 보여 줄 가로 폭 (무대 도트 기준). 작게 주면 캐릭터 쪽만 카메라처럼 잘라서 보여 준다
   viewWidth: { type: Number, default: 208 },
+  // 경험치 줄에 ⓘ를 붙이고 누르면 exp-info (홈)
+  expInfo: { type: Boolean, default: false },
 })
 
 const showSpeech = ref(false)
@@ -195,7 +201,16 @@ const stageStyle = computed(() => ({
   bottom: 5%;
   left: 0; right: 0; transform: none;
 }
-.exp-main { width: min(420px, 70%); margin: 0 auto; }
+.exp-main { display: block; width: min(420px, 70%); margin: 0 auto; }
+.exp-main.clickable {
+  padding: 4px 0; border: none; border-radius: 10px; background: none;
+  font: inherit; color: inherit; cursor: pointer;
+}
+/* 문구가 두 줄이 돼도 ⓘ는 문구 옆에 */
+.exp-main.clickable .exp-text { display: flex; justify-content: center; align-items: center; gap: 4px; }
+.exp-main.clickable:hover .exp-text span, .exp-main.clickable:focus-visible .exp-text span { text-decoration: underline; text-underline-offset: 3px; }
+.exp-main.clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.info-icon { flex: none; opacity: 0.85; }
 .exp-bar {
   height: 10px;
   border-radius: 999px;
