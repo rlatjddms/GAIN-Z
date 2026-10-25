@@ -11,6 +11,7 @@ import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.BandPostRepository;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.repository.CharacterRepository;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.notification.enums.NotificationType;
 import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
@@ -106,6 +107,7 @@ public class BandBoardService {
         BandMember me = requireMember(userId, bandId);
         BandPost post = posts.save(new BandPost(me.getBand(), me.getUser(), request.title(), request.content()));
         notifyPost(post, me, false, null);
+        changed(bandId, post.getId(), userId);
         return response(post, userId);
     }
 
@@ -151,6 +153,7 @@ public class BandBoardService {
         if (request.notice() != null) post.changeNotice(request.notice(), request.noticeExpiresAt());
         if (postId == null) post = posts.save(post);
         notifyPost(post, me, wasNotice, oldContent);
+        changed(bandId, post.getId(), userId);
         return response(post, userId);
     }
 
@@ -159,6 +162,7 @@ public class BandBoardService {
         String oldContent = post.getContent();
         post.update(request.title(), request.content());
         notifyPost(post, requireMember(userId, bandId), true, oldContent);
+        changed(bandId, postId, userId);
         return response(post, userId);
     }
 
@@ -167,6 +171,7 @@ public class BandBoardService {
         post.delete();
         cleanAfterCompletion(post.getFileUrl(), true);
         post.getFiles().forEach(f -> cleanAfterCompletion(f.getKey(), true));
+        changed(bandId, postId, userId);
     }
 
     public Post notice(Long userId, Long bandId, Long postId, boolean notice) {
@@ -182,6 +187,7 @@ public class BandBoardService {
         if (!wasNotice && post.isNoticeActive(Instant.now())) {
             notifyNotice(post, userId, Set.of());
         }
+        changed(bandId, postId, userId);
         return response(post, userId);
     }
 
@@ -198,6 +204,7 @@ public class BandBoardService {
         cleanAfterCompletion(stored.key(), false);
         cleanAfterCompletion(post.getFileUrl(), true);
         post.changeFile(stored.key(), stored.name(), stored.type());
+        changed(bandId, postId, userId);
         return response(post, userId);
     }
 
@@ -205,6 +212,7 @@ public class BandBoardService {
         BandPost post = ownPost(userId, bandId, postId);
         cleanAfterCompletion(post.getFileUrl(), true);
         post.changeFile(null, null, null);
+        changed(bandId, postId, userId);
         return response(post, userId);
     }
 
@@ -272,12 +280,14 @@ public class BandBoardService {
         if (parent != null && parent.getParent() != null) throw new BusinessException(ErrorCode.BAND_REPLY_DEPTH);
         BandComment saved = comments.save(new BandComment(post, me.getUser(), request.content(), parent));
         notifyComment(post, parent, me, request.content());
+        changed(bandId, postId, userId);
         return response(saved, userId);
     }
 
     public Comment updateComment(Long userId, Long bandId, Long postId, Long commentId, BandBoardRequest.Comment request) {
         BandComment comment = ownComment(userId, bandId, postId, commentId);
         comment.update(request.content());
+        changed(bandId, postId, userId);
         return response(comment, userId);
     }
 
@@ -285,9 +295,16 @@ public class BandBoardService {
         BandComment comment = ownComment(userId, bandId, postId, commentId);
         if (comments.existsByParentId(commentId)) comment.eraseContent();
         else comment.delete();
+        changed(bandId, postId, userId);
     }
 
     /* ---------- 알림 ---------- */
+
+    // 글·댓글·공지가 바뀌었다는 신호를 다른 멤버의 열린 화면으로 (#259)
+    private void changed(Long bandId, Long postId, Long actorId) {
+        List<Long> memberIds = activeUsers(bandId).stream().map(User::getId).toList();
+        notificationService.change(memberIds, actorId, LiveChange.bandBoard(bandId, postId));
+    }
 
     // 새로 불린 멤버에게 멘션, 공지가 새로 켜졌으면 나머지 멤버에게 공지 (한 사람에게 하나만)
     private void notifyPost(BandPost post, BandMember author, boolean wasNotice, String oldContent) {

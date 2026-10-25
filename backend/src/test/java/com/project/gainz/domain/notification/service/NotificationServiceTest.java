@@ -5,6 +5,7 @@ import com.project.gainz.domain.character.entity.OutfitItem;
 import com.project.gainz.domain.character.enums.Gender;
 import com.project.gainz.domain.character.enums.HairStyle;
 import com.project.gainz.domain.character.repository.CharacterRepository;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.notification.dto.response.NotificationResponse;
 import com.project.gainz.domain.notification.entity.Notification;
 import com.project.gainz.domain.notification.enums.NotificationCategory;
@@ -50,6 +51,7 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -376,5 +378,27 @@ class NotificationServiceTest {
 
         verify(notificationRepository).markAllRead(ME);
         verify(notificationRepository).deleteAll(mine);
+    }
+
+    // 바뀌었다는 신호 (#259): 한 사람은 빼고 한 번씩, 원래 일이 커밋된 뒤에만
+    @Test void changeSkipsActorAndWaitsForCommit() {
+        LiveChange change = LiveChange.bandBoard(10L, 20L);
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            notificationService.change(List.of(1L, 2L, 2L, 3L), 1L, change);
+            verify(notificationStream, never()).sendChange(any(), any());
+            TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+        verify(notificationStream).sendChange(2L, change);
+        verify(notificationStream).sendChange(3L, change);
+        verify(notificationStream, never()).sendChange(eq(1L), any());
+        verify(notificationStream, times(2)).sendChange(any(), any());
+    }
+
+    @Test void changeWithOnlyActorSendsNothing() {
+        notificationService.change(List.of(1L), 1L, LiveChange.friends());
+        verify(notificationStream, never()).sendChange(any(), any());
     }
 }

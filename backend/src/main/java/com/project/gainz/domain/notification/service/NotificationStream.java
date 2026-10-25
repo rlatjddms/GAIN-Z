@@ -1,5 +1,6 @@
 package com.project.gainz.domain.notification.service;
 
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.notification.dto.response.NotificationResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -48,6 +49,15 @@ public class NotificationStream {
         if (mine == null) return;
         for (SseEmitter emitter : mine) {
             send(userId, emitter, SseEmitter.event().name("notification").id(String.valueOf(notification.id())).data(notification));
+        }
+    }
+
+    // 바뀌었다는 신호 하나를 그 사람의 모든 연결로 (#259)
+    public void sendChange(Long userId, LiveChange change) {
+        List<SseEmitter> mine = emitters.get(userId);
+        if (mine == null) return;
+        for (SseEmitter emitter : mine) {
+            send(userId, emitter, SseEmitter.event().name("change").data(change));
         }
     }
 
