@@ -46,8 +46,6 @@ class AuthServiceTest {
         verify(userRepository).save(saved.capture());
         assertThat(saved.getValue().isEmailVerified()).isTrue();
         assertThat(saved.getValue().getPassword()).isEqualTo("encoded");
-        // 이름은 받지 않는다 (#227): 캐릭터를 만들기 전에는 이메일 앞부분
-        assertThat(saved.getValue().getName()).isEqualTo("me");
     }
 
     @Test
@@ -62,7 +60,7 @@ class AuthServiceTest {
 
     @Test
     void 비밀번호가_없는_소셜_계정으로_이메일_로그인하면_소셜로_로그인하라고_알린다() {
-        User social = User.builder().email("me@test.invalid").name("나")
+        User social = User.builder().email("me@test.invalid")
                 .provider(com.project.gainz.domain.user.enums.SocialProvider.KAKAO)
                 .role(com.project.gainz.domain.user.enums.UserRole.ROLE_USER).build();
         when(userRepository.findByEmail("me@test.invalid")).thenReturn(java.util.Optional.of(social));

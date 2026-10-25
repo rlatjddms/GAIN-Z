@@ -550,31 +550,6 @@ class CharacterServiceTest {
     }
 
     @Test
-    void 캐릭터를_만들면_회원_이름이_닉네임이_된다() {
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
-        when(characterRepository.existsByNickname("번")).thenReturn(false);
-        when(outfitItemRepository.findFirstBySpriteKey(OutfitItem.DEFAULT_SPRITE_KEY)).thenReturn(Optional.of(mock(OutfitItem.class)));
-
-        characterService.createCharacter(USER_ID, new com.project.gainz.domain.character.dto.request.CharacterCreateRequest(
-                "번", InstrumentType.values()[0], "#000000", Gender.values()[0], HairStyle.SHORT_CUT, "#000000", null));
-
-        verify(user).update("번");
-    }
-
-    @Test
-    void 닉네임을_바꾸면_회원_이름도_닉네임으로_바뀐다() {
-        when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));
-        when(characterRepository.existsByNickname("새")).thenReturn(false);
-
-        characterService.updateCharacter(USER_ID, new CharacterUpdateRequest("새", character.getInstrumentType(), "#000000",
-                character.getGender(), character.getHairStyle(), "#000000", null));
-
-        assertThat(character.getNickname()).isEqualTo("새");
-        verify(user).update("새");
-    }
-
-    @Test
     void 레벨이_닿은_보상_헤어로_바꿀_수_있다() {
         ReflectionTestUtils.setField(character, "level", 4);
         when(characterRepository.findByUserId(USER_ID)).thenReturn(Optional.of(character));

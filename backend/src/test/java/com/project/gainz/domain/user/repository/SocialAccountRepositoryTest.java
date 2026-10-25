@@ -33,7 +33,7 @@ class SocialAccountRepositoryTest {
     @Autowired SocialAccountRepository socialAccounts;
 
     private User user(String name, SocialProvider provider, String password) {
-        return em.persist(User.builder().email(name + "@test.invalid").name(name).password(password)
+        return em.persist(User.builder().email(name + "@test.invalid").password(password)
                 .provider(provider).role(UserRole.ROLE_USER).build());
     }
 

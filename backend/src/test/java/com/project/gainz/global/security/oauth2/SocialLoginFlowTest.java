@@ -40,7 +40,7 @@ class SocialLoginFlowTest {
     private static final Map<String, Object> GOOGLE = Map.of("sub", "g-1", "email", "me@test.invalid", "name", "나", "email_verified", true);
 
     private static User user() {
-        return User.builder().email("me@test.invalid").name("나").password("encoded")
+        return User.builder().email("me@test.invalid").password("encoded")
                 .provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build();
     }
 

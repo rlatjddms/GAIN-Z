@@ -56,15 +56,15 @@ class BandBoardSearchRepositoryTest {
     private Band band;
 
     @BeforeEach void setup() {
-        me = em.persist(User.builder().email("me@test.invalid").name("김기타").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
-        drummer = em.persist(User.builder().email("drum@test.invalid").name("박드럼").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
+        me = em.persist(User.builder().email("me@test.invalid").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
+        drummer = em.persist(User.builder().email("drum@test.invalid").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
         var outfit = em.persist(OutfitItem.builder().name("기본").category(OutfitCategory.CLOTHES).requiredLevel(1).spriteKey("DEFAULT").build());
         em.persist(Character.builder().user(drummer).nickname("Thunder").instrumentType(InstrumentType.DRUM).currentOutfit(outfit)
                 .gender(Gender.MALE).hairStyle(HairStyle.SHORT_CUT).hairColor("#000000").instrumentColor("#ff0000").build());
         band = em.persist(Band.builder().name("밴드").leader(me).inviteCode("ABCDEFGH").build());
     }
 
-    @Test void keywordMatchesTitleContentNameAndNickname() {
+    @Test void keywordMatchesTitleContentAndNickname() {
         var title = save(me, "합주 일정 공유", "토요일", false, LocalDateTime.of(2029, 10, 1, 12, 0));
         var content = save(me, "공지 아님", "다음 합주는 홍대", false, LocalDateTime.of(2029, 10, 2, 12, 0));
         var byNickname = save(drummer, "드럼 세팅", "스네어", false, LocalDateTime.of(2029, 10, 3, 12, 0));
@@ -73,7 +73,6 @@ class BandBoardSearchRepositoryTest {
 
         assertThat(ids(search("합주", MIN, MAX))).containsExactly(content.getId(), title.getId());
         assertThat(ids(search("thun", MIN, MAX))).containsExactly(byNickname.getId());
-        assertThat(ids(search("박드럼", MIN, MAX))).containsExactly(byNickname.getId());
         assertThat(search("없는말", MIN, MAX)).isEmpty();
     }
 

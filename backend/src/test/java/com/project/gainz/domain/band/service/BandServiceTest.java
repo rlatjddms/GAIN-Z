@@ -80,7 +80,6 @@ class BandServiceTest {
         User user = User.builder()
                 .email("user" + id + "@example.com")
                 .password("pw")
-                .name("유저" + id)
                 .provider(SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER)
                 .build();

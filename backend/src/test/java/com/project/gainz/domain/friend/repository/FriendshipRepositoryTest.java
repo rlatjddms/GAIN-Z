@@ -86,6 +86,6 @@ class FriendshipRepositoryTest {
     }
 
     private User user(String name) {
-        return em.persist(User.builder().email(name + "@test.invalid").name(name).provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
+        return em.persist(User.builder().email(name + "@test.invalid").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
     }
 }

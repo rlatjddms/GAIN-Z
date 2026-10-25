@@ -72,7 +72,6 @@ class UserServiceTest {
         User user = User.builder()
                 .email(EMAIL)
                 .password(password)
-                .name("테스터")
                 .provider(provider)
                 .role(UserRole.ROLE_USER)
                 .build();

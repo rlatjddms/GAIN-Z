@@ -68,7 +68,7 @@ class NotificationServiceTest {
     @InjectMocks private NotificationService notificationService;
 
     private User user(Long id, String name) {
-        User user = User.builder().email("u" + id + "@example.com").password("pw").name(name)
+        User user = User.builder().email("u" + id + "@example.com").password("pw")
                 .provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build();
         ReflectionTestUtils.setField(user, "id", id);
         return user;
@@ -171,7 +171,7 @@ class NotificationServiceTest {
     }
 
     @Test
-    void 밴드_알림_이름은_캐릭터_닉네임_없으면_계정_이름() {
+    void 알림_이름은_캐릭터_닉네임_없으면_이메일_앞부분() {
         User withCharacter = user(2L, "김철수");
         User without = user(3L, "이영희");
         Character character = Character.builder().user(withCharacter).nickname("드럼짱").instrumentType(InstrumentType.DRUM)
@@ -181,7 +181,7 @@ class NotificationServiceTest {
         when(characterRepository.findByUserId(3L)).thenReturn(Optional.empty());
 
         assertThat(notificationService.nicknameOf(withCharacter)).isEqualTo("드럼짱");
-        assertThat(notificationService.nicknameOf(without)).isEqualTo("이영희");
+        assertThat(notificationService.nicknameOf(without)).isEqualTo("u3");
     }
 
     /* ---------- 알림 설정 ---------- */

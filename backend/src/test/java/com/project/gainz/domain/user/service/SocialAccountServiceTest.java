@@ -36,10 +36,11 @@ class SocialAccountServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private SocialAccountRepository socialAccountRepository;
     @Mock private SocialLinkTicketRepository socialLinkTicketRepository;
+    @Mock private com.project.gainz.domain.character.repository.CharacterRepository characterRepository;
     @InjectMocks private SocialAccountService service;
 
     private static User user(long id, String email, String password, Boolean emailVerified) {
-        User user = User.builder().email(email).name("나").password(password)
+        User user = User.builder().email(email).password(password)
                 .provider(password == null ? SocialProvider.KAKAO : SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER).emailVerified(emailVerified).build();
         ReflectionTestUtils.setField(user, "id", id);
@@ -57,14 +58,13 @@ class SocialAccountServiceTest {
     /* ---------- 소셜 로그인 ---------- */
 
     @Test
-    void 연결된_소셜_고유_ID가_있으면_이메일과_상관없이_그_계정으로_로그인하고_이름은_바꾸지_않는다() {
+    void 연결된_소셜_고유_ID가_있으면_이메일과_상관없이_그_계정으로_로그인한다() {
         User me = user(1, "me@test.invalid", "encoded", true);
         me.addSocialAccount(SocialProvider.GOOGLE, "g-1");
         SocialAccount account = me.findSocialAccount(SocialProvider.GOOGLE).orElseThrow();
         when(socialAccountRepository.findByProviderAndProviderId(SocialProvider.GOOGLE, "g-1")).thenReturn(Optional.of(account));
 
         assertThat(service.login(google("other@test.invalid", false))).isSameAs(me);
-        assertThat(me.getName()).isEqualTo("나");
         verify(userRepository, never()).findByEmail(any());
     }
 
@@ -116,7 +116,8 @@ class SocialAccountServiceTest {
 
         assertThat(created.hasPassword()).isFalse();
         assertThat(created.getProvider()).isEqualTo(SocialProvider.NAVER);
-        assertThat(created.getName()).isEqualTo("new");
+        // 소셜 이름은 받지 않는다 (#227): 캐릭터를 만들기 전에는 이메일 앞부분
+        assertThat(created.nameWithoutCharacter()).isEqualTo("new");
         assertThat(created.isEmailVerified()).isFalse();
         assertThat(created.findSocialAccount(SocialProvider.NAVER).orElseThrow().getProviderId()).isEqualTo("n-1");
     }

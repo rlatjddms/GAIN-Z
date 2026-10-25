@@ -34,7 +34,7 @@ class BandBoardControllerTest {
 
     @BeforeEach void setup() {
         service = mock(BandBoardService.class);
-        User user = User.builder().name("테스트").build();
+        User user = User.builder().build();
         ReflectionTestUtils.setField(user, "id", 1L);
         UserPrincipal principal = UserPrincipal.create(user);
         mvc = MockMvcBuilders.standaloneSetup(new BandBoardController(service))

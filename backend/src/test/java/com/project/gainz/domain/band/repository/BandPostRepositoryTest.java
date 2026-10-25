@@ -35,8 +35,8 @@ class BandPostRepositoryTest {
 
     @Test void expiryIsAppliedBeforeFilteringOrderingAndPagination() {
         var now = Instant.parse("2030-01-01T00:00:00Z");
-        var me = em.persist(User.builder().email("me@test.invalid").name("나").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
-        var other = em.persist(User.builder().email("other@test.invalid").name("멤버").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
+        var me = em.persist(User.builder().email("me@test.invalid").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
+        var other = em.persist(User.builder().email("other@test.invalid").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
         var band = em.persist(Band.builder().name("밴드").leader(me).inviteCode("ABCDEFGH").build());
         var otherBand = em.persist(Band.builder().name("다른 밴드").leader(me).inviteCode("IJKLMNOP").build());
         var indefinite = save(band, me, "무기한", true, null);
