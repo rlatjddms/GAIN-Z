@@ -85,6 +85,12 @@ async function fixture(t, options = {}) {
       return respond(state.bandOrder.map(myBand))
     }
     if (path === '/api/v1/bands/me') return respond((state.bandOrder || [10]).map(myBand))
+    // 소셜 로그인 한 번용 코드 (#281): 'good'만 토큰으로 바꿔 준다
+    if (path === '/api/v1/auth/oauth2/token') {
+      state.oauthCodes = [...(state.oauthCodes || []), request.postDataJSON().code]
+      if (request.postDataJSON().code !== 'good') return respond('로그인 시간이 지났어요. 다시 로그인해 주세요.', 400)
+      return respond({ accessToken: 'social-access', refreshToken: 'social-refresh' })
+    }
     // 실시간 알림 (#224): 보낼 이벤트가 있으면 한 번 보내고 끊는다. 없으면 실패해서 화면은 다시 붙으려고 기다린다
     if (path === '/api/v1/notifications/stream') {
       if (!state.streamEvents) return respond('연결 안 됨', 503)
@@ -672,5 +678,21 @@ test('오류 알림은 열린 게시글 창 위에 떠서 누를 수 있고, 쓰
   await page.locator('.comment-content').filter({ hasText: '다음 주에 봐요' }).waitFor()
   // 결과가 화면에 바로 보이는 동작(댓글 달기)은 성공 알림을 띄우지 않는다
   assert.equal(await page.locator('.toast').count(), 0)
+  assert.deepEqual(errors, [])
+})
+
+test('소셜 로그인은 주소의 한 번용 코드를 토큰으로 바꾸고, 토큰을 주소에 남기지 않는다', async t => {
+  const { page, state, errors } = await fixture(t)
+  await page.goto(`${origin}/oauth2/redirect?code=good`)
+  await page.waitForURL(/\/home$/)
+  assert.deepEqual(state.oauthCodes, ['good'])
+  assert.equal(await page.evaluate(() => localStorage.getItem('accessToken')), 'social-access')
+  assert.equal(await page.evaluate(() => localStorage.getItem('refreshToken')), 'social-refresh')
+  // 돌아온 주소는 방문 기록에서 바뀌어(replace) 뒤로 가기로 다시 열리지 않는다
+  assert.ok(!(await page.evaluate(() => location.href)).includes('code='))
+
+  // 시간이 지난 코드면 로그인 화면으로 보내고 알려 준다
+  await page.goto(`${origin}/oauth2/redirect?code=old`)
+  await page.locator('.toast.error').filter({ hasText: '로그인 시간이 지났어요' }).waitFor()
   assert.deepEqual(errors, [])
 })
