@@ -12,7 +12,7 @@
 
         <template v-if="!isBandMode">
           <CharacterStage :character="authStore.character">
-            <!-- 요즘 듣는 음악: 레벨·칭호 줄 왼쪽 끝. 누르면 등록·수정, 링크가 있으면 옆 아이콘으로 새 탭 -->
+            <!-- 요즘 듣는 음악: 레벨·닉네임 줄 왼쪽 끝. 누르면 등록·수정, 링크가 있으면 옆 아이콘으로 새 탭 -->
             <template #head-start>
               <div class="music-chip" :class="{ empty: !myMusic }">
                 <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
@@ -597,7 +597,7 @@ button::-moz-focus-inner { border: 0 !important; }
   .card-btn:hover { transform: none; box-shadow: none; }
 }
 
-/* 넓은 화면: 음악은 레벨·칭호 줄 왼쪽 끝, 옷장은 경험치 줄 오른쪽 끝 (무대 위에 얹힘) */
+/* 넓은 화면: 음악은 레벨·닉네임 줄 왼쪽 끝, 옷장은 경험치 줄 오른쪽 끝 (무대 위에 얹힘) */
 .music-chip { top: 50%; left: 20px; transform: translateY(-50%); }
 .edit-char-btn { top: 50%; bottom: auto; right: 20px; transform: translateY(-50%); }
 /* 휴대폰: 둘 다 흰 바탕 줄 안. 음악은 줄 왼쪽 끝(남는 폭만큼 줄어듦), 옷장은 경험치 줄 오른쪽 끝 */

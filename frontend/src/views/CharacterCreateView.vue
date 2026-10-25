@@ -61,7 +61,7 @@
                   id="nickname"
                   type="text"
                   v-model="nickname"
-                  placeholder="2~10자의 한글, 영문, 숫자"
+                  placeholder="1~10자의 한글, 영문, 숫자"
                   class="gz-input"
                   maxLength="10"
                   @input="validateNickname"
@@ -331,8 +331,8 @@ const validateNickname = () => {
     return
   }
 
-  if (val.length < 2 || val.length > 10) {
-    nicknameFeedback.value = '닉네임은 2자 이상 10자 이하로 입력해주세요.'
+  if (val.length > 10) {
+    nicknameFeedback.value = '닉네임은 10자 이하로 입력해주세요.'
     isNicknameValid.value = false
     return
   }

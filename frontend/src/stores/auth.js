@@ -96,17 +96,14 @@ export const useAuthStore = defineStore('auth', {
     },
 
     // Signup action
-    async signup(name, email, password, emailVerificationToken) {
+    // 이름은 받지 않는다 (#227): 화면에 보이는 이름은 캐릭터 닉네임
+    async signup(email, password, emailVerificationToken) {
       try {
         const response = await axiosInstance.post('/api/v1/auth/signup', {
-          name,
           email,
           password,
           emailVerificationToken,
         })
-
-        // On success, save the name locally for this email to enhance UX later
-        localStorage.setItem(`name_${email}`, name)
         return response.data
       } catch (error) {
         console.error('Signup failed:', error)
@@ -179,7 +176,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // 이름 바꾸기 반영 (헤더 표시용으로 토큰과 같은 저장소에 둔다)
+    // 닉네임 바꾸기 반영 (헤더 표시용으로 토큰과 같은 저장소에 둔다)
     setUserName(name) {
       this.userName = name
       if (this.profile) this.profile.name = name

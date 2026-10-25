@@ -24,10 +24,10 @@
 
           <dl class="info">
             <div class="row">
-              <dt>이름</dt>
+              <dt>닉네임</dt>
               <dd v-if="!editingName" class="name-view">
-                <strong>{{ profile.name }}</strong>
-                <button class="text-btn" @click="startEditName">수정</button>
+                <strong>{{ nickname }}</strong>
+                <button v-if="authStore.character" class="text-btn" @click="startEditName">수정</button>
               </dd>
               <dd v-else class="name-edit">
                 <form @submit.prevent="saveName">
@@ -35,15 +35,15 @@
                     ref="nameInput"
                     v-model="nameDraft"
                     type="text"
-                    maxlength="20"
+                    maxlength="10"
                     :disabled="savingName"
-                    aria-label="새 이름"
+                    aria-label="새 닉네임"
                     @keydown.esc="editingName = false"
                   >
                   <button type="button" class="btn small" :disabled="savingName" @click="editingName = false">취소</button>
                   <button type="submit" class="btn small primary" :disabled="savingName || !nameValid">{{ savingName ? '저장 중…' : '저장' }}</button>
                 </form>
-                <p v-if="nameError" class="field-error">{{ nameError }}</p>
+                <p v-if="nameError || draftProblem" class="field-error">{{ nameError || draftProblem }}</p>
               </dd>
             </div>
             <div class="row">
@@ -60,7 +60,7 @@
       </WsCard>
 
       <WsCard title="프로필 공개 범위">
-        <p class="muted">다른 사람이 내 프로필을 열었을 때 캐릭터·연습 기록·가입한 밴드·요즘 듣는 음악을 보여 줄지 정해요. 이름과 사진은 항상 보여요.</p>
+        <p class="muted">다른 사람이 내 프로필을 열었을 때 캐릭터·연습 기록·가입한 밴드·요즘 듣는 음악을 보여 줄지 정해요. 닉네임과 사진은 항상 보여요.</p>
         <div class="segment" role="radiogroup" aria-label="프로필 공개 범위">
           <button v-for="o in PROFILE_VISIBILITY_OPTIONS" :key="o.value" type="button" role="radio"
                   :aria-checked="currentVisibility === o.value" :class="{ on: currentVisibility === o.value }"
@@ -111,12 +111,14 @@ import ThemeCard from '../components/mypage/ThemeCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
 import {
-  updateMyName, uploadProfileImage, deleteProfileImage,
+  uploadProfileImage, deleteProfileImage,
   updateProfileVisibility,
   PROFILE_IMAGE_ACCEPT, PROFILE_IMAGE_TYPES, MAX_PROFILE_IMAGE_MB,
   PROFILE_VISIBILITY_OPTIONS, SOCIAL_PROVIDERS, socialErrorMessage,
 } from '../api/user'
 import { apiErrorMessage } from '../api/practice'
+import { updateAppearance } from '../api/character'
+import { nicknameProblem } from '../constants/characterOptions'
 
 const router = useRouter()
 const dialog = useDialogStore()
@@ -144,7 +146,7 @@ const joinedText = computed(() => {
 
 onMounted(async () => {
   // 들어올 때마다 최신 정보로 (다른 기기에서 바꿨을 수도 있다)
-  const result = await authStore.fetchProfile()
+  const [result] = await Promise.all([authStore.fetchProfile(), authStore.fetchCharacter()])
   if (!result && !authStore.profile) loadError.value = '내 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
   showLinkResult()
 })
@@ -207,19 +209,18 @@ const removePhoto = async () => {
   }
 }
 
-/* ---------- 이름 수정 ---------- */
+/* ---------- 닉네임 수정 (#227): 화면에 보이는 이름은 캐릭터 닉네임 하나 ---------- */
+const nickname = computed(() => authStore.character?.nickname || profile.value?.name)
 const editingName = ref(false)
 const nameDraft = ref('')
 const nameInput = ref(null)
 const savingName = ref(false)
 const nameError = ref('')
-const nameValid = computed(() => {
-  const v = nameDraft.value.trim()
-  return v.length >= 1 && v.length <= 20 && v !== profile.value?.name
-})
+const draftProblem = computed(() => (nameDraft.value ? nicknameProblem(nameDraft.value) : ''))
+const nameValid = computed(() => !nicknameProblem(nameDraft.value) && nameDraft.value.trim() !== nickname.value)
 
 const startEditName = async () => {
-  nameDraft.value = profile.value.name
+  nameDraft.value = nickname.value
   nameError.value = ''
   status.value = ''
   editingName.value = true
@@ -232,12 +233,19 @@ const saveName = async () => {
   savingName.value = true
   nameError.value = ''
   try {
-    const result = await updateMyName(nameDraft.value.trim())
-    authStore.setUserName(result.name)
+    // 닉네임은 외형 수정 API로 바꾼다 (나머지 외형은 지금 값 그대로)
+    const c = authStore.character
+    const next = nameDraft.value.trim()
+    await updateAppearance({
+      nickname: next, gender: c.gender, skinColor: c.skinColor, hairStyle: c.hairStyle,
+      hairColor: c.hairColor, instrumentType: c.instrumentType, instrumentColor: c.instrumentColor,
+    })
+    await authStore.fetchCharacter()
+    authStore.setUserName(next)
     editingName.value = false
-    status.value = '이름을 바꿨어요'
+    status.value = '닉네임을 바꿨어요'
   } catch (e) {
-    nameError.value = apiErrorMessage(e, '이름을 바꾸지 못했어요.')
+    nameError.value = apiErrorMessage(e, '닉네임을 바꾸지 못했어요.')
   } finally {
     savingName.value = false
   }

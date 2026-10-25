@@ -436,6 +436,7 @@ const save = async () => {
       await updateWardrobe(Object.fromEntries([...WARDROBE_KEYS, ...LIST_KEYS].map((k) => [k, draft[k]])))
     }
     await authStore.fetchCharacter()
+    if (appearanceDirty.value) authStore.setUserName(draft.nickname.trim())
     original.value = { ...draft, nickname: draft.nickname.trim() }
     draft.nickname = original.value.nickname
     savedMessage.value = '저장했어요'

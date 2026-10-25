@@ -10,16 +10,6 @@
 
       <form class="signup-form" @submit.prevent="handleSignup">
         <div class="input-grid">
-          <div class="input-wrapper">
-            <input
-              v-model="formData.name"
-              type="text"
-              placeholder="이름"
-              class="gz-input"
-              required
-            />
-          </div>
-
           <!-- 이메일 인증 (#193): 인증하기 → 메일로 받은 6자리 코드 → 맞으면 비밀번호 칸이 열린다 -->
           <div class="input-wrapper">
             <div class="input-with-btn">
@@ -138,7 +128,6 @@ const pwValidationMessage = ref('')
 const isLoading = ref(false)
 
 const formData = ref({
-  name: '',
   email: '',
   password: '',
   passwordConfirm: ''
@@ -257,7 +246,6 @@ const pwConfirmMessage = computed(() => {
 // 전체 폼 유효성 체크
 const isFormValid = computed(() => {
   return (
-    formData.value.name &&
     emailVerified.value &&
     isPwValidPattern.value &&
     isPwMatched.value
@@ -272,7 +260,6 @@ const handleSignup = async () => {
 
   try {
     await authStore.signup(
-      formData.value.name,
       formData.value.email.trim(),
       formData.value.password,
       emailVerificationToken.value
