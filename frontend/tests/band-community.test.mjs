@@ -35,7 +35,7 @@ before(async () => {
 after(async () => { await browser?.close(); vite?.kill() })
 
 async function fixture(t, options = {}) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 960 }, timezoneId: options.timezoneId || 'Asia/Seoul' })
+  const context = await browser.newContext({ viewport: { width: 1280, height: 960 }, timezoneId: options.timezoneId || 'Asia/Seoul', deviceScaleFactor: options.scale || 1 })
   t.after(() => context.close())
   await context.addInitScript(() => localStorage.setItem('accessToken', 'ui-test-token'))
   const page = await context.newPage()
@@ -587,6 +587,16 @@ test('홈 밴드 탭을 끌어서 순서를 바꾸고, 휴대폰은 꾹 눌러�
   // 마우스: 맨 오른쪽 탭을 맨 왼쪽으로 끌기. 고른 밴드는 그대로
   const last = await tabs.nth(2).boundingBox()
   const first = await tabs.nth(0).boundingBox()
+  // 고른(흰) 탭을 잡았을 때 모양: 아래 무대에 회색 그림자가 번지지 않게 (눈으로 보려고 저장). 조금만 움직였다 놓으면 순서는 그대로
+  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(first.x + first.width / 2 + 24, first.y + first.height / 2)
+  await page.locator('.band-tabs-left.dragging').waitFor()
+  assert.equal(await page.locator('.band-tabs-left button.held').evaluate(el => getComputedStyle(el).borderBottomColor), 'rgb(255, 255, 255)')
+  await page.screenshot({ path: fileURLToPath(new URL('../test-results/band-tab-held.png', import.meta.url)),
+    clip: { x: first.x - 10, y: first.y - 10, width: first.width + 60, height: first.height + 30 }, scale: "device" })
+  await page.mouse.up()
+  assert.deepEqual(state.bandOrder, [10, 11, 12])
   await page.mouse.move(last.x + last.width / 2, last.y + last.height / 2)
   await page.mouse.down()
   for (let i = 1; i <= 10; i++) await page.mouse.move(last.x + last.width / 2 - (last.x - first.x + 10) * i / 10, last.y + last.height / 2)
