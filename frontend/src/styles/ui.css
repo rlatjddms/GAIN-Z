@@ -68,3 +68,15 @@
   .segment > button { min-height: 32px; }
 }
 
+
+/* 휴대폰 키보드가 올라오면 아래 팝업(시트)도 키보드 위로 (#226).
+   값은 components/ui/keyboardInset.js가 정한다. 팝업마다 scoped 스타일로 inset·margin·max-height를 정해 두어서 !important로 덮는다 */
+html.keyboard-open .backdrop,
+html.keyboard-open dialog[open] {
+  top: var(--vv-top) !important;
+  bottom: var(--kb) !important;
+}
+html.keyboard-open .backdrop > *,
+html.keyboard-open dialog[open] {
+  max-height: calc(var(--vvh) - 12px) !important;
+}
