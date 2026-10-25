@@ -80,8 +80,11 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppLogo from '../components/AppLogo.vue'
+import { useWhitePage } from '../components/ui/useWhitePage'
 import { API_BASE_URL } from '../api/axios'
 import { socialErrorMessage } from '../api/user'
+
+useWhitePage()
 
 const router = useRouter()
 const route = useRoute()

@@ -102,8 +102,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
 import AppLogo from '../components/AppLogo.vue'
+import { useWhitePage } from '../components/ui/useWhitePage'
 import { useCooldown } from '../components/ui/useCooldown'
 import { sendSignupCode, verifySignupCode, retryAfterOf, DUPLICATE_EMAIL, EMAIL_NOT_VERIFIED, MAIL_RESEND_SECONDS } from '../api/auth'
+
+useWhitePage()
 
 const router = useRouter()
 const dialog = useDialogStore()

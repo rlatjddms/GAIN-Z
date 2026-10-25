@@ -14,6 +14,9 @@
 
 <script setup>
 import AppLogo from '../AppLogo.vue'
+import { useWhitePage } from './useWhitePage'
+
+useWhitePage()
 
 defineProps({
   subtitle: { type: String, default: '' },

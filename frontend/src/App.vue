@@ -50,6 +50,10 @@ html, body {
   width: 100%;
   height: 100%;
 }
+/* 휴대폰에서 흰 화면인 페이지(로그인 등)는 바탕도 흰색 (#226, components/ui/useWhitePage.js) */
+@media (max-width: 640px) {
+  html.white-page, html.white-page body { background-color: #fff; }
+}
 
 #app {
   width: 100%;
