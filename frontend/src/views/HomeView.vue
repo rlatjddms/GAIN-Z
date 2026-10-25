@@ -124,8 +124,6 @@
                               :reorderable="canReorder" @reorder="onReorder" />
             </div>
             <p v-if="canReorder" class="scene-hint">캐릭터나 아래 이름표를 끌어서 자리를 바꿀 수 있어요.</p>
-            <p v-if="reorderError" class="scene-hint bad">{{ reorderError }}</p>
-            <p v-if="tabOrderError" class="scene-hint bad">{{ tabOrderError }}</p>
 
             <div ref="memberListRef" class="member-list"
                  :class="{ reorderable: canReorder, dragging: !!tagDrag, settling: tagSettling }">
@@ -184,6 +182,7 @@ import BandStageScene from '../components/band/BandStageScene.vue'
 import BandStartModal from '../components/band/BandStartModal.vue'
 import BandCommunityPanel from '../components/band/BandCommunityPanel.vue'
 import { useBandStore } from '../stores/band'
+import { useToastStore } from '../stores/toast'
 import { useLiveRefresh } from '../composables/useLiveRefresh'
 import { MAX_JOINED_BANDS, reorderMembers, reorderMyBands } from '../api/band'
 import { useTabReorder } from '../components/band/useTabReorder'
@@ -201,6 +200,7 @@ const myMusicUrl = computed(() => (/^https?:\/\//i.test(myMusic.value?.url || ''
 const route = useRoute()
 const authStore = useAuthStore()
 const bandStore = useBandStore()
+const toast = useToastStore()
 // 게시글 링크를 직접 열어도 기존 BAND 화면과 상단 탭을 유지한다
 watch(() => route.query.band, (id) => {
   if (id && Number.isFinite(Number(id))) {
@@ -291,34 +291,30 @@ const onBandStarted = (band) => {
 
 // 무대 자리 바꾸기 (리더만). 화면은 먼저 바꾸고, 실패하면 원래 순서로 되돌린다
 const canReorder = computed(() => activeBand.value?.myPosition === 'LEADER' && activeBand.value.members.length > 1)
-const reorderError = ref('')
 const onReorder = async (memberIds) => {
   const band = activeBand.value
   const before = band
   const byId = new Map(band.members.map((m) => [m.memberId, m]))
   bandStore.upsertBand({ ...band, members: memberIds.map((id) => byId.get(id)) })
-  reorderError.value = ''
   try {
     bandStore.upsertBand(await reorderMembers(band.id, memberIds))
   } catch (e) {
     bandStore.upsertBand(before)
-    reorderError.value = apiErrorMessage(e, '자리를 바꾸지 못했어요.')
+    toast.error(apiErrorMessage(e, '자리를 바꾸지 못했어요.'))
   }
 }
 
 // 밴드 탭 순서 바꾸기 (#266, 나한테만). 화면은 먼저 바꾸고, 실패하면 원래 순서로 되돌린다
 const bandTabsRef = ref(null)
-const tabOrderError = ref('')
 const onTabReorder = async (bandIds) => {
   const before = bandStore.bands
   const byId = new Map(before.map((b) => [b.id, b]))
   bandStore.bands = bandIds.map((id) => byId.get(id))
-  tabOrderError.value = ''
   try {
     bandStore.bands = await reorderMyBands(bandIds)
   } catch (e) {
     bandStore.bands = before
-    tabOrderError.value = apiErrorMessage(e, '밴드 순서를 바꾸지 못했어요.')
+    toast.error(apiErrorMessage(e, '밴드 순서를 바꾸지 못했어요.'))
   }
 }
 const { drag: tabDrag, settling: tabSettling, press: pressTab, tabStyle, wasDragged: tabWasDragged } = useTabReorder({
@@ -555,7 +551,6 @@ button::-moz-focus-inner { border: 0 !important; }
 /* 무대는 카드 좌우 끝까지 (#232): 솔로 무대처럼 꽉 채워야 배경·캐릭터가 같은 크기로 보인다 (카드 안쪽 여백만큼 바깥으로) */
 .band-scene { margin: 16px -24px 0; overflow: hidden; border-top: 1px solid var(--c-line-soft); border-bottom: 1px solid var(--c-line-soft); }
 .scene-hint { margin: 8px 0 0; text-align: center; font-size: 0.72rem; color: var(--c-faint); font-weight: 600; }
-.scene-hint.bad { color: var(--c-danger); font-weight: 700; }
 
 .member-list { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .m-item { text-align: center; padding: 8px 12px; border-radius: 12px; background: var(--c-bg); min-width: 88px; }

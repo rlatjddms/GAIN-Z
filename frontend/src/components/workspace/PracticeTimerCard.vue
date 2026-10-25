@@ -41,7 +41,6 @@
         {{ error }}
         <button class="retry" :disabled="saving" @click="saveParts(timer.pending)">다시 저장</button>
       </p>
-      <p v-else-if="savedMessage" class="status saved">{{ savedMessage }}</p>
       <p v-else class="status">정지할 때마다 오늘 기록에 쌓이고, 연습한 만큼 경험치를 받아요.</p>
     </template>
 
@@ -73,6 +72,9 @@ import { usePracticeStore } from '../../stores/practice'
 import { apiErrorMessage } from '../../api/practice'
 import { useDialogStore } from '../../stores/dialog'
 import { clock, dateKey, dateLabel, durationText, isEditable, startOfDay } from '../../constants/practice'
+import { useToastStore } from '../../stores/toast'
+
+const toast = useToastStore()
 
 // date: 보고 있는 날짜 ('YYYY-MM-DD'). 오늘이면 타이머, 지난 날이면 그날 총 시간과 고치기
 const props = defineProps({ date: { type: String, required: true } })
@@ -109,9 +111,7 @@ const editable = computed(() => isEditable(props.date) && !(isToday.value && tim
 const editing = ref(null)
 const onEdited = (result) => {
   const gained = result?.expGained || 0
-  savedMessage.value = `고쳤어요 · ${durationText(result?.dayTotalSeconds || 0)}${gained > 0 ? ` · +${gained} EXP` : gained < 0 ? ` · 경험치 ${gained}` : ''}`
-  clearTimeout(savedTimer)
-  savedTimer = setTimeout(() => { savedMessage.value = '' }, 6000)
+  toast.success(`고쳤어요 · ${durationText(result?.dayTotalSeconds || 0)}${gained > 0 ? ` · +${gained} EXP` : gained < 0 ? ` · 경험치 ${gained}` : ''}`)
   const exp = result?.experience
   if (exp && ((exp.isLeveledUp ?? exp.leveledUp) || exp.unlockedOutfits?.length)) {
     levelUp.value = { ...exp, expGained: result.expGained }
@@ -120,9 +120,7 @@ const onEdited = (result) => {
 
 const saving = ref(false)
 const error = ref('')
-const savedMessage = ref('')
 const levelUp = ref(null)
-let savedTimer = null
 
 const LONG_SESSION_SECONDS = 8 * 3600
 
@@ -130,7 +128,6 @@ const dialog = useDialogStore()
 const toggle = async () => {
   if (!timer.running) {
     error.value = ''
-    savedMessage.value = ''
     timer.start()
     now.value = Date.now()
     return
@@ -188,9 +185,7 @@ const saveParts = async (parts) => {
 const showSaved = (exp) => {
   // 경험치는 구간이 아니라 오늘 총 시간 기준이라, 문구도 오늘 총 시간으로 보여 준다. 경험치는 받았을 때만 표시
   const total = `기록했어요 · 오늘 총 ${durationText(practice.totalOf(dateKey()), true)}`
-  savedMessage.value = exp > 0 ? `${total} · +${exp} EXP` : total
-  clearTimeout(savedTimer)
-  savedTimer = setTimeout(() => { savedMessage.value = '' }, 6000)
+  toast.success(exp > 0 ? `${total} · +${exp} EXP` : total)
 }
 </script>
 
@@ -265,7 +260,6 @@ const showSaved = (exp) => {
 @keyframes blink { 50% { opacity: 0.2; } }
 
 .status { margin: 12px 0 0; font-size: 0.75rem; color: var(--c-faint); line-height: 1.5; text-align: center; font-variant-numeric: tabular-nums; }
-.status.saved { color: var(--c-primary-text); font-weight: 800; }
 .status.error { color: var(--c-danger); font-weight: 700; }
 .retry {
   margin-left: 6px; border: 1px solid #ffc9c9; background: var(--c-danger-soft); color: var(--c-danger); cursor: pointer;

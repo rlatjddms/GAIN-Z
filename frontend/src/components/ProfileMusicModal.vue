@@ -94,6 +94,9 @@ import {
 } from '../api/user'
 import { apiErrorMessage } from '../api/practice'
 import { useDialogStore } from '../stores/dialog'
+import { useToastStore } from '../stores/toast'
+
+const toast = useToastStore()
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -187,12 +190,13 @@ watch(() => props.open, async (open) => {
   searchInput.value?.focus()
 })
 
-const run = async (action, fallback) => {
+const run = async (action, fallback, done) => {
   busy.value = true
   error.value = ''
   try {
     authStore.profile = await action()
     emit('close')
+    toast.success(done)
   } catch (e) {
     error.value = apiErrorMessage(e, fallback)
   } finally {
@@ -205,12 +209,12 @@ const save = () => {
   run(() => updateProfileMusic({
     title: title.value.trim(), artist: artist.value.trim(), url: url.value.trim() || null,
     artworkUrl: artworkUrl.value, previewUrl: previewUrl.value,
-  }), '음악을 저장하지 못했어요.')
+  }), '음악을 저장하지 못했어요.', '요즘 듣는 음악을 저장했어요')
 }
 
 const remove = async () => {
   if (busy.value || !await useDialogStore().confirm({ title: '요즘 듣는 음악을 지울까요?', okText: '지우기', danger: true })) return
-  run(() => deleteProfileMusic(), '음악을 지우지 못했어요.')
+  run(() => deleteProfileMusic(), '음악을 지우지 못했어요.', '요즘 듣는 음악을 지웠어요')
 }
 </script>
 

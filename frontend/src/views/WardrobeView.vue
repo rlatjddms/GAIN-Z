@@ -1,12 +1,10 @@
 <template>
   <SubPageLayout title="DRESS ROOM" name="옷장" subtitle="바꾼 모습은 저장해야 반영돼요">
     <template #actions>
-      <span v-if="savedMessage" class="saved">{{ savedMessage }}</span>
       <button class="btn" :disabled="!dirty || saving" @click="reset">되돌리기</button>
       <button class="btn primary" :disabled="!dirty || saving" @click="save">{{ saving ? '저장 중…' : '저장' }}</button>
     </template>
     <div class="page">
-      <p v-if="error" class="error">{{ error }}</p>
 
       <div class="layout">
         <!-- 미리보기: 바꾼 모습이 바로 보인다 -->
@@ -251,6 +249,7 @@ import PixelSprite from '../components/PixelSprite.vue'
 import StageScene from '../components/StageScene.vue'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
+import { useToastStore } from '../stores/toast'
 import { getWardrobe, updateWardrobe, updateAppearance } from '../api/character'
 import { apiErrorMessage } from '../api/practice'
 import { getLevelTier } from '../constants/levelTier'
@@ -415,12 +414,8 @@ const reset = () => {
 }
 
 const saving = ref(false)
-const error = ref('')
-const savedMessage = ref('')
 const save = async () => {
   saving.value = true
-  error.value = ''
-  savedMessage.value = ''
   try {
     if (appearanceDirty.value) {
       const body = Object.fromEntries(APPEARANCE_KEYS.map((k) => [k, draft[k]]))
@@ -431,10 +426,9 @@ const save = async () => {
     }
     await authStore.fetchCharacter()
     original.value = { ...draft }
-    savedMessage.value = '저장했어요'
-    setTimeout(() => { savedMessage.value = '' }, 3000)
+    toast.success('저장했어요')
   } catch (e) {
-    error.value = `저장하지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`저장하지 못했어요. ${apiErrorMessage(e)}`)
   } finally {
     saving.value = false
   }
@@ -442,13 +436,12 @@ const save = async () => {
 
 // 저장하지 않고 나가려 하면 한 번 묻는다
 const dialog = useDialogStore()
+const toast = useToastStore()
 onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 않은 변경이 있어요', text: '저장하지 않고 나갈까요?', okText: '나가기' }) : true))
 </script>
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 16px; }
-.saved { font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
-.error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
 .preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }

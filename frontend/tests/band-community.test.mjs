@@ -140,6 +140,7 @@ async function fixture(t, options = {}) {
           .flatMap(root => [root, ...state.comments.filter(c => c.parentId === root.id).sort((a, b) => a.id - b.id)])
         return respond({ content, number, totalPages: Math.ceil(roots.length / size), totalElements: roots.length, commentCount: state.comments.filter(c => !c.deleted).length })
       }
+      if (state.failComment) return respond('댓글을 저장하지 못했어요', 500)
       const comment = { id: 102 + state.comments.length, ...request.postDataJSON(), author, mine: true, deleted: false, createdAt: '2026-10-16T12:20:00' }
       state.comments.push(comment)
       return respond(comment)
@@ -640,5 +641,36 @@ test('홈 밴드 탭을 끌어서 순서를 바꾸고, 휴대폰은 꾹 눌러�
   await touch('touchEnd')
   await page.waitForFunction(() => document.querySelector('.band-tabs-left [data-tab-id]').textContent.includes('리듬'))
   assert.deepEqual(state.bandOrder, [10, 12, 11])
+  assert.deepEqual(errors, [])
+})
+
+test('오류 알림은 열린 게시글 창 위에 떠서 누를 수 있고, 쓰던 댓글은 그대로, 바로 보이는 동작은 성공 알림 없음', async t => {
+  const { page, state, errors } = await fixture(t, { failComment: true })
+  await page.goto(`${origin}/home?band=10&post=2`)
+  await page.locator('.comment').first().waitFor()
+  const box = page.getByRole('textbox', { name: '댓글', exact: true })
+  await box.fill('다음 주에 봐요')
+  await page.getByRole('button', { name: '등록', exact: true }).click()
+  // 공통 알림 (#267): 빨간 알림이 열린 게시글 창(<dialog>)보다 위에 보인다
+  const toast = page.locator('.toast.error')
+  await toast.filter({ hasText: '댓글을 저장하지 못했어요' }).waitFor()
+  const top = await toast.evaluate(el => {
+    const r = el.getBoundingClientRect()
+    return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2))
+  })
+  assert.equal(top, true)
+  assert.equal(await box.inputValue(), '다음 주에 봐요')
+  await screenshot(page, 'toast-error-desktop')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await screenshot(page, 'toast-error-mobile')
+  await page.setViewportSize({ width: 1280, height: 960 })
+  // × 로 닫을 수 있고, 다시 실패하면 다시 뜬다
+  await toast.getByRole('button', { name: '알림 닫기' }).click()
+  await toast.waitFor({ state: 'detached' })
+  state.failComment = false
+  await page.getByRole('button', { name: '등록', exact: true }).click()
+  await page.locator('.comment-content').filter({ hasText: '다음 주에 봐요' }).waitFor()
+  // 결과가 화면에 바로 보이는 동작(댓글 달기)은 성공 알림을 띄우지 않는다
+  assert.equal(await page.locator('.toast').count(), 0)
   assert.deepEqual(errors, [])
 })

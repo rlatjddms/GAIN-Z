@@ -17,7 +17,6 @@
 
     <template v-else>
 
-      <p v-if="actionError" class="error">{{ actionError }}</p>
 
       <div class="layout" :class="{ wide }">
         <!-- 악보 -->
@@ -101,7 +100,6 @@
             ></textarea>
             <div class="memo-foot">
               <span class="count">{{ memo.length }} / 2000</span>
-              <span v-if="memoStatus" class="saved">{{ memoStatus }}</span>
               <button class="btn primary" :disabled="!memoDirty || savingMemo" @click="saveMemo">
                 {{ savingMemo ? '저장 중…' : '메모 저장' }}
               </button>
@@ -146,6 +144,7 @@ import AnnotationToolbar from '../../components/workspace/AnnotationToolbar.vue'
 import { useAnnotationStore } from '../../stores/annotation'
 import { getWorkspaceItem, updateWorkspaceItem, removeWorkspaceItem, copyWorkspaceItem } from '../../api/sheet'
 import { useDialogStore } from '../../stores/dialog'
+import { useToastStore } from '../../stores/toast'
 import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { sheetTypeLabel } from '../../constants/sheet'
@@ -153,11 +152,11 @@ import { sheetTypeLabel } from '../../constants/sheet'
 const route = useRoute()
 const router = useRouter()
 const dialog = useDialogStore()
+const toast = useToastStore()
 const itemId = route.params.id
 
 const item = ref(null)
 const loadError = ref('')
-const actionError = ref('')
 const sheet = computed(() => item.value?.sheet || {})
 const pages = computed(() => sheet.value.pages || [])
 // 마디 악보: 저장된 마디 데이터, 없으면 글자 타브 악보(#166)를 읽어서 그린다
@@ -244,7 +243,7 @@ const saveKey = async () => {
     item.value.customKey = result.customKey
     if (viewKey.value === key) keyStatus.value = '저장됨'
   } catch (e) {
-    actionError.value = `연습 키를 저장하지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`연습 키를 저장하지 못했어요. ${apiErrorMessage(e)}`)
   }
 }
 // 저장 대기 중에 나가면 바로 저장
@@ -258,25 +257,23 @@ const toggleFavorite = async () => {
     await updateWorkspaceItem(itemId, { isFavorite: next })
   } catch (e) {
     item.value.favorite = !next
-    actionError.value = `즐겨찾기를 바꾸지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`즐겨찾기를 바꾸지 못했어요. ${apiErrorMessage(e)}`)
   }
 }
 
 /* ---------- 메모 ---------- */
 const memo = ref('')
-const memoStatus = ref('')
 const savingMemo = ref(false)
 const memoDirty = computed(() => item.value && memo.value !== (item.value.personalMemo || ''))
 const saveMemo = async () => {
   savingMemo.value = true
-  memoStatus.value = ''
   try {
     const result = await updateWorkspaceItem(itemId, { personalMemo: memo.value })
     item.value.personalMemo = result.personalMemo
     memo.value = result.personalMemo || ''
-    memoStatus.value = '저장했어요'
+    toast.success('메모를 저장했어요')
   } catch (e) {
-    actionError.value = `메모를 저장하지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`메모를 저장하지 못했어요. ${apiErrorMessage(e)}`)
   } finally {
     savingMemo.value = false
   }
@@ -292,7 +289,7 @@ const saveChords = async (chords) => {
     customChords.value = result.customChords || []
   } catch (e) {
     customChords.value = before
-    actionError.value = `코드를 저장하지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`코드를 저장하지 못했어요. ${apiErrorMessage(e)}`)
   }
 }
 // 이 기능의 첫 버전은 코드를 이 기기에만 기억했다. 남아 있으면 서버로 한 번 옮기고 지운다
@@ -334,7 +331,7 @@ const openEdit = async () => {
     await copyWorkspaceItem(itemId)
     router.push(`/sheets/${itemId}/edit`)
   } catch (e) {
-    actionError.value = `복사하지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`복사하지 못했어요. ${apiErrorMessage(e)}`)
   } finally {
     copying.value = false
   }
@@ -353,7 +350,7 @@ const remove = async () => {
     memo.value = item.value.personalMemo || ''
     router.replace('/sheets')
   } catch (e) {
-    actionError.value = `삭제하지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`삭제하지 못했어요. ${apiErrorMessage(e)}`)
     removing.value = false
   }
 }
@@ -394,7 +391,6 @@ figcaption { margin-top: 6px; text-align: center; font-size: 0.7rem; font-weight
 .memo:focus { border-color: var(--c-primary); }
 .memo-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .memo-foot .count { font-size: 0.7rem; color: var(--c-faint); font-weight: 700; margin-right: auto; }
-.saved { font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
 .muted { margin: 0; font-size: 0.78rem; color: var(--c-muted); line-height: 1.6; }
 .text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: inherit; text-decoration: none; }
 

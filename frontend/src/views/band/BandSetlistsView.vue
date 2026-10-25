@@ -4,8 +4,6 @@
     <p v-if="error" role="alert">{{ error }} <button class="btn" @click="loadBand">다시 불러오기</button></p>
     <p v-else-if="!band" class="muted">셋리스트를 불러오는 중…</p>
     <div v-else class="page">
-      <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
-      <p v-if="notice" class="status" role="status">{{ notice }}</p>
       <div class="workspace" :inert="busy" :aria-busy="busy">
         <WsCard :title="`셋리스트 ${lists.length}`" class="sidebar" :class="{ collapsed: fold.collapsed.value }">
             <!-- 휴대폰: 목록 접기·펼치기 (#254) -->
@@ -108,12 +106,14 @@ import { addToWorkspace, getWorkspace } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
 import { useBandStore } from '../../stores/band'
 import { useDialogStore } from '../../stores/dialog'
+import { useToastStore } from '../../stores/toast'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 const route = useRoute()
 const router = useRouter()
 const dialog = useDialogStore()
+const toast = useToastStore()
 const store = useBandStore()
-const band = ref(null), error = ref(''), saveError = ref(''), notice = ref(''), busy = ref(false)
+const band = ref(null), error = ref(''), busy = ref(false)
 const lists = ref([]), selectedId = ref(null), drafts = ref({}), songOrder = ref([])
 const listTitle = ref(''), renaming = ref(false)
 // 이름을 바꿀 셋리스트 (목록에서 고르지 않은 셋리스트도 바꿀 수 있다, #233)
@@ -227,13 +227,13 @@ async function openFile(event, file) {
     const link = Object.assign(document.createElement('a'), { href: url, download: file.name })
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-  } catch (e) { saveError.value = apiErrorMessage(e, '첨부파일을 받지 못했어요.') }
+  } catch (e) { toast.error(apiErrorMessage(e, '첨부파일을 받지 못했어요.')) }
 }
 // 레이어 잼에서 넘어오면 그 곡이 든 셋리스트를 열고 곡을 펼쳐 보여 준다
 async function focusSong(itemId) {
   router.replace({ query: { ...route.query, item: undefined } })
   const list = lists.value.find(entry => entry.songs.some(song => song.id === itemId))
-  if (!list) { notice.value = '연결한 곡이 셋리스트에서 지워졌어요.'; return }
+  if (!list) { toast.error('연결한 곡이 셋리스트에서 지워졌어요.'); return }
   selectedId.value = list.id
   expandedIds.value = [itemId]
   focusedId.value = itemId
@@ -262,9 +262,8 @@ async function loadBand() {
 async function run(work, fallback = '저장하지 못했어요. 잠시 후 다시 시도해 주세요.') {
   if (busy.value) return false
   busy.value = true
-  saveError.value = ''
   try { await work(); return true }
-  catch (e) { saveError.value = apiErrorMessage(e, fallback); return false }
+  catch (e) { toast.error(apiErrorMessage(e, fallback)); return false }
   finally { busy.value = false }
 }
 async function discardAllowed() { return !dirty.value || dialog.confirm({ title: '저장하지 않은 곡이 있어요', text: '변경사항을 버릴까요?', okText: '버리기', danger: true }) }
@@ -272,7 +271,7 @@ function resetEditor() { drafts.value = {}; songOrder.value = []; expandedIds.va
 async function selectList(id) {
   if (id === selectedId.value) { fold.collapseIfNarrow(); return }
   if (busy.value || !await discardAllowed()) return
-  resetEditor(); selectedId.value = id; notice.value = saveError.value = ''
+  resetEditor(); selectedId.value = id
   fold.collapseIfNarrow()
 }
 function addSong() {
@@ -281,10 +280,9 @@ function addSong() {
   songOrder.value = [...current.value.songs.map(item => item.id), song.id]
   drafts.value[song.id] = song
   expandedIds.value.push(song.id)
-  notice.value = saveError.value = ''
   loadSheets()
 }
-function editSong(song) { drafts.value[song.id] = cloneSong(song); if (!expandedIds.value.includes(song.id)) expandedIds.value.push(song.id); notice.value = saveError.value = ''; loadSheets() }
+function editSong(song) { drafts.value[song.id] = cloneSong(song); if (!expandedIds.value.includes(song.id)) expandedIds.value.push(song.id); loadSheets() }
 async function cancelSong(id) {
   const saved = selected.value.songs.find(song => song.id === id)
   const draft = drafts.value[id]
@@ -292,10 +290,10 @@ async function cancelSong(id) {
   if (changed && !await dialog.confirm({ title: '이 곡의 변경사항을 버릴까요?', text: '저장하지 않은 내용이 사라져요.', okText: '버리기', danger: true })) return
   delete drafts.value[id]
   if (!saved) { songOrder.value = songOrder.value.filter(item => item !== id); expandedIds.value = expandedIds.value.filter(item => item !== id) }
-  saveError.value = ''; cleanupUrls()
+  cleanupUrls()
 }
 async function saveSong(song) {
-  if (!song.title.trim()) { saveError.value = '곡 제목을 적어주세요.'; return }
+  if (!song.title.trim()) { toast.error('곡 제목을 적어주세요.'); return }
   const setlistId = selectedId.value
   const isNew = !selected.value.songs.some(item => item.id === song.id)
   const before = new Set(selected.value.songs.map(item => item.id))
@@ -315,7 +313,7 @@ async function saveSong(song) {
     delete drafts.value[song.id]
     replaceList(result)
     cleanupUrls()
-    notice.value = `${payload.title} 곡을 저장했어요.`
+    toast.success(`${payload.title} 곡을 저장했어요.`)
   })
 }
 async function removeSong(song) {
@@ -370,10 +368,9 @@ function toggleSong(id) { expandedIds.value = expandedIds.value.includes(id) ? e
 function toggleAllSongs() { expandedIds.value = allExpanded.value ? [] : current.value.songs.map(song => song.id) }
 function toggleMember(song, id) { song.memberIds = song.memberIds.includes(id) ? song.memberIds.filter(memberId => memberId !== id) : [...song.memberIds, id] }
 function attachFiles(song, event) {
-  saveError.value = ''
   for (const file of event.target.files) {
-    if (song.files.length >= BAND_ATTACHMENT_MAX_COUNT) { saveError.value = `첨부파일은 곡마다 ${BAND_ATTACHMENT_MAX_COUNT}개까지 올릴 수 있어요.`; break }
-    if (file.size > BAND_ATTACHMENT_MAX_BYTES) { saveError.value = `${file.name}: 10MB까지 첨부할 수 있어요.`; continue }
+    if (song.files.length >= BAND_ATTACHMENT_MAX_COUNT) { toast.error(`첨부파일은 곡마다 ${BAND_ATTACHMENT_MAX_COUNT}개까지 올릴 수 있어요.`); break }
+    if (file.size > BAND_ATTACHMENT_MAX_BYTES) { toast.error(`${file.name}: 10MB까지 첨부할 수 있어요.`); continue }
     song.files.push({ id: crypto.randomUUID(), name: file.name, size: file.size, blob: file, url: objectUrl(file), local: true })
   }
   event.target.value = ''
@@ -383,7 +380,7 @@ function beforeUnload(event) { if (dirty.value || busy.value) { event.preventDef
 onBeforeRouteLeave(() => !busy.value && discardAllowed())
 onBeforeRouteUpdate(() => !busy.value && discardAllowed())
 onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-watch(() => route.params.id, () => { resetEditor(); lists.value = []; selectedId.value = null; cleanupUrls(); checkedIds.value = []; saveError.value = notice.value = ''; createDialog.value?.close(); deleteDialog.value?.close(); sheetDialog.value?.close(); loadBand() }, { immediate: true })
+watch(() => route.params.id, () => { resetEditor(); lists.value = []; selectedId.value = null; cleanupUrls(); checkedIds.value = []; createDialog.value?.close(); deleteDialog.value?.close(); sheetDialog.value?.close(); loadBand() }, { immediate: true })
 onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', beforeUnload); urls.forEach(url => URL.revokeObjectURL(url)) })
 </script>
 
@@ -393,8 +390,6 @@ onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', be
 .page { display:flex; flex-direction:column; gap:16px; }
 .muted { color:var(--c-muted); font-size:.8rem; line-height:1.7; }
 .notice { margin:0; color:var(--c-muted); font-size:.75rem; line-height:1.6; }
-.status { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-primary-soft); color: var(--c-primary-text); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
-.save-error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .workspace { display:grid; grid-template-columns:250px minmax(0,1fr); gap:20px; align-items:start; }
 .sidebar,.detail { min-width:0; }
 .sidebar :deep(.ws-card-head) { gap:4px; }

@@ -131,8 +131,10 @@ import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { sheetTypeLabel } from '../../constants/sheet'
 import { useDialogStore } from '../../stores/dialog'
+import { useToastStore } from '../../stores/toast'
 
 const dialog = useDialogStore()
+const toast = useToastStore()
 
 const findQuery = ref('')
 // 내 보관함에서 찾기: 검색어 낱말이 모두 제목·가수에 들어 있는 악보 (띄어쓰기·대소문자 무시, 최대 5개)
@@ -179,7 +181,7 @@ const toggleFavorite = async (item) => {
     if (favoriteOnly.value && !next) items.value = items.value.filter((i) => i.id !== item.id)
   } catch (e) {
     item.favorite = !next
-    error.value = `즐겨찾기를 바꾸지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`즐겨찾기를 바꾸지 못했어요. ${apiErrorMessage(e)}`)
   }
 }
 
@@ -218,7 +220,7 @@ const runBulk = async (ids, action, failText) => {
   selected.value = new Set()
   if (!failed.length) selecting.value = false
   await load()
-  if (failed.length) error.value = `${failed.length}개를 ${failText}. ${apiErrorMessage(failed[0].reason)}`
+  if (failed.length) toast.error(`${failed.length}개를 ${failText}. ${apiErrorMessage(failed[0].reason)}`)
   bulkBusy.value = false
 }
 

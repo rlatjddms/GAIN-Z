@@ -21,7 +21,6 @@
       </div>
       <div v-if="documents.length" class="document-list"><BandPostAttachment v-for="item in documents" :key="item.id" :attachment="item" /></div>
       <BandMediaViewer v-if="viewerIndex !== null" :items="visuals" :initial-index="viewerIndex" :band-id="band.id" :post-id="post.id" @close="viewerIndex = null" />
-      <p v-if="error" class="error" role="alert">{{ error }}</p>
     </div>
 
     <section class="comments-section" aria-label="댓글">
@@ -73,6 +72,9 @@ import { deleteBandPost, listBandComments, addBandComment, updateBandComment, de
 
 import { useDialogStore } from '../../stores/dialog'
 import { useLiveRefresh } from '../../composables/useLiveRefresh'
+import { useToastStore } from '../../stores/toast'
+
+const toast = useToastStore()
 const props = defineProps({ post: { type: Object, required: true }, band: { type: Object, required: true } })
 const dialog = useDialogStore()
 const emit = defineEmits(['edit', 'deleted', 'changed', 'busy'])
@@ -112,7 +114,6 @@ const orderedComments = computed(() => comments.value.filter(c => c.parentId ===
 const loading = ref(false)
 const commentsError = ref('')
 const busy = ref(false)
-const error = ref('')
 const commentText = ref('')
 const commentInput = ref(null)
 const replyTo = ref(null)
@@ -163,9 +164,8 @@ async function action(work) {
   if (busy.value) return
   busy.value = true
   emit('busy', true)
-  error.value = ''
   try { await work() }
-  catch (e) { error.value = message(e) }
+  catch (e) { toast.error(message(e)) }
   finally { busy.value = false; emit('busy', false) }
 }
 async function removePost() {

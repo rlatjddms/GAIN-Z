@@ -55,7 +55,6 @@
               <dd>{{ joinedText }}</dd>
             </div>
           </dl>
-          <p v-if="status" class="saved">{{ status }}</p>
         </template>
       </WsCard>
 
@@ -69,11 +68,9 @@
                   :disabled="!profile || visibilityBusy" @click="changeVisibility(o.value)">{{ o.label }}</button>
         </div>
         <p class="muted small">{{ visibilityDesc }}</p>
-        <p v-if="visibilityError" class="field-error">{{ visibilityError }}</p>
       </WsCard>
 
       <LoginMethodsCard @password="openPassword" />
-      <p v-if="passwordStatus" class="saved">{{ passwordStatus }}</p>
 
       <WsCard title="계정 설정" class="account-card">
         <div class="settings">
@@ -113,6 +110,7 @@ import ThemeCard from '../components/mypage/ThemeCard.vue'
 import AppInfoCard from '../components/mypage/AppInfoCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
+import { useToastStore } from '../stores/toast'
 import {
   uploadProfileImage, deleteProfileImage,
   updateProfileVisibility,
@@ -125,6 +123,7 @@ import { nicknameProblem } from '../constants/characterOptions'
 
 const router = useRouter()
 const dialog = useDialogStore()
+const toast = useToastStore()
 const route = useRoute()
 
 // 알림 페이지의 ⚙에서 오면(#notification-settings) 알림 설정으로 내려 준다
@@ -138,7 +137,6 @@ const authStore = useAuthStore()
 
 const profile = computed(() => authStore.profile)
 const loadError = ref('')
-const status = ref('')
 
 const joinedText = computed(() => {
   const at = profile.value?.createdAt
@@ -161,9 +159,9 @@ const showLinkResult = async () => {
   router.replace({ path: route.path, hash: route.hash })
   if (linked) {
     const name = SOCIAL_PROVIDERS.find(p => p.value === linked)?.label || '소셜'
-    status.value = `${name} 계정을 연결했어요. 다음부터 ${name}로도 로그인할 수 있어요.`
+    toast.success(`${name} 계정을 연결했어요. 다음부터 ${name}로도 로그인할 수 있어요.`)
   } else {
-    await dialog.alert({ title: '연결하지 못했어요', text: socialErrorMessage(linkError, provider) })
+    toast.error(`연결하지 못했어요. ${socialErrorMessage(linkError, provider)}`)
   }
 }
 
@@ -177,7 +175,6 @@ const onPhotoPicked = async (e) => {
   e.target.value = ''
   if (!file) return
   photoError.value = ''
-  status.value = ''
   if (!PROFILE_IMAGE_TYPES.includes(file.type)) {
     photoError.value = 'PNG · JPG · WEBP 이미지만 올릴 수 있어요.'
     return
@@ -189,9 +186,9 @@ const onPhotoPicked = async (e) => {
   photoBusy.value = true
   try {
     authStore.profile = await uploadProfileImage(file)
-    status.value = '프로필 사진을 바꿨어요'
+    toast.success('프로필 사진을 바꿨어요')
   } catch (err) {
-    photoError.value = apiErrorMessage(err, '사진을 올리지 못했어요.')
+    toast.error(apiErrorMessage(err, '사진을 올리지 못했어요.'))
   } finally {
     photoBusy.value = false
   }
@@ -201,12 +198,11 @@ const removePhoto = async () => {
   if (!await dialog.confirm({ title: '프로필 사진을 지울까요?', text: '기본 이미지로 바뀌어요.', okText: '지우기' })) return
   photoBusy.value = true
   photoError.value = ''
-  status.value = ''
   try {
     authStore.profile = await deleteProfileImage()
-    status.value = '기본 이미지로 바꿨어요'
+    toast.success('기본 이미지로 바꿨어요')
   } catch (err) {
-    photoError.value = apiErrorMessage(err, '사진을 지우지 못했어요.')
+    toast.error(apiErrorMessage(err, '사진을 지우지 못했어요.'))
   } finally {
     photoBusy.value = false
   }
@@ -225,7 +221,6 @@ const nameValid = computed(() => !nicknameProblem(nameDraft.value) && nameDraft.
 const startEditName = async () => {
   nameDraft.value = nickname.value
   nameError.value = ''
-  status.value = ''
   editingName.value = true
   await nextTick()
   nameInput.value?.select()
@@ -246,7 +241,7 @@ const saveName = async () => {
     await authStore.fetchCharacter()
     authStore.setUserName(next)
     editingName.value = false
-    status.value = '닉네임을 바꿨어요'
+    toast.success('닉네임을 바꿨어요')
   } catch (e) {
     nameError.value = apiErrorMessage(e, '닉네임을 바꾸지 못했어요.')
   } finally {
@@ -256,18 +251,16 @@ const saveName = async () => {
 
 /* ---------- 공개 범위 ---------- */
 const visibilityBusy = ref(false)
-const visibilityError = ref('')
 const currentVisibility = computed(() => profile.value?.profileVisibility || 'PUBLIC')
 const visibilityDesc = computed(() => PROFILE_VISIBILITY_OPTIONS.find((o) => o.value === currentVisibility.value)?.desc || '')
 
 const changeVisibility = async (value) => {
   if (value === currentVisibility.value || visibilityBusy.value) return
   visibilityBusy.value = true
-  visibilityError.value = ''
   try {
     authStore.profile = await updateProfileVisibility(value)
   } catch (e) {
-    visibilityError.value = apiErrorMessage(e, '공개 범위를 바꾸지 못했어요.')
+    toast.error(apiErrorMessage(e, '공개 범위를 바꾸지 못했어요.'))
   } finally {
     visibilityBusy.value = false
   }
@@ -276,16 +269,15 @@ const changeVisibility = async (value) => {
 /* ---------- 비밀번호·로그아웃·탈퇴 ---------- */
 const passwordOpen = ref(false)
 const passwordMode = ref('change')
-const passwordStatus = ref('')
 const openPassword = (mode) => {
   passwordMode.value = mode
   passwordOpen.value = true
 }
 const onPasswordChanged = async () => {
   passwordOpen.value = false
-  passwordStatus.value = passwordMode.value === 'create'
+  toast.success(passwordMode.value === 'create'
     ? '비밀번호를 만들었어요. 이제 가입한 이메일과 비밀번호로도 로그인할 수 있어요.'
-    : '비밀번호를 바꿨어요. 다음 로그인부터 새 비밀번호를 써 주세요.'
+    : '비밀번호를 바꿨어요. 다음 로그인부터 새 비밀번호를 써 주세요.')
   await authStore.fetchProfile()
 }
 
@@ -354,7 +346,6 @@ dd { margin: 0; font-size: 0.88rem; font-weight: 700; color: #343a40; word-break
 .text-btn { border: none; background: none; padding: 0; color: var(--c-primary-text); font-weight: 800; cursor: pointer; font-family: inherit; font-size: 0.75rem; }
 
 .muted.small { margin: 8px 0 0; font-size: 0.72rem; }
-.saved { margin: 10px 0 0; font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
 .error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 .loading { padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 /* 휴대폰: 사진·칸 이름 폭을 줄여 비율을 맞춘다 */

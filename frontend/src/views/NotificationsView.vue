@@ -71,6 +71,7 @@ import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import NotificationIcon from '../components/NotificationIcon.vue'
 import { useNotificationStore } from '../stores/notification'
 import { useDialogStore } from '../stores/dialog'
+import { useToastStore } from '../stores/toast'
 import { Settings } from 'lucide-vue-next'
 import {
   getNotifications, markNotificationRead, markNotificationsRead, markAllNotificationsRead,
@@ -81,6 +82,7 @@ import { NOTIFICATION_CATEGORIES, agoText, categoryOf, groupByDate } from '../co
 import { useLiveRefresh } from '../composables/useLiveRefresh'
 
 const dialog = useDialogStore()
+const toast = useToastStore()
 
 const PAGE_SIZE = 30
 const TABS = [{ key: 'ALL', label: '전체' }, { key: 'UNREAD', label: '안 읽음' },
@@ -157,7 +159,7 @@ const removeOne = async (n) => {
     items.value = items.value.filter((x) => x.id !== n.id)
     if (!n.read) store.setUnread(store.unreadCount - 1)
   } catch (e) {
-    error.value = apiErrorMessage(e, '알림을 지우지 못했어요.')
+    toast.error(apiErrorMessage(e, '알림을 지우지 못했어요.'))
   }
 }
 
@@ -181,11 +183,10 @@ const toggleAll = () => {
 
 const run = async (action, fallback) => {
   busy.value = true
-  error.value = ''
   try {
     await action()
   } catch (e) {
-    error.value = apiErrorMessage(e, fallback)
+    toast.error(apiErrorMessage(e, fallback))
   } finally {
     busy.value = false
   }

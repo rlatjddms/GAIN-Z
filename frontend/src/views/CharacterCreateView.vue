@@ -259,7 +259,6 @@ import { Palette } from 'lucide-vue-next'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { useDialogStore } from '../stores/dialog'
 import axiosInstance from '../api/axios'
 import PixelCharacter from '../components/PixelCharacter.vue'
 import PixelSprite from '../components/PixelSprite.vue'
@@ -268,9 +267,11 @@ import { DEFAULT_COLORS } from '../pixel/palette'
 import {
   STARTER_HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS, INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS,
 } from '../constants/characterOptions'
+import { useToastStore } from '../stores/toast'
+
+const toast = useToastStore()
 
 const router = useRouter()
-const dialog = useDialogStore()
 const route = useRoute()
 const authStore = useAuthStore()
 
@@ -423,14 +424,14 @@ const handleSubmit = async () => {
     try {
       await axiosInstance.put('/api/v1/characters/me', payload)
       await authStore.fetchCharacter()
-      await dialog.alert({ title: '캐릭터를 수정했어요' })
+      toast.success('캐릭터를 수정했어요')
       router.push('/home')
     } catch (error) {
       console.error('Character update failed:', error)
       if (error.response && error.response.data && error.response.data.message) {
-        await dialog.alert({ title: '캐릭터를 수정하지 못했어요', text: error.response.data.message })
+        toast.error(`캐릭터를 수정하지 못했어요. ${error.response.data.message}`)
       } else {
-        await dialog.alert({ title: '캐릭터를 수정하지 못했어요', text: '잠시 후 다시 시도해 주세요.' })
+        toast.error('캐릭터를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.')
       }
     } finally {
       isLoading.value = false
@@ -441,7 +442,7 @@ const handleSubmit = async () => {
   try {
     await axiosInstance.post('/api/v1/characters', payload)
     await authStore.fetchCharacter()
-    await dialog.alert({ title: '캐릭터를 만들었어요', text: '합주실로 이동할게요.' })
+    toast.success('캐릭터를 만들었어요')
     router.push('/home')
   } catch (error) {
     console.error('Character creation failed:', error)
@@ -450,18 +451,18 @@ const handleSubmit = async () => {
         const responseData = error.response.data
         if (responseData && responseData.code === 'C001') {
           await authStore.fetchCharacter()
-          await dialog.alert({ title: '이미 캐릭터가 있어요', text: '합주실로 이동할게요.' })
+          toast.success('이미 캐릭터가 있어서 합주실로 이동할게요')
           router.push('/home')
         } else if (responseData && responseData.message) {
-          await dialog.alert({ title: '캐릭터를 만들지 못했어요', text: responseData.message })
+          toast.error(`캐릭터를 만들지 못했어요. ${responseData.message}`)
         } else {
-          await dialog.alert({ title: '캐릭터를 만들지 못했어요', text: '이미 쓰고 있는 닉네임이거나, 캐릭터가 이미 있어요.' })
+          toast.error('캐릭터를 만들지 못했어요. 이미 쓰고 있는 닉네임이거나, 캐릭터가 이미 있어요.')
         }
       } else {
-        await dialog.alert({ title: '캐릭터를 만들지 못했어요', text: '서버에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.' })
+        toast.error('캐릭터를 만들지 못했어요. 서버에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.')
       }
     } else {
-      await dialog.alert({ title: '서버에 연결하지 못했어요', text: '네트워크 연결을 확인하고 다시 시도해 주세요.' })
+      toast.error('서버에 연결하지 못했어요. 네트워크 연결을 확인하고 다시 시도해 주세요.')
     }
   } finally {
     isLoading.value = false
