@@ -72,6 +72,8 @@ const props = defineProps({
   initialTab: { type: String, default: 'create' },
   // 내 파트 기본값 (캐릭터 악기)
   defaultPart: { type: String, default: 'GUITAR' },
+  // 초대 코드를 미리 채워 둘 때 (친구가 보낸 밴드 초대 알림, #229)
+  initialCode: { type: String, default: '' },
 })
 // done(band): 만들거나 가입한 밴드 상세
 const emit = defineEmits(['close', 'done'])
@@ -89,7 +91,7 @@ watch(() => props.open, (open) => {
   tab.value = props.initialTab
   name.value = ''
   description.value = ''
-  code.value = ''
+  code.value = props.initialCode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, INVITE_CODE_LENGTH)
   part.value = props.defaultPart || 'GUITAR'
   error.value = ''
 })
