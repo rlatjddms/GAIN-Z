@@ -59,6 +59,8 @@
         </template>
       </WsCard>
 
+      <AppInfoCard />
+
       <WsCard title="프로필 공개 범위">
         <p class="muted">다른 사람이 내 프로필을 열었을 때 캐릭터·연습 기록·가입한 밴드·요즘 듣는 음악을 보여 줄지 정해요. 닉네임과 사진은 항상 보여요.</p>
         <div class="segment" role="radiogroup" aria-label="프로필 공개 범위">
@@ -108,6 +110,7 @@ import WithdrawModal from '../components/mypage/WithdrawModal.vue'
 import LoginMethodsCard from '../components/mypage/LoginMethodsCard.vue'
 import NotificationSettingsCard from '../components/mypage/NotificationSettingsCard.vue'
 import ThemeCard from '../components/mypage/ThemeCard.vue'
+import AppInfoCard from '../components/mypage/AppInfoCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
 import {
