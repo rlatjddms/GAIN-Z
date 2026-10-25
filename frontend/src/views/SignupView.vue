@@ -102,8 +102,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
 import AppLogo from '../components/AppLogo.vue'
+import { useWhitePage } from '../components/ui/useWhitePage'
 import { useCooldown } from '../components/ui/useCooldown'
 import { sendSignupCode, verifySignupCode, retryAfterOf, DUPLICATE_EMAIL, EMAIL_NOT_VERIFIED, MAIL_RESEND_SECONDS } from '../api/auth'
+
+useWhitePage()
 
 const router = useRouter()
 const dialog = useDialogStore()
@@ -364,6 +367,11 @@ const handleSignup = async () => {
   .signup-card-container { max-width: 360px; padding: 0; border: none; border-radius: 0; box-shadow: none; }
 }
 @media (max-width: 640px) {
+  /* 로그인 화면과 같은 너비·로고·제목 크기 (#226) */
+  .signup-card-container { max-width: 280px; }
+  .brand-header { margin-bottom: 28px; }
+  .brand-logo :deep(svg) { width: auto; height: 28px; }
+  .brand-sub { font-size: 0.85rem; }
   .gz-input { padding: 12px 14px; }
   .signup-btn-main { padding: 12px; margin-top: 24px; }
 }

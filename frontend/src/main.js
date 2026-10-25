@@ -5,11 +5,14 @@ import router from './router'
 import './styles/theme.css'
 import './styles/ui.css'
 import { useThemeStore } from './stores/theme'
+import { watchKeyboardInset } from './components/ui/keyboardInset'
 
 const app = createApp(App)
 const pinia = createPinia()
 
 app.use(pinia)
+// 휴대폰 키보드가 아래 팝업을 가리지 않게 (#226)
+watchKeyboardInset()
 // 화면이 그려지기 전에 고른 테마 색을 적용 (깜빡임 방지)
 useThemeStore(pinia).init()
 app.use(router)

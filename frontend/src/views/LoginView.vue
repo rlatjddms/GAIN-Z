@@ -42,7 +42,6 @@
         <div class="form-options">
           <label class="check-container">
             <input type="checkbox" v-model="keepLoggedIn">
-            <span class="checkmark"></span>
             로그인 상태 유지
           </label>
           <router-link to="/forgot-password" class="forgot-pw">비밀번호 찾기</router-link>
@@ -81,8 +80,11 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppLogo from '../components/AppLogo.vue'
+import { useWhitePage } from '../components/ui/useWhitePage'
 import { API_BASE_URL } from '../api/axios'
 import { socialErrorMessage } from '../api/user'
+
+useWhitePage()
 
 const router = useRouter()
 const route = useRoute()
@@ -367,9 +369,19 @@ const handleSocialLogin = (provider) => {
   .login-background-deco { display: none; }
   .login-card-container { max-width: 360px; padding: 0; border: none; border-radius: 0; box-shadow: none; }
 }
+/* 휴대폰·앱 (#226): 화면을 꽉 채우던 크기·간격을 줄여 한눈에 들어오게 */
 @media (max-width: 640px) {
-  .gz-input { padding: 12px 14px; }
-  .login-btn-main { padding: 12px; }
-  .social-btn { width: 44px; height: 44px; }
+  .login-card-container { max-width: 280px; }
+  .brand-header { margin-bottom: 28px; }
+  .brand-logo :deep(svg) { width: auto; height: 28px; }
+  .brand-sub { font-size: 0.85rem; }
+  .input-grid { gap: 10px; }
+  .gz-input { padding: 11px 14px; border-radius: 10px; }
+  .form-options { margin: 14px 2px 20px; font-size: 0.8rem; }
+  .login-btn-main { padding: 12px; border-radius: 10px; font-size: 0.95rem; }
+  .social-divider { margin: 28px 0 16px; }
+  .social-row { gap: 12px; }
+  .social-btn { width: 42px; height: 42px; border-radius: 10px; }
+  .login-footer { margin-top: 28px; font-size: 0.82rem; }
 }
 </style>
