@@ -44,12 +44,6 @@ public class BandBoardController {
                 : service.list(me.getUserId(), bandId, page, size, notice));
     }
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ApiResponse<Post> create(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
-                                    @Valid @RequestBody BandBoardRequest.Post request) {
-        return ApiResponse.success(service.create(me.getUserId(), bandId, request));
-    }
-
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<Post> createWithFiles(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
                                              @Valid @RequestPart("post") BandBoardRequest.Save request,
@@ -69,12 +63,6 @@ public class BandBoardController {
         return ApiResponse.success(service.get(me.getUserId(), bandId, postId));
     }
 
-    @PatchMapping("/{postId}")
-    public ApiResponse<Post> update(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
-                                    @PathVariable Long postId, @Valid @RequestBody BandBoardRequest.Post request) {
-        return ApiResponse.success(service.update(me.getUserId(), bandId, postId, request));
-    }
-
     @DeleteMapping("/{postId}")
     public ApiResponse<Void> delete(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId, @PathVariable Long postId) {
         service.delete(me.getUserId(), bandId, postId);
@@ -85,18 +73,6 @@ public class BandBoardController {
     public ApiResponse<Post> notice(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
                                     @PathVariable Long postId, @RequestBody BandBoardRequest.Notice request) {
         return ApiResponse.success(service.notice(me.getUserId(), bandId, postId, request.notice(), request.noticeExpiresAt()));
-    }
-
-    @PutMapping(value = "/{postId}/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<Post> attach(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
-                                    @PathVariable Long postId, @RequestPart("file") MultipartFile file) {
-        return ApiResponse.success(service.attach(me.getUserId(), bandId, postId, file));
-    }
-
-    @DeleteMapping("/{postId}/attachment")
-    public ApiResponse<Post> removeAttachment(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
-                                             @PathVariable Long postId) {
-        return ApiResponse.success(service.removeAttachment(me.getUserId(), bandId, postId));
     }
 
     @GetMapping("/{postId}/attachment")
@@ -142,18 +118,12 @@ public class BandBoardController {
                 .body(file.resource());
     }
 
-    // page를 주면 쪽 단위 (#188), 안 주면 전부
-    @GetMapping(value = "/{postId}/comments", params = "page")
+    // 댓글은 쪽 단위로 (#188)
+    @GetMapping("/{postId}/comments")
     public ApiResponse<CommentPage> commentPage(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
-                                                @PathVariable Long postId, @RequestParam int page,
+                                                @PathVariable Long postId, @RequestParam(defaultValue = "0") int page,
                                                 @RequestParam(defaultValue = "20") int size) {
         return ApiResponse.success(service.commentPage(me.getUserId(), bandId, postId, page, size));
-    }
-
-    @GetMapping("/{postId}/comments")
-    public ApiResponse<List<Comment>> comments(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
-                                               @PathVariable Long postId) {
-        return ApiResponse.success(service.comments(me.getUserId(), bandId, postId));
     }
 
     @PostMapping("/{postId}/comments")

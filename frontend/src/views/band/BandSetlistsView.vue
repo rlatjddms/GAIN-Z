@@ -425,8 +425,6 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .summary b { color:var(--c-text-2); }
 .summary em { margin-left:8px; color:var(--c-muted); font-size:.7rem; font-style:normal; }
 .empty { margin-top:16px; }
-.edit-toolbar { display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; margin-top:18px; }
-.title-field { flex:1; max-width:340px; min-width:160px; }
 .song-form,.song-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:480px; }
 .song-form { margin-top:16px; padding:16px; background:var(--c-bg); border-radius:12px; }
 label { display:flex; flex-direction:column; gap:7px; min-width:0; font-size:.75rem; font-weight:500; color:var(--c-muted); }
@@ -438,7 +436,6 @@ textarea { resize:vertical; min-height:64px; }
 select { width:100%; min-width:0; border:1px solid var(--c-line); padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; line-height:1.6; outline:none; }
 select:focus { border-color:var(--c-primary); }
 .sheet-link { border:0; background:transparent; padding:0; font-family:inherit; cursor:pointer; text-align:left; color: var(--c-primary-text); font-size:.8rem; font-weight:700; overflow-wrap:anywhere; }
-.form-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; grid-column:1 / -1; }
 .songs { margin-top:16px; }
 .song-card { border:1px solid var(--c-line); border-radius:12px; background:#fff; transition:border-color .3s, box-shadow .3s; }
 .song-card.focused { border-color:var(--c-primary); box-shadow:0 0 0 3px color-mix(in srgb, var(--c-primary) 12%, transparent); }

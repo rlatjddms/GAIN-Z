@@ -121,7 +121,6 @@ const handleLogin = async () => {
       router.push('/home')
     }
   } catch (error) {
-    console.error(error)
     if (error.response && error.response.data && error.response.data.message) {
       errorMessage.value = error.response.data.message
     } else {

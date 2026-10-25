@@ -103,14 +103,6 @@ public class BandBoardService {
         return response(findPost(bandId, postId), userId);
     }
 
-    public Post create(Long userId, Long bandId, BandBoardRequest.Post request) {
-        BandMember me = requireMember(userId, bandId);
-        BandPost post = posts.save(new BandPost(me.getBand(), me.getUser(), request.title(), request.content()));
-        notifyPost(post, me, false, null);
-        changed(bandId, post.getId(), userId);
-        return response(post, userId);
-    }
-
     // 본문·공지·첨부 변경을 한 트랜잭션으로 저장한다. 파일 오류가 나면 글도 롤백한다.
     public Post save(Long userId, Long bandId, Long postId, BandBoardRequest.Save request, List<MultipartFile> uploads) {
         BandMember me = requireMember(userId, bandId);
@@ -157,25 +149,12 @@ public class BandBoardService {
         return response(post, userId);
     }
 
-    public Post update(Long userId, Long bandId, Long postId, BandBoardRequest.Post request) {
-        BandPost post = ownPost(userId, bandId, postId);
-        String oldContent = post.getContent();
-        post.update(request.title(), request.content());
-        notifyPost(post, requireMember(userId, bandId), true, oldContent);
-        changed(bandId, postId, userId);
-        return response(post, userId);
-    }
-
     public void delete(Long userId, Long bandId, Long postId) {
         BandPost post = ownPost(userId, bandId, postId);
         post.delete();
         cleanAfterCompletion(post.getFileUrl(), true);
         post.getFiles().forEach(f -> cleanAfterCompletion(f.getKey(), true));
         changed(bandId, postId, userId);
-    }
-
-    public Post notice(Long userId, Long bandId, Long postId, boolean notice) {
-        return notice(userId, bandId, postId, notice, null);
     }
 
     public Post notice(Long userId, Long bandId, Long postId, boolean notice, Instant expiresAt) {
@@ -195,25 +174,6 @@ public class BandBoardService {
         if (notice && expiresAt != null && !expiresAt.isAfter(Instant.now())) {
             throw new BusinessException(ErrorCode.BAND_NOTICE_EXPIRY_INVALID);
         }
-    }
-
-    public Post attach(Long userId, Long bandId, Long postId, MultipartFile file) {
-        BandPost post = ownPost(userId, bandId, postId);
-        if (post.getFileUrl() == null && post.getFiles().size() >= MAX_ATTACHMENTS) throw new BusinessException(ErrorCode.BAND_FILE_LIMIT);
-        var stored = storage.store(file);
-        cleanAfterCompletion(stored.key(), false);
-        cleanAfterCompletion(post.getFileUrl(), true);
-        post.changeFile(stored.key(), stored.name(), stored.type());
-        changed(bandId, postId, userId);
-        return response(post, userId);
-    }
-
-    public Post removeAttachment(Long userId, Long bandId, Long postId) {
-        BandPost post = ownPost(userId, bandId, postId);
-        cleanAfterCompletion(post.getFileUrl(), true);
-        post.changeFile(null, null, null);
-        changed(bandId, postId, userId);
-        return response(post, userId);
     }
 
     public record AttachmentFile(Resource resource, String name, String type) {}
@@ -264,13 +224,6 @@ public class BandBoardService {
         }
         return new CommentPage(content, roots.getNumber(), roots.getTotalPages(), roots.getTotalElements(),
                 comments.countByPostIdAndContentDeletedFalse(postId));
-    }
-
-    @Transactional(readOnly = true)
-    public List<Comment> comments(Long userId, Long bandId, Long postId) {
-        requireMember(userId, bandId);
-        findPost(bandId, postId);
-        return comments.findAllByPostIdOrderByCreatedAtAscIdAsc(postId).stream().map(c -> response(c, userId)).toList();
     }
 
     public Comment addComment(Long userId, Long bandId, Long postId, BandBoardRequest.Comment request) {

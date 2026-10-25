@@ -7,7 +7,6 @@ import com.project.gainz.domain.sheet.dto.request.SheetRequest;
 import com.project.gainz.domain.sheet.dto.request.WorkspaceUpdateRequest;
 import com.project.gainz.domain.sheet.dto.response.AnnotationResponse;
 import com.project.gainz.domain.sheet.dto.response.SheetDetailResponse;
-import com.project.gainz.domain.sheet.dto.response.SheetSummaryResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceDetailResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceItemResponse;
 import com.project.gainz.domain.band.repository.SetlistItemRepository;
@@ -68,19 +67,6 @@ public class SheetService {
     private final SheetAnnotationRepository sheetAnnotationRepository;
 
     /* ---------- 악보 ---------- */
-
-    // 누구나 담을 수 있는 공용 악보 목록
-    @Transactional(readOnly = true)
-    public List<SheetSummaryResponse> getSharedSheets() {
-        return sheetMusicRepository.findAllByOwnerIsNullOrderByTitleAsc().stream()
-                .map(SheetSummaryResponse::from)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public SheetDetailResponse getSheet(Long userId, Long sheetId) {
-        return detail(findViewableSheet(userId, sheetId), userId);
-    }
 
     // 악보 파일을 올려서 악보를 만들고 보관함에 담는다 (고른 순서가 장 순서)
     public WorkspaceDetailResponse uploadSheet(Long userId, SheetRequest request, List<MultipartFile> files) {

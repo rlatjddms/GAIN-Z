@@ -244,7 +244,6 @@ import { onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import ColorSwatches from '../components/ColorSwatches.vue'
-import PixelCharacter from '../components/PixelCharacter.vue'
 import PixelSprite from '../components/PixelSprite.vue'
 import StageScene from '../components/StageScene.vue'
 import { useAuthStore } from '../stores/auth'
@@ -530,11 +529,6 @@ onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 �
   width: 64px; height: 72px; border-radius: 12px; background: var(--c-line-soft); overflow: hidden; font-size: 1.6rem;
 }
 .item-thumb i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(248, 249, 250, 0.7); font-style: normal; }
-.empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 28px 12px; border: 2px dashed var(--c-line); border-radius: 14px; }
-.empty.small { padding: 14px 12px; }
-.empty-icon { font-size: 1.8rem; }
-.empty strong { font-size: 0.85rem; font-weight: 800; color: var(--c-muted); }
-.empty p { margin: 0; font-size: 0.75rem; color: var(--c-faint); }
 .sub-section { display: flex; flex-direction: column; gap: 8px; }
 .item strong { font-size: 0.85rem; font-weight: 800; }
 .item small { font-size: 0.7rem; font-weight: 700; color: var(--c-faint); }

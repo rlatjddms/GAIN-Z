@@ -47,7 +47,6 @@
 <script setup>
 import { ref, computed } from 'vue'
 import {
-  LEVEL_TIERS,
   MAX_LEVEL,
   clampLevel,
   getLevelTier,

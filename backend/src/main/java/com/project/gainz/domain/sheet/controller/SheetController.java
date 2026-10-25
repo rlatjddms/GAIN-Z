@@ -5,7 +5,6 @@ import com.project.gainz.domain.sheet.dto.request.SheetPageOrderRequest;
 import com.project.gainz.domain.sheet.dto.request.SheetRequest;
 import com.project.gainz.domain.sheet.dto.response.AnnotationResponse;
 import com.project.gainz.domain.sheet.dto.response.SheetDetailResponse;
-import com.project.gainz.domain.sheet.dto.response.SheetSummaryResponse;
 import com.project.gainz.domain.sheet.dto.response.WorkspaceDetailResponse;
 import com.project.gainz.domain.sheet.service.SheetService;
 import com.project.gainz.domain.sheet.service.SheetService.PageFile;
@@ -41,20 +40,6 @@ import java.util.List;
 public class SheetController {
 
     private final SheetService sheetService;
-
-    // 공용 악보 목록
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<SheetSummaryResponse>>> getSharedSheets() {
-        return ResponseEntity.ok(ApiResponse.success(sheetService.getSharedSheets()));
-    }
-
-    @GetMapping("/{sheetId}")
-    public ResponseEntity<ApiResponse<SheetDetailResponse>> getSheet(
-            @PathVariable Long sheetId,
-            @AuthenticationPrincipal UserPrincipal principal
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(sheetService.getSheet(principal.getUserId(), sheetId)));
-    }
 
     // 악보 파일 올리기 (multipart: info = 곡 정보 JSON, files = 이미지·PDF 여러 장). 올리면 바로 내 보관함에 담김
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
