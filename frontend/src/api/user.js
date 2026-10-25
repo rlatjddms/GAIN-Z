@@ -116,8 +116,20 @@ export async function updateProfileMusic({ title, artist, url, artworkUrl = null
 
 // 곡 검색 (#187): Apple iTunes 검색 API를 브라우저에서 바로 부른다 (키 없음, 로그인 토큰을 보내지 않는다).
 // 한국 스토어는 음악 결과가 없어서 미국 스토어를 한국어로 찾는다. 일부 곡은 제목이 영어로 나온다
+// 아이폰은 iTunes가 음악 앱 주소(musics://)로 돌려보내서 브라우저로는 못 받는다 (#228)
+// → 브라우저로 먼저 찾고, 안 되면 백엔드가 대신 찾는다 (iTunes는 같은 IP에서 분당 약 20번까지라 모두 서버로 보내지 않는다)
 // → [{ id, title, artist, album, artworkUrl, previewUrl, url }]
 export async function searchSongs(term, signal) {
+  try {
+    return await searchSongsInBrowser(term, signal)
+  } catch (e) {
+    if (e.name === 'AbortError') throw e
+    const response = await axiosInstance.get('/api/v1/music/search', { params: { term }, signal })
+    return response.data.data
+  }
+}
+
+async function searchSongsInBrowser(term, signal) {
   const params = new URLSearchParams({ term, country: 'US', lang: 'ko_kr', media: 'music', entity: 'song', limit: '12' })
   const response = await fetch(`https://itunes.apple.com/search?${params}`, { signal })
   if (!response.ok) throw new Error('곡을 찾지 못했어요.')

@@ -54,11 +54,16 @@ const safeUrl = computed(() => (!props.compact && /^https?:\/\//i.test(props.mus
 .out { flex: none; color: var(--c-faint); }
 .profile-music.link:hover .out { color: var(--c-primary-text); }
 
-/* 목록 안 작은 한 줄 */
-.profile-music.compact { background: none; border: none; padding: 0; gap: 5px; }
-.profile-music.compact .note { width: auto; height: auto; background: none; color: var(--c-primary-text); font-size: 0.75rem; }
-.profile-music.compact .text strong { font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }
-.profile-music.compact .artist { font-size: 0.72rem; }
+/* 목록 안 작은 칩 (#228): 커버·제목·가수·미리듣기를 한 덩어리로. 내용만큼만 넓고 넘치면 제목부터 줄인다 */
+.profile-music.compact {
+  display: inline-flex; align-self: flex-start; max-width: 100%; margin-top: 4px; gap: 6px; padding: 3px 4px 3px 3px;
+  background: var(--c-primary-soft); border: none; border-radius: 999px;
+}
+.profile-music.compact .note { width: 22px; height: 22px; font-size: 0.7rem; }
+.profile-music.compact .cover { width: 22px; height: 22px; border-radius: 50%; }
+.profile-music.compact .text { flex: 0 1 auto; gap: 5px; }
+.profile-music.compact .text strong { flex: 0 1 auto; font-size: 0.74rem; font-weight: 800; color: var(--c-text-2); }
+.profile-music.compact .artist { flex: 0 10 auto; font-size: 0.7rem; }
+.profile-music.compact:not(:has(.preview-btn)) { padding-right: 10px; }
 .profile-music.compact .out { width: 12px; height: 12px; }
-.profile-music.compact .cover { width: 18px; height: 18px; border-radius: 4px; }
 </style>
