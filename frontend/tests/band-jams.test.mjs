@@ -157,7 +157,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.waitForFunction(() => document.querySelectorAll('.tracks .track').length === 2 && !document.querySelector('.tracks')?.textContent.includes('불러오는 중'))
     // 지워진 곡으로 넘어오면 알려 준다.
     await page.goto('http://127.0.0.1:4183/bands/10/setlists?item=999')
-    await page.getByRole('status').filter({ hasText: '연결한 곡이 셋리스트에서 지워졌어요' }).waitFor()
+    await page.getByRole('alert').filter({ hasText: '연결한 곡이 셋리스트에서 지워졌어요' }).waitFor()
     await page.goto('http://127.0.0.1:4183/bands/10/jams?jam=50')
     await page.waitForFunction(() => document.querySelectorAll('.tracks .track').length === 2 && !document.querySelector('.tracks')?.textContent.includes('불러오는 중'))
 
@@ -228,7 +228,8 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await take.getByRole('button', { name: '+50', exact: true }).click()
     assert.equal(Number(await page.getByLabel('새 녹음 시작 위치', { exact: true }).inputValue()), offset + 60)
     await page.getByRole('button', { name: '트랙 올리기' }).click()
-    await page.getByRole('status').filter({ hasText: '트랙을 올렸어요' }).waitFor()
+    await page.waitForFunction(() => document.querySelectorAll('.tracks .track').length === 3)
+    await take.waitFor({ state: 'detached' })
     const upload = api.state.uploads[0]
     assert.equal(upload.json.offsetMs, offset + 60)
     assert.equal(upload.json.volume, 100)
@@ -244,7 +245,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     const uploadedId = api.state.jams[0].tracks[2].id
     await page.getByRole('button', { name: `${ME} 일렉기타 트랙 삭제` }).last().click()
     await page.getByRole('dialog').getByRole('button', { name: '삭제', exact: true }).click()
-    await page.getByRole('status').filter({ hasText: '트랙을 삭제했어요' }).waitFor()
+    await page.waitForFunction(() => document.querySelectorAll('.tracks .track').length === 2)
     assert.equal(await tracks.count(), 2)
     assert.ok(!api.state.jams[0].tracks.some(t => t.id === uploadedId))
 
@@ -260,7 +261,8 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await take.getByRole('button', { name: '+1초', exact: true }).click()
     await take.getByRole('button', { name: '−10', exact: true }).click()
     await page.getByRole('button', { name: '트랙 올리기' }).click()
-    await page.getByRole('status').filter({ hasText: '트랙을 올렸어요' }).waitFor()
+    await page.waitForFunction(() => document.querySelectorAll('.tracks .track').length === 3)
+    await take.waitFor({ state: 'detached' })
     const fileUpload = api.state.uploads[1]
     assert.equal(fileUpload.name, '베이스 녹음.wav')
     assert.equal(fileUpload.body.toString('latin1', 0, 4), 'RIFF')
@@ -268,7 +270,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     assert.equal(await tracks.count(), 3)
     await page.getByRole('button', { name: `${ME} 일렉기타 트랙 삭제` }).last().click()
     await page.getByRole('dialog').getByRole('button', { name: '삭제', exact: true }).click()
-    await page.getByRole('status').filter({ hasText: '트랙을 삭제했어요' }).waitFor()
+    await page.waitForFunction(() => document.querySelectorAll('.tracks .track').length === 2)
 
     // M·S 뜻을 쉬운 말로 적어 둔다.
     assert.match(await page.locator('.legend').textContent(), /M뮤트: 끄기S솔로: 이 트랙만 듣기둘 다 내 화면에만 적용돼요/)
@@ -339,7 +341,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     // 새 잼을 지우면 남은 잼으로 돌아간다.
     await page.getByRole('button', { name: '삭제', exact: true }).first().click()
     await page.getByRole('dialog').getByRole('button', { name: '삭제', exact: true }).click()
-    await page.getByRole('status').filter({ hasText: '잼을 삭제했어요' }).waitFor()
+    await page.waitForFunction(() => document.querySelectorAll('.jam-link').length === 1)
     assert.equal(await page.locator('.jam-link').count(), 1)
     assert.match(page.url(), /jam=50/)
 
