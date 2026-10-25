@@ -7,8 +7,21 @@
       <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
       <p v-if="notice" class="status" role="status">{{ notice }}</p>
       <div class="workspace">
-        <WsCard :title="`잼 ${jams.length}`" class="sidebar">
+        <WsCard :title="`잼 ${jams.length}`" class="sidebar" :class="{ collapsed: fold.collapsed.value }">
+          <!-- 휴대폰: 목록 접기·펼치기 (#254) -->
+          <template v-if="fold.narrow.value && jams.length" #actions>
+            <button class="text-btn fold" :aria-expanded="!fold.collapsed.value" @click="fold.toggle">{{ fold.collapsed.value ? '펼치기' : '접기' }}<ChevronDown class="chevron" :class="{ open: !fold.collapsed.value }" :size="15" :stroke-width="2.4" aria-hidden="true" /></button>
+          </template>
+          <button v-if="fold.collapsed.value" class="list-summary" @click="fold.toggle">
+            <strong>{{ jam?.title || '잼을 골라 주세요' }}</strong><span>잼 {{ jams.length }}개 보기</span>
+          </button>
+          <template v-else>
           <button class="btn add-jam" :disabled="busy || recording" @click="openForm(null)">+ 잼 만들기</button>
+          <!-- 목록 검색 (#254): 잼 이름이나 연결한 곡 제목 -->
+          <label v-if="jams.length" class="list-search">
+            <Search :size="14" :stroke-width="2.4" aria-hidden="true" />
+            <input v-model="jamQuery" type="search" placeholder="잼·곡 이름 검색" aria-label="잼 검색" maxlength="40">
+          </label>
           <!-- 셋리스트 목록과 같은 도구: 즐겨찾기만 보기, 여러 개 골라 지우기 (만든 멤버·리더만 지울 수 있어서 그 잼만 고를 수 있음) -->
           <div v-if="jams.length" class="list-tools">
             <button class="chip" :class="{ on: favoritesOnly }" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly"><Star :size="14" :stroke-width="2.2" :fill="favoritesOnly ? 'currentColor' : 'none'" /> 즐겨찾기</button>
@@ -24,10 +37,14 @@
                 <span>{{ item.bpm }} BPM · 트랙 {{ item.trackCount }}</span>
                 <small v-if="item.song">셋리스트 · {{ item.song.title }}</small>
               </button>
+              <button v-if="item.canManage && !selecting" class="rename" :disabled="busy || recording" :aria-label="`${item.title} 이름 변경`" title="이름 변경" @click="openForm(item)"><Pencil :size="14" :stroke-width="2.2" /></button>
+              <!-- 수정할 수 없는 잼도 카드 폭이 같게 연필 자리를 비워 둔다 -->
+              <span v-else-if="!selecting" class="rename-space" aria-hidden="true"></span>
               <button class="star" :class="{ on: item.favorite }" :disabled="busy" :aria-pressed="item.favorite" :aria-label="`${item.title} 즐겨찾기`" @click="toggleFavorite(item)"><Star :size="16" :stroke-width="2.2" :fill="item.favorite ? 'currentColor' : 'none'" /></button>
             </li>
           </ul>
-          <p v-else class="muted">{{ favoritesOnly && jams.length ? '즐겨찾기한 잼이 없어요.' : '아직 잼이 없어요. 합주할 곡으로 잼을 만들어 보세요.' }}</p>
+          <p v-else class="muted">{{ jamQuery.trim() && jams.length ? `'${jamQuery.trim()}' 잼이 없어요.` : favoritesOnly && jams.length ? '즐겨찾기한 잼이 없어요.' : '아직 잼이 없어요. 합주할 곡으로 잼을 만들어 보세요.' }}</p>
+          </template>
         </WsCard>
 
         <WsCard :title="jam?.title || '레이어 잼'" class="detail">
@@ -183,7 +200,8 @@
 </template>
 
 <script setup>
-import { SkipBack, FileUp, Mic, Headphones, Star } from 'lucide-vue-next'
+import { SkipBack, FileUp, Mic, Headphones, Star, Pencil, Search, ChevronDown } from 'lucide-vue-next'
+import { useCollapsibleList } from '../../components/band/useCollapsibleList'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -210,7 +228,14 @@ const store = useBandStore()
 const engine = new JamEngine()
 const band = ref(null), error = ref(''), saveError = ref(''), notice = ref(''), busy = ref(false)
 const favoritesOnly = ref(false), selecting = ref(false), checkedIds = ref([])
-const visibleJams = computed(() => jams.value.filter(item => !favoritesOnly.value || item.favorite))
+// 잼 이름이나 연결한 곡 제목으로 거른다 (#254)
+const jamQuery = ref('')
+const visibleJams = computed(() => {
+  const q = jamQuery.value.trim().toLocaleLowerCase()
+  return jams.value.filter(item => (!favoritesOnly.value || item.favorite)
+    && (!q || item.title.toLocaleLowerCase().includes(q) || (item.song?.title || '').toLocaleLowerCase().includes(q)))
+})
+const fold = useCollapsibleList()
 const jams = ref([]), selectedId = ref(null), jam = ref(null), jamLoading = ref(false), tracks = ref([]), soloIds = ref([])
 const playing = ref(false), position = ref(0), metronomeOn = ref(false), countInOn = ref(true)
 const micReady = ref(false), latencyMs = ref(readLatency() ?? 0), latencyEstimate = ref(0), measuring = ref(false)
@@ -287,7 +312,9 @@ async function leaveAllowed() {
   return !take.value || dialog.confirm({ title: '올리지 않은 녹음이 있어요', text: '녹음을 버릴까요?', okText: '버리기', danger: true })
 }
 async function selectJam(id, force = false) {
-  if (!force && (id === selectedId.value || !await leaveAllowed())) return
+  if (!force && id === selectedId.value) { fold.collapseIfNarrow(); return }
+  if (!force && !await leaveAllowed()) return
+  if (!force) fold.collapseIfNarrow()
   if (recording.value) await cancelRecording()
   stopPlayback(true)
   discardTake()
@@ -530,9 +557,15 @@ async function saveForm() {
   if (!ok) { formError.value = saveError.value; saveError.value = ''; return }
   formDialog.value.close()
   if (id) {
-    Object.assign(jam.value, { title: result.title, bpm: result.bpm, song: result.song })
-    syncSummary()
-    restart()
+    // 목록 연필로 고르지 않은 잼을 고쳤으면 목록 줄만 바꾼다 (#254)
+    if (id === selectedId.value) {
+      Object.assign(jam.value, { title: result.title, bpm: result.bpm, song: result.song })
+      syncSummary()
+      restart()
+    } else {
+      const item = jams.value.find(entry => entry.id === id)
+      if (item) Object.assign(item, { title: result.title, bpm: result.bpm, song: result.song })
+    }
     notice.value = '잼을 저장했어요.'
   } else {
     jams.value.unshift({ id: result.id, title: result.title, bpm: result.bpm, song: result.song, trackCount: 0, creatorName: result.creatorName })
@@ -635,6 +668,19 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .text-btn:disabled { opacity:.45; cursor:default; }
 .star { display:inline-flex; background:transparent; border:0; color:#ced4da; cursor:pointer; padding:3px; flex:none; }
 .star.on { color:#fab005; }
+.rename { flex:none; display:flex; padding:5px; border:0; border-radius:8px; background:transparent; color:var(--c-faint); cursor:pointer; }
+.rename:hover:not(:disabled) { color:var(--c-text-2); background:var(--c-line-soft); }
+.rename-space { flex:none; width:24px; }
+/* 목록 검색·접기 (#254, 셋리스트와 같은 모양) */
+.list-search { display:flex; flex-direction:row; align-items:center; gap:7px; height:36px; padding:0 10px; margin-bottom:10px; border:1px solid var(--c-line); border-radius:10px; background:var(--c-bg); color:var(--c-faint); }
+.list-search:focus-within { border-color:var(--c-primary); background:#fff; }
+.list-search input { flex:1; min-width:0; border:none; outline:none; background:none; font:inherit; font-size:16px; color:var(--c-text); }
+.fold { display:inline-flex; align-items:center; gap:3px; }
+.chevron { transition:transform .2s; }
+.chevron.open { transform:rotate(180deg); }
+.list-summary { width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--c-primary-line); border-radius:12px; background:var(--c-primary-soft); font:inherit; text-align:left; color:var(--c-primary-text); cursor:pointer; }
+.list-summary strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.82rem; }
+.list-summary span { flex:none; font-size:.72rem; font-weight:700; color:var(--c-muted); }
 .jam-link { width:100%; display:flex; flex-direction:column; gap:5px; padding:10px 12px; text-align:left; border:1px solid var(--c-line); border-radius:12px; background:#fff; font-family:inherit; color:#343a40; cursor:pointer; overflow-wrap:anywhere; }
 .jam-link.active { background:var(--c-primary-soft); border-color:var(--c-primary-line); }
 .jam-link strong { font-size:.79rem; }
