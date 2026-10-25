@@ -368,6 +368,7 @@ const handleSocialLogin = (provider) => {
 }
 /* 휴대폰·앱 (#226): 화면을 꽉 채우던 크기·간격을 줄여 한눈에 들어오게 */
 @media (max-width: 640px) {
+  .login-card-container { max-width: 280px; }
   .brand-header { margin-bottom: 28px; }
   .brand-logo :deep(svg) { width: auto; height: 28px; }
   .brand-sub { font-size: 0.85rem; }
