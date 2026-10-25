@@ -19,13 +19,18 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import AnnotationLayer from './AnnotationLayer.vue'
+import { loadPdfjs } from './pdfjs'
 
 const props = defineProps({
   url: { type: String, required: true },
   pageId: { type: Number, required: true },
   alt: { type: String, default: '악보' },
   annotate: { type: Boolean, default: false },
+  // 이 쪽만 그린다 (크게 보기에서 쪽마다 한 화면, #231). null이면 모든 쪽
+  only: { type: Number, default: null },
 })
+// loaded(쪽 수): PDF를 열었을 때
+const emit = defineEmits(['loaded'])
 
 const root = ref(null)
 const pages = ref([])     // [{ n, w, h }] (1배 크기)
@@ -38,20 +43,6 @@ let loading = null          // 연 PDF의 불러오기 작업 (닫을 때 이걸
 const close = (task) => { try { task?.destroy() } catch { /* 이미 닫힘 */ } }
 let renderedWidth = 0
 let token = 0
-
-// pdf.js는 PDF를 열 때만 불러온다. 오래된 브라우저(iOS Safari 등)도 열리도록 legacy 빌드
-let pdfjsPromise = null
-const loadPdfjs = () => {
-  // 워커는 Vite가 .js로 묶게 한다 (.mjs는 서버에 따라 MIME 형식이 틀려서 못 여는 경우가 있음)
-  pdfjsPromise ||= Promise.all([
-    import('pdfjs-dist/legacy/build/pdf.mjs'),
-    import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker'),
-  ]).then(([pdfjs, { default: PdfWorker }]) => {
-    pdfjs.GlobalWorkerOptions.workerPort = new PdfWorker()
-    return pdfjs
-  })
-  return pdfjsPromise
-}
 
 const MAX_CANVAS_WIDTH = 2400
 
@@ -100,7 +91,8 @@ const open = async () => {
       list.push({ n, w: viewport.width, h: viewport.height })
     }
     if (mine !== token) return
-    pages.value = list
+    pages.value = props.only ? list.filter((p) => p.n === props.only) : list
+    emit('loaded', list.length)
     await nextTick()
     renderAll()
   } catch {
