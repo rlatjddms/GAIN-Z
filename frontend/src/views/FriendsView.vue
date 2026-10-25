@@ -129,6 +129,7 @@ import {
   getFriends, removeFriend, getBandMates, sendFriendRequestToBandMate, FRIEND_CODE_LENGTH,
 } from '../api/friend'
 import { apiErrorMessage } from '../api/practice'
+import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
 import { useDialogStore } from '../stores/dialog'
 
 const dialog = useDialogStore()
@@ -144,7 +145,11 @@ const actionError = ref('')
 const busyId = ref(null)
 const selectedId = ref(null)
 
-const levelText = (user) => (user.character ? `${user.character.nickname} · Lv.${user.character.level ?? 1}` : '캐릭터 없음')
+// 이름이 곧 닉네임이라(#227) 레벨과 악기만 (#228)
+const instrumentLabel = (type) => INSTRUMENT_OPTIONS.find((o) => o.value === type)?.label || ''
+const levelText = (user) => (user.character
+  ? [`Lv.${user.character.level ?? 1}`, instrumentLabel(user.character.instrumentType)].filter(Boolean).join(' · ')
+  : '캐릭터 없음')
 
 const agoText = (at) => {
   const d = new Date(at)
