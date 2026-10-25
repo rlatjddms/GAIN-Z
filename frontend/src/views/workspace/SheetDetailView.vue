@@ -32,6 +32,7 @@
             <button v-if="!tabs.length && pages.length" class="btn small" :class="{ on: annot.enabled }" :aria-pressed="annot.enabled"
                     :disabled="!annot.loaded" :title="annot.loaded ? '악보 위에 펜·형광펜으로 쓰기' : '필기를 불러오지 못했어요'"
                     @click="annot.enabled = !annot.enabled"><PenLine :size="14" :stroke-width="2.2" /> 필기</button>
+            <button v-if="!tabs.length && pages.length" class="btn small" title="화면 가득 보고 옆으로 넘기기" @click="openViewer()"><Maximize2 :size="14" :stroke-width="2.2" /> 크게 보기</button>
             <button class="btn small wide-toggle" @click="wide = !wide">{{ wide ? '메모 보이기' : '악보만 크게' }}</button>
           </div>
           <!-- 필기 도구: 악보를 내려도 위에 붙어 있다. 필기 중엔 장 위에서 스크롤 대신 그려진다 -->
@@ -47,9 +48,11 @@
             :bpm="sheet.bpm"
           />
 
-          <div v-else-if="pages.length" class="pages">
-            <figure v-for="p in pages" :key="p.id" class="page-frame" :style="{ width: `${zoom}%` }">
-              <SheetPageView :sheet-id="sheet.id" :page-id="p.id" :content-type="p.contentType" :alt="`${sheet.title} ${p.pageNumber}장`" annotate />
+          <div v-else-if="pages.length" ref="pagesBox" class="pages">
+            <figure v-for="(p, i) in pages" :key="p.id" class="page-frame" :style="{ width: `${zoom}%` }">
+              <!-- 필기 중이 아닐 때 장을 두 번 누르면 크게 보기 (#231) -->
+              <SheetPageView :sheet-id="sheet.id" :page-id="p.id" :content-type="p.contentType" :alt="`${sheet.title} ${p.pageNumber}장`" annotate
+                             @dblclick="!annot.enabled && openViewer(i)" />
               <figcaption v-if="pages.length > 1">{{ p.pageNumber }} / {{ pages.length }}</figcaption>
             </figure>
           </div>
@@ -122,11 +125,14 @@
       </nav>
     </template>
   </div>
+    <SheetViewer v-if="sheet && pages.length" :open="viewerOpen" :sheet-id="sheet.id" :pages="pages" :start-page="viewerStart"
+                 :title="sheet.title" @close="viewerOpen = false" />
   </SubPageLayout>
 </template>
 
 <script setup>
-import { Star, PenLine, Music, NotebookPen, ChevronDown } from 'lucide-vue-next'
+import { Star, PenLine, Music, NotebookPen, ChevronDown, Maximize2 } from 'lucide-vue-next'
+import SheetViewer from '../../components/workspace/SheetViewer.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -198,6 +204,22 @@ const setZoom = (d) => {
 
 /* ---------- 악보 위 필기 (#167): 쓰면 잠시 뒤 자동 저장, 나갈 때 남은 것 저장 ---------- */
 const annot = useAnnotationStore()
+
+/* ---------- 크게 보기 (#231) ---------- */
+const viewerOpen = ref(false)
+const viewerStart = ref(0)
+const pagesBox = ref(null)
+// 장을 고르지 않으면 지금 화면에 보이는 장부터
+const visiblePage = () => {
+  const frames = [...(pagesBox.value?.querySelectorAll('.page-frame') || [])]
+  const i = frames.findIndex((f) => f.getBoundingClientRect().bottom > 120)
+  return Math.max(i, 0)
+}
+const openViewer = (i = visiblePage()) => {
+  annot.enabled = false // 크게 보기에서는 밀어서 넘기므로 필기를 끈다
+  viewerStart.value = i
+  viewerOpen.value = true
+}
 annot.enabled = false
 onBeforeUnmount(() => {
   annot.enabled = false
