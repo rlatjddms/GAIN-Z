@@ -4,6 +4,9 @@ import com.project.gainz.domain.notification.enums.NotificationType;
 import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.band.dto.request.BandCreateRequest;
 import com.project.gainz.domain.band.dto.request.BandJoinRequest;
+import com.project.gainz.domain.band.dto.request.BandInviteRequest;
+import com.project.gainz.domain.friend.enums.FriendRelation;
+import com.project.gainz.domain.friend.service.FriendService;
 import com.project.gainz.domain.band.dto.request.BandLeaderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberOrderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberPartRequest;
@@ -64,6 +67,7 @@ public class BandService {
     private final UserRepository userRepository;
     private final CharacterRepository characterRepository;
     private final NotificationService notificationService;
+    private final FriendService friendService;
     private final ApplicationEventPublisher eventPublisher;
 
     /* ---------- 조회 ---------- */
@@ -192,6 +196,28 @@ public class BandService {
                 notificationService.nicknameOf(user) + " 님이 밴드에 들어왔어요", settingsUrl(band));
         eventPublisher.publishEvent(RecordCheckEvent.of(userId, RecordMetric.BANDS));
         return respond(band, me, userId);
+    }
+
+    // 친구에게 밴드 초대 (#229). 멤버면 누구나 친구에게 보낼 수 있다.
+    // 받은 친구는 알림을 눌러 초대 코드가 채워진 가입 창(홈 /home?join=코드)에서 파트를 골라 들어온다 (가입은 joinBand 그대로)
+    public void inviteFriend(Long userId, Long bandId, BandInviteRequest request) {
+        BandMember me = requireMember(userId, bandId);
+        Band band = me.getBand();
+        Long targetId = request.userId();
+        if (friendService.relationOf(userId, targetId) != FriendRelation.FRIEND) {
+            throw new BusinessException(ErrorCode.BAND_INVITE_NOT_FRIEND);
+        }
+        if (bandMemberRepository.findByBandIdAndUserId(bandId, targetId).isPresent()) {
+            throw new BusinessException(ErrorCode.BAND_INVITE_ALREADY_MEMBER);
+        }
+        if (activeMembers(bandMemberRepository.findAllByBandIdOrderByIdAsc(bandId)).size() >= MAX_MEMBERS) {
+            throw new BusinessException(ErrorCode.BAND_FULL);
+        }
+        User target = userRepository.findById(targetId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        notificationService.notify(target, NotificationType.BAND_INVITE, band.getName(),
+                notificationService.nicknameOf(me.getUser()) + " 님이 밴드에 초대했어요. 눌러서 들어가 보세요",
+                HOME_URL + "?join=" + band.getInviteCode());
     }
 
     /* ---------- 멤버 관리 ---------- */

@@ -71,6 +71,7 @@ class BandServiceTest {
     @Mock private CharacterRepository characterRepository;
 
     @Mock private NotificationService notificationService;
+    @Mock private com.project.gainz.domain.friend.service.FriendService friendService;
     @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private BandService bandService;
 
@@ -282,6 +283,69 @@ class BandServiceTest {
         verify(eventPublisher).publishEvent(RecordCheckEvent.of(OTHER_ID, RecordMetric.BANDS));
         verify(notificationService).notifyAll(eq(List.of(band.getLeader())), eq(OTHER_ID), eq(NotificationType.BAND_JOIN),
                 eq("락앤롤 베이비"), anyString(), eq("/bands/" + BAND_ID + "/settings"));
+    }
+
+    /* ---------- 친구에게 밴드 초대 (#229) ---------- */
+
+    @Test
+    void 멤버는_친구에게_초대_알림을_보내고_알림을_누르면_초대_코드_가입_창이_열린다() {
+        Fixture f = fixture();
+        User friend = user(OTHER_ID);
+        when(friendService.relationOf(MEMBER_ID, OTHER_ID)).thenReturn(com.project.gainz.domain.friend.enums.FriendRelation.FRIEND);
+        when(bandMemberRepository.findByBandIdAndUserId(BAND_ID, OTHER_ID)).thenReturn(Optional.empty());
+        when(userRepository.findById(OTHER_ID)).thenReturn(Optional.of(friend));
+        when(bandMemberRepository.findAllByBandIdOrderByIdAsc(BAND_ID)).thenReturn(f.all());
+        when(notificationService.nicknameOf(f.member().getUser())).thenReturn("기타왕");
+
+        bandService.inviteFriend(MEMBER_ID, BAND_ID, new com.project.gainz.domain.band.dto.request.BandInviteRequest(OTHER_ID));
+
+        verify(notificationService).notify(friend, NotificationType.BAND_INVITE, "락앤롤 베이비",
+                "기타왕 님이 밴드에 초대했어요. 눌러서 들어가 보세요", "/home?join=ABCD2345");
+    }
+
+    @Test
+    void 친구가_아니면_초대할_수_없다() {
+        fixture();
+        when(friendService.relationOf(MEMBER_ID, OTHER_ID)).thenReturn(com.project.gainz.domain.friend.enums.FriendRelation.SENT);
+
+        assertError(() -> bandService.inviteFriend(MEMBER_ID, BAND_ID, new com.project.gainz.domain.band.dto.request.BandInviteRequest(OTHER_ID)),
+                ErrorCode.BAND_INVITE_NOT_FRIEND);
+        verify(notificationService, never()).notify(any(), any(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void 이미_밴드에_있는_친구는_초대할_수_없다() {
+        Fixture f = fixture();
+        when(friendService.relationOf(LEADER_ID, MEMBER_ID)).thenReturn(com.project.gainz.domain.friend.enums.FriendRelation.FRIEND);
+
+        assertError(() -> bandService.inviteFriend(LEADER_ID, BAND_ID, new com.project.gainz.domain.band.dto.request.BandInviteRequest(MEMBER_ID)),
+                ErrorCode.BAND_INVITE_ALREADY_MEMBER);
+    }
+
+    @Test
+    void 인원이_찬_밴드로는_초대할_수_없다() {
+        Band band = band(user(LEADER_ID));
+        List<BandMember> full = new ArrayList<>();
+        full.add(member(100L, band, band.getLeader(), Position.LEADER, InstrumentType.GUITAR));
+        for (long i = 1; i < BandService.MAX_MEMBERS; i++) {
+            full.add(member(100L + i, band, user(100L + i), Position.MEMBER, InstrumentType.GUITAR));
+        }
+        when(bandMemberRepository.findByBandIdAndUserId(BAND_ID, LEADER_ID)).thenReturn(Optional.of(full.get(0)));
+        when(bandMemberRepository.findByBandIdAndUserId(BAND_ID, OTHER_ID)).thenReturn(Optional.empty());
+        when(bandMemberRepository.findAllByBandIdOrderByIdAsc(BAND_ID)).thenReturn(full);
+        when(friendService.relationOf(LEADER_ID, OTHER_ID)).thenReturn(com.project.gainz.domain.friend.enums.FriendRelation.FRIEND);
+
+        assertError(() -> bandService.inviteFriend(LEADER_ID, BAND_ID, new com.project.gainz.domain.band.dto.request.BandInviteRequest(OTHER_ID)),
+                ErrorCode.BAND_FULL);
+    }
+
+    @Test
+    void 밴드_멤버가_아니면_초대할_수_없다() {
+        when(bandMemberRepository.findByBandIdAndUserId(BAND_ID, OTHER_ID)).thenReturn(Optional.empty());
+        when(bandRepository.existsById(BAND_ID)).thenReturn(true);
+
+        assertError(() -> bandService.inviteFriend(OTHER_ID, BAND_ID, new com.project.gainz.domain.band.dto.request.BandInviteRequest(MEMBER_ID)),
+                ErrorCode.NOT_BAND_MEMBER);
     }
 
     @Test
