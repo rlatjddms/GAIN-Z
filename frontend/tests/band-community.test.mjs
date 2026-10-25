@@ -4,8 +4,10 @@ import { spawn } from 'node:child_process'
 import { readFile, mkdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { confirmAppDialog } from './appDialog.mjs'
 
 // 실제 서버 대신 API 응답을 고정해 UI 동작과 실패 후 재시도를 검증한다
+// 앱 확인창(components/ui/AppDialog.vue)도 <dialog>라 늘 붙어 있다. 게시글 창은 dialog.post-dialog로 찾는다
 const origin = 'http://127.0.0.1:4179'
 let vite
 let browser
@@ -115,7 +117,15 @@ async function fixture(t, options = {}) {
       return route.fulfill({ headers, contentType: 'image/png', body: photo })
     }
     if (suffix === '/comments') {
-      if (method === 'GET') return respond(state.comments)
+      if (method === 'GET') {
+        // 댓글 한 쪽 (#188, 백엔드 BandBoardService.commentPage와 같은 모양): 최근 원댓글부터 size개, 쪽 안은 오래된 순, 답글은 원댓글 바로 뒤
+        const number = Number(url.searchParams.get('page') || 0)
+        const size = Number(url.searchParams.get('size') || 20)
+        const roots = state.comments.filter(c => c.parentId == null).sort((a, b) => b.id - a.id)
+        const content = roots.slice(number * size, (number + 1) * size).reverse()
+          .flatMap(root => [root, ...state.comments.filter(c => c.parentId === root.id).sort((a, b) => a.id - b.id)])
+        return respond({ content, number, totalPages: Math.ceil(roots.length / size), totalElements: roots.length, commentCount: state.comments.filter(c => !c.deleted).length })
+      }
       const comment = { id: 102 + state.comments.length, ...request.postDataJSON(), author, mine: true, deleted: false, createdAt: '2026-10-16T12:20:00' }
       state.comments.push(comment)
       return respond(comment)
@@ -166,10 +176,10 @@ test('홈에서 더 보기와 상세 열기, 상단바 유지, 작성자 우선,
   await page.locator('.community .post').first().waitFor()
   const header = await page.locator('.main-header').innerHTML()
   assert.equal(await page.getByText('전체 보기', { exact: true }).count(), 0)
-  await page.getByRole('button', { name: /이야기 더 보기/ }).click()
-  await page.waitForFunction(() => document.querySelectorAll('.community .post').length === 14)
-  await page.getByRole('button', { name: /이야기 더 보기/ }).click()
-  await page.waitForFunction(() => document.querySelectorAll('.community .post').length === 21)
+  // 더 보기 대신 페이지 번호 (#188): 공지 1개를 뺀 21개를 12개씩
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
+  await page.getByRole('navigation', { name: '페이지' }).getByRole('button', { name: '2', exact: true }).click()
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 9)
   await page.locator('.community .post').filter({ has: page.getByRole('heading', { name: '합주 이야기 2', exact: true }) }).click()
   await page.locator('.post-detail .post-title').waitFor()
   assert.equal(await page.locator('.main-header').innerHTML(), header)
@@ -181,8 +191,9 @@ test('홈에서 더 보기와 상세 열기, 상단바 유지, 작성자 우선,
   await page.locator('.post-detail .media-frame img').waitFor()
   await screenshot(page, 'community-detail-desktop')
   await page.getByRole('button', { name: '게시글 창 닫기' }).click()
-  await page.waitForFunction(() => !document.querySelector('dialog'))
-  assert.equal(await page.locator('.community .post').count(), 21)
+  await page.waitForFunction(() => !document.querySelector('dialog.post-dialog'))
+  // 닫으면 보던 쪽(2쪽) 그대로
+  assert.equal(await page.locator('.community .post').count(), 9)
   assert.equal(await page.evaluate(() => document.body.style.overflow), '')
   assert.deepEqual(errors, [])
 })
@@ -205,7 +216,7 @@ test('작성 중 사진·영상 미리보기, 공지와 여러 첨부 저장 및
   await page.locator('.dialog-scroll').evaluate(e => { e.scrollTop = 0 })
   await screenshot(page, 'community-editor-desktop')
   await page.setViewportSize({ width: 390, height: 844 })
-  assert.equal(await page.locator('dialog').evaluate(e => e.scrollWidth <= e.clientWidth), true)
+  assert.equal(await page.locator('dialog.post-dialog').evaluate(e => e.scrollWidth <= e.clientWidth), true)
   await screenshot(page, 'community-editor-mobile')
   await page.locator('.dialog-scroll').evaluate(e => { e.scrollTop = e.scrollHeight })
   await screenshot(page, 'community-editor-mobile-files')
@@ -254,7 +265,6 @@ test('저장 실패 시 입력과 첨부 유지, 재시도는 완성된 글 하�
 
 test('댓글·대댓글 작성과 수정, 삭제된 부모 아래 대댓글 보존', async t => {
   const { page, state, errors } = await fixture(t)
-  page.on('dialog', dialog => dialog.accept())
   await page.goto(`${origin}/home?band=10&post=2`)
   await page.locator('.comment').first().waitFor()
   await page.locator('.comment').first().getByRole('button', { name: '답글 달기' }).click()
@@ -269,6 +279,7 @@ test('댓글·대댓글 작성과 수정, 삭제된 부모 아래 대댓글 보�
   await page.getByText('템포 110부터 시작해요', { exact: true }).waitFor()
   await page.locator('.comment').first().locator('summary').click()
   await page.locator('.comment').first().getByRole('button', { name: '삭제', exact: true }).click()
+  await confirmAppDialog(page, '삭제')
   await page.getByText('삭제된 댓글이에요.', { exact: true }).waitFor()
   assert.equal(await page.getByText('템포 110부터 시작해요', { exact: true }).count(), 1)
   assert.deepEqual(errors, [])
@@ -309,12 +320,12 @@ test('첨부 개수 제한과 작성 중 닫기 확인, Escape와 스크롤 복�
   await page.locator('input[type=file]').setInputFiles(Array.from({ length: 9 }, (_, i) => ({ name: `${i}.png`, mimeType: 'image/png', buffer: photo })))
   await page.getByRole('alert').filter({ hasText: '최대 8개' }).waitFor()
   assert.equal(await page.locator('.file-tile').count(), 0)
-  page.once('dialog', dialog => dialog.dismiss())
   await page.keyboard.press('Escape')
-  assert.equal(await page.locator('dialog[open]').count(), 1)
-  page.once('dialog', dialog => dialog.accept())
+  await confirmAppDialog(page, '취소')
+  assert.equal(await page.locator('dialog.post-dialog[open]').count(), 1)
   await page.keyboard.press('Escape')
-  await page.waitForFunction(() => !document.querySelector('dialog'))
+  await confirmAppDialog(page, '닫기')
+  await page.waitForFunction(() => !document.querySelector('dialog.post-dialog'))
   assert.equal(await page.evaluate(() => document.body.style.overflow), '')
   assert.deepEqual(errors, [])
 })
@@ -332,15 +343,14 @@ test('기존 게시판 주소는 홈으로 연결하고 목록 오류를 재시�
 
 test('내 글 필터는 전체 페이지에 적용하고 카드에서 바로 수정·삭제', async t => {
   const { page, state, errors } = await fixture(t, { posts: Array.from({ length: 20 }, (_, i) => makePost(i + 1, { mine: i < 9, notice: false })) })
-  page.on('dialog', dialog => dialog.accept())
   await page.goto(`${origin}/home?band=10`)
   await page.locator('.community .post').first().waitFor()
-  assert.equal(await page.locator('.card-menu').count(), 0)
+  // 글 관리 메뉴는 내 글에만 붙는다. 1쪽(20~9번)에서 내 글은 9번 하나
+  assert.deepEqual(await page.locator('.card-menu').evaluateAll(menus => menus.map(m => m.closest('.post')?.querySelector('h3, h4, .post-title')?.textContent.trim())), ['합주 이야기 9'])
   await page.getByRole('button', { name: '내가 쓴 글', exact: true }).click()
   await page.waitForFunction(() => document.querySelector('.post-total')?.textContent.trim() === '9')
-  assert.equal(await page.locator('.community .post').count(), 7)
-  await page.getByRole('button', { name: /이야기 더 보기/ }).click()
-  await page.waitForFunction(() => document.querySelectorAll('.community .post').length === 9)
+  // 한 쪽 12개라 내 글 9개가 한 번에 보인다 (#188)
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 9)
   await page.getByLabel('합주 이야기 9 글 관리').click()
   const menuStyle = await page.getByLabel('합주 이야기 9 글 관리').evaluate(el => {
     const style = getComputedStyle(el)
@@ -355,6 +365,7 @@ test('내 글 필터는 전체 페이지에 적용하고 카드에서 바로 수
   assert.match(page.url(), /mine=1/)
   await page.getByLabel('내 글 수정 완료 글 관리').click()
   await page.getByRole('button', { name: '글 삭제', exact: true }).click()
+  await confirmAppDialog(page, '삭제')
   await page.waitForFunction(() => document.querySelector('.post-total')?.textContent.trim() === '8')
   assert.equal(state.posts.some(p => p.id === 9), false)
   await screenshot(page, 'community-my-posts')

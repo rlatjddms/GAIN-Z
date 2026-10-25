@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { mkdir } from 'node:fs/promises'
 import { chromium } from 'playwright'
+import { confirmAppDialog } from './appDialog.mjs'
 
 // 셋리스트 API를 메모리에서 흉내 낸다. 응답 모양은 백엔드 SetlistResponse와 같다.
 function createSetlistApi() {
@@ -141,8 +142,8 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
     const savesBeforeCancel = api.state.saves
     await songs.first().getByRole('button', { name: '첫 곡 수정', exact: true }).click()
     await songs.first().getByPlaceholder('합주 메모를 적어주세요').fill('취소할 메모')
-    page.once('dialog', dialog => dialog.accept())
     await songs.first().getByRole('button', { name: '취소', exact: true }).click()
+    await confirmAppDialog(page, '버리기')
     assert.equal(await songs.first().locator('.read-memo').textContent(), '후렴 반복')
     assert.equal(api.state.saves, savesBeforeCancel)
     // 첨부를 남긴 채 메모만 고쳐도 기존 첨부는 유지된다.
@@ -180,7 +181,7 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
     assert.doesNotMatch(await songs.nth(1).locator('.read-section').first().textContent(), /연결한 악보가 없어요/)
     await songs.first().locator('.song-toggle').click()
     assert.match(await songs.first().locator('.read-section').first().textContent(), /연결한 악보가 없어요/)
-    await songs.nth(1).getByRole('button', { name: 'Hysteria 보기 →' }).click()
+    await songs.nth(1).getByRole('button', { name: 'Hysteria 보기', exact: true }).click()
     await page.waitForURL('**/sheets/70')
     await page.goBack()
     await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
@@ -189,7 +190,7 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
     await page.reload()
     await page.getByRole('button', { name: '첫 곡 수정', exact: true }).waitFor()
     await songs.nth(1).locator('.song-toggle').click()
-    const openStarlight = songs.nth(1).getByRole('button', { name: 'Starlight 보기 →' })
+    const openStarlight = songs.nth(1).getByRole('button', { name: 'Starlight 보기', exact: true })
     await openStarlight.click()
     const ask = page.getByRole('dialog', { name: '보관함에 저장하시겠습니까?' })
     await ask.waitFor()
@@ -226,14 +227,18 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
     await page.getByRole('button', { name: '정기 합주 수정 즐겨찾기', exact: true }).click()
     await page.waitForFunction(() => !document.querySelector('.workspace').inert)
     assert.equal(api.state.lists[1].favorite, true)
-    await page.getByRole('button', { name: '☆ 즐겨찾기', exact: true }).click()
+    // 즐겨찾기만 보기: 별은 선 아이콘(#138)이고 켜졌는지는 aria-pressed로 본다
+    const favoritesOnly = page.getByRole('button', { name: '즐겨찾기', exact: true })
+    assert.equal(await favoritesOnly.getAttribute('aria-pressed'), 'false')
+    await favoritesOnly.click()
+    assert.equal(await favoritesOnly.getAttribute('aria-pressed'), 'true')
     assert.equal(await entries.count(), 1)
     await entries.first().locator('.list-link').click()
-    await page.getByRole('button', { name: '★ 즐겨찾기', exact: true }).click()
+    await favoritesOnly.click()
     await page.getByRole('button', { name: '모두 펼치기', exact: true }).click()
     // 곡 삭제는 확인한 뒤 서버에서 지운다.
-    page.once('dialog', dialog => dialog.accept())
     await page.getByRole('button', { name: '둘째 곡 삭제', exact: true }).click()
+    await confirmAppDialog(page, '삭제')
     await page.getByRole('button', { name: '둘째 곡 수정', exact: true }).waitFor({ state: 'detached' })
     assert.deepEqual(api.state.lists[1].items.map(item => item.title), ['첫 곡'])
     await mkdir(new URL('../test-results/', import.meta.url), { recursive: true })
@@ -246,9 +251,10 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
     // 스타일이 빠지면 카드 테두리·멤버 칩·대화상자 모양이 깨지므로 대표 규칙이 적용됐는지 본다.
     const styles = await page.evaluate(() => {
       const css = selector => getComputedStyle(document.querySelector(selector))
-      return { card: css('.song-card').borderTopStyle, chip: css('.member-option').borderRadius, dialog: css('.setlist-dialog').borderRadius, head: css('.song-head').display }
+      // 대화상자 둥글기는 공통 값(--radius-xl)을 따라 바뀔 수 있어서 0이 아닌지만 본다
+      return { card: css('.song-card').borderTopStyle, chip: css('.member-option').borderRadius, dialogRounded: parseFloat(css('.setlist-dialog').borderRadius) > 0, head: css('.song-head').display }
     })
-    assert.deepEqual(styles, { card: 'solid', chip: '20px', dialog: '18px', head: 'flex' })
+    assert.deepEqual(styles, { card: 'solid', chip: '20px', dialogRounded: true, head: 'flex' })
     await screenshot('setlists-song-edit-desktop')
     for (const width of [375, 760, 1040]) {
       await page.setViewportSize({ width, height: 900 })
