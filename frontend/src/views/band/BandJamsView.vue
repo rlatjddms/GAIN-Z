@@ -127,7 +127,9 @@
                   <label class="check"><input v-model="countInOn" type="checkbox" :disabled="recording"> 한 마디 카운트인</label>
                   <button v-if="!recording" class="btn record" :disabled="busy || measuring || uploading || trackLimitReached" @click="startRecording">● 녹음 시작</button>
                   <button v-else class="btn record on" @click="stopRecording">■ 녹음 끝내기</button>
-                  <span v-if="recording" class="rec-time" role="status">녹음 중 {{ formatTime(position) }}</span>
+                  <!-- 카운트인 중에는 녹음 시작까지 남은 박을 4·3·2·1로 크게 (#234) -->
+                  <span v-if="recording && countInBeat" class="count-in" role="status" :aria-label="`녹음 시작까지 ${countInLeft}박`">{{ countInLeft }}</span>
+                  <span v-else-if="recording" class="rec-time" role="status">녹음 중 {{ formatTime(position) }}</span>
                 </div>
                   </template>
                 </div>
@@ -213,6 +215,10 @@ const jams = ref([]), selectedId = ref(null), jam = ref(null), jamLoading = ref(
 const playing = ref(false), position = ref(0), metronomeOn = ref(false), countInOn = ref(true)
 const micReady = ref(false), latencyMs = ref(readLatency() ?? 0), latencyEstimate = ref(0), measuring = ref(false)
 const recording = ref(false), take = ref(null), uploading = ref(false), uploadProgress = ref(0)
+// 한 마디 카운트인 박 수, 지금 몇 번째 박인지 (카운트인 중이 아니면 0)
+const COUNT_IN_BEATS = 4
+const countInBeat = ref(0)
+const countInLeft = computed(() => COUNT_IN_BEATS - countInBeat.value + 1)
 const formDialog = ref(null), form = ref({}), formError = ref(''), setlistSongs = ref([]), songQuery = ref(''), songsLoading = ref(false)
 const deleteDialog = ref(null), deleteTarget = ref(null)
 let session = null, frame = 0, request = 0, jamRequest = 0
@@ -326,6 +332,7 @@ function syncSummary() {
 
 function tick() {
   position.value = engine.position
+  countInBeat.value = recording.value && countInOn.value ? engine.countInBeat(jam.value?.bpm, COUNT_IN_BEATS) : 0
   if (playing.value) frame = requestAnimationFrame(tick)
 }
 async function startPlayback(from) {
@@ -419,7 +426,7 @@ async function startRecording() {
   stopPlayback(true)
   saveError.value = notice.value = ''
   try {
-    session = await engine.record(tracks.value.filter(track => track.buffer), soloIds.value, { bpm: jam.value.bpm, metronome: metronomeOn.value, countIn: countInOn.value ? 4 : 0 })
+    session = await engine.record(tracks.value.filter(track => track.buffer), soloIds.value, { bpm: jam.value.bpm, metronome: metronomeOn.value, countIn: countInOn.value ? COUNT_IN_BEATS : 0 })
     recording.value = true
     playing.value = true
     frame = requestAnimationFrame(tick)
@@ -441,6 +448,7 @@ async function finishSession() {
   session = null
   recording.value = false
   playing.value = false
+  countInBeat.value = 0
   cancelAnimationFrame(frame)
   const blob = await current.stop()
   position.value = 0
@@ -657,6 +665,7 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .offset input { width:96px; border:1px solid var(--c-line); padding:5px 8px; border-radius:8px; font-family:inherit; font-size:.76rem; color:#343a40; outline:none; }
 .remove { border:0; background:transparent; color:var(--c-faint); font-size:20px; cursor:pointer; padding:2px 6px; }
 .remove:hover:not(:disabled) { color:var(--c-danger); }
+.count-in { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; background:#fff0f0; color:#e03131; font-size:1.5rem; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; }
 .nudge { display:flex; align-items:flex-end; flex-wrap:wrap; gap:6px; }
 .nudge .btn { min-height:30px; padding:5px 9px; }
 .take-hint { flex-basis:100%; margin:0; font-size:.7rem; color:var(--c-muted); }
@@ -714,7 +723,10 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .more { margin:0; font-size:.72rem; }
 @media (max-width: 860px) {
   .workspace { grid-template-columns:minmax(0,1fr); }
-  .track { align-items:flex-start; }
+  .track { align-items:flex-start; position:relative; }
+  /* 줄이 바뀌면 삭제(×)가 아래로 밀려나서 카드 오른쪽 위에 둔다 (#234) */
+  .remove { position:absolute; top:6px; right:6px; }
+  .track-name { padding-right:28px; }
   .volume input { width:100px; }
   .add-ways { grid-template-columns:minmax(0,1fr); }
 }

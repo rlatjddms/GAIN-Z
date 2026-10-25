@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  audibleTracks, detectOnsets, encodeWav, estimateLatencyMs, formatTime, pickRecordingType,
+  audibleTracks, countInBeatAt, detectOnsets, encodeWav, estimateLatencyMs, formatTime, pickRecordingType,
   recordedOffsetMs, recordingExtension, timelineLength, trackSchedule,
 } from '../src/audio/jamAudio.js'
 
@@ -78,4 +78,17 @@ test('녹음 형식은 서버가 받는 것 중 브라우저가 되는 것을 �
   assert.equal(recordingExtension('audio/mp4'), 'm4a')
   assert.equal(recordingExtension('audio/webm;codecs=opus'), 'webm')
   assert.equal(formatTime(65.25), '1:05.3')
+})
+
+test('카운트인 중 지금 몇 번째 박인지 알려 준다', () => {
+  // 120 BPM 4박: 박마다 0.5초, 첫 클릭은 반주 2초 전. left = 반주까지 남은 초
+  assert.equal(countInBeatAt(2.1, 120, 4), 0)  // 첫 클릭 전
+  assert.equal(countInBeatAt(2.0, 120, 4), 1)
+  assert.equal(countInBeatAt(1.6, 120, 4), 1)
+  assert.equal(countInBeatAt(1.5, 120, 4), 2)
+  assert.equal(countInBeatAt(0.8, 120, 4), 3)
+  assert.equal(countInBeatAt(0.01, 120, 4), 4)
+  assert.equal(countInBeatAt(0, 120, 4), 0)    // 반주 시작
+  assert.equal(countInBeatAt(1, 120, 0), 0)    // 카운트인 끔
+  assert.equal(countInBeatAt(1, 0, 4), 0)
 })

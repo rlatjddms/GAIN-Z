@@ -1,4 +1,4 @@
-import { audibleTracks, detectOnsets, encodeWav, estimateLatencyMs, pickRecordingType, timelineLength, trackSchedule } from './jamAudio'
+import { audibleTracks, countInBeatAt, detectOnsets, encodeWav, estimateLatencyMs, pickRecordingType, timelineLength, trackSchedule } from './jamAudio'
 import { allowSoundInSilentMode, pauseSilentAudio, resetSilentMode, setAudioSession } from './silentMode'
 
 const LEAD = 0.12 // 예약한 소리가 늦지 않게 지금보다 조금 뒤에 시작한다
@@ -31,6 +31,11 @@ export class JamEngine {
 
   get position() {
     return this.playing ? this.from + Math.max(0, this.ctx.currentTime - this.startedAt) : this.from
+  }
+
+  // 카운트인 중이면 지금 몇 번째 박인지(1부터), 아니면 0 (#234). 첫 클릭 전 잠깐도 0
+  countInBeat(bpm, countIn) {
+    return this.playing ? countInBeatAt(this.startedAt - this.ctx.currentTime, bpm, countIn) : 0
   }
 
   // 출력·입력 지연 합(ms). 기기가 알려 주는 값이라 오차가 있다
