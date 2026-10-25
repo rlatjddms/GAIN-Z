@@ -10,11 +10,6 @@ export async function getMyInfo() {
   return response.data.data
 }
 
-export async function updateMyName(name) {
-  const response = await axiosInstance.patch('/api/v1/users/me', { name })
-  return response.data.data
-}
-
 // 비밀번호가 있는 계정만
 export async function changePassword({ currentPassword, newPassword }) {
   await axiosInstance.patch('/api/v1/users/me/password', { currentPassword, newPassword })

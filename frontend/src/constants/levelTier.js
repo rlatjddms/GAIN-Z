@@ -13,7 +13,6 @@ export const LEVEL_TIERS = [
   {
     key: 'ROOKIE',
     floorY: 58,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
-    name: '방구석 락스타',
     minLevel: 1,
     maxLevel: 9,
     background: rookieStage,
@@ -27,7 +26,6 @@ export const LEVEL_TIERS = [
   {
     key: 'RISING',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
-    name: '동네 클럽 신예',
     minLevel: 10,
     maxLevel: 19,
     background: clubStage,
@@ -41,7 +39,6 @@ export const LEVEL_TIERS = [
   {
     key: 'PRO',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
-    name: '투어 뮤지션',
     minLevel: 20,
     maxLevel: 29,
     background: concertStage,
@@ -55,7 +52,6 @@ export const LEVEL_TIERS = [
   {
     key: 'LEGEND',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
-    name: '전설의 락스타',
     minLevel: 30,
     maxLevel: 30,
     background: legendStage,
@@ -74,7 +70,6 @@ export const STAGE_BACKGROUNDS = [
   {
     key: 'LISTENING_ROOM',
     floorY: 58,
-    name: '리스닝 룸',
     background: listeningStage,
     accent: '#ae3ec9',
     accentSoft: '#f8f0fc',

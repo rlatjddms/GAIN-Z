@@ -5,12 +5,11 @@
     :style="stageStyle"
   >
     <div v-if="!bare" class="stage-head">
-      <!-- 레벨·칭호 줄 왼쪽 끝에 붙일 것 (홈: 요즘 듣는 음악) -->
+      <!-- 레벨·닉네임 줄 왼쪽 끝에 붙일 것 (홈: 요즘 듣는 음악) -->
       <slot name="head-start" />
-      <!-- 레벨·칭호는 언제나 무대 가운데 -->
+      <!-- 레벨·닉네임은 언제나 무대 가운데 -->
       <div class="head-center">
         <div class="level-tag">Lv.{{ level }} {{ nickname }}</div>
-        <div class="tier-badge">{{ tier.name }}</div>
       </div>
     </div>
 
@@ -61,7 +60,7 @@ const props = defineProps({
   // 옷장 미리보기에서 방 꾸미기 소품을 끌어 옮기기 → decor-move(key, x, y)
   decorEditable: { type: Boolean, default: false },
   character: { type: Object, default: null },
-  // 캐릭터와 배경만 (옷장 미리보기용: 레벨·칭호·경험치 숨김)
+  // 캐릭터와 배경만 (옷장 미리보기용: 레벨·닉네임·경험치 숨김)
   bare: { type: Boolean, default: false },
   // 무대 중 보여 줄 가로 폭 (무대 도트 기준). 작게 주면 캐릭터 쪽만 카메라처럼 잘라서 보여 준다
   viewWidth: { type: Number, default: 208 },
@@ -74,7 +73,7 @@ const level = computed(() => clampLevel(props.character?.level ?? 1))
 // 기록을 줄여 경험치를 되돌리면 음수(부족분)일 수 있다. 막대는 0부터, 문구로 부족분을 알려 준다
 const rawExp = computed(() => Number(props.character?.exp) || 0)
 const exp = computed(() => Math.max(0, rawExp.value))
-const nickname = computed(() => props.character?.nickname || '방구석 락스타')
+const nickname = computed(() => props.character?.nickname || '')
 
 const tier = computed(() => getLevelTier(level.value))
 const nextTier = computed(() => getNextTier(level.value))
@@ -86,7 +85,7 @@ const expLabel = computed(() => {
   if (rawExp.value < 0) return `EXP 0 / ${required} · 줄인 기록만큼 ${-rawExp.value} EXP를 더 채워야 해요`
   const base = `EXP ${exp.value} / ${required}`
   if (!nextTier.value) return base
-  return `${base} · 다음 무대 「${nextTier.value.name}」까지 Lv.${nextTier.value.minLevel}`
+  return `${base} · 다음 무대까지 Lv.${nextTier.value.minLevel}`
 })
 
 const character = computed(() => props.character)
@@ -115,7 +114,7 @@ const stageStyle = computed(() => ({
   overflow: hidden;
 }
 
-/* 레벨·칭호(위)와 경험치(아래)는 장면 위에 얹는다 */
+/* 레벨·닉네임(위)와 경험치(아래)는 장면 위에 얹는다 */
 .stage-head,
 .exp-area {
   position: absolute;
@@ -141,17 +140,6 @@ const stageStyle = computed(() => ({
   font-weight: 800;
   color: var(--accent);
   background: var(--accent-soft);
-}
-.tier-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: #fff;
-  background: var(--accent);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .character-stage :deep(.actor) { cursor: pointer; }
@@ -248,12 +236,12 @@ const stageStyle = computed(() => ({
   .aura { animation: none; }
 }
 
-/* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래(흰 바탕)로 뺀다 (레벨·칭호 줄 → 장면 → 경험치 줄)
-   레벨·칭호 줄: 왼쪽 끝 head-start, 오른쪽에 레벨·칭호 / 경험치 줄: 가운데 막대·문구, 오른쪽 끝 exp-end */
+/* 좁은 화면: 장면이 작아서 글씨는 장면 위·아래(흰 바탕)로 뺀다 (레벨·닉네임 줄 → 장면 → 경험치 줄)
+   레벨·닉네임 줄: 왼쪽 끝 head-start, 오른쪽에 레벨·닉네임 / 경험치 줄: 가운데 막대·문구, 오른쪽 끝 exp-end */
 @media (max-width: 640px) {
   .character-stage { color: var(--c-text); display: flex; flex-direction: column; }
   .stage-head, .exp-area { position: static; transform: none; margin: 0; }
-  /* 왼쪽 칸(음악) · 가운데 칸(레벨·칭호) · 오른쪽 빈 칸: 양쪽 칸 폭이 같아서 레벨·칭호가 늘 가운데 */
+  /* 왼쪽 칸(음악) · 가운데 칸(레벨·닉네임) · 오른쪽 빈 칸: 양쪽 칸 폭이 같아서 레벨·닉네임이 늘 가운데 */
   .stage-head {
     order: 1; width: auto; box-sizing: border-box; padding: 12px 10px 8px;
     display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 4px;
@@ -267,12 +255,11 @@ const stageStyle = computed(() => ({
   }
   .exp-main { grid-column: 2; width: auto; }
   .exp-area > :deep(*:not(.exp-main)) { grid-column: 3; justify-self: end; }
-  .level-tag, .tier-badge {
+  .level-tag {
     display: inline-flex; align-items: center; height: 28px; padding: 0 9px; box-sizing: border-box;
     border-radius: 999px; font-size: 0.75rem; line-height: 1;
   }
   .level-tag { font-weight: 800; min-width: 0; display: block; line-height: 28px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tier-badge { flex: none; box-shadow: none; }
   .exp-text { text-shadow: none; }
   .speech-bubble { white-space: normal; width: max-content; max-width: 180px; }
 }

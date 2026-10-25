@@ -3,7 +3,7 @@
     <template #actions>
       <span v-if="savedMessage" class="saved">{{ savedMessage }}</span>
       <button class="btn" :disabled="!dirty || saving" @click="reset">되돌리기</button>
-      <button class="btn primary" :disabled="!dirty || saving || !!nicknameError" @click="save">{{ saving ? '저장 중…' : '저장' }}</button>
+      <button class="btn primary" :disabled="!dirty || saving" @click="save">{{ saving ? '저장 중…' : '저장' }}</button>
     </template>
     <div class="page">
       <p v-if="error" class="error">{{ error }}</p>
@@ -28,12 +28,6 @@
 
           <!-- 외형 -->
           <div v-if="tab === 'look'" class="tab-body">
-            <label class="field">
-              <span class="label">닉네임</span>
-              <input v-model="draft.nickname" class="input" maxlength="10">
-              <span v-if="nicknameError" class="warn">{{ nicknameError }}</span>
-            </label>
-
             <div class="field">
               <span class="label">성별</span>
               <div class="chips">
@@ -262,7 +256,7 @@ import { apiErrorMessage } from '../api/practice'
 import { getLevelTier } from '../constants/levelTier'
 import {
   GENDER_OPTIONS, HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS,
-  INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS, nicknameProblem,
+  INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS,
 } from '../constants/characterOptions'
 import { DEFAULT_COLORS, HEAD_REGION } from '../pixel/palette'
 import { outfitSpriteName } from '../pixel/sprites'
@@ -306,6 +300,7 @@ const authStore = useAuthStore()
 const tab = ref('look')
 
 // 저장된 상태와 지금 고르는 중인 상태
+// 닉네임은 마이페이지에서만 바꾼다 (#227). 외형 수정 API에 지금 닉네임을 그대로 보낸다
 const APPEARANCE_KEYS = ['nickname', 'gender', 'skinColor', 'hairStyle', 'hairColor', 'instrumentType', 'instrumentColor']
 const original = ref(null)
 const draft = reactive({
@@ -385,7 +380,6 @@ const wardrobeDirty = computed(() => !!original.value && wardrobeLoaded.value
   && (WARDROBE_KEYS.some((k) => draft[k] !== original.value[k])
     || LIST_KEYS.some((k) => JSON.stringify(draft[k]) !== JSON.stringify(original.value[k]))))
 const dirty = computed(() => appearanceDirty.value || wardrobeDirty.value)
-const nicknameError = computed(() => (appearanceDirty.value ? nicknameProblem(draft.nickname) : ''))
 
 const clothes = computed(() => outfits.value.filter((o) => o.category === 'CLOTHES'))
 
@@ -430,14 +424,13 @@ const save = async () => {
   try {
     if (appearanceDirty.value) {
       const body = Object.fromEntries(APPEARANCE_KEYS.map((k) => [k, draft[k]]))
-      await updateAppearance({ ...body, nickname: draft.nickname.trim() })
+      await updateAppearance(body)
     }
     if (wardrobeDirty.value) {
       await updateWardrobe(Object.fromEntries([...WARDROBE_KEYS, ...LIST_KEYS].map((k) => [k, draft[k]])))
     }
     await authStore.fetchCharacter()
-    original.value = { ...draft, nickname: draft.nickname.trim() }
-    draft.nickname = original.value.nickname
+    original.value = { ...draft }
     savedMessage.value = '저장했어요'
     setTimeout(() => { savedMessage.value = '' }, 3000)
   } catch (e) {

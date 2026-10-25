@@ -9,12 +9,12 @@
           <div v-else-if="!profile" class="loading">불러오는 중…</div>
 
           <template v-else>
-            <!-- 사진·이름·닉네임, 오른쪽에 친구 관계 버튼 -->
+            <!-- 사진·닉네임·레벨, 오른쪽에 친구 관계 버튼 -->
             <header class="head">
               <ProfileAvatar :src="profile.profileImageUrl" :size="56" :alt="`${profile.name} 프로필 사진`" />
               <div class="who">
                 <h2 id="profile-title">{{ profile.name }}</h2>
-                <p v-if="profile.character">{{ profile.character.nickname }} · Lv.{{ profile.character.level ?? 1 }}</p>
+                <p v-if="profile.character">Lv.{{ profile.character.level ?? 1 }}</p>
                 <p v-else-if="profile.visible">아직 캐릭터가 없어요</p>
               </div>
               <button v-if="profile.relation === 'FRIEND'" class="head-btn danger" :disabled="busy" @click="emit('remove', profile)">
