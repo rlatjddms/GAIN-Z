@@ -10,10 +10,15 @@
           <span>{{ zoom }}%</span>
           <button type="button" :disabled="zoom >= ZOOMS[ZOOMS.length - 1]" aria-label="확대" @click="setZoom(1)"><Plus :size="16" :stroke-width="2.4" /></button>
         </div>
-        <button ref="closeBtn" type="button" class="close" aria-label="크게 보기 닫기" @click="emit('close')"><X :size="20" :stroke-width="2.4" /></button>
+        <!-- 크게 보기에서도 필기 (원래 화면과 같은 필기라 바로 저장되고 원래 화면에도 보인다) -->
+        <button type="button" class="pen" :class="{ on: annot.enabled }" :aria-pressed="annot.enabled" :disabled="!annot.loaded"
+                :title="annot.loaded ? '필기' : '필기를 불러오지 못했어요'" aria-label="필기" @click="annot.enabled = !annot.enabled"><PenLine :size="18" :stroke-width="2.2" /></button>
+        <button ref="closeBtn" type="button" class="close" aria-label="크게 보기 닫기" @click="close"><X :size="20" :stroke-width="2.4" /></button>
       </header>
+      <AnnotationToolbar v-if="annot.enabled" class="tools" @done="annot.enabled = false" />
 
-      <div ref="track" class="track" @scroll="onScroll">
+      <!-- 필기 중에는 밀어 넘기기를 멈춘다 (밀면 그려진다). 쪽은 ‹ › 버튼·← → 로 넘긴다 -->
+      <div ref="track" class="track" :class="{ drawing: annot.enabled }" @scroll="onScroll">
         <section v-for="(s, i) in slides" :key="s.key" class="slide" :aria-label="`${i + 1}쪽`">
           <!-- 지금 쪽과 양옆만 그린다 (쪽이 많아도 가볍게) -->
           <div v-if="Math.abs(i - index) <= 1" class="paper" :style="{ width: `${paperWidth(s)}px` }">
@@ -36,7 +41,9 @@
 
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue'
-import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Minus, Plus, PenLine, X } from 'lucide-vue-next'
+import { useAnnotationStore } from '../../stores/annotation'
+import AnnotationToolbar from './AnnotationToolbar.vue'
 import { loadSheetPageUrl } from '../../api/sheet'
 import { isPdf } from '../../constants/sheet'
 import AnnotationLayer from './AnnotationLayer.vue'
@@ -53,6 +60,9 @@ const props = defineProps({
   title: { type: String, default: '악보' },
 })
 const emit = defineEmits(['close'])
+const annot = useAnnotationStore()
+// 닫을 때 필기도 끈다 (원래 화면에 돌아가면 다시 스크롤되게)
+const close = () => { annot.enabled = false; emit('close') }
 
 const ZOOMS = [100, 150, 200]
 const zoom = ref(100)
@@ -98,9 +108,12 @@ const onScroll = () => {
   if (el?.clientWidth) index.value = Math.round(el.scrollLeft / el.clientWidth)
 }
 const onKey = (e) => {
+  // 필기 글자 칸 등에 쓰는 중이면 그대로 둔다
+  const el = document.activeElement
+  if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return
   if (e.key === 'ArrowRight') { e.preventDefault(); go(index.value + 1) }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); go(index.value - 1) }
-  else if (e.key === 'Escape') emit('close')
+  else if (e.key === 'Escape') close()
 }
 
 const onImageLoad = (pageId, e) => {
@@ -194,6 +207,9 @@ onBeforeUnmount(() => { listen(false); token++; release(); roomObserver?.disconn
   scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
 }
 .track::-webkit-scrollbar { display: none; }
+.track.drawing { overflow-x: hidden; }
+.bar .pen.on { background: var(--c-primary); color: #fff; }
+.tools { flex: none; margin: 8px 12px 0; color: var(--c-text); }
 .slide {
   flex: 0 0 100%; min-width: 0; height: 100%; overflow: auto; scroll-snap-align: center; scroll-snap-stop: always;
   display: flex; justify-content: center; align-items: flex-start; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); box-sizing: border-box;
