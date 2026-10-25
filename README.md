@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/logo.png" alt="GAIN-Z" width="360" />
+  <img src="docs/images/logo.png" alt="GAIN-Z" width="200" />
 </p>
 
 <h3 align="center">Gain up to Z</h3>
@@ -16,25 +16,20 @@
   <img src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white" alt="Redis 7" />
 </p>
 
-> 🔗 **서비스**: https://gainz-band.vercel.app
-> 무료 인프라로 운영하고 있어서 응답이 느리거나 일시적으로 중단될 수 있어요. 아래 스크린샷과 시연 영상으로도 확인할 수 있습니다.
+> 🔗 **서비스**: https://gainz-band.vercel.app  
+> 무료 인프라로 운영하고 있어서 응답이 느리거나 일시적으로 중단될 수 있음. 아래 스크린샷으로도 확인 가능.
 
 ## 소개
 
 악기 연습을 기록하면 픽셀 캐릭터가 성장하고, 밴드를 만들어 악보·셋리스트·녹음을 나누는 연습 앱입니다.
 
-- **연습 기록 → 성장**: 연습 시간과 루틴을 기록하면 경험치와 레벨이 쌓이고, 캐릭터의 의상과 무대 배경이 바뀝니다.
-- **떨어져 있어도 합주**: 악보·셋리스트·녹음을 밴드가 한곳에서 관리하고, 각자 시간이 될 때 트랙을 쌓는 레이어 잼으로 자주 만나지 못해도 합주를 이어갈 수 있습니다.
+- **연습 기록**: 연습 시간과 루틴을 기록하면 경험치와 레벨이 쌓이고, 캐릭터의 의상과 무대 배경이 바뀝니다.
+- **밴드 합주**: 악보·셋리스트·녹음을 밴드가 한곳에서 관리하고, 각자 시간이 될 때 트랙을 쌓는 레이어 잼으로 자주 만나지 못해도 합주를 이어갈 수 있습니다.
 
 ## 스크린샷
 
-> 📷 **스크린샷 추가 예정** (PR 안에서 이미지를 채웁니다. 파일은 `docs/images/`에 둡니다.)
->
-> 1. **연습 타이머 시연 GIF** (`timer.gif`): 타이머를 켜면 캐릭터가 무대에서 연주하고, 종료하면 경험치를 얻는 흐름 10~15초
-> 2. **홈 — 캐릭터 무대** (`home.png`): 레벨별 무대 배경과 캐릭터가 한 화면에 보이는 캡처 (의상을 꾸민 상태면 더 좋아요)
-> 3. **연습 워크스페이스** (`practice.png`): 연습 캘린더와 연습 로그 또는 루틴 체크가 함께 보이는 화면
-> 4. **악보 상세** (`sheet.png`): 타브 또는 코드 악보에 필기가 올라가 있는 화면
-> 5. **밴드 — 커뮤니티·레이어 잼** (`band.png`): 커뮤니티 게시글과 트랙이 쌓인 레이어 잼이 보이는 화면
+<img src="docs/images/screenshots-desktop.png" alt="데스크톱 화면" />
+<img src="docs/images/screenshots-mobile.png" alt="모바일 화면 (PWA)" />
 
 ## 주요 기능
 
@@ -57,14 +52,15 @@
 
 ## 아키텍처
 
-```mermaid
-flowchart LR
-  U["사용자 (브라우저 · PWA)"] --> V["Vercel<br/>Vue 3 프론트"]
-  V -->|REST API| R["Render<br/>Spring Boot 백엔드"]
-  R --> D[("Supabase<br/>PostgreSQL")]
-  R --> S[("Supabase Storage<br/>악보 · 녹음 · 프로필")]
-  R --> C[("Render Key Value<br/>Redis · 리프레시 토큰")]
-  M["UptimeRobot"] -->|5분마다 호출| R
+```text
+사용자 (브라우저 · PWA)
+  → Vercel (Vue 3 프론트)
+  → Render (Spring Boot 백엔드)
+      ├─ Supabase PostgreSQL ........ 데이터
+      ├─ Supabase Storage ........... 악보 · 녹음 · 프로필 파일
+      └─ Render Key Value (Redis) ... 리프레시 토큰
+
+UptimeRobot → 5분마다 백엔드 호출 (무료 플랜 서버 휴면 방지)
 ```
 
 - **구조**: 8개 도메인(user, character, practice, sheet, band, friend, notification, record)을 controller / service / repository로 나누고, 공통 응답과 예외 규약을 적용했습니다.
@@ -76,7 +72,7 @@ flowchart LR
 
 이 프로젝트는 Claude Code와 협업해서 만들었고, AI가 일하는 방식을 규칙으로 정해서 통제했습니다.
 
-- **요구사항 → 이슈 → PR**: 에픽 4개 아래에 기능 단위로 이슈를 나누고, 이슈 하나당 브랜치와 PR 하나로 작업합니다. 커밋 233개 중 209개에 이슈 번호가 있습니다.
+- **요구사항 → 이슈 → PR**: 에픽 4개 아래에 기능 단위로 이슈를 나누고, 이슈 하나당 브랜치와 PR 하나로 작업합니다.
 - **규칙 문서화**: [CLAUDE.md](CLAUDE.md)에 AI의 역할 경계(PR까지만, 머지는 사람), 브랜치·커밋·이슈 규칙, 코드 구조, 에셋 규격을 적어 두었습니다.
 
 | 구분 | AI (Claude Code) | 사람 |
@@ -113,9 +109,3 @@ npm run dev
 ```
 
 백엔드는 `http://localhost:8080`, 프론트는 `http://localhost:5173`에서 뜹니다. 설정값, Docker Compose, 운영 배포는 [docs/setup.md](docs/setup.md)를 참고하세요.
-
-## 한계와 계획
-
-- CI가 없어 테스트와 빌드를 로컬에서 수동으로 돌렸고, 테스트는 단위 테스트 위주입니다. DB를 포함한 통합 테스트를 추가할 계획입니다.
-- 레벨·경험치 표가 프론트와 백엔드에 복사돼 있어, 백엔드 API로 내려받는 구조로 개선할 수 있습니다.
-- 현재는 웹앱(PWA)으로 제공하고, 추후 모바일 앱으로도 확장할 계획입니다.
