@@ -119,10 +119,10 @@ public class NotificationService {
         return notificationStream.subscribe(userId, notificationRepository.countByReceiverIdAndIsReadFalse(userId));
     }
 
-    // 밴드 알림에 쓰는 이름 (밴드 화면처럼 캐릭터 닉네임, 없으면 계정 이름)
+    // 알림에 쓰는 이름 (캐릭터 닉네임, 없으면 User.nameWithoutCharacter)
     @Transactional(readOnly = true)
     public String nicknameOf(User user) {
-        return characterRepository.findByUserId(user.getId()).map(Character::getNickname).orElse(user.getName());
+        return characterRepository.findByUserId(user.getId()).map(Character::getNickname).orElseGet(user::nameWithoutCharacter);
     }
 
     /* ---------- 조회·읽음·지우기 ---------- */

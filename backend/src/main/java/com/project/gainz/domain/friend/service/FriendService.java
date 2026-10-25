@@ -137,7 +137,7 @@ public class FriendService {
 
         Friendship saved = friendshipRepository.save(Friendship.builder().requester(me).receiver(target).build());
         notificationService.notify(target, NotificationType.FRIEND_REQUEST, "친구",
-                me.getName() + " 님이 친구 신청을 보냈어요", FRIENDS_URL);
+                notificationService.nicknameOf(me) + " 님이 친구 신청을 보냈어요", FRIENDS_URL);
         return toRequestResponse(saved, target, charactersOf(List.of(target.getId())));
     }
 
@@ -182,7 +182,7 @@ public class FriendService {
 
         friendship.accept();
         notificationService.notify(requester, NotificationType.FRIEND_ACCEPT, "친구",
-                friendship.getReceiver().getName() + " 님이 친구 신청을 수락했어요", FRIENDS_URL);
+                notificationService.nicknameOf(friendship.getReceiver()) + " 님이 친구 신청을 수락했어요", FRIENDS_URL);
         eventPublisher.publishEvent(RecordCheckEvent.of(userId, RecordMetric.FRIENDS));
         eventPublisher.publishEvent(RecordCheckEvent.of(requester.getId(), RecordMetric.FRIENDS));
         Character character = charactersOf(List.of(requester.getId())).get(requester.getId());

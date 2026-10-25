@@ -33,6 +33,8 @@ import java.util.Optional;
 @SQLRestriction("is_deleted = false")
 public class User extends BaseEntity {
 
+    public static final String WITHDRAWN_NAME = "탈퇴한 사용자";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -41,11 +43,6 @@ public class User extends BaseEntity {
     private String email;
 
     private String password;
-
-    // 화면에 보이는 이름 = 캐릭터 닉네임 (#227). 캐릭터를 만들거나 닉네임을 바꾸면 같이 바뀐다.
-    // 캐릭터를 만들기 전에는 이메일 앞부분
-    @Column(nullable = false)
-    private String name;
 
     // 이메일 인증 여부 (#193). 이 칸이 생기기 전에 가입한 계정은 null → 인증된 것으로 본다
     private Boolean emailVerified;
@@ -99,10 +96,9 @@ public class User extends BaseEntity {
     private String friendCode;
 
     @Builder
-    public User(String email, String password, String name, SocialProvider provider, UserRole role, Boolean emailVerified) {
+    public User(String email, String password, SocialProvider provider, UserRole role, Boolean emailVerified) {
         this.email = email;
         this.password = password;
-        this.name = name;
         this.provider = provider;
         this.role = role;
         this.emailVerified = emailVerified;
@@ -116,14 +112,9 @@ public class User extends BaseEntity {
         this.emailVerified = true;
     }
 
-    public User update(String name) {
-        this.name = name;
-        return this;
-    }
-
-    // 캐릭터를 만들기 전 이름: 이메일 앞부분
-    public static String nameFromEmail(String email) {
-        return email.split("@")[0];
+    // 화면에 보이는 이름은 캐릭터 닉네임 (#227). 캐릭터가 없을 때 쓰는 이름: 탈퇴 회원은 "탈퇴한 사용자", 아니면 이메일 앞부분
+    public String nameWithoutCharacter() {
+        return Boolean.TRUE.equals(getIsDeleted()) ? WITHDRAWN_NAME : email.split("@")[0];
     }
 
     public boolean hasPassword() {
@@ -202,7 +193,6 @@ public class User extends BaseEntity {
     public void withdraw() {
         this.email = "withdrawn_" + id + "_" + System.currentTimeMillis() + "@gainz.invalid";
         this.password = null;
-        this.name = "탈퇴한 사용자";
         this.profileImage = null;
         this.profileImageType = null;
         this.friendCode = null;

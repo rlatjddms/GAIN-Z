@@ -16,7 +16,7 @@ public record BandMateResponse(
         List<String> bandNames
 ) {
     public static BandMateResponse of(User user, Character character, List<String> bandNames) {
-        return new BandMateResponse(user.getId(), user.getName(), MyInfoResponse.profileImageUrl(user),
+        return new BandMateResponse(user.getId(), MyInfoResponse.displayName(user, character), MyInfoResponse.profileImageUrl(user),
                 character != null ? CharacterResponse.from(character) : null, bandNames);
     }
 }

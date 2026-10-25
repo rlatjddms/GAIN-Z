@@ -86,8 +86,6 @@ public class CharacterService {
                 .build();
 
         characterRepository.save(character);
-        // 화면에 보이는 이름은 닉네임 하나 (#227)
-        user.update(character.getNickname());
 
         UserOutfit userOutfit = UserOutfit.builder()
                 .user(user)
@@ -131,7 +129,6 @@ public class CharacterService {
                 request.hairColor(),
                 request.skinColor()
         );
-        character.getUser().update(character.getNickname());
     }
 
     // 옷장 조회: 전체 의상(보유·착용 여부)과 무대 배경(해금 여부)
