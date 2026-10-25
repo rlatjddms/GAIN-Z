@@ -31,6 +31,7 @@ public enum ErrorCode {
     LAST_LOGIN_METHOD(400, "U021", "로그인 방법이 하나뿐이라 해제할 수 없어요. 다른 방법을 먼저 연결하거나 비밀번호를 만들어 주세요."),
     SOCIAL_NOT_LINKED(400, "U022", "연결되지 않은 소셜 계정이에요."),
     INVALID_SOCIAL_PROVIDER(400, "U023", "지원하지 않는 소셜 로그인이에요."),
+    SONG_SEARCH_FAILED(503, "U024", "곡을 찾지 못했어요. 잠시 후 다시 해 보거나 직접 입력해 주세요."),
 
     /* Friend (친구) */
     INVALID_FRIEND_CODE(404, "F001", "친구 코드가 올바르지 않습니다. 친구에게 코드를 다시 확인해 주세요."),
