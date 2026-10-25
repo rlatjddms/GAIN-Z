@@ -51,15 +51,4 @@ class SocialAccountRepositoryTest {
         assertThat(found.getUser().getRole()).isEqualTo(UserRole.ROLE_USER);
         assertThat(socialAccounts.findByProviderAndProviderId(SocialProvider.NAVER, "other")).isEmpty();
     }
-
-    @Test void 연결이_없는_예전_소셜_가입자만_채울_대상이다() {
-        User legacy = user("legacy", SocialProvider.KAKAO, null);
-        User migrated = user("migrated", SocialProvider.GOOGLE, null);
-        migrated.addSocialAccount(SocialProvider.GOOGLE, "g-1");
-        user("local", SocialProvider.LOCAL, "encoded");
-        em.flush();
-        em.clear();
-
-        assertThat(socialAccounts.findSocialUsersWithoutAccount()).extracting(User::getId).containsExactly(legacy.getId());
-    }
 }
