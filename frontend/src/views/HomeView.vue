@@ -11,7 +11,7 @@
       <div class="content-wrapper">
 
         <template v-if="!isBandMode">
-          <CharacterStage :character="authStore.character">
+          <CharacterStage :character="authStore.character" exp-info @exp-info="isExpGuideOpen = true">
             <!-- 요즘 듣는 음악: 레벨·닉네임 줄 왼쪽 끝. 누르면 등록·수정, 링크가 있으면 옆 아이콘으로 새 탭 -->
             <template #head-start>
               <div class="music-chip" :class="{ empty: !myMusic }">
@@ -66,6 +66,7 @@
 
           <RecordsModal :open="isRecordsOpen" :focus-key="recordFocus" @close="closeRecords" />
           <ProfileMusicModal :open="isMusicOpen" @close="isMusicOpen = false" />
+          <ExpGuideModal :open="isExpGuideOpen" :character="authStore.character" @close="isExpGuideOpen = false" />
         </template>
 
         <template v-else>
@@ -168,6 +169,7 @@ import AppHeader from '../components/AppHeader.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import RecordsModal from '../components/workspace/RecordsModal.vue'
 import ProfileMusicModal from '../components/ProfileMusicModal.vue'
+import ExpGuideModal from '../components/workspace/ExpGuideModal.vue'
 import PreviewButton from '../components/PreviewButton.vue'
 import PracticeLogCard from '../components/workspace/PracticeLogCard.vue'
 import RecordIcon from '../components/workspace/RecordIcon.vue'
@@ -185,6 +187,8 @@ const router = useRouter()
 
 // 요즘 듣는 음악 (홈 칩을 눌러 팝업에서 등록)
 const isMusicOpen = ref(false)
+// 경험치 안내 (#237): 무대의 경험치 줄을 누르면
+const isExpGuideOpen = ref(false)
 const myMusic = computed(() => authStore.profile?.profileMusic || null)
 const myMusicUrl = computed(() => (/^https?:\/\//i.test(myMusic.value?.url || '') ? myMusic.value.url : null))
 const route = useRoute()
