@@ -179,6 +179,7 @@ import BandStageScene from '../components/band/BandStageScene.vue'
 import BandStartModal from '../components/band/BandStartModal.vue'
 import BandCommunityPanel from '../components/band/BandCommunityPanel.vue'
 import { useBandStore } from '../stores/band'
+import { useLiveRefresh } from '../composables/useLiveRefresh'
 import { MAX_JOINED_BANDS, reorderMembers } from '../api/band'
 import { apiErrorMessage } from '../api/practice'
 import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
@@ -256,6 +257,9 @@ const activeBand = computed(() => bandStore.selectedBand)
 
 // BAND 탭을 열 때마다 내 밴드를 새로 불러온다 (설정 화면에서 바꾼 내용 반영)
 watch(isBandMode, (on) => { if (on) bandStore.fetchMyBands() }, { immediate: true })
+// 멤버가 들어오고 나간 것이 새로고침 없이 보이게 (#224)
+useLiveRefresh(() => { if (isBandMode.value) return bandStore.fetchMyBands() },
+  { types: ['BAND_JOIN', 'BAND_KICKED', 'BAND_LEADER', 'BAND_DISBAND', 'BAND_LEAVE'] })
 
 const isStartOpen = ref(false)
 const startTab = ref('create')

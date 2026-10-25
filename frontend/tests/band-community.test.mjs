@@ -78,6 +78,13 @@ async function fixture(t, options = {}) {
     const band = { id: 10, name: '리듬 메이커스', myPosition: state.leader ? 'LEADER' : 'MEMBER', stage: 'STUDIO', members: [{ memberId: 1, userId: 1, me: true, part: 'GUITAR', position: 'LEADER', character: { nickname: '리듬냥', instrumentType: 'GUITAR', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' } }, { memberId: 2, userId: 2, part: 'BASS', position: 'MEMBER', character: { nickname: '베이스곰', instrumentType: 'BASS', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' } }], description: '함께 합주하는 밴드' }
     if (path === '/api/v1/bands/10') return respond(band)
     if (path === '/api/v1/bands/me') return respond([band])
+    // 실시간 알림 (#224): 보낼 이벤트가 있으면 한 번 보내고 끊는다. 없으면 실패해서 화면은 다시 붙으려고 기다린다
+    if (path === '/api/v1/notifications/stream') {
+      if (!state.streamEvents) return respond('연결 안 됨', 503)
+      const body = state.streamEvents.map(([event, data]) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`).join('')
+      state.streamEvents = null
+      return route.fulfill({ status: 200, headers, contentType: 'text/event-stream', body })
+    }
     if (path === '/api/v1/bands/10/posts') {
       if (method === 'GET') {
         if (state.failList) return respond('게시글 조회 실패', 503)
@@ -506,5 +513,32 @@ test('공지 두 개를 세로로 고정하고 종료 시각에 자동으로 일
   assert.equal(await page.locator('.community .post').filter({ hasText: '이번 주 일정' }).count(), 1)
   assert.equal(await page.locator('.post-total').textContent(), '3')
   assert.equal(state.posts.find(p => p.id === 2).notice, true)
+  assert.deepEqual(errors, [])
+})
+
+test('앱으로 돌아오거나 연결이 다시 붙고 새 공지 알림이 오면 글 목록을 새로고침 없이 다시 불러온다', async t => {
+  const { page, state, errors } = await fixture(t, { posts: [makePost(2), makePost(3)] })
+  await page.goto(`${origin}/home?band=10`)
+  await page.locator('.community .post').filter({ hasText: '합주 이야기 3' }).waitFor()
+
+  // 다른 멤버가 글을 썼다 → 잠깐(15초 안) 다녀오면 그대로, 오래 있다 돌아오면 다시 불러온다
+  state.posts.push(makePost(4, { title: '다른 멤버의 새 글', mine: false }))
+  const away = ms => page.evaluate(async ms => {
+    const setState = s => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => s }); document.dispatchEvent(new Event('visibilitychange')) }
+    const realNow = Date.now
+    setState('hidden')
+    Date.now = () => realNow() + ms
+    setState('visible')
+  }, ms)
+  await away(3000)
+  await page.waitForTimeout(500)
+  assert.equal(await page.getByText('다른 멤버의 새 글').count(), 0)
+  await away(20000)
+  await page.getByText('다른 멤버의 새 글').waitFor()
+
+  // 실시간 연결이 다시 붙고(그동안 놓친 것) 새 공지 알림이 오면 바로 다시 불러온다
+  state.posts.push(makePost(5, { title: '이번 주 합주 공지', notice: true, mine: false }))
+  state.streamEvents = [['unread', { count: 1 }], ['notification', { id: 900, type: 'NOTICE', title: '새 공지', content: '이번 주 합주 공지', read: false, createdAt: '2026-10-16T12:30:00', redirectUrl: '/home?band=10' }]]
+  await page.getByText('이번 주 합주 공지', { exact: true }).first().waitFor({ timeout: 15000 })
   assert.deepEqual(errors, [])
 })
