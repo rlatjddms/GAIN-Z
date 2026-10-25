@@ -133,7 +133,9 @@ public enum ErrorCode {
     JAM_TRACK_FILE_INVALID(400, "B036", "WebM·OGG·M4A·MP3·WAV 녹음 파일을 30MB까지 올릴 수 있습니다."),
     JAM_PERMISSION_DENIED(403, "B037", "만든 멤버나 리더만 할 수 있습니다."),
     JAM_SONG_INVALID(400, "B038", "이 밴드 셋리스트에 없는 곡입니다."),
-    BAND_LEADER_MUST_HAND_OVER(400, "B039", "리더인 밴드가 있어요. 탈퇴하기 전에 다른 멤버에게 리더를 넘겨 주세요.");
+    BAND_LEADER_MUST_HAND_OVER(400, "B039", "리더인 밴드가 있어요. 탈퇴하기 전에 다른 멤버에게 리더를 넘겨 주세요."),
+    BAND_INVITE_NOT_FRIEND(400, "B040", "친구에게만 밴드 초대를 보낼 수 있어요."),
+    BAND_INVITE_ALREADY_MEMBER(409, "B041", "이미 이 밴드에 있는 친구예요.");
 
     private final int status;
     private final String code;

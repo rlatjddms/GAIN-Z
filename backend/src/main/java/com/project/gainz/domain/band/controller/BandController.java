@@ -1,6 +1,7 @@
 package com.project.gainz.domain.band.controller;
 
 import com.project.gainz.domain.band.dto.request.BandCreateRequest;
+import com.project.gainz.domain.band.dto.request.BandInviteRequest;
 import com.project.gainz.domain.band.dto.request.BandJoinRequest;
 import com.project.gainz.domain.band.dto.request.BandLeaderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberOrderRequest;
@@ -103,6 +104,17 @@ public class BandController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(ApiResponse.success(bandService.regenerateInviteCode(principal.getUserId(), bandId)));
+    }
+
+    // 친구에게 밴드 초대 보내기 (#229)
+    @PostMapping("/{bandId}/invitations")
+    public ResponseEntity<ApiResponse<Void>> inviteFriend(
+            @PathVariable Long bandId,
+            @Valid @RequestBody BandInviteRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        bandService.inviteFriend(principal.getUserId(), bandId, request);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     // 초대 코드로 가입
