@@ -512,7 +512,8 @@ button::-moz-focus-inner { border: 0 !important; }
 .band-info h2 { margin: 0 0 4px; font-size: 1.4rem; font-weight: 800; }
 .band-info p { margin: 0; font-size: 0.82rem; color: var(--c-muted); }
 .band-tools { display: flex; gap: 6px; flex-wrap: wrap; }
-.band-scene { margin-top: 16px; border-radius: 18px; overflow: hidden; border: 1px solid var(--c-line-soft); }
+/* 무대는 카드 좌우 끝까지 (#232): 솔로 무대처럼 꽉 채워야 배경·캐릭터가 같은 크기로 보인다 (카드 안쪽 여백만큼 바깥으로) */
+.band-scene { margin: 16px -24px 0; overflow: hidden; border-top: 1px solid var(--c-line-soft); border-bottom: 1px solid var(--c-line-soft); }
 .scene-hint { margin: 8px 0 0; text-align: center; font-size: 0.72rem; color: var(--c-faint); font-weight: 600; }
 .scene-hint.bad { color: var(--c-danger); font-weight: 700; }
 
@@ -595,6 +596,7 @@ button::-moz-focus-inner { border: 0 !important; }
   .footer-grid > :last-child { order: -1; }
   .stage { padding: 40px 16px; margin-bottom: 12px; }
   .band-room { padding: 16px; }
+  .band-scene { margin-left: -16px; margin-right: -16px; }
   .band-info h2 { font-size: 1.15rem; }
   .band-tabs-row { gap: 8px; }
   .band-tabs-left { overflow-x: auto; scrollbar-width: none; min-width: 0; }
