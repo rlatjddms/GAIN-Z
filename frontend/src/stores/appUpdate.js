@@ -3,7 +3,8 @@ import { defineStore } from 'pinia'
 // 앱 업데이트 (#223). 설치한 앱(PWA)은 켜 둔 채로 두면 예전 화면 코드가 계속 돈다.
 // 배포한 버전(/version.json)을 가끔 확인해서 지금 화면과 다르면 안내하고, 누르면 새로 불러온다
 // (페이지 이동은 서비스 워커가 네트워크 먼저라 새로 불러오면 새 버전을 받는다)
-export const CURRENT_BUILD_ID = __BUILD_ID__
+// vite.config.js의 define으로 들어온다. 설정이 바뀌기 전에 켠 개발 서버에는 없을 수 있어서 typeof로 확인한다
+export const CURRENT_BUILD_ID = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'
 const CHECK_INTERVAL_MS = 10 * 60 * 1000
 
 // "2026-10-25T05:30:00.000Z+abc1234" → "2026.10.25 14:30 · abc1234" (이 기기 시간대)
