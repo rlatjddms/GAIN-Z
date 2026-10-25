@@ -12,7 +12,6 @@ export const MAX_LEVEL = 30
 export const LEVEL_TIERS = [
   {
     key: 'ROOKIE',
-    stageName: '방구석',   // 백엔드 StageBackground 이름과 같다
     floorY: 58,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     minLevel: 1,
     maxLevel: 9,
@@ -26,7 +25,6 @@ export const LEVEL_TIERS = [
   },
   {
     key: 'RISING',
-    stageName: '동네 클럽',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     minLevel: 10,
     maxLevel: 19,
@@ -40,7 +38,6 @@ export const LEVEL_TIERS = [
   },
   {
     key: 'PRO',
-    stageName: '투어 공연장',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     minLevel: 20,
     maxLevel: 29,
@@ -54,7 +51,6 @@ export const LEVEL_TIERS = [
   },
   {
     key: 'LEGEND',
-    stageName: '전설의 무대',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
     minLevel: 30,
     maxLevel: 30,
@@ -73,7 +69,6 @@ export const STAGE_BACKGROUNDS = [
   ...LEVEL_TIERS,
   {
     key: 'LISTENING_ROOM',
-    stageName: '리스닝 룸',
     floorY: 58,
     background: listeningStage,
     accent: '#ae3ec9',

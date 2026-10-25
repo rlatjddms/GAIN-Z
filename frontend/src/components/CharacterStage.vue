@@ -85,7 +85,7 @@ const expLabel = computed(() => {
   if (rawExp.value < 0) return `EXP 0 / ${required} · 줄인 기록만큼 ${-rawExp.value} EXP를 더 채워야 해요`
   const base = `EXP ${exp.value} / ${required}`
   if (!nextTier.value) return base
-  return `${base} · 다음 무대 「${nextTier.value.stageName}」까지 Lv.${nextTier.value.minLevel}`
+  return `${base} · 다음 무대까지 Lv.${nextTier.value.minLevel}`
 })
 
 const character = computed(() => props.character)
