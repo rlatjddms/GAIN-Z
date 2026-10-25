@@ -6,7 +6,6 @@
     <p v-else-if="!band" class="state">밴드를 불러오는 중…</p>
 
     <template v-else>
-      <p v-if="notice" class="notice" :class="{ bad: noticeBad }">{{ notice }}</p>
 
       <!-- 넓은 화면: 왼쪽 밴드 정보·초대 코드·나가기, 오른쪽 멤버·배경
            휴대폰: 정보 → 초대 코드 → 멤버 → 배경 → 나가기 순서 (칸을 풀고 order로) -->
@@ -152,19 +151,19 @@ import { getFriends, getSentRequests, getReceivedRequests, sendFriendRequestToBa
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { useBandStore } from '../../stores/band'
 import { useDialogStore } from '../../stores/dialog'
+import { useToastStore } from '../../stores/toast'
 import { BAND_STAGES, DEFAULT_BAND_STAGE } from '../../constants/bandStage'
 
 const route = useRoute()
 const router = useRouter()
 const dialog = useDialogStore()
+const toast = useToastStore()
 const bandStore = useBandStore()
 const bandId = Number(route.params.id)
 
 const band = ref(null)
 const loadError = ref('')
 const busy = ref(false)
-const notice = ref('')
-const noticeBad = ref(false)
 
 const name = ref('')
 const description = ref('')
@@ -203,7 +202,6 @@ const loadFriendState = async () => {
 
 const friendAction = async (m, action, done, fallback) => {
   friendBusyId.value = m.userId
-  say('')
   try {
     await action()
     say(done)
@@ -266,16 +264,15 @@ onMounted(async () => {
   }
 })
 
+// 한 일의 결과는 공통 알림으로 (#267)
 const say = (msg, bad = false) => {
-  notice.value = msg
-  noticeBad.value = bad
+  if (msg) toast[bad ? 'error' : 'success'](msg)
 }
 
 // 버튼 동작 공통: 하나씩만, 실패하면 서버 메시지
 const run = async (action, okMessage, failMessage) => {
   if (busy.value) return
   busy.value = true
-  say('')
   try {
     await action()
     if (okMessage) say(okMessage)
@@ -371,8 +368,6 @@ onBeforeUnmount(() => clearTimeout(copiedTimer))
   .leave-card { order: 5; }
 }
 
-.notice { margin: 0 0 16px; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-primary-soft); color: var(--c-primary-text); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
-.notice.bad { padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 
 .card {
   background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: var(--pad-card);

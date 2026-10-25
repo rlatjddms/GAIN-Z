@@ -156,7 +156,6 @@
         </div>
         <p class="tip">원래 키를 적어 두면 악보를 볼 때 다른 키로 바꿔 칠 코드를 알려 드려요.</p>
         <p v-if="problem" class="hint">{{ problem }}</p>
-        <p v-if="error" class="error">{{ error }}</p>
       </WsCard>
     </div>
     </template>
@@ -188,10 +187,12 @@ import {
 import { MAJOR_KEYS, MINOR_KEYS } from '../../music/transpose'
 import { useAuthStore } from '../../stores/auth'
 import { useDialogStore } from '../../stores/dialog'
+import { useToastStore } from '../../stores/toast'
 
 const route = useRoute()
 const router = useRouter()
 const dialog = useDialogStore()
+const toast = useToastStore()
 const auth = useAuthStore()
 const itemId = route.params.id
 const editing = !!itemId
@@ -251,7 +252,6 @@ const loadError = ref('')
 const saving = ref(false)
 const adding = ref(false)
 const progress = ref(0)
-const error = ref('')
 const fileError = ref('')
 const dragOver = ref(false)
 const fileInput = ref(null)
@@ -342,7 +342,7 @@ const uploadMore = async (files) => {
     const result = await addSheetPages(sheet.value.id, files, (p) => { progress.value = p })
     sheet.value.pages = result.pages
   } catch (e) {
-    fileError.value = `올리지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`올리지 못했어요. ${apiErrorMessage(e)}`)
   } finally {
     adding.value = false
   }
@@ -359,7 +359,7 @@ const reorderPages = async (ids) => {
     sheet.value.pages = result.pages
   } catch (e) {
     sheet.value.pages = before
-    fileError.value = `순서를 바꾸지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`순서를 바꾸지 못했어요. ${apiErrorMessage(e)}`)
   } finally {
     adding.value = false
   }
@@ -372,7 +372,7 @@ const removePage = async (page) => {
     const result = await deleteSheetPage(sheet.value.id, page.id)
     sheet.value.pages = result.pages
   } catch (e) {
-    fileError.value = `지우지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`지우지 못했어요. ${apiErrorMessage(e)}`)
   } finally {
     adding.value = false
   }
@@ -400,7 +400,6 @@ const canSave = computed(() => !busy.value && !problem.value && dirty.value && !
 const save = async () => {
   saving.value = true
   progress.value = 0
-  error.value = ''
   const info = { ...form, title: form.title.trim(), artist: form.artist.trim() }
   try {
     if (textMode.value) {
@@ -423,8 +422,9 @@ const save = async () => {
       picked.value = []
       router.replace(`/sheets/${item.id}`)
     }
+    toast.success(editing ? '악보를 저장했어요' : '악보를 올렸어요')
   } catch (e) {
-    error.value = `${editing ? '저장' : '올리기'}하지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`${editing ? '저장' : '올리기'}하지 못했어요. ${apiErrorMessage(e)}`)
   } finally {
     saving.value = false
   }

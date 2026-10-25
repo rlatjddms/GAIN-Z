@@ -73,6 +73,9 @@ import { useDialogStore } from '../../stores/dialog'
 import { dateKey } from '../../constants/practice'
 import { REPEAT_TYPES, WEEK_DAYS } from '../../constants/routine'
 import NumberStepper from '../ui/NumberStepper.vue'
+import { useToastStore } from '../../stores/toast'
+
+const toast = useToastStore()
 
 // routine: 수정할 루틴 (null이면 새로 추가)
 const props = defineProps({
@@ -130,6 +133,7 @@ const submit = async () => {
     else await createRoutine(body)
     emit('saved')
     emit('close')
+    toast.success(props.routine ? '루틴을 저장했어요' : '루틴을 추가했어요')
   } catch (e) {
     error.value = `저장하지 못했어요. ${apiErrorMessage(e)}`
   } finally {

@@ -34,6 +34,9 @@ import BandPostDialog from './BandPostDialog.vue'
 import PageNav from '../ui/PageNav.vue'
 import { useDialogStore } from '../../stores/dialog'
 import { useLiveRefresh } from '../../composables/useLiveRefresh'
+import { useToastStore } from '../../stores/toast'
+
+const toast = useToastStore()
 
 // 한 쪽 글 수: 3열(넓은 화면)·2열(휴대폰) 모두 줄이 딱 맞게
 const PAGE_SIZE = 12
@@ -124,7 +127,7 @@ function search({ q, from, to }) {
 async function remove(post) {
   if (!await useDialogStore().confirm({ title: '게시글을 삭제할까요?', okText: '삭제', danger: true })) return
   try { await deleteBandPost(props.band.id, post.id); await load() }
-  catch (e) { error.value = e.response?.data?.message || '글을 삭제하지 못했어요. 다시 시도해 주세요.' }
+  catch (e) { toast.error(e.response?.data?.message || '글을 삭제하지 못했어요. 다시 시도해 주세요.') }
 }
 watch(() => props.band.id, () => { rows.value = []; noticeRows.value = []; regularTotal.value = 0; totalPages.value = 0 })
 watch(() => [props.band.id, mine.value, page.value, filters.value.q, filters.value.from, filters.value.to], () => load(), { immediate: true })

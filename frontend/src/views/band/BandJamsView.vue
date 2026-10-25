@@ -4,8 +4,6 @@
     <p v-if="error" role="alert">{{ error }} <button class="btn" @click="loadBand">다시 불러오기</button></p>
     <p v-else-if="!band" class="muted">레이어 잼을 불러오는 중…</p>
     <div v-else class="page">
-      <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
-      <p v-if="notice" class="status" role="status">{{ notice }}</p>
       <div class="workspace">
         <WsCard :title="`잼 ${jams.length}`" class="sidebar" :class="{ collapsed: fold.collapsed.value }">
           <!-- 휴대폰: 목록 접기·펼치기 (#254) -->
@@ -213,6 +211,7 @@ import { createJam, deleteJam, deleteJamTrack, getJam, listJams, loadJamTrackFil
 import { apiErrorMessage } from '../../api/practice'
 import { useBandStore } from '../../stores/band'
 import { useDialogStore } from '../../stores/dialog'
+import { useToastStore } from '../../stores/toast'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { JamEngine } from '../../audio/JamEngine'
 import {
@@ -224,9 +223,10 @@ const LATENCY_KEY = 'gainz.jam.latencyMs'
 const route = useRoute()
 const router = useRouter()
 const dialog = useDialogStore()
+const toast = useToastStore()
 const store = useBandStore()
 const engine = new JamEngine()
-const band = ref(null), error = ref(''), saveError = ref(''), notice = ref(''), busy = ref(false)
+const band = ref(null), error = ref(''), busy = ref(false)
 const favoritesOnly = ref(false), selecting = ref(false), checkedIds = ref([])
 // 잼 이름이나 연결한 곡 제목으로 거른다 (#254)
 const jamQuery = ref('')
@@ -278,12 +278,12 @@ function setLatency(value) {
   try { localStorage.setItem(LATENCY_KEY, String(latencyMs.value)) } catch { /* 저장 못 해도 이번 화면에서는 쓴다 */ }
 }
 
-async function run(work, fallback = '저장하지 못했어요. 잠시 후 다시 시도해 주세요.') {
+// 실패 문구는 공통 알림으로 (#267). 팝업 안에서 한 일이면 onError로 그 팝업에 보여 준다
+async function run(work, fallback = '저장하지 못했어요. 잠시 후 다시 시도해 주세요.', onError = message => toast.error(message)) {
   if (busy.value) return false
   busy.value = true
-  saveError.value = ''
   try { await work(); return true }
-  catch (e) { saveError.value = apiErrorMessage(e, fallback); return false }
+  catch (e) { onError(apiErrorMessage(e, fallback)); return false }
   finally { busy.value = false }
 }
 
@@ -320,7 +320,6 @@ async function selectJam(id, force = false) {
   discardTake()
   soloIds.value = []
   selectedId.value = id
-  saveError.value = notice.value = ''
   if (Number(route.query.jam) !== id) router.replace({ query: { ...route.query, jam: id } })
   const token = ++jamRequest
   jamLoading.value = true
@@ -329,7 +328,7 @@ async function selectJam(id, force = false) {
     if (token !== jamRequest) return
     showJam(result)
   } catch (e) {
-    if (token === jamRequest) { jam.value = null; saveError.value = apiErrorMessage(e, '잼을 불러오지 못했어요.') }
+    if (token === jamRequest) { jam.value = null; toast.error(apiErrorMessage(e, '잼을 불러오지 못했어요.')) }
   } finally { if (token === jamRequest) jamLoading.value = false }
 }
 function showJam(result) {
@@ -407,57 +406,52 @@ async function saveTrack(track, changes) {
   try {
     const saved = await updateJamTrack(bandId(), jamId, track.id, changes)
     if (jam.value?.id === jamId) Object.assign(track, { volume: saved.volume, offsetMs: saved.offsetMs })
-  } catch (e) { saveError.value = apiErrorMessage(e, '믹서 설정을 저장하지 못했어요.') }
+  } catch (e) { toast.error(apiErrorMessage(e, '믹서 설정을 저장하지 못했어요.')) }
 }
 
 async function downloadMix() {
   await run(async () => {
-    notice.value = '음원을 합치는 중이에요…'
     const blob = await engine.mixdown(mixTracks.value, soloIds.value)
     if (!blob) throw new Error('empty')
     const url = URL.createObjectURL(blob)
     Object.assign(document.createElement('a'), { href: url, download: `${jam.value.title}.wav` }).click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-    notice.value = '들리는 트랙을 합친 음원(WAV)을 내려받았어요.'
+    toast.success('들리는 트랙을 합친 음원(WAV)을 내려받았어요.')
   }, '음원을 합치지 못했어요.')
-  if (saveError.value) notice.value = ''
 }
 
 /* ---------- 녹음 ---------- */
 
 async function connectMic() {
-  saveError.value = ''
   try {
     await engine.openMic()
     micReady.value = true
     latencyEstimate.value = engine.estimatedLatencyMs()
     if (readLatency() === null) setLatency(latencyEstimate.value)
   } catch (e) {
-    saveError.value = e?.name === 'NotAllowedError' ? '마이크 권한을 허용해 주세요. 주소창 옆 권한 설정에서 바꿀 수 있어요.' : '마이크를 열지 못했어요. 마이크가 연결되어 있는지 확인해 주세요.'
+    toast.error(e?.name === 'NotAllowedError' ? '마이크 권한을 허용해 주세요. 주소창 옆 권한 설정에서 바꿀 수 있어요.' : '마이크를 열지 못했어요. 마이크가 연결되어 있는지 확인해 주세요.')
   }
 }
 async function measure() {
   stopPlayback()
   measuring.value = true
-  saveError.value = notice.value = ''
   try {
     const result = await engine.measureLatency()
-    if (result === null) saveError.value = '클릭 소리를 찾지 못했어요. 이어폰을 빼고 스피커 음량을 높인 뒤 다시 측정해 주세요.'
-    else { setLatency(result); notice.value = `녹음 지연을 ${latencyMs.value}ms로 맞췄어요.` }
-  } catch { saveError.value = '지연을 측정하지 못했어요.' }
+    if (result === null) toast.error('클릭 소리를 찾지 못했어요. 이어폰을 빼고 스피커 음량을 높인 뒤 다시 측정해 주세요.')
+    else { setLatency(result); toast.success(`녹음 지연을 ${latencyMs.value}ms로 맞췄어요.`) }
+  } catch { toast.error('지연을 측정하지 못했어요.') }
   finally { measuring.value = false }
 }
 async function startRecording() {
   if (take.value && !await dialog.confirm({ title: '다시 녹음할까요?', text: '올리지 않은 녹음은 버려져요.', okText: '다시 녹음', danger: true })) return
   discardTake()
   stopPlayback(true)
-  saveError.value = notice.value = ''
   try {
     session = await engine.record(tracks.value.filter(track => track.buffer), soloIds.value, { bpm: jam.value.bpm, metronome: metronomeOn.value, countIn: countInOn.value ? COUNT_IN_BEATS : 0 })
     recording.value = true
     playing.value = true
     frame = requestAnimationFrame(tick)
-  } catch { session = null; saveError.value = '녹음을 시작하지 못했어요.' }
+  } catch { session = null; toast.error('녹음을 시작하지 못했어요.') }
 }
 async function stopRecording() {
   if (!session) return
@@ -467,8 +461,8 @@ async function stopRecording() {
     const buffer = await engine.decode(await blob.arrayBuffer())
     const offsetMs = clamp(recordedOffsetMs(recordStart, timelineStart, latencyMs.value), JAM_OFFSET_MIN_MS, JAM_OFFSET_MAX_MS)
     take.value = { id: 'take', blob, file: null, buffer, offsetMs, volume: 100, muted: false }
-    notice.value = '녹음했어요. 재생해서 들어 보고 트랙을 올려 주세요.'
-  } catch { saveError.value = '녹음한 소리를 읽지 못했어요. 다시 녹음해 주세요.' }
+    toast.success('녹음했어요. 재생해서 들어 보고 트랙을 올려 주세요.')
+  } catch { toast.error('녹음한 소리를 읽지 못했어요. 다시 녹음해 주세요.') }
 }
 async function finishSession() {
   const current = session
@@ -488,15 +482,14 @@ async function pickFile(event) {
   event.target.value = ''
   if (!file) return
   if (take.value && !await dialog.confirm({ title: '이 파일로 바꿀까요?', text: '올리지 않은 트랙은 버려져요.', okText: '바꾸기', danger: true })) return
-  saveError.value = notice.value = ''
-  if (file.size > JAM_TRACK_MAX_BYTES) { saveError.value = '음원 파일은 30MB까지 올릴 수 있어요.'; return }
+  if (file.size > JAM_TRACK_MAX_BYTES) { toast.error('음원 파일은 30MB까지 올릴 수 있어요.'); return }
   stopPlayback()
   discardTake()
   try {
     const buffer = await engine.decode(await file.arrayBuffer())
     take.value = { id: 'take', blob: file, file, buffer, offsetMs: 0, volume: 100, muted: false }
-    notice.value = '파일을 불러왔어요. 재생해서 다른 트랙과 맞는지 들어 보고 올려 주세요.'
-  } catch { saveError.value = '재생할 수 없는 파일이에요. MP3·WAV·M4A·OGG·WebM 파일을 골라 주세요.' }
+    toast.success('파일을 불러왔어요. 재생해서 다른 트랙과 맞는지 들어 보고 올려 주세요.')
+  } catch { toast.error('재생할 수 없는 파일이에요. MP3·WAV·M4A·OGG·WebM 파일을 골라 주세요.') }
 }
 // ask가 없으면 바로(동기로) 버린다
 async function discardTake(ask = false) {
@@ -506,11 +499,10 @@ async function discardTake(ask = false) {
 }
 async function uploadTake() {
   const current = take.value
-  if (current.blob.size > JAM_TRACK_MAX_BYTES) { saveError.value = '녹음 파일이 30MB를 넘어요. 조금 짧게 녹음해 주세요.'; return }
+  if (current.blob.size > JAM_TRACK_MAX_BYTES) { toast.error('녹음 파일이 30MB를 넘어요. 조금 짧게 녹음해 주세요.'); return }
   stopPlayback()
   uploading.value = true
   uploadProgress.value = 0
-  saveError.value = ''
   const jamId = jam.value.id
   try {
     const file = current.file || new File([current.blob], `layer-jam-${Date.now()}.${recordingExtension(current.blob.type)}`, { type: current.blob.type })
@@ -519,8 +511,7 @@ async function uploadTake() {
     tracks.value.push({ ...saved, muted: false, buffer: current.buffer, status: 'ready' })
     take.value = null
     syncSummary()
-    notice.value = '트랙을 올렸어요.'
-  } catch (e) { saveError.value = apiErrorMessage(e, '트랙을 올리지 못했어요. 잠시 후 다시 시도해 주세요.') }
+  } catch (e) { toast.error(apiErrorMessage(e, '트랙을 올리지 못했어요. 잠시 후 다시 시도해 주세요.')) }
   finally { uploading.value = false }
 }
 
@@ -553,8 +544,9 @@ async function saveForm() {
   const payload = { title, bpm, setlistItemId: form.value.song?.setlistItemId ?? null }
   const id = form.value.id
   let result = null
-  const ok = await run(async () => { result = id ? await updateJam(bandId(), id, payload) : await createJam(bandId(), payload) }, id ? '잼을 저장하지 못했어요.' : '잼을 만들지 못했어요.')
-  if (!ok) { formError.value = saveError.value; saveError.value = ''; return }
+  const ok = await run(async () => { result = id ? await updateJam(bandId(), id, payload) : await createJam(bandId(), payload) },
+    id ? '잼을 저장하지 못했어요.' : '잼을 만들지 못했어요.', message => { formError.value = message })
+  if (!ok) return
   formDialog.value.close()
   if (id) {
     // 목록 연필로 고르지 않은 잼을 고쳤으면 목록 줄만 바꾼다 (#254)
@@ -566,11 +558,11 @@ async function saveForm() {
       const item = jams.value.find(entry => entry.id === id)
       if (item) Object.assign(item, { title: result.title, bpm: result.bpm, song: result.song })
     }
-    notice.value = '잼을 저장했어요.'
+    toast.success('잼을 저장했어요.')
   } else {
     jams.value.unshift({ id: result.id, title: result.title, bpm: result.bpm, song: result.song, trackCount: 0, creatorName: result.creatorName })
     await selectJam(result.id)
-    notice.value = '잼을 만들었어요. 첫 파트를 녹음해 보세요.'
+    toast.success('잼을 만들었어요. 첫 파트를 녹음해 보세요.')
   }
 }
 function askDelete(target) { deleteTarget.value = target; deleteDialog.value.showModal() }
@@ -599,7 +591,6 @@ async function deleteChecked(ids) {
   }
   if (ok) {
     selecting.value = false
-    notice.value = `잼 ${removed.length}개를 삭제했어요.`
   }
 }
 async function confirmDelete() {
@@ -617,7 +608,6 @@ async function confirmDelete() {
     tracks.value = tracks.value.filter(track => track.id !== target.track.id)
     soloIds.value = soloIds.value.filter(id => id !== target.track.id)
     syncSummary()
-    notice.value = '트랙을 삭제했어요.'
     return
   }
   stopPlayback(true)
@@ -629,7 +619,6 @@ async function confirmDelete() {
   const next = jams.value[0]
   if (next) await selectJam(next.id, true)
   else router.replace({ query: {} })
-  notice.value = '잼을 삭제했어요.'
 }
 
 function beforeUnload(event) { if (recording.value || take.value) { event.preventDefault(); event.returnValue = '' } }
@@ -644,11 +633,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.save-error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .page,.page *,.jam-dialog,.jam-dialog * { box-sizing:border-box; }
 .page { display:flex; flex-direction:column; gap:16px; }
 .muted { color:var(--c-muted); font-size:.8rem; line-height:1.7; }
-.status { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-primary-soft); color: var(--c-primary-text); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
-.save-error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .workspace { display:grid; grid-template-columns:250px minmax(0,1fr); gap:20px; align-items:start; }
 .sidebar,.detail { min-width:0; }
 .detail :deep(.ws-card-head) { align-items:center; flex-wrap:wrap; }

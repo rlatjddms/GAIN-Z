@@ -28,7 +28,6 @@
       </li>
     </ul>
     <p v-if="profile && onlyOne && profile.socialLinks?.length" class="muted small">로그인 방법이 하나뿐이라 해제할 수 없어요. 다른 방법을 먼저 연결하거나 비밀번호를 만들어 주세요.</p>
-    <p v-if="error" class="field-error">{{ error }}</p>
   </WsCard>
 </template>
 
@@ -40,6 +39,9 @@ import { useDialogStore } from '../../stores/dialog'
 import { startSocialLink, unlinkSocial, SOCIAL_PROVIDERS } from '../../api/user'
 import { API_BASE_URL } from '../../api/axios'
 import { apiErrorMessage } from '../../api/practice'
+import { useToastStore } from '../../stores/toast'
+
+const toast = useToastStore()
 
 // password: 'create' | 'change' (비밀번호 창 열기)
 const emit = defineEmits(['password'])
@@ -48,7 +50,6 @@ const authStore = useAuthStore()
 const dialog = useDialogStore()
 const profile = computed(() => authStore.profile)
 const busy = ref('')
-const error = ref('')
 
 const linked = (provider) => profile.value?.socialLinks?.includes(provider)
 const methodCount = computed(() => (profile.value?.hasPassword ? 1 : 0) + (profile.value?.socialLinks?.length ?? 0))
@@ -57,14 +58,13 @@ const onlyOne = computed(() => methodCount.value <= 1)
 // 서버에서 5분짜리 연결 표를 받아 소셜 로그인으로 보낸다. 돌아오면 마이페이지에서 결과를 알려 준다
 const link = async (p) => {
   busy.value = p.value
-  error.value = ''
   try {
     const token = await startSocialLink(p.value)
     // 돌아왔을 때 지금과 같은 로그인 유지 방식으로 토큰을 저장하게
     sessionStorage.setItem('keepLoggedInPreference', localStorage.getItem('accessToken') ? 'true' : 'false')
     window.location.href = `${API_BASE_URL}/oauth2/authorization/${p.value.toLowerCase()}?link=${encodeURIComponent(token)}`
   } catch (e) {
-    error.value = apiErrorMessage(e, '연결을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.')
+    toast.error(apiErrorMessage(e, '연결을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.'))
     busy.value = ''
   }
 }
@@ -72,11 +72,10 @@ const link = async (p) => {
 const unlink = async (p) => {
   if (!await dialog.confirm({ title: `${p.label} 연결을 해제할까요?`, text: `다음부터 ${p.label}로는 로그인할 수 없어요.`, okText: '해제' })) return
   busy.value = p.value
-  error.value = ''
   try {
     authStore.profile = await unlinkSocial(p.value)
   } catch (e) {
-    error.value = apiErrorMessage(e, '연결을 해제하지 못했어요. 잠시 후 다시 시도해 주세요.')
+    toast.error(apiErrorMessage(e, '연결을 해제하지 못했어요. 잠시 후 다시 시도해 주세요.'))
   } finally {
     busy.value = ''
   }
@@ -100,5 +99,4 @@ const unlink = async (p) => {
 .btn.small { flex: 0 0 auto; min-height: 32px; padding: 0 12px; font-size: 0.78rem; white-space: nowrap; }
 .muted { margin: 8px 0 0; color: var(--c-muted); line-height: 1.5; }
 .small { font-size: 0.75rem; }
-.field-error { margin: 8px 0 0; font-size: 0.8rem; font-weight: 700; color: var(--c-danger); }
 </style>

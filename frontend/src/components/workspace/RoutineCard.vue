@@ -52,6 +52,9 @@ import { getRoutines, checkRoutine } from '../../api/routine'
 import { apiErrorMessage } from '../../api/practice'
 import { dateKey, dateLabel, isEditable } from '../../constants/practice'
 import { scheduleLabel } from '../../constants/routine'
+import { useToastStore } from '../../stores/toast'
+
+const toast = useToastStore()
 
 // date: 보고 있는 날짜 ('YYYY-MM-DD'). 그날 일정인 루틴만 나온다. 체크는 최근 7일만, 루틴 추가·수정은 오늘 화면에서만
 const props = defineProps({ date: { type: String, required: true } })
@@ -102,7 +105,7 @@ const sendCheck = async (r, day) => {
     const saved = await checkRoutine(r.id, day, r.count)
     if (day === date.value) Object.assign(r, { count: saved.count, completed: saved.completed })
   } catch (e) {
-    error.value = `체크를 저장하지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`체크를 저장하지 못했어요. ${apiErrorMessage(e)}`)
     load()
   }
 }

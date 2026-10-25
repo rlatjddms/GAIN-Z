@@ -1,7 +1,6 @@
 <template>
   <SubPageLayout pill="FRIENDS" title="FRIENDS" name="친구" subtitle="밴드 멤버에게 바로, 또는 친구 코드로 친구를 맺어요">
     <div class="page">
-      <p v-if="actionError" class="error">{{ actionError }}</p>
 
       <!-- 넓은 화면: 왼쪽 친구 목록, 오른쪽 친구 추가·신청 -->
       <div class="col">
@@ -33,7 +32,6 @@
             <Search :size="15" :stroke-width="2.4" aria-hidden="true" />
             <input v-model="friendQuery" type="search" placeholder="친구 닉네임 검색" aria-label="친구 검색" maxlength="20">
           </label>
-          <p v-if="inviteStatus" class="saved">{{ inviteStatus }}</p>
           <p v-if="!shownFriends.length" class="empty">'{{ friendQuery.trim() }}' 친구가 없어요.</p>
           <ul v-else class="people">
             <li v-for="f in shownFriends" :key="f.userId" class="friend-row">
@@ -80,7 +78,6 @@
             </button>
           </form>
           <p v-if="requestError" class="field-error">{{ requestError }}</p>
-          <p v-if="requestStatus" class="saved">{{ requestStatus }}</p>
         </WsCard>
 
         <!-- 보낸 신청 (수락 대기) -->
@@ -144,9 +141,11 @@ import {
 import { apiErrorMessage } from '../api/practice'
 import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
 import { useDialogStore } from '../stores/dialog'
+import { useToastStore } from '../stores/toast'
 import { useLiveRefresh } from '../composables/useLiveRefresh'
 
 const dialog = useDialogStore()
+const toast = useToastStore()
 
 const myCode = ref('')
 const friends = ref([])
@@ -155,7 +154,6 @@ const sent = ref([])
 const bandMates = ref([])
 const loaded = ref(false)
 const loadError = ref('')
-const actionError = ref('')
 const busyId = ref(null)
 const selectedId = ref(null)
 
@@ -218,7 +216,7 @@ const renewCode = async () => {
   try {
     myCode.value = (await regenerateFriendCode()).code
   } catch (e) {
-    actionError.value = apiErrorMessage(e, '새 코드를 받지 못했어요.')
+    toast.error(apiErrorMessage(e, '새 코드를 받지 못했어요.'))
   } finally {
     codeBusy.value = false
   }
@@ -241,12 +239,11 @@ const mateBusyId = ref(null)
 const requestMate = async (mate) => {
   if (mateBusyId.value) return
   mateBusyId.value = mate.userId
-  actionError.value = ''
   try {
     const request = await sendFriendRequestToBandMate(mate.userId)
     sent.value = [request, ...sent.value]
   } catch (e) {
-    actionError.value = apiErrorMessage(e, '친구 신청을 보내지 못했어요.')
+    toast.error(apiErrorMessage(e, '친구 신청을 보내지 못했어요.'))
     await loadAll()
   } finally {
     mateBusyId.value = null
@@ -257,17 +254,15 @@ const requestMate = async (mate) => {
 const codeInput = ref('')
 const sending = ref(false)
 const requestError = ref('')
-const requestStatus = ref('')
 
 const sendRequest = async () => {
   if (sending.value || codeInput.value.length !== FRIEND_CODE_LENGTH) return
   sending.value = true
   requestError.value = ''
-  requestStatus.value = ''
   try {
     const request = await sendFriendRequest(codeInput.value)
     sent.value = [request, ...sent.value]
-    requestStatus.value = `${request.user.name} 님에게 친구 신청을 보냈어요`
+    toast.success(`${request.user.name} 님에게 친구 신청을 보냈어요`)
     codeInput.value = ''
   } catch (e) {
     requestError.value = apiErrorMessage(e, '친구 신청을 보내지 못했어요.')
@@ -278,11 +273,10 @@ const sendRequest = async () => {
 
 const runAction = async (requestId, action, fallback) => {
   busyId.value = requestId
-  actionError.value = ''
   try {
     await action()
   } catch (e) {
-    actionError.value = apiErrorMessage(e, fallback)
+    toast.error(apiErrorMessage(e, fallback))
     // 상대가 먼저 취소했을 수도 있으니 최신 상태로
     await loadAll()
   } finally {
@@ -316,10 +310,9 @@ const shownFriends = computed(() => {
 })
 
 const inviteTarget = ref(null)
-const inviteStatus = ref('')
 const onInviteSent = (friend, band) => {
   inviteTarget.value = null
-  inviteStatus.value = `${friend.name} 님에게 '${band.name}' 초대를 보냈어요`
+  toast.success(`${friend.name} 님에게 '${band.name}' 초대를 보냈어요`)
 }
 
 /* ---------- 친구 삭제 (목록·프로필 팝업 공통) ---------- */
@@ -330,7 +323,6 @@ const unfriend = async (friend) => {
   if (removingId.value) return
   if (!await dialog.confirm({ title: `${friend.name} 님을 친구에서 삭제할까요?`, okText: '삭제', danger: true })) return
   removingId.value = friend.userId
-  actionError.value = ''
   profileModal.value?.setRemoving(true)
   try {
     await removeFriend(friend.userId)
@@ -339,7 +331,7 @@ const unfriend = async (friend) => {
   } catch (e) {
     const message = apiErrorMessage(e, '친구를 삭제하지 못했어요.')
     if (selectedId.value === friend.userId) profileModal.value?.setError(message)
-    else actionError.value = message
+    else toast.error(message)
   } finally {
     removingId.value = null
     profileModal.value?.setRemoving(false)
@@ -349,13 +341,11 @@ const unfriend = async (friend) => {
 
 <style scoped>
 .page { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-.page > .error { grid-column: 1 / -1; }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 /* 한 줄로 쌓일 때: 친구 추가 → 받은 신청 → 내 친구 → 수락 대기 → 같은 밴드 멤버(맨 아래) */
 @media (max-width: 860px) {
   .page { display: flex; flex-direction: column; align-items: stretch; }
   .col { display: contents; }
-  .page > .error { order: 0; }
   .add-card { order: 1; }
   .received-card { order: 2; }
   .friends-card { order: 3; }
@@ -401,7 +391,6 @@ const unfriend = async (friend) => {
 
 
 .field-error { margin: 8px 0 0; font-size: 0.75rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
-.saved { margin: 8px 0 0; font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
 .error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 .loading, .empty { margin: 0; padding: 32px 16px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--c-faint); }
 </style>

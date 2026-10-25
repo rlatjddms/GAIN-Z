@@ -28,7 +28,6 @@
           </li>
         </ul>
       </section>
-      <p v-if="error" class="error">{{ error }}</p>
     </template>
   </WsCard>
 </template>
@@ -40,13 +39,15 @@ import NotificationIcon from '../NotificationIcon.vue'
 import { getNotificationSettings, updateNotificationSettings } from '../../api/notification'
 import { apiErrorMessage } from '../../api/practice'
 import { NOTIFICATION_SETTING_GROUPS } from '../../constants/notification'
+import { useToastStore } from '../../stores/toast'
+
+const toast = useToastStore()
 
 // 다 불러온 뒤 알려 준다 (마이페이지가 #notification-settings로 스크롤할 때)
 const emit = defineEmits(['loaded'])
 
 const settings = ref(null)
 const loadError = ref('')
-const error = ref('')
 const busy = ref(false)
 
 // 영역 아이콘을 그리려고 그 영역의 대표 종류 하나
@@ -70,12 +71,11 @@ const save = async (changes) => {
   const before = { ...settings.value }
   settings.value = { ...settings.value, ...changes }
   busy.value = true
-  error.value = ''
   try {
     settings.value = (await updateNotificationSettings(changes)).settings
   } catch (e) {
     settings.value = before
-    error.value = apiErrorMessage(e, '알림 설정을 바꾸지 못했어요.')
+    toast.error(apiErrorMessage(e, '알림 설정을 바꾸지 못했어요.'))
   } finally {
     busy.value = false
   }
