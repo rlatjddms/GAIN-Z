@@ -474,7 +474,7 @@ button::-moz-focus-inner { border: 0 !important; }
   outline: none;
 }
 .band-tabs-left button:active {
-  border-color: #dee2e6 !important;
+  border-top-color: #dee2e6 !important; border-left-color: #dee2e6 !important; border-right-color: #dee2e6 !important;
   top: 1px !important;
 }
 /* 선택된 탭: 흰색 배경, z-index를 높여 아래 테두리 덮기 */
@@ -534,7 +534,8 @@ button::-moz-focus-inner { border: 0 !important; }
 /* 탭 끌기 (#266): 꾹 누를 때 글자 선택·길게 누르기 메뉴가 뜨지 않게 */
 .band-tabs-left button.movable { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 .band-tabs-left.dragging button { transition: transform 0.18s cubic-bezier(.2,.8,.2,1); cursor: grabbing; }
-.band-tabs-left.dragging button.held { transition: none; box-shadow: 0 6px 14px rgba(23, 36, 59, 0.16); }
+/* 잡은 탭: 아래는 무대와 이어지므로 그림자는 위·옆으로만 */
+.band-tabs-left.dragging button.held { transition: none; box-shadow: 0 -4px 12px rgba(23, 36, 59, 0.12); }
 .band-tabs-left.settling button { transition: none; }
 .band-tabs-left .add-band-tab { font-weight: 900; font-size: 1rem; padding: 5px 16px; color: var(--c-primary-text); }
 .band-tabs-left .add-band-tab:disabled { color: #ced4da; cursor: not-allowed; }
