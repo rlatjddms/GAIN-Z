@@ -1,7 +1,7 @@
 # GAIN-Z 전체(DB·Redis·백엔드·프론트)를 한 번에 띄운다 (#176)
 # 값은 같은 폴더의 .env 에서 읽는다. .env.example 을 복사해서 채운다.
 #   docker compose up -d --build
-# 첫 실행은 테이블을 만들어야 하므로 DDL_AUTO=update 로 한 번 띄운다 (README "Docker로 띄우기")
+# 첫 실행은 테이블을 만들어야 하므로 DDL_AUTO=update 로 한 번 띄운다 (docs/setup.md "Docker로 띄우기")
 
 services:
   # 운영(Supabase)과 같은 PostgreSQL (#178)
