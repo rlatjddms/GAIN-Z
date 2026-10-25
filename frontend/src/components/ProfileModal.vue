@@ -198,14 +198,16 @@ defineExpose({
 .hidden-box p { margin: 0; font-size: 0.85rem; font-weight: 800; color: var(--c-muted); }
 
 .bands-card { background: #fff; border: 1px solid var(--c-line); border-radius: 24px; padding: 20px 24px; }
-h3 { margin: 0 0 12px; font-size: 0.85rem; font-weight: 800; color: var(--c-text-2); }
+h3 { margin: 0 0 14px; font-size: 0.85rem; font-weight: 800; color: var(--c-text-2); }
 .count { color: var(--c-faint); }
-.bands { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.band { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-top: 1px solid var(--c-line-soft); }
-.band:first-child { border-top: none; padding-top: 0; }
-.band-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+/* 밴드마다 연한 칸으로 (#229): 제목 바로 밑에 줄이 붙어 보이던 것을 칸으로 나눈다 */
+.bands { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.band { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 14px; background: var(--c-bg); }
+.band-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
 .band-name { min-width: 0; font-size: 0.88rem; font-weight: 900; color: #343a40; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.part { font-size: 0.75rem; font-weight: 700; color: var(--c-muted); }
+/* 리더 왕관: 홈 밴드 무대와 같은 노란 왕관, 이름과 띄움 */
+.crown { margin-right: 6px; color: #f08c00; vertical-align: -1px; }
+.part { flex: none; font-size: 0.75rem; font-weight: 700; color: var(--c-muted); }
 .badge { flex: none; font-size: 0.68rem; font-weight: 800; color: var(--c-success); background: #ebfbee; padding: 3px 8px; border-radius: 999px; }
 
 .error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
