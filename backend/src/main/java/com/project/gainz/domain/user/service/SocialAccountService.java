@@ -61,10 +61,10 @@ public class SocialAccountService {
     }
 
     private User signUp(SocialProfile profile) {
-        String name = profile.name() == null || profile.name().isBlank() ? profile.email().split("@")[0] : profile.name();
+        // 소셜 이름은 쓰지 않는다 (#227): 캐릭터를 만들면 닉네임이 이름이 된다
         User user = User.builder()
                 .email(profile.email())
-                .name(name)
+                .name(User.nameFromEmail(profile.email()))
                 .role(UserRole.ROLE_USER)
                 .provider(profile.provider())
                 .emailVerified(profile.emailVerified())

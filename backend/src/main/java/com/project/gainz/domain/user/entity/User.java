@@ -42,6 +42,8 @@ public class User extends BaseEntity {
 
     private String password;
 
+    // 화면에 보이는 이름 = 캐릭터 닉네임 (#227). 캐릭터를 만들거나 닉네임을 바꾸면 같이 바뀐다.
+    // 캐릭터를 만들기 전에는 이메일 앞부분
     @Column(nullable = false)
     private String name;
 
@@ -117,6 +119,11 @@ public class User extends BaseEntity {
     public User update(String name) {
         this.name = name;
         return this;
+    }
+
+    // 캐릭터를 만들기 전 이름: 이메일 앞부분
+    public static String nameFromEmail(String email) {
+        return email.split("@")[0];
     }
 
     public boolean hasPassword() {

@@ -46,7 +46,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             default -> throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2FailureHandler.FAILED), "지원하지 않는 소셜 로그인입니다.");
         };
         SocialProfile profile = new SocialProfile(SocialProvider.from(userInfo.getProvider()), userInfo.getProviderId(),
-                userInfo.getEmail(), userInfo.getName(), userInfo.isEmailVerified());
+                userInfo.getEmail(), userInfo.isEmailVerified());
 
         String ticket = takeLinkTicket(request);
         try {

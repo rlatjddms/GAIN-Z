@@ -15,11 +15,6 @@ public record NaverUserInfo(Map<String, Object> attributes) implements OAuth2Use
         return (String) response().get("email");
     }
 
-    @Override
-    public String getName() {
-        return (String) response().get("name");
-    }
-
     // 네이버는 이메일 인증 여부를 주지 않는다 → 자동 연결하지 않고 마이페이지에서 연결 (#189)
     @Override
     public boolean isEmailVerified() { return false; }

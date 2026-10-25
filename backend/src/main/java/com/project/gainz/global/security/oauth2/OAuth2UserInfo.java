@@ -9,8 +9,6 @@ public interface OAuth2UserInfo {
 
     String getEmail();
 
-    String getName();
-
     // 소셜 쪽에서 인증된 이메일인지. 알 수 없으면 false (#189: 자동 연결은 인증된 이메일만)
     boolean isEmailVerified();
 

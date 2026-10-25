@@ -9,7 +9,6 @@ import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
 import com.project.gainz.domain.user.dto.request.PasswordCreateRequest;
 import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
 import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
-import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
 import com.project.gainz.domain.user.dto.request.WithdrawRequest;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
 import com.project.gainz.domain.user.entity.User;
@@ -49,12 +48,6 @@ public class UserService {
     @Transactional(readOnly = true)
     public MyInfoResponse getMyInfo(Long userId) {
         return MyInfoResponse.from(findUser(userId));
-    }
-
-    public MyInfoResponse updateName(Long userId, UpdateNameRequest request) {
-        User user = findUser(userId);
-        user.update(request.name().trim());
-        return MyInfoResponse.from(user);
     }
 
     // 요즘 듣는 음악 설정 (링크·커버·미리듣기는 비우면 null)
