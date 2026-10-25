@@ -5,6 +5,7 @@ import com.project.gainz.domain.band.dto.request.BandCreateRequest;
 import com.project.gainz.domain.band.dto.request.BandJoinRequest;
 import com.project.gainz.domain.band.dto.request.BandLeaderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberOrderRequest;
+import com.project.gainz.domain.band.dto.request.BandOrderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberPartRequest;
 import com.project.gainz.domain.band.dto.request.BandStageRequest;
 import com.project.gainz.domain.band.dto.request.BandUpdateRequest;
@@ -226,6 +227,50 @@ class BandServiceTest {
             assertThat(b.members()).extracting(BandMemberResponse::memberId).containsExactly(200L, 100L);
             assertThat(b.members()).extracting(BandMemberResponse::me).containsExactly(false, true);
         });
+    }
+
+    // 내가 들어간 밴드 3개 (밴드 id 10·11·12, 멤버 id 1·2·3 = 들어온 순서)
+    private List<BandMember> myThreeBands() {
+        User me = user(MEMBER_ID);
+        List<BandMember> mine = new ArrayList<>();
+        for (long i = 0; i < 3; i++) {
+            Band b = Band.builder().name("밴드 " + (10 + i)).leader(user(LEADER_ID)).inviteCode("CODE000" + i).build();
+            ReflectionTestUtils.setField(b, "id", 10 + i);
+            mine.add(member(1 + i, b, me, Position.MEMBER, InstrumentType.BASS));
+        }
+        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(MEMBER_ID)).thenReturn(mine);
+        lenient().when(bandMemberRepository.findAllByBandIdInOrderByIdAsc(anyCollection())).thenReturn(mine);
+        lenient().when(characterRepository.findAllByUserIdIn(anyCollection())).thenReturn(List.of());
+        return mine;
+    }
+
+    @Test
+    void 내_밴드_목록은_내가_놓은_탭_순서대로_순서가_없는_밴드는_들어온_순서로_뒤에() {
+        List<BandMember> mine = myThreeBands();
+        mine.get(1).changeTabOrder(1);
+        mine.get(2).changeTabOrder(0);
+
+        assertThat(bandService.getMyBands(MEMBER_ID)).extracting(BandResponse::id).containsExactly(12L, 11L, 10L);
+    }
+
+    @Test
+    void 탭_순서를_바꾸면_그_순서로_저장하고_돌려준다() {
+        List<BandMember> mine = myThreeBands();
+
+        List<BandResponse> bands = bandService.reorderMyBands(MEMBER_ID, new BandOrderRequest(List.of(11L, 12L, 10L)));
+
+        assertThat(bands).extracting(BandResponse::id).containsExactly(11L, 12L, 10L);
+        assertThat(mine).extracting(BandMember::getTabOrder).containsExactly(2, 0, 1);
+    }
+
+    @Test
+    void 탭_순서는_내_밴드_전부를_한_번씩_보내야_한다() {
+        List<BandMember> mine = myThreeBands();
+
+        assertError(() -> bandService.reorderMyBands(MEMBER_ID, new BandOrderRequest(List.of(11L, 10L))), ErrorCode.INVALID_BAND_ORDER);
+        assertError(() -> bandService.reorderMyBands(MEMBER_ID, new BandOrderRequest(List.of(11L, 11L, 10L))), ErrorCode.INVALID_BAND_ORDER);
+        assertError(() -> bandService.reorderMyBands(MEMBER_ID, new BandOrderRequest(List.of(11L, 12L, 99L))), ErrorCode.INVALID_BAND_ORDER);
+        assertThat(mine).extracting(BandMember::getTabOrder).containsOnlyNulls();
     }
 
     @Test
