@@ -149,7 +149,9 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     const jamButton = songCard.getByRole('link', { name: /Hysteria 합주/ })
     await mkdir('test-results', { recursive: true })
     await page.screenshot({ path: 'test-results/jams-setlist-link.png' })
-    assert.match(await jamButton.textContent(), /🎙️ Hysteria 합주\s*트랙 2/)
+    // 앞의 마이크는 선 아이콘(svg, #138)이라 글자에는 잼 이름과 트랙 수만 있다
+    assert.match(await jamButton.textContent(), /Hysteria 합주\s*트랙 2/)
+    assert.equal(await jamButton.locator('svg').count(), 1)
     await jamButton.click()
     await page.waitForURL(/\/bands\/10\/jams\?jam=50$/)
     await page.waitForFunction(() => document.querySelectorAll('.tracks .track').length === 2 && !document.querySelector('.tracks')?.textContent.includes('불러오는 중'))
@@ -267,9 +269,17 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     const dialog = page.getByRole('dialog')
     const search = dialog.getByLabel('셋리스트 곡 검색')
     const options = dialog.locator('.song-option')
-    // 입력칸은 다른 화면처럼 굵은 테두리 없이 테두리 색만 바뀐다.
+    // 입력칸은 다른 화면처럼 굵은 테두리 없이 테두리 색만 테마 색으로 바뀐다 (#142).
     await search.focus()
-    assert.deepEqual(await search.evaluate(el => { const c = getComputedStyle(el); return [c.outlineStyle, c.borderTopWidth, c.borderTopColor] }), ['none', '1px', 'rgb(173, 181, 189)'])
+    assert.deepEqual(await search.evaluate(el => {
+      const c = getComputedStyle(el)
+      const probe = document.createElement('span')
+      probe.style.color = 'var(--c-primary)'
+      document.body.append(probe)
+      const primary = getComputedStyle(probe).color
+      probe.remove()
+      return [c.outlineStyle, c.borderTopWidth, c.borderTopColor === primary]
+    }), ['none', '1px', true])
     assert.equal(await search.getAttribute('placeholder'), '곡 제목, 아티스트 또는 셋리스트 이름을 입력해 주세요')
     assert.equal(await dialog.getByLabel('잼 이름').getAttribute('placeholder'), '잼 이름을 입력해 주세요')
     await search.fill('MUSE')
