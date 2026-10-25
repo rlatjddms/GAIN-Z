@@ -94,7 +94,7 @@ watch(() => props.open, (open) => {
   code.value = props.initialCode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, INVITE_CODE_LENGTH)
   part.value = props.defaultPart || 'GUITAR'
   error.value = ''
-})
+}, { immediate: true }) // 알림으로 들어와 처음부터 열린 채 그려질 때도 탭·코드를 채운다 (#229)
 watch(tab, () => { error.value = '' })
 
 // 코드는 대문자·숫자만 (붙여 넣은 공백·하이픈은 뺀다)
