@@ -24,12 +24,17 @@ public final class JamRequest {
             Long setlistItemId
     ) {}
 
-    // 녹음 올리기. 파일은 multipart file로 받는다
+    // 녹음 올리기. 파일은 multipart file로 받거나, 브라우저가 바로 올린 uploadId로 받는다 (#262)
     public record Track(
             @NotNull @Min(OFFSET_MIN_MS) @Max(OFFSET_MAX_MS) Integer offsetMs,
             @Min(0) @Max(VOLUME_MAX) Integer volume,
-            @Min(0) @Max(3_600_000) Integer durationMs
-    ) {}
+            @Min(0) @Max(3_600_000) Integer durationMs,
+            String uploadId
+    ) {
+        public Track(Integer offsetMs, Integer volume, Integer durationMs) {
+            this(offsetMs, volume, durationMs, null);
+        }
+    }
 
     // 보낸 값만 바꾼다. 뮤트·솔로는 듣는 사람 화면에서만 바꾼다
     public record TrackUpdate(

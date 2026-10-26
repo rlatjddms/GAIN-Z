@@ -6,6 +6,7 @@ import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.entity.BandPostFile;
 import com.project.gainz.domain.band.entity.Setlist;
 import com.project.gainz.domain.band.entity.SetlistItem;
+import com.project.gainz.domain.band.enums.BandUploadKind;
 import com.project.gainz.domain.band.enums.Position;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.SetlistRepository;
@@ -168,7 +169,7 @@ class SetlistServiceTest {
         SetlistItem existing = item(setlist, 40, 0);
         existing.replaceFiles(List.of(new BandPostFile("keep", "keep.pdf", "application/pdf"), new BandPostFile("drop", "drop.pdf", "application/pdf")));
         var upload = new MockMultipartFile("files", "new.png", "image/png", new byte[] {1});
-        when(storage.store(upload)).thenReturn(new BandAttachmentStorage.StoredFile("new", "new.png", "image/png"));
+        when(storage.store(upload, BandUploadKind.SETLIST_FILE)).thenReturn(new BandAttachmentStorage.StoredFile("new", "new.png", "image/png"));
         TransactionSynchronizationManager.initSynchronization();
         var result = service.saveItem(1L, 10L, 30L, 40L, new SetlistRequest.Item("곡", null, null, null, List.of(), List.of("keep")), List.of(upload));
         assertThat(result.items().get(0).attachments()).extracting(a -> a.id()).containsExactly("keep", "new");

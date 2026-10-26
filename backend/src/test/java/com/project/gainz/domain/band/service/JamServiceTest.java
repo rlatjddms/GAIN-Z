@@ -6,6 +6,7 @@ import com.project.gainz.domain.band.entity.Band;
 import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.entity.BandPostFile;
 import com.project.gainz.domain.band.entity.Jam;
+import com.project.gainz.domain.band.enums.BandUploadKind;
 import com.project.gainz.domain.band.entity.JamTrack;
 import com.project.gainz.domain.band.entity.Setlist;
 import com.project.gainz.domain.band.entity.SetlistItem;
@@ -170,6 +171,18 @@ class JamServiceTest {
         TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_COMMITTED));
         verify(storage).delete(first.getFile().getKey());
         verify(storage).delete(second.getFile().getKey());
+    }
+
+    // #262: 브라우저가 바로 올린 녹음은 파일 없이 uploadId로 가져간다
+    @Test void directUploadedTrackIsClaimedByUploadId() {
+        Jam jam = jam(50L, drummer);
+        when(storage.claim(1L, 10L, "up1", BandUploadKind.JAM_TRACK))
+                .thenReturn(new BandAttachmentStorage.StoredFile("key-direct", "take.wav", "audio/wav"));
+        TransactionSynchronizationManager.initSynchronization();
+        JamResponse.Track result = service.addTrack(1L, 10L, 50L, new JamRequest.Track(0, null, 1000, "up1"), null);
+        assertThat(result.type()).isEqualTo("audio/wav");
+        assertThat(jam.getTracks()).hasSize(1);
+        verify(storage, never()).storeAudio(any());
     }
 
     @Test void uploadedTrackUsesMembersPartAndDefaultVolume() {

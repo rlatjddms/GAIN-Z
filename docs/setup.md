@@ -108,8 +108,10 @@ Render(백엔드) + Supabase(DB·파일) + Vercel(프론트)에 무료로 올립
 | `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET` | ✅ | 카카오 로그인 |
 | `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` | ✅ | 네이버 로그인 |
 | `UPLOAD_DIR` | | 올린 파일 저장 폴더 (기본 `/data/uploads`). 지워지지 않는 볼륨에 둔다 |
-| `STORAGE_TYPE` | | 기본 `local`(`UPLOAD_DIR`). 디스크가 재배포 때 지워지는 곳(Render 등)에서는 `supabase` |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | `supabase`일 때 ✅ | 프로젝트 주소(`https://<프로젝트>.supabase.co`)와 서버용 키(service_role 또는 `sb_secret_…`). 브라우저에 노출하지 않는다 |
+| `STORAGE_TYPE` | | 기본 `local`(`UPLOAD_DIR`). 디스크가 재배포 때 지워지는 곳(Render 등)에서는 `r2` (#262). `supabase`도 쓸 수 있다 |
+| `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | `r2`일 때 ✅ | Cloudflare R2 계정 ID·버킷·API 토큰 (docs/deploy.md 1-5). 버킷에 CORS와 `tmp/` 정리 규칙을 넣어 둔다 |
+| `STORAGE_QUOTA`, `STORAGE_QUOTA_WARN`, `STORAGE_ALERT_EMAIL` | | 저장소 전체 용량 한도(기본 9GB, 넘는 새 파일은 막음)와 경고 선(기본 8GB), 닿으면 메일 받을 주소 (#262) |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | `supabase`일 때 ✅ (`r2`일 때 넣으면 옛 파일을 R2로 옮김) | 프로젝트 주소(`https://<프로젝트>.supabase.co`)와 서버용 키(service_role 또는 `sb_secret_…`). 브라우저에 노출하지 않는다 |
 | `SUPABASE_BUCKET` | | 비공개 버킷 이름 (기본 `uploads`). 미리 만들어 둔다 |
 | `MAIL_TYPE` | | 이메일 인증·비밀번호 찾기 메일 (#193). 기본 `log`(보내지 않고 로그에 코드·링크), 운영은 `brevo` |
 | `BREVO_API_KEY`, `MAIL_FROM` | `brevo`일 때 ✅ | Brevo API 키와 Brevo에서 인증한 보내는 사람 이메일. `MAIL_FROM_NAME`(기본 `GAIN-Z`) |
@@ -130,6 +132,6 @@ Render(백엔드) + Supabase(DB·파일) + Vercel(프론트)에 무료로 올립
 - **DB**: Supabase 대시보드의 Connect → **Session pooler** 주소를 씁니다. 직접 연결(`db.<프로젝트>.supabase.co`)은 IPv6 전용이라 Render 같은 곳에서 안 붙을 수 있고, Transaction pooler(6543)는 JPA의 prepared statement와 맞지 않습니다.
   - `DB_URL=jdbc:postgresql://aws-0-<지역>.pooler.supabase.com:5432/postgres?sslmode=require`, `DB_USERNAME=postgres.<프로젝트 ref>`, `DB_PASSWORD=<DB 비밀번호>`
   - `render.yaml`은 `DDL_AUTO=update`라 첫 배포에 테이블을 만들고, 그 뒤에도 새 테이블·칸을 자동으로 더합니다.
-- **파일**: Storage에서 **비공개(Private)** 버킷 `uploads`를 만들고 `STORAGE_TYPE=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`를 넣습니다. 파일은 `sheets/`, `band/`, `profiles/` 폴더로 나뉘어 저장되고, 브라우저는 지금처럼 백엔드 API를 거쳐서만 받습니다 (권한 검사 그대로).
+- **파일**: #262부터 Supabase Storage 대신 Cloudflare R2를 씁니다 (`STORAGE_TYPE=r2`, 만드는 방법은 `docs/deploy.md` 1-5). 파일은 `sheets/`, `band/`, `profiles/` 폴더로 나뉘어 저장됩니다. 서버가 로그인·권한을 확인한 뒤 몇 분짜리 서명 주소를 내주고, 브라우저는 그 주소로 R2에서 바로 받거나 올립니다. 예전 Supabase 버킷 `uploads`의 파일은 `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`를 남겨 두면 서버가 켜질 때 R2로 옮깁니다.
 
 프론트는 `VITE_API_BASE_URL`을 운영 백엔드 주소로 두고 `npm run build`한 `dist/`를 정적 파일로 서빙합니다. 프론트와 백엔드를 같은 도메인에 두고 프록시가 `/api`, `/oauth2`, `/login/oauth2`를 백엔드로 넘기면 `VITE_API_BASE_URL`을 비워 두면 됩니다.

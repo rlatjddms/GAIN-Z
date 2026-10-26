@@ -1,8 +1,10 @@
 package com.project.gainz.domain.band.controller;
 
 import com.project.gainz.domain.band.dto.request.JamRequest;
+import com.project.gainz.domain.band.dto.response.BandUploadResponse;
 import com.project.gainz.domain.band.dto.response.JamResponse;
 import com.project.gainz.domain.band.service.BandBoardService.AttachmentFile;
+import com.project.gainz.domain.band.service.BandAttachmentStorage;
 import com.project.gainz.domain.band.service.JamService;
 import com.project.gainz.global.common.dto.ApiResponse;
 import com.project.gainz.global.security.principal.UserPrincipal;
@@ -25,6 +27,7 @@ import java.util.List;
 @RequestMapping("/api/v1/bands/{bandId}/jams")
 public class JamController {
     private final JamService service;
+    private final BandAttachmentStorage storage;
 
     @GetMapping
     public ApiResponse<List<JamResponse.Summary>> list(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId) {
@@ -63,7 +66,7 @@ public class JamController {
     @PostMapping(value = "/{jamId}/tracks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<JamResponse.Track> addTrack(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId, @PathVariable Long jamId,
                                                    @Valid @RequestPart("track") JamRequest.Track request,
-                                                   @RequestPart("file") MultipartFile file) {
+                                                   @RequestPart(value = "file", required = false) MultipartFile file) {
         return ApiResponse.success(service.addTrack(me.getUserId(), bandId, jamId, request, file));
     }
 
@@ -79,6 +82,15 @@ public class JamController {
                                          @PathVariable Long jamId, @PathVariable Long trackId) {
         service.deleteTrack(me.getUserId(), bandId, jamId, trackId);
         return ApiResponse.success(null);
+    }
+
+    // 녹음 파일을 저장소에서 바로 받는 몇 분짜리 주소 (#262)
+    @GetMapping("/{jamId}/tracks/{trackId}/file/link")
+    public ApiResponse<BandUploadResponse.Link> fileLink(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
+                                                         @PathVariable Long jamId, @PathVariable Long trackId,
+                                                         @RequestParam(defaultValue = "false") boolean download) {
+        AttachmentFile file = service.file(me.getUserId(), bandId, jamId, trackId);
+        return ApiResponse.success(new BandUploadResponse.Link(storage.link(file.key(), file.name(), file.type(), download)));
     }
 
     @GetMapping("/{jamId}/tracks/{trackId}/file")

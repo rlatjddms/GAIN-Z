@@ -25,6 +25,6 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ApiResponse<?>> response = new GlobalExceptionHandler()
                 .handleMaxUploadSizeExceededException(new MaxUploadSizeExceededException(-1));
 
-        assertThat(response.getBody().message()).contains("30MB").contains("100MB");
+        assertThat(response.getBody().message()).contains("50MB").contains("100MB");
     }
 }
