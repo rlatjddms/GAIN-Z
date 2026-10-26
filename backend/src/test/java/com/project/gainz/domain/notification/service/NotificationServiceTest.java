@@ -259,9 +259,9 @@ class NotificationServiceTest {
     }
 
     @Test
-    void 설정_항목이_없는_종류는_밴드_매칭_초대와_수락뿐이다() {
+    void 설정_항목이_없는_종류는_밴드_초대뿐이다() {
         for (NotificationType type : NotificationType.values()) {
-            boolean always = type == NotificationType.BAND_INVITE || type == NotificationType.BAND_ACCEPT;
+            boolean always = type == NotificationType.BAND_INVITE;
             assertThat(NotificationSetting.of(type)).as(type.name()).matches(s -> always == (s == null));
             assertThat(java.util.Arrays.stream(NotificationSetting.values()).filter(s -> s.types().contains(type)))
                     .as(type.name()).hasSize(always ? 0 : 1);
@@ -297,7 +297,7 @@ class NotificationServiceTest {
         // 밴드에는 커뮤니티·합주 알림도 들어간다
         verify(notificationRepository).findPage(ME, EnumSet.of(NotificationType.BAND_JOIN, NotificationType.BAND_KICKED,
                 NotificationType.BAND_LEADER, NotificationType.BAND_DISBAND, NotificationType.BAND_LEAVE,
-                NotificationType.BAND_INVITE, NotificationType.BAND_ACCEPT, NotificationType.NOTICE, NotificationType.COMMENT,
+                NotificationType.BAND_INVITE, NotificationType.NOTICE, NotificationType.COMMENT,
                 NotificationType.REPLY, NotificationType.MENTION, NotificationType.SETLIST_ASSIGN, NotificationType.JAM_NEW,
                 NotificationType.JAM_TRACK), true, PageRequest.of(0, 20));
     }
