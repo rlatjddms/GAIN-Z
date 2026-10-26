@@ -6,3 +6,5 @@
 application-secret.yml
 *-secret.yml
 .env
+# 직접 돌린 빌드 기록·캐시 (#296)
+frontend/.vite/
