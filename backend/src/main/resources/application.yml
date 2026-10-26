@@ -20,11 +20,12 @@ spring:
         connection:
           handling_mode: DELAYED_ACQUISITION_AND_RELEASE_AFTER_TRANSACTION
 
-  # 파일 올리기: 한 파일 30MB(잼 음원 BandAttachmentStorage.AUDIO_MAX_BYTES가 가장 큼), 한 번에 100MB.
-  # 종류별 한도(악보 10MB·첨부 10MB 등)는 각 저장소 코드에서 따로 확인한다
+  # 서버로 올리는 파일(multipart): 한 파일 50MB(잼 음원 BandAttachmentStorage.AUDIO_MAX_BYTES), 한 번에 100MB.
+  # 종류별 한도(악보 30MB·프로필 10MB 등)는 각 저장소 코드에서 따로 확인한다.
+  # 200MB 첨부처럼 큰 파일은 서버를 거치지 않고 브라우저가 저장소에 바로 올린다 (#262, POST /api/v1/bands/{id}/uploads)
   servlet:
     multipart:
-      max-file-size: 30MB
+      max-file-size: 50MB
       max-request-size: 100MB
 
   # 소셜 로그인에서 비밀이 아닌 설정. client-id·client-secret은 secret/prod 프로필에서 넣는다
@@ -61,7 +62,8 @@ spring:
 gainz:
   # 올린 파일 저장 폴더 (기본: 사용자 홈/.gainz/uploads)
   upload-dir: ${user.home}/.gainz/uploads
-  # 올린 파일을 둘 곳: local(위 폴더) / supabase(Supabase Storage, 운영) (#178)
+  # 올린 파일을 둘 곳: local(위 폴더) / r2(Cloudflare R2, 운영 #262) / supabase(Supabase Storage, #262 전 운영) (#178)
+  # r2·supabase 키는 application-secret.yml(로컬)이나 환경 변수(운영)에만 둔다
   storage:
     type: local
   # 메일 (#193): log(기본, 메일 대신 로그에 링크) / brevo(운영)

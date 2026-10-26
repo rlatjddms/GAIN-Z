@@ -6,6 +6,7 @@ import com.project.gainz.domain.band.entity.BandComment;
 import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.entity.BandPost;
 import com.project.gainz.domain.band.entity.BandPostFile;
+import com.project.gainz.domain.band.enums.BandUploadKind;
 import com.project.gainz.domain.band.repository.BandCommentRepository;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.BandPostRepository;
@@ -125,7 +126,8 @@ public class BandBoardService {
         if (new HashSet<>(keep).size() != keep.size() || !existing.containsAll(keep)) {
             throw new BusinessException(ErrorCode.BAND_FILE_SELECTION_INVALID);
         }
-        if (keep.size() + added.size() > MAX_ATTACHMENTS) throw new BusinessException(ErrorCode.BAND_FILE_LIMIT);
+        List<String> uploadIds = request.uploadIds() == null ? List.of() : request.uploadIds();
+        if (keep.size() + added.size() + uploadIds.size() > MAX_ATTACHMENTS) throw new BusinessException(ErrorCode.BAND_FILE_LIMIT);
         var next = new ArrayList<BandPostFile>();
         for (BandPostFile file : post.getFiles()) {
             if (keep.contains(file.getKey())) next.add(file);
@@ -133,6 +135,11 @@ public class BandBoardService {
         }
         for (MultipartFile file : added) {
             var stored = storage.store(file);
+            cleanAfterCompletion(stored.key(), false);
+            next.add(new BandPostFile(stored.key(), stored.name(), stored.type()));
+        }
+        for (String uploadId : uploadIds) {
+            var stored = storage.claim(userId, bandId, uploadId, BandUploadKind.ATTACHMENT);
             cleanAfterCompletion(stored.key(), false);
             next.add(new BandPostFile(stored.key(), stored.name(), stored.type()));
         }
@@ -176,15 +183,20 @@ public class BandBoardService {
         }
     }
 
-    public record AttachmentFile(Resource resource, String name, String type) {}
+    // key: 저장소 key (받기 주소를 만들 때). 테스트처럼 key 없이 만들 수도 있다
+    public record AttachmentFile(String key, Resource resource, String name, String type) {
+        public AttachmentFile(Resource resource, String name, String type) {
+            this(null, resource, name, type);
+        }
+    }
 
     @Transactional(readOnly = true)
     public List<AttachmentFile> allFiles(Long userId, Long bandId, Long postId) {
         requireMember(userId, bandId);
         BandPost post = findPost(bandId, postId);
         var result = new ArrayList<AttachmentFile>();
-        if (post.getFileUrl() != null) result.add(new AttachmentFile(storage.load(post.getFileUrl()), post.getFileName(), post.getFileType()));
-        post.getFiles().forEach(f -> result.add(new AttachmentFile(storage.load(f.getKey()), f.getName(), f.getType())));
+        if (post.getFileUrl() != null) result.add(new AttachmentFile(post.getFileUrl(), storage.load(post.getFileUrl()), post.getFileName(), post.getFileType()));
+        post.getFiles().forEach(f -> result.add(new AttachmentFile(f.getKey(), storage.load(f.getKey()), f.getName(), f.getType())));
         if (result.isEmpty()) throw new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND);
         return result;
     }
@@ -194,7 +206,7 @@ public class BandBoardService {
         requireMember(userId, bandId);
         BandPost post = findPost(bandId, postId);
         if (post.getFileUrl() == null) throw new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND);
-        return new AttachmentFile(storage.load(post.getFileUrl()), post.getFileName(), post.getFileType());
+        return new AttachmentFile(post.getFileUrl(), storage.load(post.getFileUrl()), post.getFileName(), post.getFileType());
     }
 
     @Transactional(readOnly = true)
@@ -203,7 +215,7 @@ public class BandBoardService {
         BandPost post = findPost(bandId, postId);
         BandPostFile file = post.getFiles().stream().filter(f -> f.getKey().equals(attachmentId)).findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND));
-        return new AttachmentFile(storage.load(file.getKey()), file.getName(), file.getType());
+        return new AttachmentFile(file.getKey(), storage.load(file.getKey()), file.getName(), file.getType());
     }
 
     // 댓글 한 쪽 (#188): 원댓글을 최근 것부터 size개 고르고, 화면에는 오래된 순으로 원댓글 뒤에 그 답글을 붙인다

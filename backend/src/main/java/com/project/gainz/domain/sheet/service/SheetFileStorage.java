@@ -20,7 +20,8 @@ import java.util.UUID;
 @Component
 public class SheetFileStorage {
 
-    public static final long MAX_FILE_BYTES = 10L * 1024 * 1024;
+    // 스캔한 PDF 여러 쪽 (#262에서 10MB → 30MB)
+    public static final long MAX_FILE_BYTES = 30L * 1024 * 1024;
 
     public record StoredFile(String storedName, String contentType, String fileName, long size) {
     }

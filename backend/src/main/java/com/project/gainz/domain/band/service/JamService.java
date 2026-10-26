@@ -9,6 +9,7 @@ import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.entity.BandPostFile;
 import com.project.gainz.domain.band.entity.Jam;
 import com.project.gainz.domain.band.entity.JamTrack;
+import com.project.gainz.domain.band.enums.BandUploadKind;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.JamRepository;
 import com.project.gainz.domain.band.repository.JamTrackRepository;
@@ -127,7 +128,8 @@ public class JamService {
         BandMember me = requireMember(userId, bandId);
         Jam jam = findJam(bandId, jamId);
         if (jam.getTracks().size() >= MAX_TRACKS) throw new BusinessException(ErrorCode.JAM_TRACK_LIMIT_EXCEEDED);
-        var stored = storage.storeAudio(file);
+        var stored = file != null && !file.isEmpty() ? storage.storeAudio(file)
+                : storage.claim(userId, bandId, request.uploadId(), BandUploadKind.JAM_TRACK);
         cleanAfterCompletion(stored.key(), false);
         JamTrack track = tracks.save(JamTrack.builder()
                 .jam(jam)
@@ -167,7 +169,7 @@ public class JamService {
     public AttachmentFile file(Long userId, Long bandId, Long jamId, Long trackId) {
         requireMember(userId, bandId);
         BandPostFile file = findTrack(findJam(bandId, jamId), trackId).getFile();
-        return new AttachmentFile(storage.load(file.getKey()), file.getName(), file.getType());
+        return new AttachmentFile(file.getKey(), storage.load(file.getKey()), file.getName(), file.getType());
     }
 
     /* ---------- 내부 ---------- */

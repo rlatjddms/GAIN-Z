@@ -19,7 +19,8 @@ import java.util.UUID;
 @Component
 public class ProfileImageStorage {
 
-    public static final long MAX_FILE_BYTES = 5L * 1024 * 1024;
+    // 휴대폰 원본 사진 (#262에서 5MB → 10MB. 화면은 올리기 전에 줄여서 보낸다)
+    public static final long MAX_FILE_BYTES = 10L * 1024 * 1024;
     private static final Set<String> IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
     public record StoredImage(String storedName, String contentType) {

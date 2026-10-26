@@ -46,6 +46,19 @@ public class LocalFileStore implements FileStore {
         Files.deleteIfExists(resolve(key));
     }
 
+    @Override
+    public long size(String key) throws IOException {
+        Path path = resolve(key);
+        return Files.isRegularFile(path) ? Files.size(path) : -1;
+    }
+
+    @Override
+    public void move(String from, String to, String contentType) throws IOException {
+        Path target = resolve(to);
+        Files.createDirectories(target.getParent());
+        Files.move(resolve(from), target, StandardCopyOption.REPLACE_EXISTING);
+    }
+
     // 업로드 폴더 밖을 가리키는 key는 막는다
     private Path resolve(String key) throws IOException {
         Path path = baseDir.resolve(key).normalize();

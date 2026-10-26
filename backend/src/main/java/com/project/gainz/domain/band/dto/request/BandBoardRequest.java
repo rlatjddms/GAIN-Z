@@ -15,10 +15,16 @@ public final class BandBoardRequest {
             @NotBlank @Size(max = 10000) String content,
             Boolean notice,
             @Size(max = 8) List<String> keepAttachmentIds,
-            Instant noticeExpiresAt
+            Instant noticeExpiresAt,
+            // 브라우저가 바로 올린 새 첨부 (#262, POST /bands/{id}/uploads). multipart files와 함께 써도 된다
+            @Size(max = 8) List<String> uploadIds
     ) {
+        public Save(String title, String content, Boolean notice, List<String> keepAttachmentIds, Instant noticeExpiresAt) {
+            this(title, content, notice, keepAttachmentIds, noticeExpiresAt, null);
+        }
+
         public Save(String title, String content, Boolean notice, List<String> keepAttachmentIds) {
-            this(title, content, notice, keepAttachmentIds, null);
+            this(title, content, notice, keepAttachmentIds, null, null);
         }
     }
 }

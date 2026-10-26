@@ -20,12 +20,12 @@ public class GlobalExceptionHandler {
 
     // 테스트에서 직접 만들 때는 기본 한도로
     public GlobalExceptionHandler() {
-        this(DataSize.ofMegabytes(30), DataSize.ofMegabytes(100));
+        this(DataSize.ofMegabytes(50), DataSize.ofMegabytes(100));
     }
 
     @Autowired
     public GlobalExceptionHandler(
-            @Value("${spring.servlet.multipart.max-file-size:30MB}") DataSize maxFileSize,
+            @Value("${spring.servlet.multipart.max-file-size:50MB}") DataSize maxFileSize,
             @Value("${spring.servlet.multipart.max-request-size:100MB}") DataSize maxRequestSize) {
         this.maxFileSize = maxFileSize;
         this.maxRequestSize = maxRequestSize;

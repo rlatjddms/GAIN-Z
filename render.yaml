@@ -38,8 +38,18 @@ services:
       # 새 컬럼·테이블이 생기는 배포가 멈추지 않게 운영에서도 update 로 둔다 (컬럼을 지우거나 바꾸지는 않음)
       - key: DDL_AUTO
         value: update
+      # 올린 파일은 Cloudflare R2 (#262, docs/deploy.md 1-5). R2_* 값을 넣기 전에 이 값이 배포되면 서버가 뜨지 않는다
       - key: STORAGE_TYPE
-        value: supabase
+        value: r2
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_BUCKET
+        value: gainz-uploads
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      # 아래 SUPABASE_*는 옛 파일을 R2로 옮기는 동안만 쓴다 (LegacyStorageMigration). 다 옮기면 Render에서 값을 지운다
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY

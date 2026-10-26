@@ -1,7 +1,9 @@
 package com.project.gainz.domain.band.controller;
 
 import com.project.gainz.domain.band.dto.request.BandBoardRequest;
+import com.project.gainz.domain.band.dto.response.BandUploadResponse;
 import com.project.gainz.domain.band.dto.response.BandBoardResponse.*;
+import com.project.gainz.domain.band.service.BandAttachmentStorage;
 import com.project.gainz.domain.band.service.BandBoardService;
 import com.project.gainz.global.common.dto.ApiResponse;
 import com.project.gainz.global.security.principal.UserPrincipal;
@@ -28,6 +30,7 @@ import java.io.IOException;
 @RequestMapping("/api/v1/bands/{bandId}/posts")
 public class BandBoardController {
     private final BandBoardService service;
+    private final BandAttachmentStorage storage;
 
     @GetMapping
     public ApiResponse<PostPage> list(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
@@ -86,6 +89,24 @@ public class BandBoardController {
                                                @PathVariable Long postId, @PathVariable String attachmentId,
                                                @RequestParam(defaultValue = "false") boolean download) {
         return fileResponse(service.file(me.getUserId(), bandId, postId, attachmentId), download);
+    }
+
+    // 첨부를 저장소에서 바로 받는 몇 분짜리 주소 (#262). 큰 영상도 서버를 거치지 않고 <video src>로 바로 튼다
+    @GetMapping("/{postId}/attachment/link")
+    public ApiResponse<BandUploadResponse.Link> fileLink(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
+                                                         @PathVariable Long postId, @RequestParam(defaultValue = "false") boolean download) {
+        return ApiResponse.success(link(service.file(me.getUserId(), bandId, postId), download));
+    }
+
+    @GetMapping("/{postId}/attachments/{attachmentId}/link")
+    public ApiResponse<BandUploadResponse.Link> attachmentLink(@AuthenticationPrincipal UserPrincipal me, @PathVariable Long bandId,
+                                                               @PathVariable Long postId, @PathVariable String attachmentId,
+                                                               @RequestParam(defaultValue = "false") boolean download) {
+        return ApiResponse.success(link(service.file(me.getUserId(), bandId, postId, attachmentId), download));
+    }
+
+    private BandUploadResponse.Link link(BandBoardService.AttachmentFile file, boolean download) {
+        return new BandUploadResponse.Link(storage.link(file.key(), file.name(), file.type(), download));
     }
 
     @GetMapping("/{postId}/attachments.zip")

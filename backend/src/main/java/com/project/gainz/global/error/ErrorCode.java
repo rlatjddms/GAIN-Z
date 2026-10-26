@@ -11,6 +11,8 @@ public enum ErrorCode {
     INVALID_INPUT(400, "G001", "입력한 값이 올바르지 않아요."),
     // 문구의 크기는 GlobalExceptionHandler가 설정값(spring.servlet.multipart)으로 채운다 (#280)
     FILE_TOO_LARGE(400, "G002", "파일이 너무 커요."),
+    // 브라우저가 바로 올리고 받는 주소(FileLinks)가 고쳐졌거나 시간이 지남 (#262)
+    FILE_LINK_INVALID(403, "G003", "파일 주소가 만료됐어요. 화면을 새로고침한 뒤 다시 시도해 주세요."),
 
     /* User (유저) */
     DUPLICATE_EMAIL(409, "U001", "이미 존재하는 이메일입니다."),
@@ -21,7 +23,7 @@ public enum ErrorCode {
     SAME_PASSWORD(400, "U006", "지금 비밀번호와 다른 비밀번호를 입력해 주세요."),
     PROFILE_IMAGE_REQUIRED(400, "U007", "프로필 사진 파일을 올려 주세요."),
     INVALID_PROFILE_IMAGE(400, "U008", "프로필 사진은 PNG·JPG·WEBP 이미지만 올릴 수 있습니다."),
-    PROFILE_IMAGE_TOO_LARGE(400, "U009", "프로필 사진은 5MB까지 올릴 수 있습니다."),
+    PROFILE_IMAGE_TOO_LARGE(400, "U009", "프로필 사진은 10MB까지 올릴 수 있습니다."),
     PROFILE_IMAGE_NOT_FOUND(404, "U010", "프로필 사진이 없습니다."),
     PROFILE_IMAGE_STORAGE_FAILED(500, "U011", "프로필 사진을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."),
     EMAIL_NOT_VERIFIED(400, "U012", "이메일 인증을 먼저 마쳐 주세요. 인증한 지 30분이 지났다면 다시 인증해 주세요."),
@@ -89,7 +91,7 @@ public enum ErrorCode {
     WORKSPACE_LIMIT_EXCEEDED(400, "S005", "보관함에는 악보를 최대 200개까지 담을 수 있습니다."),
     SHEET_FILE_REQUIRED(400, "S006", "악보 파일을 한 장 이상 올려 주세요."),
     INVALID_SHEET_FILE(400, "S007", "PNG·JPG·WEBP 이미지나 PDF만 올릴 수 있습니다."),
-    SHEET_FILE_TOO_LARGE(400, "S008", "악보 파일은 한 장에 10MB까지 올릴 수 있습니다."),
+    SHEET_FILE_TOO_LARGE(400, "S008", "악보 파일은 한 장에 30MB까지 올릴 수 있습니다."),
     SHEET_PAGE_LIMIT_EXCEEDED(400, "S009", "악보는 최대 20장까지 올릴 수 있습니다."),
     SHEET_PAGE_NOT_FOUND(404, "S010", "존재하지 않는 악보 장입니다."),
     SHEET_LAST_PAGE(400, "S011", "마지막 한 장은 지울 수 없습니다."),
@@ -119,7 +121,7 @@ public enum ErrorCode {
     BAND_AUTHOR_ONLY(403, "B016", "작성자만 수정하거나 삭제할 수 있습니다."),
     BAND_COMMENT_NOT_FOUND(404, "B017", "댓글이 없습니다."),
     BAND_REPLY_DEPTH(400, "B018", "대댓글에는 답글을 달 수 없습니다."),
-    BAND_FILE_INVALID(400, "B019", "사진·영상·오디오·PDF 파일을 10MB까지 첨부할 수 있습니다."),
+    BAND_FILE_INVALID(400, "B019", "사진·영상·오디오·PDF 파일을 200MB까지 첨부할 수 있습니다."),
     BAND_FILE_NOT_FOUND(404, "B020", "첨부 파일이 없습니다."),
     BAND_FILE_STORAGE_FAILED(500, "B021", "첨부 파일을 저장하지 못했습니다."),
     BAND_FILE_LIMIT(400, "B022", "첨부 파일은 최대 8개까지 올릴 수 있습니다."),
@@ -136,13 +138,15 @@ public enum ErrorCode {
     JAM_TRACK_NOT_FOUND(404, "B033", "트랙을 찾을 수 없습니다."),
     JAM_LIMIT_EXCEEDED(400, "B034", "잼은 밴드마다 50개까지 만들 수 있습니다."),
     JAM_TRACK_LIMIT_EXCEEDED(400, "B035", "트랙은 잼마다 8개까지 올릴 수 있습니다."),
-    JAM_TRACK_FILE_INVALID(400, "B036", "WebM·OGG·M4A·MP3·WAV 녹음 파일을 30MB까지 올릴 수 있습니다."),
+    JAM_TRACK_FILE_INVALID(400, "B036", "WebM·OGG·M4A·MP3·WAV 녹음 파일을 50MB까지 올릴 수 있습니다."),
     JAM_PERMISSION_DENIED(403, "B037", "만든 멤버나 리더만 할 수 있습니다."),
     JAM_SONG_INVALID(400, "B038", "이 밴드 셋리스트에 없는 곡입니다."),
     BAND_LEADER_MUST_HAND_OVER(400, "B039", "리더인 밴드가 있어요. 탈퇴하기 전에 다른 멤버에게 리더를 넘겨 주세요."),
     BAND_INVITE_NOT_FRIEND(400, "B040", "친구에게만 밴드 초대를 보낼 수 있어요."),
     BAND_INVITE_ALREADY_MEMBER(409, "B041", "이미 이 밴드에 있는 친구예요."),
-    INVALID_BAND_ORDER(400, "B042", "밴드 순서가 지금 내 밴드와 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요.");
+    INVALID_BAND_ORDER(400, "B042", "밴드 순서가 지금 내 밴드와 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요."),
+    // 바로 올린 파일(#262)이 없음: 다 안 올라갔거나 1시간이 지났거나 남의 것
+    BAND_UPLOAD_NOT_FOUND(400, "B043", "올린 파일을 찾지 못했어요. 파일을 다시 올려 주세요.");
 
     private final int status;
     private final String code;
