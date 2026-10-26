@@ -115,7 +115,9 @@ jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?user=po
    ]
    ```
 4. 버킷 → **Settings** → **Object lifecycle rules** → Add rule → 이름 `tmp 정리`, Prefix `tmp/`, **Delete objects 1 day after upload** → Save. 올리다 만 파일을 지웁니다
-5. R2 첫 화면 → **Manage API tokens**(API → Manage API Tokens) → **Create API token**
+5. R2 첫 화면(버킷 목록) **오른쪽 Account Details** 칸의 **API Tokens** 옆 **{} Manage** → **Create Account API token**
+   - 바로 가는 주소: `https://dash.cloudflare.com/?to=/:account/r2/api-tokens`
+   - Account Details 칸이 안 보이면 1번(무료 플랜 시작)을 아직 안 한 것입니다
    - Permissions: **Object Read & Write**
    - Specify bucket(s): **Apply to specific buckets only** → `gainz-uploads`
    - Create → **Access Key ID**와 **Secret Access Key**가 한 번만 보입니다. 바로 Render(아래 표)에 넣습니다
@@ -127,9 +129,19 @@ jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?user=po
    | `R2_ACCOUNT_ID` | R2 첫 화면 오른쪽 **Account ID** |
    | `R2_BUCKET` | `gainz-uploads` |
    | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | 5번에서 받은 값 |
+   | `STORAGE_ALERT_EMAIL` | 저장 공간 알림을 받을 내 이메일 (아래 "용량 한도") |
 
    비밀 키는 Render 환경 변수(운영)와 로컬 `application-secret.yml`(개발)에만 넣습니다. 레포·이슈·채팅에는 넣지 않습니다 (공개 레포).
 7. 배포가 끝나면 Logs에 `Supabase 파일 옮기기 끝: 이번에 N개 옮김`이 나옵니다. 그다음부터 `SUPABASE_URL`·`SUPABASE_SERVICE_KEY`를 지워도 됩니다 (Supabase의 원본 파일은 그대로 남아 있으니, 확인한 뒤 버킷을 지워도 됩니다). `…개 실패`가 나오면 다음 배포·재시작 때 남은 것만 다시 옮깁니다
+
+**새로 릴리스할 때 순서**: 6번 값을 먼저 넣고 `STORAGE_TYPE`은 그대로 둡니다. `main`에 R2 코드가 들어가기 전에 `STORAGE_TYPE=r2`가 되면 옛 서버가 R2를 몰라서 배포가 실패합니다. 릴리스가 배포되면 `render.yaml`대로 `r2`가 되고, 안 바뀌었으면 그때 직접 `r2`로 바꿉니다.
+
+**용량 한도**: Cloudflare에는 "무료 범위를 넘으면 멈춤" 설정이 없어서, 넘으면 등록한 결제 수단으로 청구됩니다. 그래서 서버가 직접 막습니다 (`StorageQuota`).
+
+- 버킷 전체가 **9GB**(`STORAGE_QUOTA`)를 넘는 새 파일은 받지 않고 "저장 공간이 가득 차서…"를 보여 줍니다. 이미 올린 파일은 그대로 볼 수 있습니다
+- **8GB**(`STORAGE_QUOTA_WARN`)에 닿으면 경고, 9GB에서 막히면 다시 `STORAGE_ALERT_EMAIL`로 메일을 보냅니다 (메일은 6단계 Brevo로 감). 같은 단계 메일은 한 번만, 파일을 지워 8GB 아래로 내려가면 다음에 또 보냅니다
+- 쓴 용량은 10분마다 버킷 목록으로 다시 셉니다. 요청 횟수 무료 범위(월 100만 번)에 비하면 아주 적습니다
+- 버킷 Settings에서 저장 등급(Storage class)은 기본값 **Standard** 그대로 둡니다 (Infrequent Access는 따로 요금이 있음)
 
 로컬에서 R2를 쓰려면 `application-secret.yml`에 넣습니다 (없으면 `local`, 디스크에 저장):
 

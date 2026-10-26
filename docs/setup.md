@@ -110,6 +110,7 @@ Render(백엔드) + Supabase(DB·파일) + Vercel(프론트)에 무료로 올립
 | `UPLOAD_DIR` | | 올린 파일 저장 폴더 (기본 `/data/uploads`). 지워지지 않는 볼륨에 둔다 |
 | `STORAGE_TYPE` | | 기본 `local`(`UPLOAD_DIR`). 디스크가 재배포 때 지워지는 곳(Render 등)에서는 `r2` (#262). `supabase`도 쓸 수 있다 |
 | `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | `r2`일 때 ✅ | Cloudflare R2 계정 ID·버킷·API 토큰 (docs/deploy.md 1-5). 버킷에 CORS와 `tmp/` 정리 규칙을 넣어 둔다 |
+| `STORAGE_QUOTA`, `STORAGE_QUOTA_WARN`, `STORAGE_ALERT_EMAIL` | | 저장소 전체 용량 한도(기본 9GB, 넘는 새 파일은 막음)와 경고 선(기본 8GB), 닿으면 메일 받을 주소 (#262) |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | `supabase`일 때 ✅ (`r2`일 때 넣으면 옛 파일을 R2로 옮김) | 프로젝트 주소(`https://<프로젝트>.supabase.co`)와 서버용 키(service_role 또는 `sb_secret_…`). 브라우저에 노출하지 않는다 |
 | `SUPABASE_BUCKET` | | 비공개 버킷 이름 (기본 `uploads`). 미리 만들어 둔다 |
 | `MAIL_TYPE` | | 이메일 인증·비밀번호 찾기 메일 (#193). 기본 `log`(보내지 않고 로그에 코드·링크), 운영은 `brevo` |
