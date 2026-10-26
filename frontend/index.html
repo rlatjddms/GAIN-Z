@@ -26,8 +26,9 @@
     <style>
       #splash { display: none; }
       .standalone #splash {
-        /* 한 칸을 정수 픽셀로 (소수점이면 애니메이션이 시작될 때 픽셀에 다시 맞춰지며 한 틱 흔들린다) */
-        --cell: 6px;
+        /* 한 칸을 정수 픽셀로 (소수점이면 애니메이션이 시작될 때 픽셀에 다시 맞춰지며 한 틱 흔들린다).
+           글자가 커 보여서 6px → 5px (#291) */
+        --cell: 5px;
         position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;
         background: #fff; fill: #12b886; transition: opacity 0.35s ease;
         /* 스크립트가 못 걷어 내도 화면을 막지 않게 */
@@ -39,19 +40,20 @@
       #splash .tile {
         position: absolute; left: 50%; top: 50%; width: calc(var(--cell) * 12.7); height: calc(var(--cell) * 12.7);
         margin: calc(var(--cell) * -6.35) 0 0 calc(var(--cell) * -6.35); border-radius: 22.5%; background: #12b886;
-        animation: splash-tile 0.3s ease-in 0.12s both;
+        animation: splash-tile 0.48s ease-in 0.19s both;
       }
       /* 움직일 것은 처음부터 따로 그려 두어, 애니메이션이 시작되는 순간 다시 그리지 않게 */
       #splash .tile, #splash .z, #splash .l { will-change: transform, opacity; }
-      @media (max-width: 359px) { .standalone #splash { --cell: 5px; } }
+      @media (max-width: 359px) { .standalone #splash { --cell: 4px; } }
       /* Z(오른쪽 끝 5칸)를 가운데에 두었다가 제자리로. 흰색에서 민트로 바뀐 뒤, 타일이 다 사라지고 나서 움직인다 */
-      #splash .z { animation: splash-zc 0.25s ease 0.12s both, splash-z 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.46s both; }
-      #splash .l { animation: splash-l 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-      #splash .l1 { animation-delay: 0.59s; }
-      #splash .l2 { animation-delay: 0.66s; }
-      #splash .l3 { animation-delay: 0.73s; }
-      #splash .l4 { animation-delay: 0.8s; }
-      #splash .l5 { animation-delay: 0.87s; }
+      /* 너무 빨라서 시간을 모두 1.6배로 (#291): 다 그려지는 데 약 1.75초 */
+      #splash .z { animation: splash-zc 0.4s ease 0.19s both, splash-z 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.74s both; }
+      #splash .l { animation: splash-l 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+      #splash .l1 { animation-delay: 0.94s; }
+      #splash .l2 { animation-delay: 1.06s; }
+      #splash .l3 { animation-delay: 1.17s; }
+      #splash .l4 { animation-delay: 1.28s; }
+      #splash .l5 { animation-delay: 1.39s; }
       @keyframes splash-tile { to { opacity: 0; transform: scale(0.85); } }
       @keyframes splash-zc { from { fill: #fff; } }
       @keyframes splash-z { from { transform: translateX(-13px); } to { transform: none; } }
