@@ -6,15 +6,15 @@
     <div v-else class="page">
       <div class="workspace">
         <WsCard :title="`잼 ${jams.length}`" class="sidebar" :class="{ collapsed: fold.collapsed.value }">
-          <!-- 휴대폰: 목록 접기·펼치기 (#254) -->
-          <template v-if="fold.narrow.value && jams.length" #actions>
-            <button class="text-btn fold" :aria-expanded="!fold.collapsed.value" @click="fold.toggle">{{ fold.collapsed.value ? '펼치기' : '접기' }}<ChevronDown class="chevron" :class="{ open: !fold.collapsed.value }" :size="15" :stroke-width="2.4" aria-hidden="true" /></button>
+          <!-- 추가는 제목 줄에 두어 목록을 접어도 보인다 (#293). 휴대폰은 목록 접기·펼치기도 (#254) -->
+          <template #actions>
+            <button v-if="fold.narrow.value && jams.length" class="text-btn fold" :aria-expanded="!fold.collapsed.value" @click="fold.toggle">{{ fold.collapsed.value ? '펼치기' : '접기' }}<ChevronDown class="chevron" :class="{ open: !fold.collapsed.value }" :size="15" :stroke-width="2.4" aria-hidden="true" /></button>
+            <button class="btn add-jam" :disabled="busy || recording" aria-label="잼 추가" @click="openForm(null)"><Plus :size="15" :stroke-width="2.6" aria-hidden="true" />추가</button>
           </template>
           <button v-if="fold.collapsed.value" class="list-summary" @click="fold.toggle">
             <strong>{{ jam?.title || '잼을 골라 주세요' }}</strong><span>잼 {{ jams.length }}개 보기</span>
           </button>
           <template v-else>
-          <button class="btn add-jam" :disabled="busy || recording" @click="openForm(null)">+ 잼 만들기</button>
           <!-- 목록 검색 (#254): 잼 이름이나 연결한 곡 제목 -->
           <label v-if="jams.length" class="list-search">
             <Search :size="14" :stroke-width="2.4" aria-hidden="true" />
@@ -157,7 +157,7 @@
 
     <dialog ref="formDialog" class="jam-dialog" aria-labelledby="jam-form-title" @close="formError = ''">
       <form method="dialog" novalidate @submit.prevent="saveForm">
-        <h3 id="jam-form-title">{{ form.id ? '잼 수정' : '잼 만들기' }}</h3>
+        <h3 id="jam-form-title">{{ form.id ? '잼 수정' : '새 잼' }}</h3>
         <fieldset class="song-picker">
           <legend>셋리스트 곡 연결 (선택)</legend>
           <div v-if="form.song" class="picked">
@@ -185,7 +185,7 @@
         <label>잼 이름<input v-model="form.title" maxlength="60" placeholder="잼 이름을 입력해 주세요" required></label>
         <label>BPM<input v-model.number="form.bpm" type="number" min="40" max="240" required></label>
         <p v-if="formError" class="save-error" role="alert">{{ formError }}</p>
-        <div class="dialog-actions"><button type="button" class="btn" @click="formDialog.close()">취소</button><button class="btn primary" :disabled="busy">{{ form.id ? '저장' : '만들기' }}</button></div>
+        <div class="dialog-actions"><button type="button" class="btn" @click="formDialog.close()">취소</button><button class="btn primary" :disabled="busy">{{ form.id ? '저장' : '추가' }}</button></div>
       </form>
     </dialog>
 
@@ -198,7 +198,7 @@
 </template>
 
 <script setup>
-import { SkipBack, FileUp, Mic, Headphones, Star, Pencil, Search, ChevronDown } from 'lucide-vue-next'
+import { SkipBack, FileUp, Mic, Headphones, Star, Pencil, Plus, Search, ChevronDown } from 'lucide-vue-next'
 import { useCollapsibleList } from '../../components/band/useCollapsibleList'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
@@ -646,7 +646,7 @@ onBeforeUnmount(() => {
 button:disabled { opacity:.4; cursor:default; }
 .danger { color:var(--c-danger); }
 button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); outline-offset:2px; }
-.add-jam { width:100%; margin-bottom:12px; background:var(--c-bg); border-style:dashed; }
+.add-jam { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; font-size:.8rem; font-weight:800; color:var(--c-primary-text); white-space:nowrap; }
 .jam-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
 .jam-row { display:flex; align-items:center; gap:6px; }
 .jam-row input[type='checkbox'] { width:16px; height:16px; flex:none; }
