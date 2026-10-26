@@ -82,7 +82,7 @@ test('녹음 형식은 서버가 받는 것 중 브라우저가 되는 것을 �
 
 test('카운트인 중 지금 몇 번째 박인지 알려 준다', () => {
   // 120 BPM 4박: 박마다 0.5초, 첫 클릭은 반주 2초 전. left = 반주까지 남은 초
-  assert.equal(countInBeatAt(2.1, 120, 4), 0)  // 첫 클릭 전
+  assert.equal(countInBeatAt(2.1, 120, 4), 1)  // 첫 클릭 전 (예약 틈)도 첫 박으로 (#294)
   assert.equal(countInBeatAt(2.0, 120, 4), 1)
   assert.equal(countInBeatAt(1.6, 120, 4), 1)
   assert.equal(countInBeatAt(1.5, 120, 4), 2)
