@@ -2,6 +2,7 @@ package com.project.gainz.domain.band.controller;
 
 import com.project.gainz.domain.band.dto.response.BandBoardResponse.CommentPage;
 import com.project.gainz.domain.band.dto.response.BandBoardResponse.PostPage;
+import com.project.gainz.domain.band.service.BandAttachmentStorage;
 import com.project.gainz.domain.band.service.BandBoardService;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.error.BusinessException;
@@ -37,7 +38,7 @@ class BandBoardControllerTest {
         User user = User.builder().build();
         ReflectionTestUtils.setField(user, "id", 1L);
         UserPrincipal principal = UserPrincipal.create(user);
-        mvc = MockMvcBuilders.standaloneSetup(new BandBoardController(service))
+        mvc = MockMvcBuilders.standaloneSetup(new BandBoardController(service, mock(BandAttachmentStorage.class)))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
                     @Override public boolean supportsParameter(MethodParameter parameter) {

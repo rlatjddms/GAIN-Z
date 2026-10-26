@@ -99,6 +99,24 @@ class SupabaseFileStoreTest {
         assertThat(lastHeaders).containsEntry("apikey", "sb_secret_abc").doesNotContainKey("authorization");
     }
 
+    // R2로 옮길 때 쓰는 목록 (#262). 폴더 항목(id 없음)은 빼고 "폴더/이름"으로 준다
+    @Test
+    void 폴더의_파일_목록을_받는다() throws Exception {
+        List<String> bodies = new CopyOnWriteArrayList<>();
+        server.createContext("/storage/v1/object/list/", exchange -> {
+            requests.add(exchange.getRequestMethod() + " " + exchange.getRequestURI().getPath());
+            bodies.add(new String(exchange.getRequestBody().readAllBytes()));
+            byte[] body = "[{\"name\":\"sub\",\"id\":null},{\"name\":\"a\",\"id\":\"1\"},{\"name\":\"b\",\"id\":\"2\"}]".getBytes();
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+
+        assertThat(store("eyJ.key").list("band")).containsExactly("band/a", "band/b");
+        assertThat(requests).containsExactly("POST /storage/v1/object/list/uploads");
+        assertThat(bodies.get(0)).contains("\"prefix\":\"band\"").contains("\"offset\":0");
+    }
+
     @Test
     void 서버_오류는_IOException으로_알린다() {
         server.removeContext("/storage/v1/object/");
