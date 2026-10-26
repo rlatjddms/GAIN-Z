@@ -3,6 +3,7 @@ package com.project.gainz.global.storage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -34,6 +35,8 @@ public class FileLinks {
     private final byte[] secret;
     private final Clock clock;
 
+    // 생성자가 둘이라 Spring이 쓸 것을 표시한다 (#310)
+    @Autowired
     public FileLinks(FileStore store, @Value("${jwt.secret}") String secret) {
         this(store, secret, Clock.systemUTC());
     }
