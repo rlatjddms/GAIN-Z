@@ -200,6 +200,8 @@ test('홈에서 더 보기와 상세 열기, 상단바 유지, 작성자 우선,
   const { page, errors } = await fixture(t, { posts: Array.from({ length: 22 }, (_, i) => makePost(i + 1)) })
   await page.goto(`${origin}/home?band=10`)
   await page.locator('.community .post').first().waitFor()
+  // 프로필 사진이 다 뜬 뒤 상단바를 찍는다. 사진이 늦게 오면 기본 아이콘 → 사진으로 바뀌어 비교가 틀어진다 (CI처럼 느린 곳에서 #248)
+  await page.locator('.main-header .profile-avatar img').waitFor()
   const header = await page.locator('.main-header').innerHTML()
   assert.equal(await page.getByText('전체 보기', { exact: true }).count(), 0)
   // 더 보기 대신 페이지 번호 (#188): 공지 1개를 뺀 21개를 12개씩
