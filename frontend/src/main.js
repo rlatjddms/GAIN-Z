@@ -8,6 +8,10 @@ import { useThemeStore } from './stores/theme'
 import { watchKeyboardInset } from './components/ui/keyboardInset'
 import { watchImeInput } from './components/ui/imeInput'
 
+// 시작 화면을 걷어 내는 시각: 로고가 다 그려지고(약 1.75초) 잠깐 보인 뒤 (#291에서 1.3초 → 2.1초).
+// hideSplash()가 아래에서 바로 불리므로 그보다 위에 둔다 (const는 선언 전에 쓰면 오류)
+const SPLASH_MS = 2100
+
 const app = createApp(App)
 const pinia = createPinia()
 
@@ -23,8 +27,6 @@ app.mount('#app')
 hideSplash()
 
 // 시작 화면(#194, index.html)은 열고 SPLASH_MS 동안(애니메이션) 또는 앱이 뜰 때까지 보여 주고 걷어 낸다
-// 로고가 다 그려지고(약 1.75초) 잠깐 보인 뒤 (#291에서 1.3초 → 2.1초)
-const SPLASH_MS = 2100
 function hideSplash() {
   const splash = document.getElementById('splash')
   if (!splash) return
