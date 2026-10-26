@@ -209,7 +209,7 @@ class NotificationServiceTest {
         notificationService.notify(user(2L, "가"), NotificationType.FRIEND_REQUEST, "친구", "신청", "/friends");
         verify(notificationRepository, never()).saveAll(any());
 
-        // 밴드 매칭 초대는 설정 항목이 없어 항상 보낸다
+        // 밴드 초대(#229)는 설정 항목이 없어 항상 보낸다
         notificationService.notify(user(3L, "나나"), NotificationType.BAND_INVITE, "밴드", "초대", "/home");
         verify(notificationOffRepository, never()).findUserIdsTurnedOff(eq(null), anyCollection());
         verify(notificationRepository).saveAll(any());
