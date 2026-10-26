@@ -696,3 +696,26 @@ test('소셜 로그인은 주소의 한 번용 코드를 토큰으로 바꾸고,
   await page.locator('.toast.error').filter({ hasText: '로그인 시간이 지났어요' }).waitFor()
   assert.deepEqual(errors, [])
 })
+
+test('공지만 있거나 글이 없는 밴드는 다시 불러올 때 빈 카드가 깜빡이지 않는다', async t => {
+  const { page, state, errors } = await fixture(t, { posts: [makePost(1)] })
+  await page.goto(`${origin}/home?band=10`)
+  await page.locator('.community .notice').first().waitFor()
+  await page.waitForFunction(() => !document.querySelector('.community .skeleton'))
+  const listCalls = () => state.requests.filter(r => r.method === 'GET' && r.path === '/api/v1/bands/10/posts').length
+  // 처음 다 보여 준 뒤 빈 카드가 한 번이라도 생기는지 지켜본다 (#295)
+  await page.evaluate(() => {
+    window.skeletonSeen = 0
+    new MutationObserver(() => { if (document.querySelector('.community .skeleton')) window.skeletonSeen++ })
+      .observe(document.body, { subtree: true, childList: true })
+  })
+  const before = listCalls()
+  // 같은 밴드에서 글이 바뀌었다는 신호 → 다시 불러온다
+  state.streamEvents = [['change', { topic: 'BAND_BOARD', bandId: 10 }]]
+  for (let i = 0; i < 300 && listCalls() < before + 2; i++) await page.waitForTimeout(100)
+  await page.waitForTimeout(500)
+  assert.ok(listCalls() >= before + 2, '다시 불러왔어야 한다')
+  assert.equal(await page.evaluate(() => window.skeletonSeen), 0)
+  assert.equal(await page.locator('.community .notice').count(), 1)
+  assert.deepEqual(errors, [])
+})
