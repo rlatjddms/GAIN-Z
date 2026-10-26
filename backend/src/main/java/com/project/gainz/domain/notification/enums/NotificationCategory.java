@@ -10,7 +10,6 @@ public enum NotificationCategory {
     FRIEND(EnumSet.of(NotificationType.FRIEND_REQUEST, NotificationType.FRIEND_ACCEPT)),
     BAND(EnumSet.of(NotificationType.BAND_JOIN, NotificationType.BAND_KICKED, NotificationType.BAND_LEADER,
             NotificationType.BAND_DISBAND, NotificationType.BAND_LEAVE, NotificationType.BAND_INVITE,
-            NotificationType.BAND_ACCEPT,
             NotificationType.NOTICE, NotificationType.COMMENT, NotificationType.REPLY, NotificationType.MENTION,
             NotificationType.SETLIST_ASSIGN, NotificationType.JAM_NEW, NotificationType.JAM_TRACK)),
     RECORD(EnumSet.of(NotificationType.RECORD));

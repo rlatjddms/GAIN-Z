@@ -27,7 +27,6 @@ public enum NotificationType {
     /* 레코드 */
     RECORD,           // 새 레코드 획득
 
-    /* 밴드 매칭 (#87에서 사용) */
-    BAND_INVITE,      // 밴드 초대
-    BAND_ACCEPT       // 밴드 가입 요청 수락
+    /* 밴드 초대 (#229, 친구에게 보냄) */
+    BAND_INVITE       // 밴드 초대
 }
