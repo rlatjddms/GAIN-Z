@@ -1,7 +1,7 @@
 <template>
   <section ref="panel" class="community-panel">
     <BandCommunityFeed
-      :mine="mine" :notices="notices" :posts="posts" :total="total" :loading="loading && !rows.length"
+      :mine="mine" :notices="notices" :posts="posts" :total="total" :loading="loading && !shown"
       :searching="searching" :search-open="searchOpen"
       @open="open" @write="write" @mine="toggleMine" @edit="edit" @delete="remove" @search-toggle="searchOpen = !searchOpen"
     >
@@ -59,6 +59,9 @@ const searchOpen = ref(false)
 
 const rows = ref([])
 const loading = ref(false)
+// 이 밴드의 목록을 한 번이라도 보여 줬는지 (#295). 보여 준 뒤 다시 불러올 때는 빈 카드(불러오는 중)를 띄우지 않는다.
+// 글이 없거나 공지만 있는 밴드도 이미 보여 준 화면이 있으니까 (예전에는 일반 글 수로 판단해서 다시 불러올 때마다 깜빡였다)
+const shown = ref(false)
 const error = ref('')
 const regularTotal = ref(0)
 const totalPages = ref(0)
@@ -71,6 +74,7 @@ const selectedPost = computed(() => Number(route.query.post) || null)
 const dialogMode = computed(() => route.query.compose === '1' ? 'new' : selectedPost.value ? (route.query.edit === '1' ? 'edit' : 'detail') : null)
 let sequence = 0
 function showList(list) {
+  shown.value = true
   noticeRows.value = list.noticeRows
   rows.value = list.rows
   regularTotal.value = list.regularTotal
@@ -129,7 +133,7 @@ async function remove(post) {
   try { await deleteBandPost(props.band.id, post.id); await load() }
   catch (e) { toast.error(e.response?.data?.message || '글을 삭제하지 못했어요. 다시 시도해 주세요.') }
 }
-watch(() => props.band.id, () => { rows.value = []; noticeRows.value = []; regularTotal.value = 0; totalPages.value = 0 })
+watch(() => props.band.id, () => { rows.value = []; noticeRows.value = []; regularTotal.value = 0; totalPages.value = 0; shown.value = false })
 watch(() => [props.band.id, mine.value, page.value, filters.value.q, filters.value.from, filters.value.to], () => load(), { immediate: true })
 // 앱으로 돌아왔을 때·새 공지나 댓글 알림이 왔을 때 (#224)·같은 밴드에서 누가 글이나 댓글을 바꿨을 때 (#259) 글 목록을 다시
 useLiveRefresh(load, {
