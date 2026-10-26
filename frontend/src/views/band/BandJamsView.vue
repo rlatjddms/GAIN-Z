@@ -448,6 +448,8 @@ async function startRecording() {
   stopPlayback(true)
   try {
     session = await engine.record(tracks.value.filter(track => track.buffer), soloIds.value, { bpm: jam.value.bpm, metronome: metronomeOn.value, countIn: countInOn.value ? COUNT_IN_BEATS : 0 })
+    // 첫 화면부터 카운트인 숫자로 (첫 tick 전에 "녹음 중"이 잠깐 보이지 않게, #294)
+    countInBeat.value = countInOn.value ? 1 : 0
     recording.value = true
     playing.value = true
     frame = requestAnimationFrame(tick)
