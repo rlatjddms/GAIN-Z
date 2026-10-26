@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/rlatjddms/GAIN-Z/actions/workflows/ci.yml"><img src="https://github.com/rlatjddms/GAIN-Z/actions/workflows/ci.yml/badge.svg?branch=dev" alt="CI" /></a>
   <img src="https://img.shields.io/badge/Java-17-007396?logo=openjdk&logoColor=white" alt="Java 17" />
   <img src="https://img.shields.io/badge/Spring%20Boot-3-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 3" />
   <img src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs&logoColor=white" alt="Vue 3" />
@@ -72,7 +73,7 @@ UptimeRobot → 5분마다 백엔드 호출 (무료 플랜 서버 휴면 방지)
 
 이 프로젝트는 Claude Code와 협업해서 만들었고, AI가 일하는 방식을 규칙으로 정해서 통제했습니다.
 
-- **요구사항 → 이슈 → PR**: 에픽 4개 아래에 기능 단위로 이슈를 나누고, 이슈 하나당 브랜치와 PR 하나로 작업합니다.
+- **요구사항 → 이슈 → PR**: 에픽 아래에 기능 단위로 이슈를 나누고, 이슈 하나당 브랜치와 PR 하나로 작업합니다. PR마다 GitHub Actions가 백엔드 테스트·프론트 빌드·프론트 테스트를 돌립니다.
 - **규칙 문서화**: [CLAUDE.md](CLAUDE.md)에 AI의 역할 경계(PR까지만, 머지는 사람), 브랜치·커밋·이슈 규칙, 코드 구조, 에셋 규격을 적어 두었습니다.
 
 | 구분 | AI (Claude Code) | 사람 |

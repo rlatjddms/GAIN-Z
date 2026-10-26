@@ -50,7 +50,8 @@ Claude Code와 팀원이 함께 따르는 규칙입니다. Claude는 세션을 �
 - `.github/PULL_REQUEST_TEMPLATE.md`를 채웁니다. `Closes #이슈번호`, 작업 내용 체크리스트, 테스트 결과, 주의 사항.
 - 제목은 이슈 제목과 같게 (`[feat] …`). 라벨은 이슈와 같게.
 - 머지 방식은 squash. 머지 후 원격 브랜치는 삭제합니다.
-- 레포에 CI는 없습니다. PR을 올리기 전에 로컬에서 백엔드 `./gradlew test`, 프론트 `npm run build`와 `npm test`를 통과시키고 결과를 PR에 적습니다. 화면을 바꿔서 프론트 테스트가 깨지면 테스트도 같이 고칩니다.
+- PR을 올리기 전에 로컬에서 백엔드 `./gradlew test`, 프론트 `npm run build`와 `npm test`를 통과시키고 결과를 PR에 적습니다. 화면을 바꿔서 프론트 테스트가 깨지면 테스트도 같이 고칩니다.
+- GitHub Actions CI(`.github/workflows/ci.yml`)가 `dev`·`main`으로 가는 PR과 push마다 같은 세 가지를 다시 돌립니다. PR을 올린 뒤 CI 결과(`gh pr checks`)도 확인하고, 실패하면 고칩니다.
 
 ## 코드
 

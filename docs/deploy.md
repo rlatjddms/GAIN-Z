@@ -29,6 +29,10 @@ GAIN-Z를 무료로 인터넷에 올리는 방법입니다 (#180, 실제 배포 
 
 - 이 레포의 **기본 브랜치는 `dev`**입니다. 기능 PR은 전부 `dev`로 머지합니다.
 - **운영 배포는 `main`**입니다. `dev` → `main` 릴리스 PR을 **merge commit**으로 머지하면 Render와 Vercel이 새 버전을 올립니다. squash로 머지하면 `main`과 `dev`의 기록이 갈라져 다음 릴리스에서 충돌이 납니다.
+- **CI가 통과한 것만 배포합니다** (#248).
+  - GitHub Actions CI(`.github/workflows/ci.yml`)가 PR과 `main`·`dev` push마다 백엔드 테스트, 프론트 빌드, 프론트 테스트를 돌립니다.
+  - **Render**는 `autoDeployTrigger: checksPass`라서 그 커밋의 체크가 모두 통과한 뒤에만 배포합니다. Render 대시보드에서 바꿨다면 Settings → Build & Deploy → Auto-Deploy가 "After CI Checks Pass"인지 확인합니다.
+  - **Vercel**은 CI를 기다리는 설정이 없어서, GitHub에서 막습니다. 저장소 Settings → Rules → Rulesets에서 `main`·`dev`에 "Require status checks to pass"(백엔드 테스트·프론트 빌드·프론트 테스트)를 켜면 CI가 실패한 PR은 머지할 수 없습니다.
 - Render는 `render.yaml`에 `branch: main`이 적혀 있어 따로 설정할 것이 없습니다. **Vercel은 기본 브랜치(`dev`)를 운영으로 배포하므로 3-5에서 `main`으로 바꿔야 합니다.**
 
 ## 주소 이름
