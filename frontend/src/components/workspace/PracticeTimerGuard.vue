@@ -2,7 +2,8 @@
   <!-- 타이머가 2시간 넘게 켜져 있으면 '아직 연습 중이에요?' 확인. 10분 동안 답이 없으면 마지막 확인 시점에 멈춘다 -->
   <Teleport to="body">
     <transition name="modal">
-      <div v-if="asking || stoppedAt" class="backdrop">
+      <!-- '타이머를 멈췄어요' 안내는 바깥을 눌러도 닫는다 (#292). '아직 연습 중이에요?'는 답을 골라야 해서 그대로 -->
+      <div v-if="asking || stoppedAt" class="backdrop" @click.self="!asking && (stoppedAt = null)">
         <section class="modal" role="alertdialog" aria-modal="true" aria-labelledby="timer-guard-title">
           <template v-if="asking">
             <div class="icon" aria-hidden="true"><PixelIcon name="clock" :size="36" /></div>

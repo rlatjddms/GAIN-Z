@@ -9,6 +9,7 @@ import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.entity.BandPostFile;
 import com.project.gainz.domain.band.entity.Setlist;
 import com.project.gainz.domain.band.entity.SetlistItem;
+import com.project.gainz.domain.band.enums.BandUploadKind;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.SetlistRepository;
 import com.project.gainz.domain.band.service.BandBoardService.AttachmentFile;
@@ -120,7 +121,7 @@ public class SetlistService {
         Set<Long> assignedBefore = item.getAssignees().stream()
                 .map(m -> m.getUser().getId())
                 .collect(Collectors.toSet());
-        List<BandPostFile> files = files(item, request.keepAttachmentIds(), uploads);
+        List<BandPostFile> files = files(userId, bandId, item, request.keepAttachmentIds(), request.uploadIds(), uploads);
 
         item.update(request.title().trim(), blankToNull(request.artist()), blankToNull(request.memo()), sheet);
         item.replaceAssignees(assignees);
@@ -163,7 +164,7 @@ public class SetlistService {
         SetlistItem item = findItem(findSetlist(bandId, setlistId), itemId);
         BandPostFile file = item.getFiles().stream().filter(f -> f.getKey().equals(attachmentId)).findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.BAND_FILE_NOT_FOUND));
-        return new AttachmentFile(storage.load(file.getKey()), file.getName(), file.getType());
+        return new AttachmentFile(file.getKey(), storage.load(file.getKey()), file.getName(), file.getType());
     }
 
     /* ---------- 도움 ---------- */
@@ -208,22 +209,29 @@ public class SetlistService {
         return unique.stream().map(byId::get).toList();
     }
 
-    // 남길 첨부 + 새 파일. DB가 롤백되면 새 파일만, 커밋되면 뺀 파일만 지운다
-    private List<BandPostFile> files(SetlistItem item, List<String> keepIds, List<MultipartFile> uploads) {
+    // 남길 첨부 + 새 파일(서버로 올린 것 + 바로 올린 것). DB가 롤백되면 새 파일만, 커밋되면 뺀 파일만 지운다
+    private List<BandPostFile> files(Long userId, Long bandId, SetlistItem item, List<String> keepIds,
+                                     List<String> uploadIds, List<MultipartFile> uploads) {
         List<String> keep = keepIds == null ? List.of() : keepIds;
         List<MultipartFile> added = uploads == null ? List.of() : uploads.stream().filter(f -> !f.isEmpty()).toList();
+        List<String> direct = uploadIds == null ? List.of() : uploadIds;
         var existing = item.getFiles().stream().map(BandPostFile::getKey).collect(Collectors.toSet());
         if (new HashSet<>(keep).size() != keep.size() || !existing.containsAll(keep)) {
             throw new BusinessException(ErrorCode.BAND_FILE_SELECTION_INVALID);
         }
-        if (keep.size() + added.size() > MAX_ATTACHMENTS) throw new BusinessException(ErrorCode.BAND_FILE_LIMIT);
+        if (keep.size() + added.size() + direct.size() > MAX_ATTACHMENTS) throw new BusinessException(ErrorCode.BAND_FILE_LIMIT);
         var next = new ArrayList<BandPostFile>();
         for (BandPostFile file : item.getFiles()) {
             if (keep.contains(file.getKey())) next.add(file);
             else cleanAfterCompletion(file.getKey(), true);
         }
         for (MultipartFile file : added) {
-            var stored = storage.store(file);
+            var stored = storage.store(file, BandUploadKind.SETLIST_FILE);
+            cleanAfterCompletion(stored.key(), false);
+            next.add(new BandPostFile(stored.key(), stored.name(), stored.type()));
+        }
+        for (String uploadId : direct) {
+            var stored = storage.claim(userId, bandId, uploadId, BandUploadKind.SETLIST_FILE);
             cleanAfterCompletion(stored.key(), false);
             next.add(new BandPostFile(stored.key(), stored.name(), stored.type()));
         }

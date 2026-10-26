@@ -3,6 +3,7 @@ package com.project.gainz.domain.sheet.service;
 import com.project.gainz.domain.sheet.service.SheetFileStorage.StoredFile;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.global.storage.LocalFileStore;
+import com.project.gainz.global.storage.StorageQuota;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
@@ -11,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -24,7 +26,7 @@ class SheetFileStorageTest {
     @TempDir Path dir;
 
     private SheetFileStorage storage() {
-        return new SheetFileStorage(new LocalFileStore(dir.toString()));
+        return new SheetFileStorage(new LocalFileStore(dir.toString()), mock(StorageQuota.class));
     }
 
     @Test

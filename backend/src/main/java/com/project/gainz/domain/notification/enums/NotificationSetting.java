@@ -4,7 +4,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 // 알림 설정 항목 (마이페이지에서 종류별로 켜고 끈다). 화면 constants/notification.js NOTIFICATION_SETTING_GROUPS와 같다
-// 설정 항목이 없는 종류(밴드 매칭 초대·수락)는 항상 받는다
+// 설정 항목이 없는 종류(친구가 보낸 밴드 초대, #229)는 항상 받는다
 public enum NotificationSetting {
 
     FRIEND_REQUEST(EnumSet.of(NotificationType.FRIEND_REQUEST)),

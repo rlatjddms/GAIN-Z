@@ -3,6 +3,7 @@
     <transition name="modal">
       <div v-if="date" class="backdrop" @click.self="!saving && emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-day-title">
+          <ModalClose :disabled="saving" @close="emit('close')" />
           <h2 id="edit-day-title">{{ dateLabel(date) }} 연습 시간</h2>
           <p class="sub">기록을 놓쳤거나 잘못 잰 날은 직접 고칠 수 있어요.</p>
 
@@ -39,6 +40,7 @@ import { ref, computed, watch } from 'vue'
 import { usePracticeStore } from '../../stores/practice'
 import { apiErrorMessage } from '../../api/practice'
 import { dateLabel, durationText, MAX_SECONDS_PER_DAY } from '../../constants/practice'
+import ModalClose from '../ui/ModalClose.vue'
 
 // date: 'YYYY-MM-DD' (null이면 닫힘)
 const props = defineProps({ date: { type: String, default: null } })
@@ -124,4 +126,8 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
   }
 }
 .quick .btn { flex: 1; min-height: 30px; font-size: 0.75rem; }
+/* 닫기 버튼 자리 (#292) */
+.modal { position: relative; }
+h2 { padding-right: 40px; }
+
 </style>

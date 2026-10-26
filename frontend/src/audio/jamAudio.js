@@ -105,9 +105,10 @@ export function formatTime(seconds) {
   return `${minutes}:${(total % 60).toFixed(1).padStart(4, '0')}`
 }
 
-// 카운트인 중 지금 몇 번째 박인지(1부터) (#234). left: 반주가 시작하기까지 남은 초. 카운트인이 아니거나 첫 클릭 전이면 0
+// 카운트인 중 지금 몇 번째 박인지(1부터) (#234). left: 반주가 시작하기까지 남은 초. 카운트인이 아니면 0.
+// 첫 클릭 전 잠깐(소리를 늦지 않게 조금 뒤로 예약한 틈)도 1로 본다. 0이면 화면이 그 사이 "녹음 중"을 보였다 숨겨서 (#294)
 export function countInBeatAt(left, bpm, countIn) {
   if (!bpm || !countIn || left <= 0) return 0
   const beat = countIn - Math.ceil(left / (60 / bpm) - 1e-6) + 1
-  return beat >= 1 && beat <= countIn ? beat : 0
+  return Math.min(Math.max(beat, 1), countIn)
 }

@@ -61,6 +61,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/api/v1/health",
+                                // 서명한 표로 확인하는 파일 주소 (#262, FileLinkController)
+                                "/api/v1/files/**",
                                 "/login/oauth2/**",
                                 "/oauth2/**",
                                 "/swagger-ui/**",

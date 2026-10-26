@@ -58,8 +58,18 @@ gainz:
     from-name: ${MAIL_FROM_NAME:GAIN-Z}
     brevo:
       api-key: ${BREVO_API_KEY:}
+  # 운영은 r2 (#262). SUPABASE_*가 남아 있으면 Supabase의 옛 파일을 R2로 옮기고(LegacyStorageMigration), 다 옮기면 지워도 된다
   storage:
     type: ${STORAGE_TYPE:local}
+    # 전체 용량 한도 (StorageQuota). R2 무료 10GB를 넘지 않게 9GB에서 새 파일을 막고, 8GB·9GB에 닿으면 메일을 보낸다
+    quota: ${STORAGE_QUOTA:9GB}
+    quota-warn: ${STORAGE_QUOTA_WARN:8GB}
+    alert-email: ${STORAGE_ALERT_EMAIL:}
+    r2:
+      account-id: ${R2_ACCOUNT_ID:}
+      bucket: ${R2_BUCKET:}
+      access-key-id: ${R2_ACCESS_KEY_ID:}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY:}
     supabase:
       url: ${SUPABASE_URL:}
       bucket: ${SUPABASE_BUCKET:uploads}

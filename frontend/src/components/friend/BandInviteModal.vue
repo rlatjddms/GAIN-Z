@@ -3,6 +3,7 @@
     <transition name="modal">
       <div v-if="friend" class="backdrop" @click.self="!sending && emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="band-invite-title">
+          <ModalClose :disabled="sending" @close="emit('close')" />
           <h2 id="band-invite-title">{{ friend.name }} 님을 밴드에 초대</h2>
           <p class="sub">초대할 밴드를 골라 주세요. {{ friend.name }} 님은 알림을 눌러 파트를 고르고 들어와요.</p>
 
@@ -36,6 +37,7 @@ import { Check } from 'lucide-vue-next'
 import { useBandStore } from '../../stores/band'
 import { inviteFriendToBand, MAX_BAND_MEMBERS } from '../../api/band'
 import { apiErrorMessage } from '../../api/practice'
+import ModalClose from '../ui/ModalClose.vue'
 
 const props = defineProps({
   // { userId, name } 초대할 친구. null이면 닫힘
@@ -124,4 +126,8 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; overflow-wrap: anywh
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
 }
+/* 닫기 버튼 자리 (#292) */
+.modal { position: relative; }
+h2 { padding-right: 40px; }
+
 </style>

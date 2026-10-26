@@ -6,15 +6,15 @@
     <div v-else class="page">
       <div class="workspace" :inert="busy" :aria-busy="busy">
         <WsCard :title="`셋리스트 ${lists.length}`" class="sidebar" :class="{ collapsed: fold.collapsed.value }">
-            <!-- 휴대폰: 목록 접기·펼치기 (#254) -->
-            <template v-if="fold.narrow.value && lists.length" #actions>
-              <button class="text-btn fold" :aria-expanded="!fold.collapsed.value" @click="fold.toggle">{{ fold.collapsed.value ? '펼치기' : '접기' }}<ChevronDown class="chevron" :class="{ open: !fold.collapsed.value }" :size="15" :stroke-width="2.4" aria-hidden="true" /></button>
+            <!-- 추가는 제목 줄에 두어 목록을 접어도 보인다 (#293). 휴대폰은 목록 접기·펼치기도 (#254) -->
+            <template #actions>
+              <button v-if="fold.narrow.value && lists.length" class="text-btn fold" :aria-expanded="!fold.collapsed.value" @click="fold.toggle">{{ fold.collapsed.value ? '펼치기' : '접기' }}<ChevronDown class="chevron" :class="{ open: !fold.collapsed.value }" :size="15" :stroke-width="2.4" aria-hidden="true" /></button>
+              <button class="btn add-list" :disabled="busy" aria-label="셋리스트 추가" @click="openCreate"><Plus :size="15" :stroke-width="2.6" aria-hidden="true" />추가</button>
             </template>
             <button v-if="fold.collapsed.value" class="list-summary" @click="fold.toggle">
               <strong>{{ selected?.title || '셋리스트를 골라 주세요' }}</strong><span>셋리스트 {{ lists.length }}개 보기</span>
             </button>
             <template v-else>
-            <button class="btn add-list" :disabled="busy" @click="openCreate">+ 셋리스트 만들기</button>
             <!-- 목록 검색 (#254): 셋리스트 이름이나 안의 곡 제목 -->
             <label v-if="lists.length" class="list-search">
               <Search :size="14" :stroke-width="2.4" aria-hidden="true" />
@@ -82,7 +82,7 @@
       </div>
     </div>
     <Teleport to="body">
-      <dialog ref="createDialog" class="setlist-dialog" aria-labelledby="create-title" @click="closeOnBackdrop($event, createDialog)" @close="listTitle = ''"><form @submit.prevent="submitList"><div class="dialog-head"><h2 id="create-title">{{ renaming ? '셋리스트 이름 변경' : '새 셋리스트' }}</h2><button type="button" class="close-btn" aria-label="닫기" @click="createDialog.close()">×</button></div><label>셋리스트 이름<input v-model="listTitle" autofocus required maxlength="80" placeholder="셋리스트 이름을 적어주세요"></label><div class="dialog-actions"><button type="button" class="btn" @click="createDialog.close()">취소</button><button class="btn primary" :disabled="!listTitle.trim() || busy">{{ renaming ? '저장' : '만들기' }}</button></div></form></dialog>
+      <dialog ref="createDialog" class="setlist-dialog" aria-labelledby="create-title" @click="closeOnBackdrop($event, createDialog)" @close="listTitle = ''"><form @submit.prevent="submitList"><div class="dialog-head"><h2 id="create-title">{{ renaming ? '셋리스트 이름 변경' : '새 셋리스트' }}</h2><button type="button" class="close-btn" aria-label="닫기" @click="createDialog.close()">×</button></div><label>셋리스트 이름<input v-model="listTitle" autofocus required maxlength="80" placeholder="셋리스트 이름을 적어주세요"></label><div class="dialog-actions"><button type="button" class="btn" @click="createDialog.close()">취소</button><button class="btn primary" :disabled="!listTitle.trim() || busy">{{ renaming ? '저장' : '추가' }}</button></div></form></dialog>
       <dialog ref="sheetDialog" class="setlist-dialog sheet-dialog" aria-labelledby="sheet-title" @click="closeOnBackdrop($event, sheetDialog)" @close="sheetSong = null"><h2 id="sheet-title">보관함에 저장하시겠습니까?</h2><p class="delete-description">{{ sheetSong?.sheetTitle || '이 악보' }} 악보를 내 보관함에 담고 열어요. 다음부터는 바로 열려요.</p><div class="dialog-actions"><button class="btn" autofocus :disabled="busy" @click="sheetDialog.close()">아니요</button><button class="btn primary" :disabled="busy" @click="confirmAddSheet">예</button></div></dialog>
       <dialog ref="deleteDialog" class="setlist-dialog" aria-labelledby="delete-title" @click="closeOnBackdrop($event, deleteDialog)"><h2 id="delete-title">셋리스트 {{ deleteIds.length }}개를 삭제할까요?</h2><p class="delete-description">선택한 셋리스트의 곡 목록과 메모, 첨부파일이 함께 삭제돼요.</p><div class="dialog-actions"><button class="btn" autofocus :disabled="busy" @click="deleteDialog.close()">취소</button><button class="btn danger solid" :disabled="busy" @click="deleteLists">삭제</button></div></dialog>
     </Teleport>
@@ -90,7 +90,7 @@
 </template>
 
 <script setup>
-import { ChevronRight, ChevronDown, Star, Check, Mic, Pencil, Search } from 'lucide-vue-next'
+import { ChevronRight, ChevronDown, Star, Check, Mic, Pencil, Plus, Search } from 'lucide-vue-next'
 import { useCollapsibleList } from '../../components/band/useCollapsibleList'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
@@ -399,7 +399,7 @@ onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', be
 button:disabled { opacity:.4; cursor:default; }
 .danger { color:var(--c-danger); }
 button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); outline-offset:2px; }
-.add-list { width:100%; margin-bottom:12px; color:var(--c-text-2); background:var(--c-bg); border-style:dashed; }
+.add-list { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; font-size:.8rem; font-weight:800; color:var(--c-primary-text); white-space:nowrap; }
 .list-tools,.bulk-tools { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; font-size:.73rem; color:var(--c-muted); }
 .text-btn { border:0; background:transparent; padding:4px 0; font-family:inherit; font-size:.74rem; cursor:pointer; }
 .list-nav { gap:8px; }
@@ -481,6 +481,9 @@ legend span { margin-left:6px; font-weight:400; }
 .file-list a { flex:1; min-width:0; overflow-wrap:anywhere; color:var(--c-text-2); font-size:.76rem; text-decoration:none; line-height:1.6; }
 .file-list small { color:var(--c-faint); margin-left:6px; }
 .remove-file,.close-btn { border:0; background:transparent; color:var(--c-muted); font-size:22px; cursor:pointer; min-width:28px; min-height:28px; }
+/* 팝업 닫기 버튼은 공통 모양으로 (#292, components/ui/ModalClose.vue와 같게) */
+.close-btn { flex:none; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border-radius:8px; background:none; font-size:22px; line-height:1; }
+.close-btn:hover { color:var(--c-text); }
 .setlist-dialog { width:calc(100% - 32px); max-width:400px; max-height:calc(100dvh - 48px); overflow-y:auto; padding:24px; border:0; border-radius:var(--radius-xl); color:var(--c-text); font-family:var(--font-sans); box-shadow:var(--shadow-lg); }
 .setlist-dialog::backdrop { background:rgba(15,23,42,.45); }
 .dialog-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }
@@ -495,7 +498,6 @@ legend span { margin-left:6px; font-weight:400; }
 @media (max-width: 640px) {
   /* 휴대폰: 만들기 버튼은 목록 아래로 (#233) */
   .sidebar { display:flex; flex-direction:column; }
-  .add-list { order:1; margin:12px 0 0; }
   .setlist-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 }
 </style>

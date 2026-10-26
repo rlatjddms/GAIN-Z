@@ -6,6 +6,7 @@ import com.project.gainz.domain.band.entity.BandComment;
 import com.project.gainz.domain.band.entity.BandMember;
 import com.project.gainz.domain.band.entity.BandPost;
 import com.project.gainz.domain.band.entity.BandPostFile;
+import com.project.gainz.domain.band.enums.BandUploadKind;
 import com.project.gainz.domain.band.enums.Position;
 import com.project.gainz.domain.band.repository.BandCommentRepository;
 import com.project.gainz.domain.band.repository.BandMemberRepository;
@@ -263,6 +264,21 @@ class BandBoardServiceTest {
         fails(() -> service.save(1L, 10L, 20L, new BandBoardRequest.Save("제목", "본문", null, List.of()), java.util.Collections.nCopies(9, file)), ErrorCode.BAND_FILE_LIMIT);
         fails(() -> service.save(1L, 10L, 20L, new BandBoardRequest.Save("제목", "본문", null, List.of("someone-elses-file")), List.of()), ErrorCode.BAND_FILE_SELECTION_INVALID);
         verifyNoInteractions(storage);
+    }
+
+    // #262: 브라우저가 바로 올린 첨부는 uploadId로 가져가고, 개수 한도에 같이 센다. 저장이 롤백되면 지운다
+    @Test void directUploadsAreClaimedAndCountTowardTheLimit() {
+        atomicPost(Position.MEMBER);
+        when(storage.claim(1L, 10L, "up1", BandUploadKind.ATTACHMENT))
+                .thenReturn(new BandAttachmentStorage.StoredFile("big", "공연.mp4", "video/mp4"));
+        TransactionSynchronizationManager.initSynchronization();
+        var result = service.save(1L, 10L, 20L, new BandBoardRequest.Save("제목", "본문", null, List.of(), null, List.of("up1")), List.of());
+        assertThat(result.attachments()).extracting(a -> a.id()).containsExactly("big");
+        TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+        verify(storage).delete("big");
+        var file = new MockMultipartFile("files", new byte[] {1});
+        fails(() -> service.save(1L, 10L, 20L, new BandBoardRequest.Save("제목", "본문", null, List.of(), null, List.of("a", "b")),
+                java.util.Collections.nCopies(7, file)), ErrorCode.BAND_FILE_LIMIT);
     }
 
     @Test void atomicSaveRetainsLegacyAttachment() {

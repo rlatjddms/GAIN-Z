@@ -368,19 +368,20 @@ const handleSocialLogin = (provider) => {
   .login-background-deco { display: none; }
   .login-card-container { max-width: 360px; padding: 0; border: none; border-radius: 0; box-shadow: none; }
 }
-/* 휴대폰·앱 (#226): 화면을 꽉 채우던 크기·간격을 줄여 한눈에 들어오게 */
+/* 휴대폰·앱: #226(280px)은 너무 작고 340px은 너무 커서 그 사이 310px로 (#291).
+   입력 칸 글자는 16px 이상 (아이폰이 작은 입력 칸을 누르면 화면을 확대해서) */
 @media (max-width: 640px) {
-  .login-card-container { max-width: 280px; }
-  .brand-header { margin-bottom: 28px; }
-  .brand-logo :deep(svg) { width: auto; height: 28px; }
-  .brand-sub { font-size: 0.85rem; }
-  .input-grid { gap: 10px; }
-  .gz-input { padding: 11px 14px; border-radius: 10px; }
-  .form-options { margin: 14px 2px 20px; font-size: 0.8rem; }
-  .login-btn-main { padding: 12px; border-radius: 10px; font-size: 0.95rem; }
-  .social-divider { margin: 28px 0 16px; }
-  .social-row { gap: 12px; }
-  .social-btn { width: 42px; height: 42px; border-radius: 10px; }
-  .login-footer { margin-top: 28px; font-size: 0.82rem; }
+  .login-card-container { max-width: 310px; }
+  .brand-header { margin-bottom: 30px; }
+  .brand-logo :deep(svg) { width: auto; height: 31px; }
+  .brand-sub { font-size: 0.88rem; }
+  .input-grid { gap: 11px; }
+  .gz-input { padding: 12px 15px; border-radius: 11px; font-size: 1rem; }
+  .form-options { margin: 15px 2px 21px; font-size: 0.84rem; }
+  .login-btn-main { padding: 13px; border-radius: 11px; font-size: 0.98rem; }
+  .social-divider { margin: 29px 0 17px; }
+  .social-row { gap: 13px; }
+  .social-btn { width: 45px; height: 45px; border-radius: 11px; }
+  .login-footer { margin-top: 29px; font-size: 0.86rem; }
 }
 </style>

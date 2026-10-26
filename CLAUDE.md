@@ -49,8 +49,14 @@ Claude Code와 팀원이 함께 따르는 규칙입니다. Claude는 세션을 �
 - base는 항상 `dev`. `main`으로는 릴리스 때만 올립니다.
 - `.github/PULL_REQUEST_TEMPLATE.md`를 채웁니다. `Closes #이슈번호`, 작업 내용 체크리스트, 테스트 결과, 주의 사항.
 - 제목은 이슈 제목과 같게 (`[feat] …`). 라벨은 이슈와 같게.
-- 머지 방식은 squash. 머지 후 원격 브랜치는 삭제합니다.
-- 레포에 CI는 없습니다. PR을 올리기 전에 로컬에서 백엔드 `./gradlew test`, 프론트 `npm run build`와 `npm test`를 통과시키고 결과를 PR에 적습니다. 화면을 바꿔서 프론트 테스트가 깨지면 테스트도 같이 고칩니다.
+- 머지 방식은 squash. 머지 후 원격 브랜치는 삭제합니다. 단, `dev` → `main` 릴리스 PR은 **merge commit**입니다 (squash면 `main`과 `dev`의 기록이 갈라집니다).
+- 레포는 공개이고 GitHub Rulesets가 켜져 있습니다.
+  - `protect-dev`(`dev`·`main`): 삭제·force push 금지, PR로만 머지, CI 세 개(`백엔드 테스트`, `프론트 빌드`, `프론트 테스트`)가 통과해야 머지됩니다.
+  - `release-main`(`main`): merge commit만 허용합니다.
+  - 필수 체크는 CI 작업 이름으로 연결돼 있습니다. `ci.yml`의 작업 이름(`name:`)을 바꾸면 Rulesets의 필수 체크도 같이 바꿔야 합니다. 안 바꾸면 PR이 체크를 계속 기다립니다.
+  - Secret scanning·Push protection이 켜져 있습니다. 비밀값은 여전히 `application-secret.yml`·`.env`에만 둡니다.
+- PR을 올리기 전에 로컬에서 백엔드 `./gradlew test`, 프론트 `npm run build`와 `npm test`를 통과시키고 결과를 PR에 적습니다. 화면을 바꿔서 프론트 테스트가 깨지면 테스트도 같이 고칩니다.
+- GitHub Actions CI(`.github/workflows/ci.yml`)가 `dev`·`main`으로 가는 PR과 push마다 같은 세 가지를 다시 돌립니다. PR을 올린 뒤 CI 결과(`gh pr checks`)도 확인하고, 실패하면 고칩니다.
 
 ## 코드
 

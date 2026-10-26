@@ -52,8 +52,12 @@ services:
       NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:?}
       NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:?}
       DDL_AUTO: ${DDL_AUTO:-validate}
-      # 올린 파일: 기본은 아래 uploads 볼륨. supabase 로 두면 SUPABASE_URL·SUPABASE_SERVICE_KEY 도 필요
+      # 올린 파일: 기본은 아래 uploads 볼륨. r2 로 두면 R2_* (#262), supabase 로 두면 SUPABASE_URL·SUPABASE_SERVICE_KEY 도 필요
       STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_BUCKET: ${SUPABASE_BUCKET:-uploads}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}

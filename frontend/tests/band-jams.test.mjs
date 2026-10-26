@@ -197,6 +197,15 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.getByRole('button', { name: '마이크 연결', exact: true }).click()
     await page.getByLabel('녹음 지연 보정').evaluate(el => { el.value = '50'; el.dispatchEvent(new Event('input', { bubbles: true })) })
     assert.equal(await page.evaluate(() => localStorage.getItem('gainz.jam.latencyMs')), '50')
+    // 누른 순간부터 화면에 보인 녹음 상태를 차례로 모은다 (#294: 카운트인 전에 '녹음 중'이 잠깐 보였다 사라지면 안 된다)
+    await page.evaluate(() => {
+      window.recStates = []
+      const read = () => {
+        const state = document.querySelector('.count-in')?.textContent.trim() || (document.querySelector('.rec-time') ? '녹음 중' : null)
+        if (state && window.recStates.at(-1) !== state) window.recStates.push(state)
+      }
+      new MutationObserver(read).observe(document.body, { subtree: true, childList: true, characterData: true })
+    })
     await page.getByRole('button', { name: '● 녹음 시작' }).click()
     // 카운트인 중에는 녹음 시작까지 남은 박이 4→3→2→1로 보이고, 끝나면 '녹음 중'으로 바뀐다 (#234, 120 BPM이라 박마다 0.5초)
     const beats = await page.evaluate(async () => {
@@ -212,6 +221,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     })
     assert.deepEqual(beats, ['4', '3', '2', '1'])
     await page.getByRole('status').filter({ hasText: '녹음 중' }).waitFor()
+    assert.deepEqual(await page.evaluate(() => window.recStates), ['4', '3', '2', '1', '녹음 중'])
     await page.waitForTimeout(3200)
     // 마우스를 올려도 녹음 버튼은 회색이 아니라 더 진한 빨간색이 된다.
     const stopButton = page.getByRole('button', { name: '■ 녹음 끝내기' })
@@ -280,7 +290,12 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     assert.match(await page.getByRole('button', { name: '랍스타 베이스 솔로' }).getAttribute('title'), /^솔로: /)
 
     // 셋리스트 곡은 입력해야 찾은 곡만 몇 개 보여 준다. 고르면 이름이 채워진다. BPM 범위를 확인한다.
-    await page.getByRole('button', { name: '+ 잼 만들기' }).click()
+    // 창 바깥을 누르면 닫히고 (#292), 다시 열어 이어 간다
+    await page.getByRole('button', { name: '잼 추가', exact: true }).click()
+    await page.getByRole('dialog').waitFor()
+    await page.mouse.click(5, 5)
+    await page.getByRole('dialog').waitFor({ state: 'hidden' })
+    await page.getByRole('button', { name: '잼 추가', exact: true }).click()
     const dialog = page.getByRole('dialog')
     const search = dialog.getByLabel('셋리스트 곡 검색')
     const options = dialog.locator('.song-option')
@@ -325,10 +340,10 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await search.fill('hysteria')
     await options.filter({ hasText: 'Hysteria' }).click()
     await dialog.getByLabel('BPM').fill('300')
-    await dialog.getByRole('button', { name: '만들기' }).click()
+    await dialog.getByRole('button', { name: '추가', exact: true }).click()
     await dialog.getByRole('alert').filter({ hasText: 'BPM은 40에서 240' }).waitFor()
     await dialog.getByLabel('BPM').fill('90')
-    await dialog.getByRole('button', { name: '만들기' }).click()
+    await dialog.getByRole('button', { name: '추가', exact: true }).click()
     await page.getByRole('status').filter({ hasText: '잼을 만들었어요' }).waitFor()
     const created = api.state.jams[0]
     assert.deepEqual([created.title, created.bpm, created.song?.setlistItemId], ['Hysteria', 90, 31])
@@ -352,6 +367,10 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     const mobileTops = await page.locator('.legend li:not(.legend-note)').evaluateAll(items => items.map(item => Math.round(item.getBoundingClientRect().top)))
     assert.equal(new Set(mobileTops).size, 1, '모바일에서 M·S 설명이 두 줄로 나뉨')
     await page.screenshot({ path: 'test-results/jams-mobile.png', fullPage: true })
+    // 목록을 접어도 제목 줄의 추가 버튼은 보인다 (#293)
+    if (!await page.locator('.sidebar .list-summary').isVisible()) await page.locator('.sidebar .fold').click()
+    await page.locator('.sidebar .list-summary').waitFor()
+    assert.ok(await page.getByRole('button', { name: '잼 추가', exact: true }).isVisible())
     assert.deepEqual(errors, [])
   } finally {
     await browser?.close()

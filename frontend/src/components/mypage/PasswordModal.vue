@@ -3,6 +3,7 @@
     <transition name="modal">
       <div v-if="open" class="backdrop" @click.self="!saving && emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="password-title">
+          <ModalClose :disabled="saving" @close="emit('close')" />
           <h2 id="password-title">{{ creating ? '비밀번호 만들기' : '비밀번호 바꾸기' }}</h2>
           <p class="sub">{{ creating ? '비밀번호를 만들면 가입한 이메일로도 로그인할 수 있어요.' : '지금 비밀번호를 확인한 뒤 새 비밀번호로 바꿔요.' }}</p>
 
@@ -40,6 +41,7 @@
 import { ref, computed, watch } from 'vue'
 import { changePassword, createPassword } from '../../api/user'
 import { apiErrorMessage } from '../../api/practice'
+import ModalClose from '../ui/ModalClose.vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -125,4 +127,8 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
 }
+/* 닫기 버튼 자리 (#292) */
+.modal { position: relative; }
+h2 { padding-right: 40px; }
+
 </style>

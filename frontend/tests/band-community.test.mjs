@@ -73,7 +73,12 @@ async function fixture(t, options = {}) {
       return respond(next)
     }
     if (path === '/api/v1/characters/me') return respond({ nickname: '리듬냥', instrumentType: 'GUITAR', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' })
-    if (path === '/api/v1/users/me') return respond({ id: 1, name: '테스트', profileImageUrl: author.profileImageUrl })
+    // 요즘 듣는 음악 (#292): state.music이 있으면 내 정보에 싣고, 지우면 비운다
+    if (path === '/api/v1/users/me/profile-music' && method === 'DELETE') {
+      state.music = null
+      return respond({ id: 1, name: '테스트', profileImageUrl: author.profileImageUrl, profileMusic: null })
+    }
+    if (path === '/api/v1/users/me') return respond({ id: 1, name: '테스트', profileImageUrl: author.profileImageUrl, profileMusic: state.music || null })
     if (path.endsWith('/profile-image')) return route.fulfill({ headers, contentType: 'image/png', body: photo })
     const band = { id: 10, name: '리듬 메이커스', myPosition: state.leader ? 'LEADER' : 'MEMBER', stage: 'STUDIO', members: [{ memberId: 1, userId: 1, me: true, part: 'GUITAR', position: 'LEADER', character: { nickname: '리듬냥', instrumentType: 'GUITAR', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' } }, { memberId: 2, userId: 2, part: 'BASS', position: 'MEMBER', character: { nickname: '베이스곰', instrumentType: 'BASS', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' } }], description: '함께 합주하는 밴드' }
     if (path === '/api/v1/bands/10') return respond(band)
@@ -195,6 +200,8 @@ test('홈에서 더 보기와 상세 열기, 상단바 유지, 작성자 우선,
   const { page, errors } = await fixture(t, { posts: Array.from({ length: 22 }, (_, i) => makePost(i + 1)) })
   await page.goto(`${origin}/home?band=10`)
   await page.locator('.community .post').first().waitFor()
+  // 프로필 사진이 다 뜬 뒤 상단바를 찍는다. 사진이 늦게 오면 기본 아이콘 → 사진으로 바뀌어 비교가 틀어진다 (CI처럼 느린 곳에서 #248)
+  await page.locator('.main-header .profile-avatar img').waitFor()
   const header = await page.locator('.main-header').innerHTML()
   assert.equal(await page.getByText('전체 보기', { exact: true }).count(), 0)
   // 더 보기 대신 페이지 번호 (#188): 공지 1개를 뺀 21개를 12개씩
@@ -694,5 +701,59 @@ test('소셜 로그인은 주소의 한 번용 코드를 토큰으로 바꾸고,
   // 시간이 지난 코드면 로그인 화면으로 보내고 알려 준다
   await page.goto(`${origin}/oauth2/redirect?code=old`)
   await page.locator('.toast.error').filter({ hasText: '로그인 시간이 지났어요' }).waitFor()
+  assert.deepEqual(errors, [])
+})
+
+test('공지만 있거나 글이 없는 밴드는 다시 불러올 때 빈 카드가 깜빡이지 않는다', async t => {
+  const { page, state, errors } = await fixture(t, { posts: [makePost(1)] })
+  await page.goto(`${origin}/home?band=10`)
+  await page.locator('.community .notice').first().waitFor()
+  await page.waitForFunction(() => !document.querySelector('.community .skeleton'))
+  const listCalls = () => state.requests.filter(r => r.method === 'GET' && r.path === '/api/v1/bands/10/posts').length
+  // 처음 다 보여 준 뒤 빈 카드가 한 번이라도 생기는지 지켜본다 (#295)
+  await page.evaluate(() => {
+    window.skeletonSeen = 0
+    new MutationObserver(() => { if (document.querySelector('.community .skeleton')) window.skeletonSeen++ })
+      .observe(document.body, { subtree: true, childList: true })
+  })
+  const before = listCalls()
+  // 같은 밴드에서 글이 바뀌었다는 신호 → 다시 불러온다
+  state.streamEvents = [['change', { topic: 'BAND_BOARD', bandId: 10 }]]
+  for (let i = 0; i < 300 && listCalls() < before + 2; i++) await page.waitForTimeout(100)
+  await page.waitForTimeout(500)
+  assert.ok(listCalls() >= before + 2, '다시 불러왔어야 한다')
+  assert.equal(await page.evaluate(() => window.skeletonSeen), 0)
+  assert.equal(await page.locator('.community .notice').count(), 1)
+  assert.deepEqual(errors, [])
+})
+
+test('팝업 오른쪽 위 X로 닫고, 요즘 듣는 음악은 곡 옆 X로 빼고 저장하면 지워진다', async t => {
+  const { page, state, errors } = await fixture(t, { music: { title: 'Hysteria', artist: 'Muse', url: null, artworkUrl: null, previewUrl: null } })
+  await page.goto(`${origin}/home`)
+  const openMusic = page.getByRole('button', { name: /Hysteria/ })
+  await openMusic.click()
+  const dialog = page.getByRole('dialog', { name: '요즘 듣는 음악' })
+  await dialog.waitFor()
+  // 공통 닫기 버튼 (#292): 바탕 칸 없이 X만
+  const closeX = dialog.getByRole('button', { name: '닫기', exact: true })
+  assert.equal(await closeX.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)')
+  await closeX.click()
+  await dialog.waitFor({ state: 'detached' })
+  // 바깥(어두운 부분)을 눌러도 닫힌다
+  await openMusic.click()
+  await dialog.waitFor()
+  await page.mouse.click(5, 5)
+  await dialog.waitFor({ state: 'detached' })
+
+  await openMusic.click()
+  await dialog.waitFor()
+  // 따로 있던 지우기 버튼은 없고, 직접 적은 곡(커버 없음)도 곡 옆 X가 보인다
+  await page.waitForTimeout(300)
+  await dialog.screenshot({ path: fileURLToPath(new URL('../test-results/modal-close-music.png', import.meta.url)) })
+  assert.equal(await dialog.getByRole('button', { name: '지우기', exact: true }).count(), 0)
+  await dialog.getByRole('button', { name: '고른 곡 빼기', exact: true }).click()
+  await dialog.getByRole('button', { name: '저장', exact: true }).click()
+  await page.locator('.toast').filter({ hasText: '요즘 듣는 음악을 지웠어요' }).waitFor()
+  assert.ok(state.requests.some(r => r.method === 'DELETE' && r.path === '/api/v1/users/me/profile-music'))
   assert.deepEqual(errors, [])
 })

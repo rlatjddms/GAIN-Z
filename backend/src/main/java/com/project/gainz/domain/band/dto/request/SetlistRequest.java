@@ -22,6 +22,12 @@ public final class SetlistRequest {
             @Size(max = 500) String memo,
             Long sheetId,
             @Size(max = 8) List<Long> memberIds,
-            @Size(max = 8) List<String> keepAttachmentIds
-    ) {}
+            @Size(max = 8) List<String> keepAttachmentIds,
+            // 브라우저가 바로 올린 새 첨부 (#262)
+            @Size(max = 8) List<String> uploadIds
+    ) {
+        public Item(String title, String artist, String memo, Long sheetId, List<Long> memberIds, List<String> keepAttachmentIds) {
+            this(title, artist, memo, sheetId, memberIds, keepAttachmentIds, null);
+        }
+    }
 }

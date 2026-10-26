@@ -3,12 +3,12 @@
     <transition name="modal">
       <div v-if="open" class="backdrop" @click.self="close">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="records-title">
+          <ModalClose @close="close" />
           <header class="modal-head">
             <div>
               <h2 id="records-title">MY RECORDS <span class="count">{{ store.ownedCount }} / {{ store.total || '—' }}</span></h2>
               <p>업적을 달성하면 음반이 하나씩 쌓여요</p>
             </div>
-            <button class="close" aria-label="닫기" @click="close"><X :size="18" :stroke-width="2.4" /></button>
           </header>
 
           <div class="legend">
@@ -91,6 +91,7 @@ import { apiErrorMessage } from '../../api/practice'
 import { RECORD_RARITIES, rarityOf, progressText, progressRatio } from '../../constants/records'
 import { ROOM_DECOR_SETS, decorUrl } from '../../constants/recordRewards'
 import listeningThumb from '../../assets/stages/listening.png'
+import ModalClose from '../ui/ModalClose.vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -147,19 +148,14 @@ const allDone = computed(() => store.records.length > 0 && store.records.every((
   display: flex; align-items: center; justify-content: center; padding: 16px;
 }
 .modal {
-  width: 100%; max-width: 560px; max-height: calc(100vh - 32px); overflow-y: auto;
+  position: relative; width: 100%; max-width: 560px; max-height: calc(100vh - 32px); overflow-y: auto;
   background: var(--c-surface); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-lg);
   font-family: 'Pretendard', sans-serif; color: var(--c-text); box-sizing: border-box;
 }
-.modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding-right: 40px; }
 .modal-head h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; display: flex; align-items: center; gap: 8px; }
 .modal-head p { margin: 0; font-size: 0.8rem; color: var(--c-muted); }
 .count { font-size: 0.75rem; font-weight: 800; color: var(--c-primary-text); background: var(--c-primary-soft); padding: 3px 8px; border-radius: 6px; }
-.close {
-  flex: none; width: 32px; height: 32px; border: none; border-radius: 10px; background: var(--c-line-soft);
-  color: var(--c-muted); font-size: 0.9rem; cursor: pointer;
-}
-.close:hover { background: var(--c-line); color: var(--c-text); }
 
 .legend { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
 .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--c-text-2); }

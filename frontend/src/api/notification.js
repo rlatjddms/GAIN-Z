@@ -8,7 +8,7 @@ import axiosInstance from './axios'
 //     | NOTICE | COMMENT | REPLY | MENTION
 //     | SETLIST_ASSIGN | JAM_NEW | JAM_TRACK
 //     | RECORD (레코드 획득)
-//     | BAND_INVITE | BAND_ACCEPT (밴드 매칭에서 사용)
+//     | BAND_INVITE (친구에게 밴드 초대, #229)
 // 만든 지 30일 지난 읽은 알림은 서버가 매일 새벽 지운다
 
 // 내 알림 (최근 순) → { items: [알림], hasNext }

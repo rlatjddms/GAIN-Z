@@ -12,8 +12,8 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /api/v1/health
-    # main 에 머지되면 자동 배포
-    autoDeployTrigger: commit
+    # main 에 머지되면 자동 배포. 그 커밋의 GitHub 체크(CI, .github/workflows/ci.yml)가 모두 통과한 뒤에만 (#248)
+    autoDeployTrigger: checksPass
     envVars:
       # 백엔드가 이 포트로 뜬다 (Dockerfile HEALTHCHECK 와 같게)
       - key: PORT
@@ -38,8 +38,21 @@ services:
       # 새 컬럼·테이블이 생기는 배포가 멈추지 않게 운영에서도 update 로 둔다 (컬럼을 지우거나 바꾸지는 않음)
       - key: DDL_AUTO
         value: update
+      # 올린 파일은 Cloudflare R2 (#262, docs/deploy.md 1-5). R2_* 값을 넣기 전에 이 값이 배포되면 서버가 뜨지 않는다
       - key: STORAGE_TYPE
-        value: supabase
+        value: r2
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_BUCKET
+        value: gainz-uploads
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      # 저장 용량이 8GB(경고)·9GB(새 파일 막음)에 닿으면 이 주소로 메일 (StorageQuota). 한도는 STORAGE_QUOTA로 바꿀 수 있다
+      - key: STORAGE_ALERT_EMAIL
+        sync: false
+      # 아래 SUPABASE_*는 옛 파일을 R2로 옮기는 동안만 쓴다 (LegacyStorageMigration). 다 옮기면 Render에서 값을 지운다
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
