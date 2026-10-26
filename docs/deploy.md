@@ -1,6 +1,6 @@
-# 배포 가이드 (Render + Supabase + Vercel)
+# 배포 가이드 (Render + Supabase + Cloudflare R2 + Vercel)
 
-GAIN-Z를 무료로 인터넷에 올리는 방법입니다 (#180, 실제 배포 후 #183에서 고침, 깨우기는 #195에서 UptimeRobot으로). 세 서비스 모두 GitHub 계정으로 가입하고, 카드 등록은 필요 없습니다.
+GAIN-Z를 무료로 인터넷에 올리는 방법입니다 (#180, 실제 배포 후 #183에서 고침, 깨우기는 #195에서 UptimeRobot으로). Render·Supabase·Vercel은 GitHub 계정으로 가입하고 카드 등록이 필요 없습니다. 파일을 두는 Cloudflare R2(#262)만 따로 가입하고 결제 수단을 등록합니다 (무료 범위 안에서는 청구되지 않음).
 
 | 하는 일 | 서비스 | 무료 범위 |
 | --- | --- | --- |
@@ -8,7 +8,7 @@ GAIN-Z를 무료로 인터넷에 올리는 방법입니다 (#180, 실제 배포 
 | 백엔드 | Render (Docker) | RAM 512MB, 15분 동안 요청이 없으면 잠듦 → UptimeRobot이 5분마다 깨움 |
 | 로그인 유지(Redis) | Render Key Value | 25MB, 재시작되면 다시 로그인해야 함 |
 | DB | Supabase PostgreSQL | 500MB |
-| 올린 파일 | Supabase Storage | 1GB |
+| 올린 파일 | Cloudflare R2 (#262) | 10GB, 내려받기 트래픽 무료 |
 
 지금 운영 중인 주소:
 
@@ -78,9 +78,9 @@ jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?user=po
 - 포트가 **5432**이고 호스트가 `pooler.supabase.com`이어야 합니다. Direct connection(`db.<ID>.supabase.co`)은 IPv6 전용이라 Render에서 안 붙고, Transaction pooler(6543)는 JPA와 맞지 않습니다.
 - 호스트(`aws-0-…`/`aws-1-…`)는 프로젝트마다 다르니 화면 값을 그대로 씁니다.
 
-### 1-3. 파일 버킷
+### 1-3. 파일 버킷 (#262 전까지)
 
-왼쪽 **Storage** → **New bucket** → 이름 `uploads`, **Public bucket은 끈 채로** 만듭니다. 파일은 백엔드가 로그인·권한을 확인한 뒤에만 내보냅니다. 정책(Policies)은 만들지 않아도 됩니다 (서버용 키는 정책을 거치지 않음).
+올린 파일은 이제 [Cloudflare R2](#1-5-cloudflare-r2-파일)에 둡니다. 예전에 Supabase Storage `uploads` 버킷에 올린 파일은 R2로 옮길 때까지만 읽고, 새로 만들 필요는 없습니다.
 
 ### 1-4. 프로젝트 주소와 서버용 키
 
@@ -93,6 +93,57 @@ jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?user=po
 
 테이블은 백엔드가 처음 뜰 때 만듭니다 (Table Editor에 29개).
 
+`SUPABASE_URL`·`SUPABASE_SERVICE_KEY`는 R2로 다 옮긴 뒤(1-5의 7번) 지워도 됩니다.
+
+### 1-5. Cloudflare R2 (파일)
+
+악보·프로필 사진·밴드 첨부(영상 200MB까지)·잼 녹음을 둡니다 (#262). 무료 10GB이고 내려받는 트래픽이 무료라서, 큰 영상도 브라우저가 R2에서 바로 받습니다. 서버는 로그인·권한을 확인한 뒤 몇 분짜리 서명 주소만 내줍니다. 큰 파일은 올릴 때도 브라우저가 R2로 바로 보냅니다 (Render를 거치지 않음).
+
+1. [dash.cloudflare.com](https://dash.cloudflare.com) 가입 → 왼쪽 **R2 Object Storage** → 처음 한 번 무료 플랜 시작 (결제 수단을 물으면 등록해야 하지만, 무료 범위 안에서는 청구되지 않습니다)
+2. **Create bucket** → 이름 `gainz-uploads`, Location **Asia-Pacific (APAC)** → Create. 공개(Public access)는 켜지 않습니다
+3. 버킷 → **Settings** → **CORS Policy** → Edit → 아래를 붙여 넣고 Save. 주소는 운영 사이트와 로컬 개발 주소입니다
+
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://gainz-band.vercel.app", "http://localhost:5173"],
+       "AllowedMethods": ["GET", "PUT", "HEAD"],
+       "AllowedHeaders": ["Content-Type", "Range"],
+       "ExposeHeaders": ["Content-Length", "Content-Range", "ETag"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+4. 버킷 → **Settings** → **Object lifecycle rules** → Add rule → 이름 `tmp 정리`, Prefix `tmp/`, **Delete objects 1 day after upload** → Save. 올리다 만 파일을 지웁니다
+5. R2 첫 화면 → **Manage API tokens**(API → Manage API Tokens) → **Create API token**
+   - Permissions: **Object Read & Write**
+   - Specify bucket(s): **Apply to specific buckets only** → `gainz-uploads`
+   - Create → **Access Key ID**와 **Secret Access Key**가 한 번만 보입니다. 바로 Render(아래 표)에 넣습니다
+6. Render `gainz-backend` → Environment
+
+   | Render 키 | 값 |
+   | --- | --- |
+   | `STORAGE_TYPE` | `r2` (`render.yaml`에 들어 있음) |
+   | `R2_ACCOUNT_ID` | R2 첫 화면 오른쪽 **Account ID** |
+   | `R2_BUCKET` | `gainz-uploads` |
+   | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | 5번에서 받은 값 |
+
+   비밀 키는 Render 환경 변수(운영)와 로컬 `application-secret.yml`(개발)에만 넣습니다. 레포·이슈·채팅에는 넣지 않습니다 (공개 레포).
+7. 배포가 끝나면 Logs에 `Supabase 파일 옮기기 끝: 이번에 N개 옮김`이 나옵니다. 그다음부터 `SUPABASE_URL`·`SUPABASE_SERVICE_KEY`를 지워도 됩니다 (Supabase의 원본 파일은 그대로 남아 있으니, 확인한 뒤 버킷을 지워도 됩니다). `…개 실패`가 나오면 다음 배포·재시작 때 남은 것만 다시 옮깁니다
+
+로컬에서 R2를 쓰려면 `application-secret.yml`에 넣습니다 (없으면 `local`, 디스크에 저장):
+
+```yaml
+gainz:
+  storage:
+    type: r2
+    r2:
+      account-id: <Account ID>
+      bucket: gainz-uploads
+      access-key-id: <Access Key ID>
+      secret-access-key: <Secret Access Key>
+```
+
 ## 2. Render (백엔드)
 
 1. [render.com](https://render.com) → GitHub로 로그인 → GAIN-Z 레포 접근 허용
@@ -103,7 +154,8 @@ jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?user=po
    | 키 | 값 |
    | --- | --- |
    | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | 1-2 |
-   | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | 1-4 |
+   | `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | 1-5 |
+   | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | 1-4 (옛 파일을 R2로 옮길 때만) |
    | `FRONTEND_URL` | Vercel 사이트 주소 (끝에 `/` 없이). 아직 모르면 임시로 넣고 3-6에서 고칩니다 |
    | `GOOGLE_CLIENT_ID` 등 6개 | 로컬 `application-secret.yml`에 쓰던 소셜 로그인 값 |
 
@@ -184,8 +236,9 @@ GitHub Actions 예약 실행은 쓰지 않습니다 (#195). 예약 실행이 붐
 - [ ] 사이트에서 이메일 인증하기 → 메일의 코드 → 회원가입 → 로그인, 캐릭터 만들기
 - [ ] 로그인 화면 "비밀번호 찾기" → 재설정 메일 → 새 비밀번호로 로그인
 - [ ] 구글·카카오·네이버 로그인 후 앱으로 돌아오기
-- [ ] 악보 올리기 → Supabase Storage `uploads`에 `sheets/` 폴더가 생기고 다시 열리는지
-- [ ] 프로필 사진 바꾸기, 밴드 첨부·녹음 올리고 재생
+- [ ] 악보 올리기 → R2 `gainz-uploads`에 `sheets/` 폴더가 생기고 다시 열리는지
+- [ ] 프로필 사진 바꾸기, 밴드 첨부(큰 영상 포함)·녹음 올리고 재생
+- [ ] 예전에 올린 악보·사진이 그대로 열리는지 (R2로 옮겨졌는지)
 - [ ] 친구 요청을 보내 실시간 알림이 오는지
 
 ## 주소가 바뀔 때 같이 바꿀 곳
@@ -194,6 +247,7 @@ GitHub Actions 예약 실행은 쓰지 않습니다 (#195). 예약 실행이 붐
 
 1. Render → `gainz-backend` → Environment → `FRONTEND_URL` (끝에 `/` 없이) → 저장 (자동 재배포)
 2. 카카오 Web 사이트 도메인, 네이버 서비스 URL
+3. R2 버킷 CORS Policy의 `AllowedOrigins` (1-5의 3번). 안 바꾸면 파일 올리기·받기가 막힙니다
 
 `FRONTEND_URL`이 실제 사이트 주소와 다르면 소셜 로그인은 (옛 주소의 Redirect 덕에) 되는 것처럼 보여도, 화면 안에서 부르는 API가 **CORS로 막혀** "서버에 연결하지 못했어요"가 뜹니다. 백엔드는 `FRONTEND_URL`(또는 `ALLOWED_ORIGINS`)에 적힌 출처만 허용합니다.
 
