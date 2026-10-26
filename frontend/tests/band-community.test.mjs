@@ -732,8 +732,15 @@ test('팝업 오른쪽 위 X로 닫고, 요즘 듣는 음악은 곡 옆 X로 빼
   await openMusic.click()
   const dialog = page.getByRole('dialog', { name: '요즘 듣는 음악' })
   await dialog.waitFor()
-  // 공통 닫기 버튼 (#292)
-  await dialog.getByRole('button', { name: '닫기', exact: true }).click()
+  // 공통 닫기 버튼 (#292): 바탕 칸 없이 X만
+  const closeX = dialog.getByRole('button', { name: '닫기', exact: true })
+  assert.equal(await closeX.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)')
+  await closeX.click()
+  await dialog.waitFor({ state: 'detached' })
+  // 바깥(어두운 부분)을 눌러도 닫힌다
+  await openMusic.click()
+  await dialog.waitFor()
+  await page.mouse.click(5, 5)
   await dialog.waitFor({ state: 'detached' })
 
   await openMusic.click()
