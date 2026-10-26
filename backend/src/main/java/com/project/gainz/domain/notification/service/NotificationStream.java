@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,12 +30,16 @@ public class NotificationStream {
     // 새 연결. 붙자마자 안 읽은 개수를 보낸다
     public SseEmitter subscribe(Long userId, long unreadCount) {
         SseEmitter emitter = newEmitter();
-        List<SseEmitter> mine = emitters.computeIfAbsent(userId, id -> new CopyOnWriteArrayList<>());
-        mine.add(emitter);
-        while (mine.size() > MAX_CONNECTIONS_PER_USER) {
-            SseEmitter oldest = mine.remove(0);
-            oldest.complete();
-        }
+        // 목록 찾기와 넣기를 한 번에 (#282). 나눠 하면 그 사이 다른 연결이 끊기며 빈 목록을 지워서, 새 연결이 아무도 안 보는 목록에 들어갈 수 있다
+        List<SseEmitter> overflow = new ArrayList<>();
+        emitters.compute(userId, (id, mine) -> {
+            List<SseEmitter> list = mine != null ? mine : new CopyOnWriteArrayList<>();
+            list.add(emitter);
+            while (list.size() > MAX_CONNECTIONS_PER_USER) overflow.add(list.remove(0));
+            return list;
+        });
+        // 닫으면 remove가 불리므로 compute 밖에서 (같은 칸을 compute 안에서 다시 고치면 안 된다)
+        overflow.forEach(SseEmitter::complete);
         Runnable remove = () -> remove(userId, emitter);
         emitter.onCompletion(remove);
         emitter.onTimeout(remove);
