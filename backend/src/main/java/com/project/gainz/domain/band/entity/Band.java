@@ -48,8 +48,6 @@ public class Band extends BaseEntity {
 
     private String description;
 
-    private String profileImageUrl;
-
     // 합주실 배경. 예전에 만든 밴드는 비어 있어서 연습실로 본다
     // MariaDB enum 타입으로 만들면 배경을 추가할 때마다 컬럼을 고쳐야 해서 varchar로 둔다
     @Enumerated(EnumType.STRING)
@@ -58,14 +56,6 @@ public class Band extends BaseEntity {
 
     @OneToMany(mappedBy = "band", cascade = CascadeType.ALL)
     private List<BandMember> members = new ArrayList<>();
-
-    @Column(nullable = false)
-    private Boolean isRecruiting = false;
-
-    /* 모집 공고 */
-    private String recruitmentTitle;
-    private String recruitmentContent;
-    private String recruitmentImageUrl;
 
     @Builder
     public Band(String name, String description, User leader, String inviteCode) {
