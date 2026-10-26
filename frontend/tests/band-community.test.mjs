@@ -73,7 +73,12 @@ async function fixture(t, options = {}) {
       return respond(next)
     }
     if (path === '/api/v1/characters/me') return respond({ nickname: '리듬냥', instrumentType: 'GUITAR', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' })
-    if (path === '/api/v1/users/me') return respond({ id: 1, name: '테스트', profileImageUrl: author.profileImageUrl })
+    // 요즘 듣는 음악 (#292): state.music이 있으면 내 정보에 싣고, 지우면 비운다
+    if (path === '/api/v1/users/me/profile-music' && method === 'DELETE') {
+      state.music = null
+      return respond({ id: 1, name: '테스트', profileImageUrl: author.profileImageUrl, profileMusic: null })
+    }
+    if (path === '/api/v1/users/me') return respond({ id: 1, name: '테스트', profileImageUrl: author.profileImageUrl, profileMusic: state.music || null })
     if (path.endsWith('/profile-image')) return route.fulfill({ headers, contentType: 'image/png', body: photo })
     const band = { id: 10, name: '리듬 메이커스', myPosition: state.leader ? 'LEADER' : 'MEMBER', stage: 'STUDIO', members: [{ memberId: 1, userId: 1, me: true, part: 'GUITAR', position: 'LEADER', character: { nickname: '리듬냥', instrumentType: 'GUITAR', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' } }, { memberId: 2, userId: 2, part: 'BASS', position: 'MEMBER', character: { nickname: '베이스곰', instrumentType: 'BASS', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' } }], description: '함께 합주하는 밴드' }
     if (path === '/api/v1/bands/10') return respond(band)
@@ -717,5 +722,29 @@ test('공지만 있거나 글이 없는 밴드는 다시 불러올 때 빈 카�
   assert.ok(listCalls() >= before + 2, '다시 불러왔어야 한다')
   assert.equal(await page.evaluate(() => window.skeletonSeen), 0)
   assert.equal(await page.locator('.community .notice').count(), 1)
+  assert.deepEqual(errors, [])
+})
+
+test('팝업 오른쪽 위 X로 닫고, 요즘 듣는 음악은 곡 옆 X로 빼고 저장하면 지워진다', async t => {
+  const { page, state, errors } = await fixture(t, { music: { title: 'Hysteria', artist: 'Muse', url: null, artworkUrl: null, previewUrl: null } })
+  await page.goto(`${origin}/home`)
+  const openMusic = page.getByRole('button', { name: /Hysteria/ })
+  await openMusic.click()
+  const dialog = page.getByRole('dialog', { name: '요즘 듣는 음악' })
+  await dialog.waitFor()
+  // 공통 닫기 버튼 (#292)
+  await dialog.getByRole('button', { name: '닫기', exact: true }).click()
+  await dialog.waitFor({ state: 'detached' })
+
+  await openMusic.click()
+  await dialog.waitFor()
+  // 따로 있던 지우기 버튼은 없고, 직접 적은 곡(커버 없음)도 곡 옆 X가 보인다
+  await page.waitForTimeout(300)
+  await dialog.screenshot({ path: fileURLToPath(new URL('../test-results/modal-close-music.png', import.meta.url)) })
+  assert.equal(await dialog.getByRole('button', { name: '지우기', exact: true }).count(), 0)
+  await dialog.getByRole('button', { name: '고른 곡 빼기', exact: true }).click()
+  await dialog.getByRole('button', { name: '저장', exact: true }).click()
+  await page.locator('.toast').filter({ hasText: '요즘 듣는 음악을 지웠어요' }).waitFor()
+  assert.ok(state.requests.some(r => r.method === 'DELETE' && r.path === '/api/v1/users/me/profile-music'))
   assert.deepEqual(errors, [])
 })
