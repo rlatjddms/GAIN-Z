@@ -4,6 +4,7 @@ import com.project.gainz.domain.sheet.service.SheetFileStorage;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.global.storage.FileStore;
+import com.project.gainz.global.storage.StorageQuota;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -29,9 +30,11 @@ public class ProfileImageStorage {
     private static final String FOLDER = "profiles/";
 
     private final FileStore fileStore;
+    private final StorageQuota quota;
 
-    public ProfileImageStorage(FileStore fileStore) {
+    public ProfileImageStorage(FileStore fileStore, StorageQuota quota) {
         this.fileStore = fileStore;
+        this.quota = quota;
     }
 
     public StoredImage store(MultipartFile file) {
@@ -56,8 +59,10 @@ public class ProfileImageStorage {
             case "image/jpeg" -> ".jpg";
             default -> ".webp";
         };
+        quota.check(file.getSize());
         try (InputStream in = file.getInputStream()) {
             fileStore.put(FOLDER + storedName, in, file.getSize(), contentType);
+            quota.added(file.getSize());
         } catch (IOException e) {
             log.error("프로필 사진 저장 실패: {}", storedName, e);
             throw new BusinessException(ErrorCode.PROFILE_IMAGE_STORAGE_FAILED);

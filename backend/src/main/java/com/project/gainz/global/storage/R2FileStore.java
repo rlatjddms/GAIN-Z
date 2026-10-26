@@ -15,6 +15,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.io.IOException;
@@ -108,6 +109,13 @@ public class R2FileStore implements FileStore {
     public void delete(String key) throws IOException {
         call(() -> s3.deleteObject(b -> b.bucket(bucket).key(key)));
         if (legacy != null) legacy.delete(key);
+    }
+
+    // 버킷 안 모든 파일 크기의 합 (목록 한 번에 1,000개씩)
+    @Override
+    public long totalSize() throws IOException {
+        return call(() -> s3.listObjectsV2Paginator(b -> b.bucket(bucket)).contents().stream()
+                .mapToLong(S3Object::size).sum());
     }
 
     @Override

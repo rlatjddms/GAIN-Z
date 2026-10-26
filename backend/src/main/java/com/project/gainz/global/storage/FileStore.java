@@ -44,6 +44,11 @@ public interface FileStore {
         delete(from);
     }
 
+    // 저장소 전체 크기 (StorageQuota). 셀 수 없는 저장소는 -1
+    default long totalSize() throws IOException {
+        return -1;
+    }
+
     // 브라우저가 서버를 거치지 않고 저장소에 바로 올리는 주소 (PUT). 못 만들면 null → 서버가 받는 주소(FileLinks)를 쓴다
     default String presignPut(String key, String contentType, Duration ttl) {
         return null;

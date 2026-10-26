@@ -9,6 +9,7 @@ import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.global.storage.FileLinks;
 import com.project.gainz.global.storage.FileStore;
+import com.project.gainz.global.storage.StorageQuota;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,8 @@ import java.util.function.Function;
 public class BandAttachmentStorage {
     // 첨부: 휴대폰 영상 몇 분 (#262에서 10MB → 200MB)
     public static final long MAX_BYTES = 200L * 1024 * 1024;
+    // 셋리스트 곡 첨부: 참고 음원·악보 PDF (큰 영상은 커뮤니티에)
+    public static final long SETLIST_MAX_BYTES = 50L * 1024 * 1024;
     // 레이어 잼 녹음 트랙: WAV 약 5분·Opus는 훨씬 길게 (#262에서 30MB → 50MB)
     public static final long AUDIO_MAX_BYTES = 50L * 1024 * 1024;
     private static final String FOLDER = "band/";
@@ -32,18 +35,23 @@ public class BandAttachmentStorage {
     private final FileStore fileStore;
     private final FileLinks links;
     private final BandUploadRepository uploads;
+    private final StorageQuota quota;
 
     public record StoredFile(String key, String name, String type) {}
 
-    public BandAttachmentStorage(FileStore fileStore, FileLinks links, BandUploadRepository uploads) {
+    public BandAttachmentStorage(FileStore fileStore, FileLinks links, BandUploadRepository uploads, StorageQuota quota) {
         this.fileStore = fileStore;
         this.links = links;
         this.uploads = uploads;
+        this.quota = quota;
     }
 
     // 바로 올릴 주소를 준다. 밴드 멤버인지는 부르는 쪽(BandUploadService)이 확인한다
     public BandUploadResponse.Started start(Long userId, Long bandId, BandUploadKind kind, String name, long size, String contentType) {
         if (size <= 0 || size > maxBytes(kind)) throw new BusinessException(invalid(kind));
+        // 전체 용량은 주소를 줄 때 확인하고 미리 더해 둔다 (다 올렸는지는 저장할 때 claim이 본다)
+        quota.check(size);
+        quota.added(size);
         String type = contentType != null && contentType.matches("[\\w.+-]+/[\\w.+-]+") ? contentType : "application/octet-stream";
         String id = UUID.randomUUID().toString();
         uploads.save(new BandUpload(id, userId, bandId, kind, cleanName(name)));
@@ -82,38 +90,49 @@ public class BandAttachmentStorage {
     }
 
     private static long maxBytes(BandUploadKind kind) {
-        return kind == BandUploadKind.JAM_TRACK ? AUDIO_MAX_BYTES : MAX_BYTES;
+        return switch (kind) {
+            case ATTACHMENT -> MAX_BYTES;
+            case SETLIST_FILE -> SETLIST_MAX_BYTES;
+            case JAM_TRACK -> AUDIO_MAX_BYTES;
+        };
     }
 
     private static ErrorCode invalid(BandUploadKind kind) {
-        return kind == BandUploadKind.JAM_TRACK ? ErrorCode.JAM_TRACK_FILE_INVALID : ErrorCode.BAND_FILE_INVALID;
+        return switch (kind) {
+            case ATTACHMENT -> ErrorCode.BAND_FILE_INVALID;
+            case SETLIST_FILE -> ErrorCode.SETLIST_FILE_INVALID;
+            case JAM_TRACK -> ErrorCode.JAM_TRACK_FILE_INVALID;
+        };
     }
 
     private static Function<byte[], String> detector(BandUploadKind kind) {
         return kind == BandUploadKind.JAM_TRACK ? BandAttachmentStorage::detectAudioType : BandAttachmentStorage::detectType;
     }
 
+    // 게시판 첨부
     public StoredFile store(MultipartFile file) {
-        return save(file, MAX_BYTES, BandAttachmentStorage::detectType, ErrorCode.BAND_FILE_INVALID);
+        return store(file, BandUploadKind.ATTACHMENT);
     }
 
     // 녹음 트랙은 오디오 형식만 받는다
     public StoredFile storeAudio(MultipartFile file) {
-        return save(file, AUDIO_MAX_BYTES, BandAttachmentStorage::detectAudioType, ErrorCode.JAM_TRACK_FILE_INVALID);
+        return store(file, BandUploadKind.JAM_TRACK);
     }
 
-    private StoredFile save(MultipartFile file, long maxBytes, Function<byte[], String> detector, ErrorCode invalid) {
-        if (file == null || file.isEmpty() || file.getSize() > maxBytes) {
-            throw new BusinessException(invalid);
+    public StoredFile store(MultipartFile file, BandUploadKind kind) {
+        if (file == null || file.isEmpty() || file.getSize() > maxBytes(kind)) {
+            throw new BusinessException(invalid(kind));
         }
         try (var input = file.getInputStream()) {
             byte[] head = input.readNBytes(16);
-            String type = detector.apply(head);
-            if (type == null) throw new BusinessException(invalid);
+            String type = detector(kind).apply(head);
+            if (type == null) throw new BusinessException(invalid(kind));
+            quota.check(file.getSize());
             String key = UUID.randomUUID().toString();
             try (var stream = file.getInputStream()) {
                 fileStore.put(path(key), stream, file.getSize(), type);
             }
+            quota.added(file.getSize());
             return new StoredFile(key, cleanName(file.getOriginalFilename()), type);
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.BAND_FILE_STORAGE_FAILED);

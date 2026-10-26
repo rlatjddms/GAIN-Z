@@ -3,6 +3,7 @@ package com.project.gainz.domain.sheet.service;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.global.storage.FileStore;
+import com.project.gainz.global.storage.StorageQuota;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -29,9 +30,11 @@ public class SheetFileStorage {
     private static final String FOLDER = "sheets/";
 
     private final FileStore fileStore;
+    private final StorageQuota quota;
 
-    public SheetFileStorage(FileStore fileStore) {
+    public SheetFileStorage(FileStore fileStore, StorageQuota quota) {
         this.fileStore = fileStore;
+        this.quota = quota;
     }
 
     public StoredFile store(MultipartFile file) {
@@ -51,8 +54,10 @@ public class SheetFileStorage {
             throw new BusinessException(ErrorCode.INVALID_SHEET_FILE);
         }
         String storedName = UUID.randomUUID() + extensionOf(contentType);
+        quota.check(file.getSize());
         try (InputStream in = file.getInputStream()) {
             fileStore.put(FOLDER + storedName, in, file.getSize(), contentType);
+            quota.added(file.getSize());
         } catch (IOException e) {
             log.error("악보 파일 저장 실패: {}", storedName, e);
             throw new BusinessException(ErrorCode.SHEET_FILE_STORAGE_FAILED);
@@ -68,9 +73,11 @@ public class SheetFileStorage {
             if (source == null) {
                 throw new BusinessException(ErrorCode.SHEET_PAGE_NOT_FOUND);
             }
+            quota.check(source.contentLength());
             try (InputStream in = source.getInputStream()) {
                 fileStore.put(FOLDER + copyName, in, source.contentLength(), contentTypeOf(copyName));
             }
+            quota.added(source.contentLength());
         } catch (IOException e) {
             log.error("악보 파일 복사 실패: {}", storedName, e);
             throw new BusinessException(ErrorCode.SHEET_FILE_STORAGE_FAILED);

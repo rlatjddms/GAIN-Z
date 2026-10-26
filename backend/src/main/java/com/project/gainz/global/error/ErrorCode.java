@@ -13,6 +13,8 @@ public enum ErrorCode {
     FILE_TOO_LARGE(400, "G002", "파일이 너무 커요."),
     // 브라우저가 바로 올리고 받는 주소(FileLinks)가 고쳐졌거나 시간이 지남 (#262)
     FILE_LINK_INVALID(403, "G003", "파일 주소가 만료됐어요. 화면을 새로고침한 뒤 다시 시도해 주세요."),
+    // 저장소 전체 용량 한도(StorageQuota, 기본 9GB)를 넘음. R2 무료 범위를 넘지 않게 막는다 (#262)
+    STORAGE_FULL(507, "G004", "저장 공간이 가득 차서 지금은 새 파일을 올릴 수 없어요."),
 
     /* User (유저) */
     DUPLICATE_EMAIL(409, "U001", "이미 존재하는 이메일입니다."),
@@ -146,7 +148,8 @@ public enum ErrorCode {
     BAND_INVITE_ALREADY_MEMBER(409, "B041", "이미 이 밴드에 있는 친구예요."),
     INVALID_BAND_ORDER(400, "B042", "밴드 순서가 지금 내 밴드와 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요."),
     // 바로 올린 파일(#262)이 없음: 다 안 올라갔거나 1시간이 지났거나 남의 것
-    BAND_UPLOAD_NOT_FOUND(400, "B043", "올린 파일을 찾지 못했어요. 파일을 다시 올려 주세요.");
+    BAND_UPLOAD_NOT_FOUND(400, "B043", "올린 파일을 찾지 못했어요. 파일을 다시 올려 주세요."),
+    SETLIST_FILE_INVALID(400, "B044", "셋리스트 곡에는 사진·영상·오디오·PDF 파일을 50MB까지 첨부할 수 있습니다.");
 
     private final int status;
     private final String code;

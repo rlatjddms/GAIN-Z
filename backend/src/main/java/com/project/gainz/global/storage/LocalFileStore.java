@@ -59,6 +59,14 @@ public class LocalFileStore implements FileStore {
         Files.move(resolve(from), target, StandardCopyOption.REPLACE_EXISTING);
     }
 
+    @Override
+    public long totalSize() throws IOException {
+        if (!Files.isDirectory(baseDir)) return 0;
+        try (var files = Files.walk(baseDir)) {
+            return files.filter(Files::isRegularFile).mapToLong(path -> path.toFile().length()).sum();
+        }
+    }
+
     // 업로드 폴더 밖을 가리키는 key는 막는다
     private Path resolve(String key) throws IOException {
         Path path = baseDir.resolve(key).normalize();

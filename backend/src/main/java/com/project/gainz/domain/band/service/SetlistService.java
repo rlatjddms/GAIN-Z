@@ -226,12 +226,12 @@ public class SetlistService {
             else cleanAfterCompletion(file.getKey(), true);
         }
         for (MultipartFile file : added) {
-            var stored = storage.store(file);
+            var stored = storage.store(file, BandUploadKind.SETLIST_FILE);
             cleanAfterCompletion(stored.key(), false);
             next.add(new BandPostFile(stored.key(), stored.name(), stored.type()));
         }
         for (String uploadId : direct) {
-            var stored = storage.claim(userId, bandId, uploadId, BandUploadKind.ATTACHMENT);
+            var stored = storage.claim(userId, bandId, uploadId, BandUploadKind.SETLIST_FILE);
             cleanAfterCompletion(stored.key(), false);
             next.add(new BandPostFile(stored.key(), stored.name(), stored.type()));
         }
