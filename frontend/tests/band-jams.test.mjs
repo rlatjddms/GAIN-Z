@@ -280,7 +280,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     assert.match(await page.getByRole('button', { name: '랍스타 베이스 솔로' }).getAttribute('title'), /^솔로: /)
 
     // 셋리스트 곡은 입력해야 찾은 곡만 몇 개 보여 준다. 고르면 이름이 채워진다. BPM 범위를 확인한다.
-    await page.getByRole('button', { name: '+ 잼 만들기' }).click()
+    await page.getByRole('button', { name: '잼 추가', exact: true }).click()
     const dialog = page.getByRole('dialog')
     const search = dialog.getByLabel('셋리스트 곡 검색')
     const options = dialog.locator('.song-option')
@@ -325,10 +325,10 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await search.fill('hysteria')
     await options.filter({ hasText: 'Hysteria' }).click()
     await dialog.getByLabel('BPM').fill('300')
-    await dialog.getByRole('button', { name: '만들기' }).click()
+    await dialog.getByRole('button', { name: '추가', exact: true }).click()
     await dialog.getByRole('alert').filter({ hasText: 'BPM은 40에서 240' }).waitFor()
     await dialog.getByLabel('BPM').fill('90')
-    await dialog.getByRole('button', { name: '만들기' }).click()
+    await dialog.getByRole('button', { name: '추가', exact: true }).click()
     await page.getByRole('status').filter({ hasText: '잼을 만들었어요' }).waitFor()
     const created = api.state.jams[0]
     assert.deepEqual([created.title, created.bpm, created.song?.setlistItemId], ['Hysteria', 90, 31])
@@ -352,6 +352,10 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     const mobileTops = await page.locator('.legend li:not(.legend-note)').evaluateAll(items => items.map(item => Math.round(item.getBoundingClientRect().top)))
     assert.equal(new Set(mobileTops).size, 1, '모바일에서 M·S 설명이 두 줄로 나뉨')
     await page.screenshot({ path: 'test-results/jams-mobile.png', fullPage: true })
+    // 목록을 접어도 제목 줄의 추가 버튼은 보인다 (#293)
+    if (!await page.locator('.sidebar .list-summary').isVisible()) await page.locator('.sidebar .fold').click()
+    await page.locator('.sidebar .list-summary').waitFor()
+    assert.ok(await page.getByRole('button', { name: '잼 추가', exact: true }).isVisible())
     assert.deepEqual(errors, [])
   } finally {
     await browser?.close()

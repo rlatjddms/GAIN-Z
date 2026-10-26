@@ -96,11 +96,11 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
       await route.fulfill({ headers, contentType: 'application/json', body: JSON.stringify({ success: true, data }) })
     })
     await page.goto('http://127.0.0.1:4181/bands/10/setlists')
-    const create = page.getByRole('button', { name: '+ 셋리스트 만들기', exact: true })
+    const create = page.getByRole('button', { name: '셋리스트 추가', exact: true })
     async function createList(title) {
       await create.click()
       await page.getByRole('dialog').getByPlaceholder('셋리스트 이름을 적어주세요').fill(title)
-      await page.getByRole('dialog').getByRole('button', { name: '만들기', exact: true }).click()
+      await page.getByRole('dialog').getByRole('button', { name: '추가', exact: true }).click()
       await page.getByRole('dialog').waitFor({ state: 'hidden' })
     }
     // 한글 조합 중인 첫 글자도 바로 값으로 (#263): "가"를 조합하는 동안에도 만들기 버튼이 켜진다
@@ -256,7 +256,7 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
     assert.deepEqual(api.state.lists[1].items.map(item => item.title), ['첫 곡'])
     await mkdir(new URL('../test-results/', import.meta.url), { recursive: true })
     async function screenshot(name) {
-      await page.evaluate(async () => { window.scrollTo(0, 0); await new Promise(requestAnimationFrame); await Promise.all(document.getAnimations().map(animation => animation.finished)) })
+      await page.evaluate(async () => { window.scrollTo(0, 0); await new Promise(requestAnimationFrame); await Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => {}))) })
       await page.screenshot({ path: fileURLToPath(new URL(`../test-results/${name}.png`, import.meta.url)), fullPage: true })
     }
     // 저장된 곡 옆에 작성 중인 곡이 공존하는 화면도 확인한다.
@@ -278,6 +278,12 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
     await songs.last().getByRole('button', { name: '저장', exact: true }).click()
     await page.getByRole('button', { name: '새 합주곡 수정', exact: true }).waitFor()
     await screenshot('setlists-mobile')
+    // 휴대폰에서 목록을 접어도 제목 줄의 추가 버튼은 보인다 (#293)
+    if (!await page.locator('.sidebar .list-summary').isVisible()) await page.locator('.sidebar .fold').click()
+    await page.locator('.sidebar .list-summary').waitFor()
+    assert.ok(await page.getByRole('button', { name: '셋리스트 추가', exact: true }).isVisible())
+    await page.locator('.sidebar .fold').click()
+    await page.locator('.sidebar .list-summary').waitFor({ state: 'detached' })
     await page.getByRole('button', { name: '선택', exact: true }).click()
     await page.getByRole('checkbox', { name: '정기 합주 수정 선택', exact: true }).check()
     await page.getByRole('button', { name: '선택 삭제', exact: true }).click()
