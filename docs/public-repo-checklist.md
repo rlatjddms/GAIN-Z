@@ -15,6 +15,8 @@
 
 ## 공개로 바꾸기 전에 할 일
 
+> 2026-10-26 공개로 바꿨어요. 2·3번은 설정을 마쳤고(Secret scanning·Push protection, Rulesets `protect-dev`·`release-main`), 1번은 이미 올라간 이메일이 남는 걸 알고 그대로 두기로 했어요.
+
 1. **이메일 숨기기** (GitHub → Settings → Emails)
    - "Keep my email addresses private"와 "Block command line pushes that expose my email"을 켭니다.
    - 로컬 git 이메일을 GitHub가 준 `…@users.noreply.github.com` 주소로 바꿉니다: `git config --global user.email "<noreply 주소>"`
