@@ -3,6 +3,7 @@
     <transition name="modal">
       <div v-if="open" class="backdrop" @click.self="!busy && emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="music-title">
+          <ModalClose :disabled="busy" @close="emit('close')" />
           <h2 id="music-title">요즘 듣는 음악</h2>
           <p class="sub">친구와 밴드 멤버가 내 프로필에서 보고 30초 미리듣기를 할 수 있어요.</p>
 
@@ -38,11 +39,13 @@
             </ul>
           </div>
 
-          <div v-if="artworkUrl" class="picked-card">
-            <img :src="artworkUrl" alt="" class="cover">
+          <!-- 고른 곡. 직접 적은 곡(커버 없음)도 보여 주고, X로 곡을 통째로 뺀다. 뺀 채로 저장하면 지운다 (#292) -->
+          <div v-if="artworkUrl || title.trim()" class="picked-card">
+            <img v-if="artworkUrl" :src="artworkUrl" alt="" class="cover">
+            <span v-else class="cover empty"><Music :size="16" /></span>
             <span class="r-text"><strong>{{ title || '제목' }}</strong><span>{{ artist }}</span></span>
             <PreviewButton v-if="previewUrl" :url="previewUrl" />
-            <button type="button" class="unpick" aria-label="고른 곡의 커버·미리듣기 빼기" :disabled="busy" @click="unpick"><X :size="15" :stroke-width="2.4" /></button>
+            <button type="button" class="unpick" aria-label="고른 곡 빼기" :disabled="busy" @click="unpick"><X :size="15" :stroke-width="2.4" /></button>
           </div>
 
           <form @submit.prevent="save">
@@ -70,10 +73,8 @@
             <p v-if="error" class="error">{{ error }}</p>
 
             <div class="actions">
-              <button v-if="current" type="button" class="btn ghost" :disabled="busy" @click="remove">지우기</button>
-              <span class="spacer"></span>
               <button type="button" class="btn" :disabled="busy" @click="emit('close')">취소</button>
-              <button type="submit" class="btn primary" :disabled="busy || !valid">{{ busy ? '저장 중…' : '저장' }}</button>
+              <button type="submit" class="btn primary" :disabled="busy || !(valid || cleared)">{{ busy ? '저장 중…' : '저장' }}</button>
             </div>
           </form>
         </section>
@@ -93,8 +94,8 @@ import {
   PROFILE_MUSIC_TITLE_MAX, PROFILE_MUSIC_ARTIST_MAX, PROFILE_MUSIC_URL_MAX,
 } from '../api/user'
 import { apiErrorMessage } from '../api/practice'
-import { useDialogStore } from '../stores/dialog'
 import { useToastStore } from '../stores/toast'
+import ModalClose from './ui/ModalClose.vue'
 
 const toast = useToastStore()
 
@@ -127,6 +128,8 @@ const toggleManual = async () => {
 
 const urlValid = computed(() => /^https?:\/\/\S+$/i.test(url.value.trim()))
 const valid = computed(() => title.value.trim() && artist.value.trim() && (!url.value.trim() || urlValid.value))
+// 있던 곡을 X로 빼고 칸을 다 비웠으면 저장 = 지우기 (#292, 따로 있던 지우기 버튼 대신)
+const cleared = computed(() => !!current.value && !title.value.trim() && !artist.value.trim() && !url.value.trim())
 
 /* ---------- 곡 검색: 입력을 멈추면 잠시 뒤 찾는다 ----------
    v-model은 한글을 조합하는 동안 값을 늦게 바꿔서 마지막 글자가 빠진 채로 찾게 되니, input 이벤트로 바로 받는다 */
@@ -170,7 +173,15 @@ const pick = (r) => {
   artworkUrl.value = r.artworkUrl
   previewUrl.value = r.previewUrl
 }
-const unpick = () => { artworkUrl.value = null; previewUrl.value = null }
+// 고른 곡을 통째로 뺀다 (제목·가수·링크·커버·미리듣기)
+const unpick = () => {
+  title.value = ''
+  artist.value = ''
+  url.value = ''
+  artworkUrl.value = null
+  previewUrl.value = null
+  manualOpen.value = false
+}
 
 watch(() => props.open, async (open) => {
   if (!open) return
@@ -205,17 +216,18 @@ const run = async (action, fallback, done) => {
 }
 
 const save = () => {
-  if (!valid.value || busy.value) return
+  if (busy.value) return
+  if (cleared.value) {
+    run(() => deleteProfileMusic(), '음악을 지우지 못했어요.', '요즘 듣는 음악을 지웠어요')
+    return
+  }
+  if (!valid.value) return
   run(() => updateProfileMusic({
     title: title.value.trim(), artist: artist.value.trim(), url: url.value.trim() || null,
     artworkUrl: artworkUrl.value, previewUrl: previewUrl.value,
   }), '음악을 저장하지 못했어요.', '요즘 듣는 음악을 저장했어요')
 }
 
-const remove = async () => {
-  if (busy.value || !await useDialogStore().confirm({ title: '요즘 듣는 음악을 지울까요?', okText: '지우기', danger: true })) return
-  run(() => deleteProfileMusic(), '음악을 지우지 못했어요.', '요즘 듣는 음악을 지웠어요')
-}
 </script>
 
 <style scoped>
@@ -283,8 +295,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 .hint { margin: 6px 0 0; font-size: 0.72rem; font-weight: 700; line-height: 1.5; }
 .hint.bad { color: #e8590c; }
 .error { margin: 12px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
-.actions { display: flex; align-items: center; gap: 8px; margin-top: 20px; }
-.spacer { flex: 1; }
+.actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
@@ -298,4 +309,8 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
   }
   .field input { font-size: 16px; }
 }
+/* 닫기 버튼 자리 (#292) */
+.modal { position: relative; }
+h2 { padding-right: 40px; }
+
 </style>

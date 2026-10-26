@@ -156,6 +156,7 @@
     </div>
 
     <dialog ref="formDialog" class="jam-dialog" aria-labelledby="jam-form-title" @close="formError = ''">
+      <ModalClose :disabled="busy" @close="formDialog.close()" />
       <form method="dialog" novalidate @submit.prevent="saveForm">
         <h3 id="jam-form-title">{{ form.id ? '잼 수정' : '새 잼' }}</h3>
         <fieldset class="song-picker">
@@ -218,6 +219,7 @@ import {
   JAM_MAX_TRACKS, JAM_OFFSET_MAX_MS, JAM_OFFSET_MIN_MS, JAM_TRACK_MAX_BYTES, JAM_VOLUME_MAX, LATENCY_MAX_MS,
   JAM_FILE_ACCEPT, audibleTracks, clamp, formatTime, recordedOffsetMs, recordingExtension, timelineLength,
 } from '../../audio/jamAudio'
+import ModalClose from '../../components/ui/ModalClose.vue'
 
 const LATENCY_KEY = 'gainz.jam.latencyMs'
 const route = useRoute()
@@ -724,7 +726,7 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .rec-time { font-size:.78rem; color:var(--c-danger); font-weight:700; font-variant-numeric:tabular-nums; }
 .jam-dialog { width:min(420px, calc(100vw - 32px)); border:0; border-radius:var(--radius-xl); padding:24px; font-family:var(--font-sans); color:var(--c-text); box-shadow:var(--shadow-lg); }
 .jam-dialog::backdrop { background:rgba(15,23,42,.45); }
-.jam-dialog h3 { margin:0 0 14px; font-size:1rem; }
+.jam-dialog h3 { margin:0 0 14px; padding-right:40px; font-size:1rem; }
 .jam-dialog form { display:flex; flex-direction:column; gap:12px; }
 .jam-dialog label { display:flex; flex-direction:column; gap:6px; font-size:.75rem; color:var(--c-muted); }
 .jam-dialog input,.jam-dialog select { width:100%; border:1px solid var(--c-line); padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; outline:none; box-shadow:none; }

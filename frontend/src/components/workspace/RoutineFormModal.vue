@@ -3,6 +3,7 @@
     <transition name="modal">
       <div v-if="open" class="backdrop" @click.self="!saving && emit('close')">
         <form class="modal" role="dialog" aria-modal="true" aria-labelledby="routine-form-title" @submit.prevent="submit">
+          <ModalClose :disabled="saving" @close="emit('close')" />
           <h2 id="routine-form-title">{{ routine ? '루틴 수정' : '루틴 추가' }}</h2>
 
           <label class="field">
@@ -74,6 +75,7 @@ import { dateKey } from '../../constants/practice'
 import { REPEAT_TYPES, WEEK_DAYS } from '../../constants/routine'
 import NumberStepper from '../ui/NumberStepper.vue'
 import { useToastStore } from '../../stores/toast'
+import ModalClose from '../ui/ModalClose.vue'
 
 const toast = useToastStore()
 
@@ -210,4 +212,8 @@ h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
 }
+/* 닫기 버튼 자리 (#292) */
+.modal { position: relative; }
+h2 { padding-right: 40px; }
+
 </style>

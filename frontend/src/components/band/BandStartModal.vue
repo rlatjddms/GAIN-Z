@@ -3,6 +3,7 @@
     <transition name="modal">
       <div v-if="open" class="backdrop" @click.self="!saving && emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="band-start-title">
+          <ModalClose :disabled="saving" @close="emit('close')" />
           <div class="segment fill tabs" role="tablist">
             <button type="button" role="tab" :aria-selected="tab === 'create'" :class="{ on: tab === 'create' }"
                     :disabled="saving" @click="tab = 'create'">밴드 만들기</button>
@@ -65,6 +66,7 @@ import { ref, computed, watch } from 'vue'
 import { createBand, joinBand, BAND_NAME_MAX, BAND_DESCRIPTION_MAX, INVITE_CODE_LENGTH } from '../../api/band'
 import { apiErrorMessage } from '../../api/practice'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
+import ModalClose from '../ui/ModalClose.vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -173,4 +175,9 @@ form > .field:first-child { margin-top: 0; }
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
 }
+/* 닫기 버튼 자리 (#292) */
+.modal { position: relative; }
+/* 오른쪽 위 닫기 버튼(#292)과 겹치지 않게 */
+.tabs { margin-right: 40px; }
+
 </style>

@@ -5,6 +5,7 @@
       <div v-if="current" class="backdrop" @click.self="next">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="record-acquired-title"
                  :style="{ '--c': rarityOf(current.rarity).border }">
+          <ModalClose @close="next" />
           <div class="rays" aria-hidden="true"></div>
           <div class="badge">NEW RECORD!</div>
           <div class="disc">
@@ -32,6 +33,7 @@ import { useNotificationStore } from '../stores/notification'
 import { useRecordsStore } from '../stores/records'
 import { markNotificationRead } from '../api/notification'
 import { rarityOf } from '../constants/records'
+import ModalClose from './ui/ModalClose.vue'
 
 const router = useRouter()
 const notifications = useNotificationStore()
