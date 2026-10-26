@@ -1,4 +1,5 @@
-import { audibleTracks, detectOnsets, encodeWav, estimateLatencyMs, pickRecordingType, timelineLength, trackSchedule } from './jamAudio'
+import { audibleTracks, countInBeatAt, detectOnsets, encodeWav, estimateLatencyMs, pickRecordingType, timelineLength, trackSchedule } from './jamAudio'
+import { allowSoundInSilentMode, pauseSilentAudio, resetSilentMode, setAudioSession } from './silentMode'
 
 const LEAD = 0.12 // 예약한 소리가 늦지 않게 지금보다 조금 뒤에 시작한다
 const LOOKAHEAD = 0.15
@@ -32,6 +33,11 @@ export class JamEngine {
     return this.playing ? this.from + Math.max(0, this.ctx.currentTime - this.startedAt) : this.from
   }
 
+  // 카운트인 중이면 지금 몇 번째 박인지(1부터), 아니면 0 (#234). 첫 클릭 전 잠깐도 0
+  countInBeat(bpm, countIn) {
+    return this.playing ? countInBeatAt(this.startedAt - this.ctx.currentTime, bpm, countIn) : 0
+  }
+
   // 출력·입력 지연 합(ms). 기기가 알려 주는 값이라 오차가 있다
   estimatedLatencyMs() {
     const ctx = this.context()
@@ -60,6 +66,8 @@ export class JamEngine {
   // bpm·metronome: 메트로놈을 함께 울림, countIn: 시작 전 몇 박 세기, endless: 트랙이 끝나도 멈추지 않음(녹음 중)
   async play(tracks, soloIds, from, { bpm = 0, metronome = false, countIn = 0, endless = false } = {}) {
     this.stop()
+    // 아이폰 무음 스위치가 켜져 있어도 들리게 (#225). 누른 순간과 가깝게 await보다 먼저
+    allowSoundInSilentMode(!!this.stream)
     const ctx = this.context()
     await ctx.resume()
     const lead = bpm ? countIn * (60 / bpm) : 0
@@ -82,6 +90,7 @@ export class JamEngine {
     for (const { source } of this.nodes.values()) { try { source.stop() } catch { /* 이미 끝남 */ } }
     this.nodes.clear()
     this.stopMetronome()
+    pauseSilentAudio()
   }
 
   seek(position) {
@@ -132,6 +141,7 @@ export class JamEngine {
   // 악기 소리가 바뀌지 않게 통화용 처리를 끄고 마이크를 연다
   async openMic() {
     if (this.stream) return this.stream
+    setAudioSession(true)
     this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
     return this.stream
   }
@@ -139,6 +149,7 @@ export class JamEngine {
   closeMic() {
     this.stream?.getTracks().forEach(track => track.stop())
     this.stream = null
+    setAudioSession(false)
   }
 
   // 녹음을 시작하고 recordStart(녹음 시작 시각)를 알려 준다. stop()이 녹음 파일을 돌려준다
@@ -198,6 +209,7 @@ export class JamEngine {
   close() {
     this.stop()
     this.closeMic()
+    resetSilentMode()
     this.ctx?.close()
     this.ctx = null
   }

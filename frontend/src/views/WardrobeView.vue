@@ -1,12 +1,10 @@
 <template>
   <SubPageLayout title="DRESS ROOM" name="옷장" subtitle="바꾼 모습은 저장해야 반영돼요">
     <template #actions>
-      <span v-if="savedMessage" class="saved">{{ savedMessage }}</span>
       <button class="btn" :disabled="!dirty || saving" @click="reset">되돌리기</button>
-      <button class="btn primary" :disabled="!dirty || saving || !!nicknameError" @click="save">{{ saving ? '저장 중…' : '저장' }}</button>
+      <button class="btn primary" :disabled="!dirty || saving" @click="save">{{ saving ? '저장 중…' : '저장' }}</button>
     </template>
     <div class="page">
-      <p v-if="error" class="error">{{ error }}</p>
 
       <div class="layout">
         <!-- 미리보기: 바꾼 모습이 바로 보인다 -->
@@ -28,12 +26,6 @@
 
           <!-- 외형 -->
           <div v-if="tab === 'look'" class="tab-body">
-            <label class="field">
-              <span class="label">닉네임</span>
-              <input v-model="draft.nickname" class="input" maxlength="10">
-              <span v-if="nicknameError" class="warn">{{ nicknameError }}</span>
-            </label>
-
             <div class="field">
               <span class="label">성별</span>
               <div class="chips">
@@ -252,17 +244,17 @@ import { onBeforeRouteLeave } from 'vue-router'
 import SubPageLayout from '../components/workspace/SubPageLayout.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import ColorSwatches from '../components/ColorSwatches.vue'
-import PixelCharacter from '../components/PixelCharacter.vue'
 import PixelSprite from '../components/PixelSprite.vue'
 import StageScene from '../components/StageScene.vue'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
+import { useToastStore } from '../stores/toast'
 import { getWardrobe, updateWardrobe, updateAppearance } from '../api/character'
 import { apiErrorMessage } from '../api/practice'
 import { getLevelTier } from '../constants/levelTier'
 import {
   GENDER_OPTIONS, HAIR_STYLE_OPTIONS, SKIN_COLOR_PRESETS, HAIR_COLOR_PRESETS,
-  INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS, nicknameProblem,
+  INSTRUMENT_OPTIONS, INSTRUMENT_COLOR_PRESETS,
 } from '../constants/characterOptions'
 import { DEFAULT_COLORS, HEAD_REGION } from '../pixel/palette'
 import { outfitSpriteName } from '../pixel/sprites'
@@ -306,6 +298,7 @@ const authStore = useAuthStore()
 const tab = ref('look')
 
 // 저장된 상태와 지금 고르는 중인 상태
+// 닉네임은 마이페이지에서만 바꾼다 (#227). 외형 수정 API에 지금 닉네임을 그대로 보낸다
 const APPEARANCE_KEYS = ['nickname', 'gender', 'skinColor', 'hairStyle', 'hairColor', 'instrumentType', 'instrumentColor']
 const original = ref(null)
 const draft = reactive({
@@ -385,7 +378,6 @@ const wardrobeDirty = computed(() => !!original.value && wardrobeLoaded.value
   && (WARDROBE_KEYS.some((k) => draft[k] !== original.value[k])
     || LIST_KEYS.some((k) => JSON.stringify(draft[k]) !== JSON.stringify(original.value[k]))))
 const dirty = computed(() => appearanceDirty.value || wardrobeDirty.value)
-const nicknameError = computed(() => (appearanceDirty.value ? nicknameProblem(draft.nickname) : ''))
 
 const clothes = computed(() => outfits.value.filter((o) => o.category === 'CLOTHES'))
 
@@ -421,27 +413,21 @@ const reset = () => {
 }
 
 const saving = ref(false)
-const error = ref('')
-const savedMessage = ref('')
 const save = async () => {
   saving.value = true
-  error.value = ''
-  savedMessage.value = ''
   try {
     if (appearanceDirty.value) {
       const body = Object.fromEntries(APPEARANCE_KEYS.map((k) => [k, draft[k]]))
-      await updateAppearance({ ...body, nickname: draft.nickname.trim() })
+      await updateAppearance(body)
     }
     if (wardrobeDirty.value) {
       await updateWardrobe(Object.fromEntries([...WARDROBE_KEYS, ...LIST_KEYS].map((k) => [k, draft[k]])))
     }
     await authStore.fetchCharacter()
-    original.value = { ...draft, nickname: draft.nickname.trim() }
-    draft.nickname = original.value.nickname
-    savedMessage.value = '저장했어요'
-    setTimeout(() => { savedMessage.value = '' }, 3000)
+    original.value = { ...draft }
+    toast.success('저장했어요')
   } catch (e) {
-    error.value = `저장하지 못했어요. ${apiErrorMessage(e)}`
+    toast.error(`저장하지 못했어요. ${apiErrorMessage(e)}`)
   } finally {
     saving.value = false
   }
@@ -449,13 +435,12 @@ const save = async () => {
 
 // 저장하지 않고 나가려 하면 한 번 묻는다
 const dialog = useDialogStore()
+const toast = useToastStore()
 onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 않은 변경이 있어요', text: '저장하지 않고 나갈까요?', okText: '나가기' }) : true))
 </script>
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 16px; }
-.saved { font-size: 0.78rem; font-weight: 800; color: var(--c-success); }
-.error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
 .preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -544,11 +529,6 @@ onBeforeRouteLeave(() => (dirty.value ? dialog.confirm({ title: '저장하지 �
   width: 64px; height: 72px; border-radius: 12px; background: var(--c-line-soft); overflow: hidden; font-size: 1.6rem;
 }
 .item-thumb i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(248, 249, 250, 0.7); font-style: normal; }
-.empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 28px 12px; border: 2px dashed var(--c-line); border-radius: 14px; }
-.empty.small { padding: 14px 12px; }
-.empty-icon { font-size: 1.8rem; }
-.empty strong { font-size: 0.85rem; font-weight: 800; color: var(--c-muted); }
-.empty p { margin: 0; font-size: 0.75rem; color: var(--c-faint); }
 .sub-section { display: flex; flex-direction: column; gap: 8px; }
 .item strong { font-size: 0.85rem; font-weight: 800; }
 .item small { font-size: 0.7rem; font-weight: 700; color: var(--c-faint); }

@@ -41,7 +41,7 @@ export const useAuthStore = defineStore('auth', {
         // Fallback: use email local part (e.g. test@example.com -> test)
         return state.userEmail.split('@')[0]
       }
-      return '성은' // Final fallback from default mockup
+      return '회원'
     },
   },
 
@@ -81,54 +81,26 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // Check if email already exists
-    async checkEmail(email) {
-      try {
-        const response = await axiosInstance.get('/api/v1/auth/check-email', {
-          params: { email },
-        })
-        // The API returns isDuplicate: true (exists) or false (available)
-        return response.data.data
-      } catch (error) {
-        console.error('Email check failed:', error)
-        throw error
-      }
-    },
-
     // Signup action
-    async signup(name, email, password, emailVerificationToken) {
-      try {
-        const response = await axiosInstance.post('/api/v1/auth/signup', {
-          name,
-          email,
-          password,
-          emailVerificationToken,
-        })
-
-        // On success, save the name locally for this email to enhance UX later
-        localStorage.setItem(`name_${email}`, name)
-        return response.data
-      } catch (error) {
-        console.error('Signup failed:', error)
-        throw error
-      }
+    // 이름은 받지 않는다 (#227): 화면에 보이는 이름은 캐릭터 닉네임
+    async signup(email, password, emailVerificationToken) {
+      const response = await axiosInstance.post('/api/v1/auth/signup', {
+        email,
+        password,
+        emailVerificationToken,
+      })
+      return response.data
     },
 
     // Local login action
     async login(email, password, keepLoggedIn = true) {
-      try {
-        const response = await axiosInstance.post('/api/v1/auth/login', {
-          email,
-          password,
-        })
-
-        const { accessToken, refreshToken } = response.data.data
-        this.setTokens(accessToken, refreshToken, keepLoggedIn)
-        return response.data
-      } catch (error) {
-        console.error('Login failed:', error)
-        throw error
-      }
+      const response = await axiosInstance.post('/api/v1/auth/login', {
+        email,
+        password,
+      })
+      const { accessToken, refreshToken } = response.data.data
+      this.setTokens(accessToken, refreshToken, keepLoggedIn)
+      return response.data
     },
 
     // Logout action
@@ -179,7 +151,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // 이름 바꾸기 반영 (헤더 표시용으로 토큰과 같은 저장소에 둔다)
+    // 닉네임 바꾸기 반영 (헤더 표시용으로 토큰과 같은 저장소에 둔다)
     setUserName(name) {
       this.userName = name
       if (this.profile) this.profile.name = name

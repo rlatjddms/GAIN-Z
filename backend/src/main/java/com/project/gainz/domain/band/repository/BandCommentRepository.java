@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface BandCommentRepository extends JpaRepository<BandComment, Long> {
-    List<BandComment> findAllByPostIdOrderByCreatedAtAscIdAsc(Long postId);
     Optional<BandComment> findByIdAndPostId(Long id, Long postId);
     // 댓글 쪽 나누기 (#188): 원댓글을 최근 것부터, 답글은 원댓글 ID로 따로
     @Query("select c from BandComment c where c.post.id = :postId and c.parent is null order by c.createdAt desc, c.id desc")

@@ -7,6 +7,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ErrorCode {
 
+    /* Global (공통) */
+    INVALID_INPUT(400, "G001", "입력한 값이 올바르지 않아요."),
+    // 문구의 크기는 GlobalExceptionHandler가 설정값(spring.servlet.multipart)으로 채운다 (#280)
+    FILE_TOO_LARGE(400, "G002", "파일이 너무 커요."),
+
     /* User (유저) */
     DUPLICATE_EMAIL(409, "U001", "이미 존재하는 이메일입니다."),
     USER_NOT_FOUND(404, "U002", "존재하지 않는 사용자입니다."),
@@ -31,6 +36,8 @@ public enum ErrorCode {
     LAST_LOGIN_METHOD(400, "U021", "로그인 방법이 하나뿐이라 해제할 수 없어요. 다른 방법을 먼저 연결하거나 비밀번호를 만들어 주세요."),
     SOCIAL_NOT_LINKED(400, "U022", "연결되지 않은 소셜 계정이에요."),
     INVALID_SOCIAL_PROVIDER(400, "U023", "지원하지 않는 소셜 로그인이에요."),
+    SONG_SEARCH_FAILED(503, "U024", "곡을 찾지 못했어요. 잠시 후 다시 해 보거나 직접 입력해 주세요."),
+    INVALID_OAUTH_CODE(400, "U025", "로그인 시간이 지났어요. 다시 로그인해 주세요."),
 
     /* Friend (친구) */
     INVALID_FRIEND_CODE(404, "F001", "친구 코드가 올바르지 않습니다. 친구에게 코드를 다시 확인해 주세요."),
@@ -132,7 +139,10 @@ public enum ErrorCode {
     JAM_TRACK_FILE_INVALID(400, "B036", "WebM·OGG·M4A·MP3·WAV 녹음 파일을 30MB까지 올릴 수 있습니다."),
     JAM_PERMISSION_DENIED(403, "B037", "만든 멤버나 리더만 할 수 있습니다."),
     JAM_SONG_INVALID(400, "B038", "이 밴드 셋리스트에 없는 곡입니다."),
-    BAND_LEADER_MUST_HAND_OVER(400, "B039", "리더인 밴드가 있어요. 탈퇴하기 전에 다른 멤버에게 리더를 넘겨 주세요.");
+    BAND_LEADER_MUST_HAND_OVER(400, "B039", "리더인 밴드가 있어요. 탈퇴하기 전에 다른 멤버에게 리더를 넘겨 주세요."),
+    BAND_INVITE_NOT_FRIEND(400, "B040", "친구에게만 밴드 초대를 보낼 수 있어요."),
+    BAND_INVITE_ALREADY_MEMBER(409, "B041", "이미 이 밴드에 있는 친구예요."),
+    INVALID_BAND_ORDER(400, "B042", "밴드 순서가 지금 내 밴드와 맞지 않습니다. 새로고침한 뒤 다시 시도해 주세요.");
 
     private final int status;
     private final String code;

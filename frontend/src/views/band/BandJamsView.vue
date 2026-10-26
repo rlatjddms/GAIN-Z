@@ -4,11 +4,22 @@
     <p v-if="error" role="alert">{{ error }} <button class="btn" @click="loadBand">다시 불러오기</button></p>
     <p v-else-if="!band" class="muted">레이어 잼을 불러오는 중…</p>
     <div v-else class="page">
-      <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
-      <p v-if="notice" class="status" role="status">{{ notice }}</p>
       <div class="workspace">
-        <WsCard :title="`잼 ${jams.length}`" class="sidebar">
+        <WsCard :title="`잼 ${jams.length}`" class="sidebar" :class="{ collapsed: fold.collapsed.value }">
+          <!-- 휴대폰: 목록 접기·펼치기 (#254) -->
+          <template v-if="fold.narrow.value && jams.length" #actions>
+            <button class="text-btn fold" :aria-expanded="!fold.collapsed.value" @click="fold.toggle">{{ fold.collapsed.value ? '펼치기' : '접기' }}<ChevronDown class="chevron" :class="{ open: !fold.collapsed.value }" :size="15" :stroke-width="2.4" aria-hidden="true" /></button>
+          </template>
+          <button v-if="fold.collapsed.value" class="list-summary" @click="fold.toggle">
+            <strong>{{ jam?.title || '잼을 골라 주세요' }}</strong><span>잼 {{ jams.length }}개 보기</span>
+          </button>
+          <template v-else>
           <button class="btn add-jam" :disabled="busy || recording" @click="openForm(null)">+ 잼 만들기</button>
+          <!-- 목록 검색 (#254): 잼 이름이나 연결한 곡 제목 -->
+          <label v-if="jams.length" class="list-search">
+            <Search :size="14" :stroke-width="2.4" aria-hidden="true" />
+            <input v-model="jamQuery" type="search" placeholder="잼·곡 이름 검색" aria-label="잼 검색" maxlength="40">
+          </label>
           <!-- 셋리스트 목록과 같은 도구: 즐겨찾기만 보기, 여러 개 골라 지우기 (만든 멤버·리더만 지울 수 있어서 그 잼만 고를 수 있음) -->
           <div v-if="jams.length" class="list-tools">
             <button class="chip" :class="{ on: favoritesOnly }" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly"><Star :size="14" :stroke-width="2.2" :fill="favoritesOnly ? 'currentColor' : 'none'" /> 즐겨찾기</button>
@@ -24,10 +35,14 @@
                 <span>{{ item.bpm }} BPM · 트랙 {{ item.trackCount }}</span>
                 <small v-if="item.song">셋리스트 · {{ item.song.title }}</small>
               </button>
+              <button v-if="item.canManage && !selecting" class="rename" :disabled="busy || recording" :aria-label="`${item.title} 이름 변경`" title="이름 변경" @click="openForm(item)"><Pencil :size="14" :stroke-width="2.2" /></button>
+              <!-- 수정할 수 없는 잼도 카드 폭이 같게 연필 자리를 비워 둔다 -->
+              <span v-else-if="!selecting" class="rename-space" aria-hidden="true"></span>
               <button class="star" :class="{ on: item.favorite }" :disabled="busy" :aria-pressed="item.favorite" :aria-label="`${item.title} 즐겨찾기`" @click="toggleFavorite(item)"><Star :size="16" :stroke-width="2.2" :fill="item.favorite ? 'currentColor' : 'none'" /></button>
             </li>
           </ul>
-          <p v-else class="muted">{{ favoritesOnly && jams.length ? '즐겨찾기한 잼이 없어요.' : '아직 잼이 없어요. 합주할 곡으로 잼을 만들어 보세요.' }}</p>
+          <p v-else class="muted">{{ jamQuery.trim() && jams.length ? `'${jamQuery.trim()}' 잼이 없어요.` : favoritesOnly && jams.length ? '즐겨찾기한 잼이 없어요.' : '아직 잼이 없어요. 합주할 곡으로 잼을 만들어 보세요.' }}</p>
+          </template>
         </WsCard>
 
         <WsCard :title="jam?.title || '레이어 잼'" class="detail">
@@ -127,7 +142,9 @@
                   <label class="check"><input v-model="countInOn" type="checkbox" :disabled="recording"> 한 마디 카운트인</label>
                   <button v-if="!recording" class="btn record" :disabled="busy || measuring || uploading || trackLimitReached" @click="startRecording">● 녹음 시작</button>
                   <button v-else class="btn record on" @click="stopRecording">■ 녹음 끝내기</button>
-                  <span v-if="recording" class="rec-time" role="status">녹음 중 {{ formatTime(position) }}</span>
+                  <!-- 카운트인 중에는 녹음 시작까지 남은 박을 4·3·2·1로 크게 (#234) -->
+                  <span v-if="recording && countInBeat" class="count-in" role="status" :aria-label="`녹음 시작까지 ${countInLeft}박`">{{ countInLeft }}</span>
+                  <span v-else-if="recording" class="rec-time" role="status">녹음 중 {{ formatTime(position) }}</span>
                 </div>
                   </template>
                 </div>
@@ -181,7 +198,8 @@
 </template>
 
 <script setup>
-import { SkipBack, FileUp, Mic, Headphones, Star } from 'lucide-vue-next'
+import { SkipBack, FileUp, Mic, Headphones, Star, Pencil, Search, ChevronDown } from 'lucide-vue-next'
+import { useCollapsibleList } from '../../components/band/useCollapsibleList'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -193,6 +211,7 @@ import { createJam, deleteJam, deleteJamTrack, getJam, listJams, loadJamTrackFil
 import { apiErrorMessage } from '../../api/practice'
 import { useBandStore } from '../../stores/band'
 import { useDialogStore } from '../../stores/dialog'
+import { useToastStore } from '../../stores/toast'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 import { JamEngine } from '../../audio/JamEngine'
 import {
@@ -204,15 +223,27 @@ const LATENCY_KEY = 'gainz.jam.latencyMs'
 const route = useRoute()
 const router = useRouter()
 const dialog = useDialogStore()
+const toast = useToastStore()
 const store = useBandStore()
 const engine = new JamEngine()
-const band = ref(null), error = ref(''), saveError = ref(''), notice = ref(''), busy = ref(false)
+const band = ref(null), error = ref(''), busy = ref(false)
 const favoritesOnly = ref(false), selecting = ref(false), checkedIds = ref([])
-const visibleJams = computed(() => jams.value.filter(item => !favoritesOnly.value || item.favorite))
+// 잼 이름이나 연결한 곡 제목으로 거른다 (#254)
+const jamQuery = ref('')
+const visibleJams = computed(() => {
+  const q = jamQuery.value.trim().toLocaleLowerCase()
+  return jams.value.filter(item => (!favoritesOnly.value || item.favorite)
+    && (!q || item.title.toLocaleLowerCase().includes(q) || (item.song?.title || '').toLocaleLowerCase().includes(q)))
+})
+const fold = useCollapsibleList()
 const jams = ref([]), selectedId = ref(null), jam = ref(null), jamLoading = ref(false), tracks = ref([]), soloIds = ref([])
 const playing = ref(false), position = ref(0), metronomeOn = ref(false), countInOn = ref(true)
 const micReady = ref(false), latencyMs = ref(readLatency() ?? 0), latencyEstimate = ref(0), measuring = ref(false)
 const recording = ref(false), take = ref(null), uploading = ref(false), uploadProgress = ref(0)
+// 한 마디 카운트인 박 수, 지금 몇 번째 박인지 (카운트인 중이 아니면 0)
+const COUNT_IN_BEATS = 4
+const countInBeat = ref(0)
+const countInLeft = computed(() => COUNT_IN_BEATS - countInBeat.value + 1)
 const formDialog = ref(null), form = ref({}), formError = ref(''), setlistSongs = ref([]), songQuery = ref(''), songsLoading = ref(false)
 const deleteDialog = ref(null), deleteTarget = ref(null)
 let session = null, frame = 0, request = 0, jamRequest = 0
@@ -247,12 +278,12 @@ function setLatency(value) {
   try { localStorage.setItem(LATENCY_KEY, String(latencyMs.value)) } catch { /* 저장 못 해도 이번 화면에서는 쓴다 */ }
 }
 
-async function run(work, fallback = '저장하지 못했어요. 잠시 후 다시 시도해 주세요.') {
+// 실패 문구는 공통 알림으로 (#267). 팝업 안에서 한 일이면 onError로 그 팝업에 보여 준다
+async function run(work, fallback = '저장하지 못했어요. 잠시 후 다시 시도해 주세요.', onError = message => toast.error(message)) {
   if (busy.value) return false
   busy.value = true
-  saveError.value = ''
   try { await work(); return true }
-  catch (e) { saveError.value = apiErrorMessage(e, fallback); return false }
+  catch (e) { onError(apiErrorMessage(e, fallback)); return false }
   finally { busy.value = false }
 }
 
@@ -281,13 +312,14 @@ async function leaveAllowed() {
   return !take.value || dialog.confirm({ title: '올리지 않은 녹음이 있어요', text: '녹음을 버릴까요?', okText: '버리기', danger: true })
 }
 async function selectJam(id, force = false) {
-  if (!force && (id === selectedId.value || !await leaveAllowed())) return
+  if (!force && id === selectedId.value) { fold.collapseIfNarrow(); return }
+  if (!force && !await leaveAllowed()) return
+  if (!force) fold.collapseIfNarrow()
   if (recording.value) await cancelRecording()
   stopPlayback(true)
   discardTake()
   soloIds.value = []
   selectedId.value = id
-  saveError.value = notice.value = ''
   if (Number(route.query.jam) !== id) router.replace({ query: { ...route.query, jam: id } })
   const token = ++jamRequest
   jamLoading.value = true
@@ -296,7 +328,7 @@ async function selectJam(id, force = false) {
     if (token !== jamRequest) return
     showJam(result)
   } catch (e) {
-    if (token === jamRequest) { jam.value = null; saveError.value = apiErrorMessage(e, '잼을 불러오지 못했어요.') }
+    if (token === jamRequest) { jam.value = null; toast.error(apiErrorMessage(e, '잼을 불러오지 못했어요.')) }
   } finally { if (token === jamRequest) jamLoading.value = false }
 }
 function showJam(result) {
@@ -326,6 +358,7 @@ function syncSummary() {
 
 function tick() {
   position.value = engine.position
+  countInBeat.value = recording.value && countInOn.value ? engine.countInBeat(jam.value?.bpm, COUNT_IN_BEATS) : 0
   if (playing.value) frame = requestAnimationFrame(tick)
 }
 async function startPlayback(from) {
@@ -373,57 +406,52 @@ async function saveTrack(track, changes) {
   try {
     const saved = await updateJamTrack(bandId(), jamId, track.id, changes)
     if (jam.value?.id === jamId) Object.assign(track, { volume: saved.volume, offsetMs: saved.offsetMs })
-  } catch (e) { saveError.value = apiErrorMessage(e, '믹서 설정을 저장하지 못했어요.') }
+  } catch (e) { toast.error(apiErrorMessage(e, '믹서 설정을 저장하지 못했어요.')) }
 }
 
 async function downloadMix() {
   await run(async () => {
-    notice.value = '음원을 합치는 중이에요…'
     const blob = await engine.mixdown(mixTracks.value, soloIds.value)
     if (!blob) throw new Error('empty')
     const url = URL.createObjectURL(blob)
     Object.assign(document.createElement('a'), { href: url, download: `${jam.value.title}.wav` }).click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-    notice.value = '들리는 트랙을 합친 음원(WAV)을 내려받았어요.'
+    toast.success('들리는 트랙을 합친 음원(WAV)을 내려받았어요.')
   }, '음원을 합치지 못했어요.')
-  if (saveError.value) notice.value = ''
 }
 
 /* ---------- 녹음 ---------- */
 
 async function connectMic() {
-  saveError.value = ''
   try {
     await engine.openMic()
     micReady.value = true
     latencyEstimate.value = engine.estimatedLatencyMs()
     if (readLatency() === null) setLatency(latencyEstimate.value)
   } catch (e) {
-    saveError.value = e?.name === 'NotAllowedError' ? '마이크 권한을 허용해 주세요. 주소창 옆 권한 설정에서 바꿀 수 있어요.' : '마이크를 열지 못했어요. 마이크가 연결되어 있는지 확인해 주세요.'
+    toast.error(e?.name === 'NotAllowedError' ? '마이크 권한을 허용해 주세요. 주소창 옆 권한 설정에서 바꿀 수 있어요.' : '마이크를 열지 못했어요. 마이크가 연결되어 있는지 확인해 주세요.')
   }
 }
 async function measure() {
   stopPlayback()
   measuring.value = true
-  saveError.value = notice.value = ''
   try {
     const result = await engine.measureLatency()
-    if (result === null) saveError.value = '클릭 소리를 찾지 못했어요. 이어폰을 빼고 스피커 음량을 높인 뒤 다시 측정해 주세요.'
-    else { setLatency(result); notice.value = `녹음 지연을 ${latencyMs.value}ms로 맞췄어요.` }
-  } catch { saveError.value = '지연을 측정하지 못했어요.' }
+    if (result === null) toast.error('클릭 소리를 찾지 못했어요. 이어폰을 빼고 스피커 음량을 높인 뒤 다시 측정해 주세요.')
+    else { setLatency(result); toast.success(`녹음 지연을 ${latencyMs.value}ms로 맞췄어요.`) }
+  } catch { toast.error('지연을 측정하지 못했어요.') }
   finally { measuring.value = false }
 }
 async function startRecording() {
   if (take.value && !await dialog.confirm({ title: '다시 녹음할까요?', text: '올리지 않은 녹음은 버려져요.', okText: '다시 녹음', danger: true })) return
   discardTake()
   stopPlayback(true)
-  saveError.value = notice.value = ''
   try {
-    session = await engine.record(tracks.value.filter(track => track.buffer), soloIds.value, { bpm: jam.value.bpm, metronome: metronomeOn.value, countIn: countInOn.value ? 4 : 0 })
+    session = await engine.record(tracks.value.filter(track => track.buffer), soloIds.value, { bpm: jam.value.bpm, metronome: metronomeOn.value, countIn: countInOn.value ? COUNT_IN_BEATS : 0 })
     recording.value = true
     playing.value = true
     frame = requestAnimationFrame(tick)
-  } catch { session = null; saveError.value = '녹음을 시작하지 못했어요.' }
+  } catch { session = null; toast.error('녹음을 시작하지 못했어요.') }
 }
 async function stopRecording() {
   if (!session) return
@@ -433,14 +461,15 @@ async function stopRecording() {
     const buffer = await engine.decode(await blob.arrayBuffer())
     const offsetMs = clamp(recordedOffsetMs(recordStart, timelineStart, latencyMs.value), JAM_OFFSET_MIN_MS, JAM_OFFSET_MAX_MS)
     take.value = { id: 'take', blob, file: null, buffer, offsetMs, volume: 100, muted: false }
-    notice.value = '녹음했어요. 재생해서 들어 보고 트랙을 올려 주세요.'
-  } catch { saveError.value = '녹음한 소리를 읽지 못했어요. 다시 녹음해 주세요.' }
+    toast.success('녹음했어요. 재생해서 들어 보고 트랙을 올려 주세요.')
+  } catch { toast.error('녹음한 소리를 읽지 못했어요. 다시 녹음해 주세요.') }
 }
 async function finishSession() {
   const current = session
   session = null
   recording.value = false
   playing.value = false
+  countInBeat.value = 0
   cancelAnimationFrame(frame)
   const blob = await current.stop()
   position.value = 0
@@ -453,15 +482,14 @@ async function pickFile(event) {
   event.target.value = ''
   if (!file) return
   if (take.value && !await dialog.confirm({ title: '이 파일로 바꿀까요?', text: '올리지 않은 트랙은 버려져요.', okText: '바꾸기', danger: true })) return
-  saveError.value = notice.value = ''
-  if (file.size > JAM_TRACK_MAX_BYTES) { saveError.value = '음원 파일은 30MB까지 올릴 수 있어요.'; return }
+  if (file.size > JAM_TRACK_MAX_BYTES) { toast.error('음원 파일은 30MB까지 올릴 수 있어요.'); return }
   stopPlayback()
   discardTake()
   try {
     const buffer = await engine.decode(await file.arrayBuffer())
     take.value = { id: 'take', blob: file, file, buffer, offsetMs: 0, volume: 100, muted: false }
-    notice.value = '파일을 불러왔어요. 재생해서 다른 트랙과 맞는지 들어 보고 올려 주세요.'
-  } catch { saveError.value = '재생할 수 없는 파일이에요. MP3·WAV·M4A·OGG·WebM 파일을 골라 주세요.' }
+    toast.success('파일을 불러왔어요. 재생해서 다른 트랙과 맞는지 들어 보고 올려 주세요.')
+  } catch { toast.error('재생할 수 없는 파일이에요. MP3·WAV·M4A·OGG·WebM 파일을 골라 주세요.') }
 }
 // ask가 없으면 바로(동기로) 버린다
 async function discardTake(ask = false) {
@@ -471,11 +499,10 @@ async function discardTake(ask = false) {
 }
 async function uploadTake() {
   const current = take.value
-  if (current.blob.size > JAM_TRACK_MAX_BYTES) { saveError.value = '녹음 파일이 30MB를 넘어요. 조금 짧게 녹음해 주세요.'; return }
+  if (current.blob.size > JAM_TRACK_MAX_BYTES) { toast.error('녹음 파일이 30MB를 넘어요. 조금 짧게 녹음해 주세요.'); return }
   stopPlayback()
   uploading.value = true
   uploadProgress.value = 0
-  saveError.value = ''
   const jamId = jam.value.id
   try {
     const file = current.file || new File([current.blob], `layer-jam-${Date.now()}.${recordingExtension(current.blob.type)}`, { type: current.blob.type })
@@ -484,8 +511,7 @@ async function uploadTake() {
     tracks.value.push({ ...saved, muted: false, buffer: current.buffer, status: 'ready' })
     take.value = null
     syncSummary()
-    notice.value = '트랙을 올렸어요.'
-  } catch (e) { saveError.value = apiErrorMessage(e, '트랙을 올리지 못했어요. 잠시 후 다시 시도해 주세요.') }
+  } catch (e) { toast.error(apiErrorMessage(e, '트랙을 올리지 못했어요. 잠시 후 다시 시도해 주세요.')) }
   finally { uploading.value = false }
 }
 
@@ -518,18 +544,25 @@ async function saveForm() {
   const payload = { title, bpm, setlistItemId: form.value.song?.setlistItemId ?? null }
   const id = form.value.id
   let result = null
-  const ok = await run(async () => { result = id ? await updateJam(bandId(), id, payload) : await createJam(bandId(), payload) }, id ? '잼을 저장하지 못했어요.' : '잼을 만들지 못했어요.')
-  if (!ok) { formError.value = saveError.value; saveError.value = ''; return }
+  const ok = await run(async () => { result = id ? await updateJam(bandId(), id, payload) : await createJam(bandId(), payload) },
+    id ? '잼을 저장하지 못했어요.' : '잼을 만들지 못했어요.', message => { formError.value = message })
+  if (!ok) return
   formDialog.value.close()
   if (id) {
-    Object.assign(jam.value, { title: result.title, bpm: result.bpm, song: result.song })
-    syncSummary()
-    restart()
-    notice.value = '잼을 저장했어요.'
+    // 목록 연필로 고르지 않은 잼을 고쳤으면 목록 줄만 바꾼다 (#254)
+    if (id === selectedId.value) {
+      Object.assign(jam.value, { title: result.title, bpm: result.bpm, song: result.song })
+      syncSummary()
+      restart()
+    } else {
+      const item = jams.value.find(entry => entry.id === id)
+      if (item) Object.assign(item, { title: result.title, bpm: result.bpm, song: result.song })
+    }
+    toast.success('잼을 저장했어요.')
   } else {
     jams.value.unshift({ id: result.id, title: result.title, bpm: result.bpm, song: result.song, trackCount: 0, creatorName: result.creatorName })
     await selectJam(result.id)
-    notice.value = '잼을 만들었어요. 첫 파트를 녹음해 보세요.'
+    toast.success('잼을 만들었어요. 첫 파트를 녹음해 보세요.')
   }
 }
 function askDelete(target) { deleteTarget.value = target; deleteDialog.value.showModal() }
@@ -558,7 +591,6 @@ async function deleteChecked(ids) {
   }
   if (ok) {
     selecting.value = false
-    notice.value = `잼 ${removed.length}개를 삭제했어요.`
   }
 }
 async function confirmDelete() {
@@ -576,7 +608,6 @@ async function confirmDelete() {
     tracks.value = tracks.value.filter(track => track.id !== target.track.id)
     soloIds.value = soloIds.value.filter(id => id !== target.track.id)
     syncSummary()
-    notice.value = '트랙을 삭제했어요.'
     return
   }
   stopPlayback(true)
@@ -588,7 +619,6 @@ async function confirmDelete() {
   const next = jams.value[0]
   if (next) await selectJam(next.id, true)
   else router.replace({ query: {} })
-  notice.value = '잼을 삭제했어요.'
 }
 
 function beforeUnload(event) { if (recording.value || take.value) { event.preventDefault(); event.returnValue = '' } }
@@ -603,11 +633,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.save-error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .page,.page *,.jam-dialog,.jam-dialog * { box-sizing:border-box; }
 .page { display:flex; flex-direction:column; gap:16px; }
 .muted { color:var(--c-muted); font-size:.8rem; line-height:1.7; }
-.status { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-primary-soft); color: var(--c-primary-text); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
-.save-error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .workspace { display:grid; grid-template-columns:250px minmax(0,1fr); gap:20px; align-items:start; }
 .sidebar,.detail { min-width:0; }
 .detail :deep(.ws-card-head) { align-items:center; flex-wrap:wrap; }
@@ -627,6 +656,19 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .text-btn:disabled { opacity:.45; cursor:default; }
 .star { display:inline-flex; background:transparent; border:0; color:#ced4da; cursor:pointer; padding:3px; flex:none; }
 .star.on { color:#fab005; }
+.rename { flex:none; display:flex; padding:5px; border:0; border-radius:8px; background:transparent; color:var(--c-faint); cursor:pointer; }
+.rename:hover:not(:disabled) { color:var(--c-text-2); background:var(--c-line-soft); }
+.rename-space { flex:none; width:24px; }
+/* 목록 검색·접기 (#254, 셋리스트와 같은 모양) */
+.list-search { display:flex; flex-direction:row; align-items:center; gap:7px; height:36px; padding:0 10px; margin-bottom:10px; border:1px solid var(--c-line); border-radius:10px; background:var(--c-bg); color:var(--c-faint); }
+.list-search:focus-within { border-color:var(--c-primary); background:#fff; }
+.list-search input { flex:1; min-width:0; border:none; outline:none; background:none; font:inherit; font-size:16px; color:var(--c-text); }
+.fold { display:inline-flex; align-items:center; gap:3px; }
+.chevron { transition:transform .2s; }
+.chevron.open { transform:rotate(180deg); }
+.list-summary { width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--c-primary-line); border-radius:12px; background:var(--c-primary-soft); font:inherit; text-align:left; color:var(--c-primary-text); cursor:pointer; }
+.list-summary strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.82rem; }
+.list-summary span { flex:none; font-size:.72rem; font-weight:700; color:var(--c-muted); }
 .jam-link { width:100%; display:flex; flex-direction:column; gap:5px; padding:10px 12px; text-align:left; border:1px solid var(--c-line); border-radius:12px; background:#fff; font-family:inherit; color:#343a40; cursor:pointer; overflow-wrap:anywhere; }
 .jam-link.active { background:var(--c-primary-soft); border-color:var(--c-primary-line); }
 .jam-link strong { font-size:.79rem; }
@@ -657,6 +699,7 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .offset input { width:96px; border:1px solid var(--c-line); padding:5px 8px; border-radius:8px; font-family:inherit; font-size:.76rem; color:#343a40; outline:none; }
 .remove { border:0; background:transparent; color:var(--c-faint); font-size:20px; cursor:pointer; padding:2px 6px; }
 .remove:hover:not(:disabled) { color:var(--c-danger); }
+.count-in { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; background:#fff0f0; color:#e03131; font-size:1.5rem; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; }
 .nudge { display:flex; align-items:flex-end; flex-wrap:wrap; gap:6px; }
 .nudge .btn { min-height:30px; padding:5px 9px; }
 .take-hint { flex-basis:100%; margin:0; font-size:.7rem; color:var(--c-muted); }
@@ -714,7 +757,10 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .more { margin:0; font-size:.72rem; }
 @media (max-width: 860px) {
   .workspace { grid-template-columns:minmax(0,1fr); }
-  .track { align-items:flex-start; }
+  .track { align-items:flex-start; position:relative; }
+  /* 줄이 바뀌면 삭제(×)가 아래로 밀려나서 카드 오른쪽 위에 둔다 (#234) */
+  .remove { position:absolute; top:6px; right:6px; }
+  .track-name { padding-right:28px; }
   .volume input { width:100px; }
   .add-ways { grid-template-columns:minmax(0,1fr); }
 }

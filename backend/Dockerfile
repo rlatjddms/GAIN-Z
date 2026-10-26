@@ -17,7 +17,7 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /app/build/libs/*.jar app.jar
 
-# 운영 프로필. 나머지 값은 환경 변수로 넣는다 (README "운영 실행" 표)
+# 운영 프로필. 나머지 값은 환경 변수로 넣는다 (docs/setup.md "운영 실행" 표)
 ENV SPRING_PROFILES_ACTIVE=prod \
     UPLOAD_DIR=/data/uploads \
     TZ=Asia/Seoul

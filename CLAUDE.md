@@ -5,7 +5,7 @@ Claude Code와 팀원이 함께 따르는 규칙입니다. Claude는 세션을 �
 ## 프로젝트
 
 - `backend/`: Spring Boot (Java 17, JPA, MariaDB, Redis). 테스트는 `./gradlew test` (Mockito 단위 테스트, DB 불필요).
-- `frontend/`: Vue 3 + Vite + Pinia. 빌드는 `npm run build`. 개발 모드 전용 미리보기 `/dev/sprites`.
+- `frontend/`: Vue 3 + Vite + Pinia. 빌드는 `npm run build`. 테스트는 `npm test` (Playwright 브라우저 테스트, 가짜 API 응답, 약 40초). 개발 모드 전용 미리보기 `/dev/sprites`.
 - `tools/dot-studio/`: 캐릭터 스프라이트 PNG 편집기. `node tools/dot-studio/server.cjs`.
 - 비밀값은 `backend/src/main/resources/application-secret.yml`에만 두고 커밋하지 않습니다 (`.gitignore`에 있음).
 
@@ -24,8 +24,10 @@ Claude Code와 팀원이 함께 따르는 규칙입니다. Claude는 세션을 �
   - 영역: `FE`, `BE`, `Common`
   - 예) 백엔드 기능 → `Feature, BE` / 풀스택 → `Feature, FE, BE` / 설정·문서 → `Chore, Common` 또는 `Docs, Common`
 - 모든 작업 이슈는 **상위 에픽의 서브이슈**로 연결합니다. 본문에 `#에픽번호`를 적는 것만으로는 부족하고, GitHub 서브이슈로 실제로 붙여야 합니다.
-  - 에픽: #1 초기 환경 구축 및 베이스라인, #2 유저 인증 및 캐릭터 시스템, #3 개인용 연습 워크스페이스, #4 밴드 협업 및 매칭 시스템
-  - Claude는 `gh issue create` 뒤에 GraphQL `addSubIssue`로 연결합니다.
+  - 에픽: #1 초기 환경 구축 및 베이스라인, #2 유저·캐릭터 및 친구 시스템, #3 개인용 연습 워크스페이스, #4 밴드 협업 시스템, #268 알림 및 실시간 동기화, #269 서비스 운영 및 품질 개선
+  - 기능은 그 기능의 에픽에 붙입니다. 여러 기능에 걸친 일(배포·저장소·CI, 공통 UI·문구, 버그, 코드 정리, 문서)은 #269에 붙입니다. #1은 처음 세팅·배포 준비에 해당하는 일만 붙입니다.
+  - 하위 이슈가 다 끝나도 에픽은 열어 둡니다 (나중에 관련 작업이 더 생길 수 있음). 어느 에픽에도 안 맞는 큰 기능이 생기면 에픽을 새로 만듭니다.
+  - Claude는 `gh issue create` 뒤에 GraphQL `addSubIssue`로 연결합니다. 다른 에픽으로 옮길 때는 `replaceParent: true`를 줍니다.
 - 이슈 작업이 끝나면 체크리스트를 `[x]`로 갱신합니다. 이슈 닫기는 PR의 `Closes #N`에 맡깁니다.
 
 ## 브랜치
@@ -48,7 +50,7 @@ Claude Code와 팀원이 함께 따르는 규칙입니다. Claude는 세션을 �
 - `.github/PULL_REQUEST_TEMPLATE.md`를 채웁니다. `Closes #이슈번호`, 작업 내용 체크리스트, 테스트 결과, 주의 사항.
 - 제목은 이슈 제목과 같게 (`[feat] …`). 라벨은 이슈와 같게.
 - 머지 방식은 squash. 머지 후 원격 브랜치는 삭제합니다.
-- 레포에 CI는 없습니다. PR을 올리기 전에 로컬에서 백엔드 `./gradlew test`, 프론트 `npm run build`를 통과시키고 결과를 PR에 적습니다.
+- 레포에 CI는 없습니다. PR을 올리기 전에 로컬에서 백엔드 `./gradlew test`, 프론트 `npm run build`와 `npm test`를 통과시키고 결과를 PR에 적습니다. 화면을 바꿔서 프론트 테스트가 깨지면 테스트도 같이 고칩니다.
 
 ## 코드
 

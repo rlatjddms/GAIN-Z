@@ -36,10 +36,11 @@ class SocialAccountServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private SocialAccountRepository socialAccountRepository;
     @Mock private SocialLinkTicketRepository socialLinkTicketRepository;
+    @Mock private com.project.gainz.domain.character.repository.CharacterRepository characterRepository;
     @InjectMocks private SocialAccountService service;
 
     private static User user(long id, String email, String password, Boolean emailVerified) {
-        User user = User.builder().email(email).name("나").password(password)
+        User user = User.builder().email(email).password(password)
                 .provider(password == null ? SocialProvider.KAKAO : SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER).emailVerified(emailVerified).build();
         ReflectionTestUtils.setField(user, "id", id);
@@ -47,7 +48,7 @@ class SocialAccountServiceTest {
     }
 
     private static SocialProfile google(String email, boolean verified) {
-        return new SocialProfile(SocialProvider.GOOGLE, "g-1", email, "구글 이름", verified);
+        return new SocialProfile(SocialProvider.GOOGLE, "g-1", email, verified);
     }
 
     private static void assertSocialError(ThrowingCallable call, String code) {
@@ -57,14 +58,13 @@ class SocialAccountServiceTest {
     /* ---------- 소셜 로그인 ---------- */
 
     @Test
-    void 연결된_소셜_고유_ID가_있으면_이메일과_상관없이_그_계정으로_로그인하고_이름은_바꾸지_않는다() {
+    void 연결된_소셜_고유_ID가_있으면_이메일과_상관없이_그_계정으로_로그인한다() {
         User me = user(1, "me@test.invalid", "encoded", true);
         me.addSocialAccount(SocialProvider.GOOGLE, "g-1");
         SocialAccount account = me.findSocialAccount(SocialProvider.GOOGLE).orElseThrow();
         when(socialAccountRepository.findByProviderAndProviderId(SocialProvider.GOOGLE, "g-1")).thenReturn(Optional.of(account));
 
         assertThat(service.login(google("other@test.invalid", false))).isSameAs(me);
-        assertThat(me.getName()).isEqualTo("나");
         verify(userRepository, never()).findByEmail(any());
     }
 
@@ -112,18 +112,19 @@ class SocialAccountServiceTest {
         when(userRepository.findByEmail("new@test.invalid")).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        User created = service.login(new SocialProfile(SocialProvider.NAVER, "n-1", "new@test.invalid", null, false));
+        User created = service.login(new SocialProfile(SocialProvider.NAVER, "n-1", "new@test.invalid", false));
 
         assertThat(created.hasPassword()).isFalse();
         assertThat(created.getProvider()).isEqualTo(SocialProvider.NAVER);
-        assertThat(created.getName()).isEqualTo("new");
+        // 소셜 이름은 받지 않는다 (#227): 캐릭터를 만들기 전에는 이메일 앞부분
+        assertThat(created.nameWithoutCharacter()).isEqualTo("new");
         assertThat(created.isEmailVerified()).isFalse();
         assertThat(created.findSocialAccount(SocialProvider.NAVER).orElseThrow().getProviderId()).isEqualTo("n-1");
     }
 
     @Test
     void 소셜에서_이메일을_받지_못하면_가입하지_않는다() {
-        assertSocialError(() -> service.login(new SocialProfile(SocialProvider.KAKAO, "k-1", null, "카카오", false)),
+        assertSocialError(() -> service.login(new SocialProfile(SocialProvider.KAKAO, "k-1", null, false)),
                 SocialLoginException.EMAIL_REQUIRED);
         verify(userRepository, never()).save(any());
     }

@@ -59,11 +59,11 @@ export const INSTRUMENT_COLOR_PRESETS = [
   '#EC4899', // 캔디 핑크
 ]
 
-// 닉네임 규칙 (백엔드 CharacterUpdateRequest와 같게 2~10자, 공백·특수문자 없이). 문제가 없으면 ''
+// 닉네임 규칙 (백엔드 CharacterUpdateRequest와 같게 1~10자, 공백·특수문자 없이). 문제가 없으면 ''
 export function nicknameProblem(value) {
   const v = (value || '').trim()
   if (!v) return '닉네임은 필수 입력 항목입니다.'
-  if (v.length < 2 || v.length > 10) return '닉네임은 2자 이상 10자 이하로 입력해주세요.'
+  if (v.length > 10) return '닉네임은 10자 이하로 입력해주세요.'
   if (!/^[a-zA-Z0-9가-힣]+$/.test(v)) return '특수문자 및 공백은 포함될 수 없습니다.'
   return ''
 }

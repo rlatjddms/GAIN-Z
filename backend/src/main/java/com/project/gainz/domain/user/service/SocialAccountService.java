@@ -1,5 +1,6 @@
 package com.project.gainz.domain.user.service;
 
+import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
 import com.project.gainz.domain.user.entity.SocialAccount;
 import com.project.gainz.domain.user.entity.SocialLinkTicket;
@@ -28,6 +29,7 @@ import java.util.Optional;
 public class SocialAccountService {
 
     private final UserRepository userRepository;
+    private final CharacterRepository characterRepository;
     private final SocialAccountRepository socialAccountRepository;
     private final SocialLinkTicketRepository socialLinkTicketRepository;
     private final SecureRandom random = new SecureRandom();
@@ -61,10 +63,9 @@ public class SocialAccountService {
     }
 
     private User signUp(SocialProfile profile) {
-        String name = profile.name() == null || profile.name().isBlank() ? profile.email().split("@")[0] : profile.name();
+        // 소셜 이름은 받지 않는다 (#227): 화면에 보이는 이름은 캐릭터 닉네임
         User user = User.builder()
                 .email(profile.email())
-                .name(name)
                 .role(UserRole.ROLE_USER)
                 .provider(profile.provider())
                 .emailVerified(profile.emailVerified())
@@ -126,7 +127,7 @@ public class SocialAccountService {
             throw new BusinessException(ErrorCode.LAST_LOGIN_METHOD);
         }
         user.removeSocialAccount(provider);
-        return MyInfoResponse.from(user);
+        return MyInfoResponse.from(user, characterRepository.findByUserId(userId).orElse(null));
     }
 
     /* ---------- 도움 ---------- */

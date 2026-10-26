@@ -4,8 +4,10 @@ import { spawn } from 'node:child_process'
 import { readFile, mkdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { confirmAppDialog } from './appDialog.mjs'
 
 // 실제 서버 대신 API 응답을 고정해 UI 동작과 실패 후 재시도를 검증한다
+// 앱 확인창(components/ui/AppDialog.vue)도 <dialog>라 늘 붙어 있다. 게시글 창은 dialog.post-dialog로 찾는다
 const origin = 'http://127.0.0.1:4179'
 let vite
 let browser
@@ -33,7 +35,7 @@ before(async () => {
 after(async () => { await browser?.close(); vite?.kill() })
 
 async function fixture(t, options = {}) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 960 }, timezoneId: options.timezoneId || 'Asia/Seoul' })
+  const context = await browser.newContext({ viewport: { width: 1280, height: 960 }, timezoneId: options.timezoneId || 'Asia/Seoul', deviceScaleFactor: options.scale || 1 })
   t.after(() => context.close())
   await context.addInitScript(() => localStorage.setItem('accessToken', 'ui-test-token'))
   const page = await context.newPage()
@@ -75,7 +77,27 @@ async function fixture(t, options = {}) {
     if (path.endsWith('/profile-image')) return route.fulfill({ headers, contentType: 'image/png', body: photo })
     const band = { id: 10, name: '리듬 메이커스', myPosition: state.leader ? 'LEADER' : 'MEMBER', stage: 'STUDIO', members: [{ memberId: 1, userId: 1, me: true, part: 'GUITAR', position: 'LEADER', character: { nickname: '리듬냥', instrumentType: 'GUITAR', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' } }, { memberId: 2, userId: 2, part: 'BASS', position: 'MEMBER', character: { nickname: '베이스곰', instrumentType: 'BASS', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' } }], description: '함께 합주하는 밴드' }
     if (path === '/api/v1/bands/10') return respond(band)
-    if (path === '/api/v1/bands/me') return respond([band])
+    // 내 밴드 탭 순서 (#266): bandOrder에 든 밴드를 그 순서로. 10번 말고는 이름만 다른 밴드
+    const myBand = id => id === 10 ? band : { ...band, id, name: `밴드 ${id}`, myPosition: 'MEMBER' }
+    if (path === '/api/v1/bands/me/order') {
+      if (state.failOrder) return respond('순서를 저장하지 못했어요', 500)
+      state.bandOrder = request.postDataJSON().bandIds
+      return respond(state.bandOrder.map(myBand))
+    }
+    if (path === '/api/v1/bands/me') return respond((state.bandOrder || [10]).map(myBand))
+    // 소셜 로그인 한 번용 코드 (#281): 'good'만 토큰으로 바꿔 준다
+    if (path === '/api/v1/auth/oauth2/token') {
+      state.oauthCodes = [...(state.oauthCodes || []), request.postDataJSON().code]
+      if (request.postDataJSON().code !== 'good') return respond('로그인 시간이 지났어요. 다시 로그인해 주세요.', 400)
+      return respond({ accessToken: 'social-access', refreshToken: 'social-refresh' })
+    }
+    // 실시간 알림 (#224): 보낼 이벤트가 있으면 한 번 보내고 끊는다. 없으면 실패해서 화면은 다시 붙으려고 기다린다
+    if (path === '/api/v1/notifications/stream') {
+      if (!state.streamEvents) return respond('연결 안 됨', 503)
+      const body = state.streamEvents.map(([event, data]) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`).join('')
+      state.streamEvents = null
+      return route.fulfill({ status: 200, headers, contentType: 'text/event-stream', body })
+    }
     if (path === '/api/v1/bands/10/posts') {
       if (method === 'GET') {
         if (state.failList) return respond('게시글 조회 실패', 503)
@@ -115,7 +137,16 @@ async function fixture(t, options = {}) {
       return route.fulfill({ headers, contentType: 'image/png', body: photo })
     }
     if (suffix === '/comments') {
-      if (method === 'GET') return respond(state.comments)
+      if (method === 'GET') {
+        // 댓글 한 쪽 (#188, 백엔드 BandBoardService.commentPage와 같은 모양): 최근 원댓글부터 size개, 쪽 안은 오래된 순, 답글은 원댓글 바로 뒤
+        const number = Number(url.searchParams.get('page') || 0)
+        const size = Number(url.searchParams.get('size') || 20)
+        const roots = state.comments.filter(c => c.parentId == null).sort((a, b) => b.id - a.id)
+        const content = roots.slice(number * size, (number + 1) * size).reverse()
+          .flatMap(root => [root, ...state.comments.filter(c => c.parentId === root.id).sort((a, b) => a.id - b.id)])
+        return respond({ content, number, totalPages: Math.ceil(roots.length / size), totalElements: roots.length, commentCount: state.comments.filter(c => !c.deleted).length })
+      }
+      if (state.failComment) return respond('댓글을 저장하지 못했어요', 500)
       const comment = { id: 102 + state.comments.length, ...request.postDataJSON(), author, mine: true, deleted: false, createdAt: '2026-10-16T12:20:00' }
       state.comments.push(comment)
       return respond(comment)
@@ -166,10 +197,10 @@ test('홈에서 더 보기와 상세 열기, 상단바 유지, 작성자 우선,
   await page.locator('.community .post').first().waitFor()
   const header = await page.locator('.main-header').innerHTML()
   assert.equal(await page.getByText('전체 보기', { exact: true }).count(), 0)
-  await page.getByRole('button', { name: /이야기 더 보기/ }).click()
-  await page.waitForFunction(() => document.querySelectorAll('.community .post').length === 14)
-  await page.getByRole('button', { name: /이야기 더 보기/ }).click()
-  await page.waitForFunction(() => document.querySelectorAll('.community .post').length === 21)
+  // 더 보기 대신 페이지 번호 (#188): 공지 1개를 뺀 21개를 12개씩
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
+  await page.getByRole('navigation', { name: '페이지' }).getByRole('button', { name: '2', exact: true }).click()
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 9)
   await page.locator('.community .post').filter({ has: page.getByRole('heading', { name: '합주 이야기 2', exact: true }) }).click()
   await page.locator('.post-detail .post-title').waitFor()
   assert.equal(await page.locator('.main-header').innerHTML(), header)
@@ -181,8 +212,9 @@ test('홈에서 더 보기와 상세 열기, 상단바 유지, 작성자 우선,
   await page.locator('.post-detail .media-frame img').waitFor()
   await screenshot(page, 'community-detail-desktop')
   await page.getByRole('button', { name: '게시글 창 닫기' }).click()
-  await page.waitForFunction(() => !document.querySelector('dialog'))
-  assert.equal(await page.locator('.community .post').count(), 21)
+  await page.waitForFunction(() => !document.querySelector('dialog.post-dialog'))
+  // 닫으면 보던 쪽(2쪽) 그대로
+  assert.equal(await page.locator('.community .post').count(), 9)
   assert.equal(await page.evaluate(() => document.body.style.overflow), '')
   assert.deepEqual(errors, [])
 })
@@ -205,7 +237,7 @@ test('작성 중 사진·영상 미리보기, 공지와 여러 첨부 저장 및
   await page.locator('.dialog-scroll').evaluate(e => { e.scrollTop = 0 })
   await screenshot(page, 'community-editor-desktop')
   await page.setViewportSize({ width: 390, height: 844 })
-  assert.equal(await page.locator('dialog').evaluate(e => e.scrollWidth <= e.clientWidth), true)
+  assert.equal(await page.locator('dialog.post-dialog').evaluate(e => e.scrollWidth <= e.clientWidth), true)
   await screenshot(page, 'community-editor-mobile')
   await page.locator('.dialog-scroll').evaluate(e => { e.scrollTop = e.scrollHeight })
   await screenshot(page, 'community-editor-mobile-files')
@@ -254,7 +286,6 @@ test('저장 실패 시 입력과 첨부 유지, 재시도는 완성된 글 하�
 
 test('댓글·대댓글 작성과 수정, 삭제된 부모 아래 대댓글 보존', async t => {
   const { page, state, errors } = await fixture(t)
-  page.on('dialog', dialog => dialog.accept())
   await page.goto(`${origin}/home?band=10&post=2`)
   await page.locator('.comment').first().waitFor()
   await page.locator('.comment').first().getByRole('button', { name: '답글 달기' }).click()
@@ -269,6 +300,7 @@ test('댓글·대댓글 작성과 수정, 삭제된 부모 아래 대댓글 보�
   await page.getByText('템포 110부터 시작해요', { exact: true }).waitFor()
   await page.locator('.comment').first().locator('summary').click()
   await page.locator('.comment').first().getByRole('button', { name: '삭제', exact: true }).click()
+  await confirmAppDialog(page, '삭제')
   await page.getByText('삭제된 댓글이에요.', { exact: true }).waitFor()
   assert.equal(await page.getByText('템포 110부터 시작해요', { exact: true }).count(), 1)
   assert.deepEqual(errors, [])
@@ -309,12 +341,12 @@ test('첨부 개수 제한과 작성 중 닫기 확인, Escape와 스크롤 복�
   await page.locator('input[type=file]').setInputFiles(Array.from({ length: 9 }, (_, i) => ({ name: `${i}.png`, mimeType: 'image/png', buffer: photo })))
   await page.getByRole('alert').filter({ hasText: '최대 8개' }).waitFor()
   assert.equal(await page.locator('.file-tile').count(), 0)
-  page.once('dialog', dialog => dialog.dismiss())
   await page.keyboard.press('Escape')
-  assert.equal(await page.locator('dialog[open]').count(), 1)
-  page.once('dialog', dialog => dialog.accept())
+  await confirmAppDialog(page, '취소')
+  assert.equal(await page.locator('dialog.post-dialog[open]').count(), 1)
   await page.keyboard.press('Escape')
-  await page.waitForFunction(() => !document.querySelector('dialog'))
+  await confirmAppDialog(page, '닫기')
+  await page.waitForFunction(() => !document.querySelector('dialog.post-dialog'))
   assert.equal(await page.evaluate(() => document.body.style.overflow), '')
   assert.deepEqual(errors, [])
 })
@@ -332,15 +364,14 @@ test('기존 게시판 주소는 홈으로 연결하고 목록 오류를 재시�
 
 test('내 글 필터는 전체 페이지에 적용하고 카드에서 바로 수정·삭제', async t => {
   const { page, state, errors } = await fixture(t, { posts: Array.from({ length: 20 }, (_, i) => makePost(i + 1, { mine: i < 9, notice: false })) })
-  page.on('dialog', dialog => dialog.accept())
   await page.goto(`${origin}/home?band=10`)
   await page.locator('.community .post').first().waitFor()
-  assert.equal(await page.locator('.card-menu').count(), 0)
+  // 글 관리 메뉴는 내 글에만 붙는다. 1쪽(20~9번)에서 내 글은 9번 하나
+  assert.deepEqual(await page.locator('.card-menu').evaluateAll(menus => menus.map(m => m.closest('.post')?.querySelector('h3, h4, .post-title')?.textContent.trim())), ['합주 이야기 9'])
   await page.getByRole('button', { name: '내가 쓴 글', exact: true }).click()
   await page.waitForFunction(() => document.querySelector('.post-total')?.textContent.trim() === '9')
-  assert.equal(await page.locator('.community .post').count(), 7)
-  await page.getByRole('button', { name: /이야기 더 보기/ }).click()
-  await page.waitForFunction(() => document.querySelectorAll('.community .post').length === 9)
+  // 한 쪽 12개라 내 글 9개가 한 번에 보인다 (#188)
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 9)
   await page.getByLabel('합주 이야기 9 글 관리').click()
   const menuStyle = await page.getByLabel('합주 이야기 9 글 관리').evaluate(el => {
     const style = getComputedStyle(el)
@@ -355,6 +386,7 @@ test('내 글 필터는 전체 페이지에 적용하고 카드에서 바로 수
   assert.match(page.url(), /mine=1/)
   await page.getByLabel('내 글 수정 완료 글 관리').click()
   await page.getByRole('button', { name: '글 삭제', exact: true }).click()
+  await confirmAppDialog(page, '삭제')
   await page.waitForFunction(() => document.querySelector('.post-total')?.textContent.trim() === '8')
   assert.equal(state.posts.some(p => p.id === 9), false)
   await screenshot(page, 'community-my-posts')
@@ -495,5 +527,172 @@ test('공지 두 개를 세로로 고정하고 종료 시각에 자동으로 일
   assert.equal(await page.locator('.community .post').filter({ hasText: '이번 주 일정' }).count(), 1)
   assert.equal(await page.locator('.post-total').textContent(), '3')
   assert.equal(state.posts.find(p => p.id === 2).notice, true)
+  assert.deepEqual(errors, [])
+})
+
+test('앱으로 돌아오거나 연결이 다시 붙고 새 공지 알림이 오면 글 목록을 새로고침 없이 다시 불러온다', async t => {
+  const { page, state, errors } = await fixture(t, { posts: [makePost(2), makePost(3)] })
+  await page.goto(`${origin}/home?band=10`)
+  await page.locator('.community .post').filter({ hasText: '합주 이야기 3' }).waitFor()
+
+  // 다른 멤버가 글을 썼다 → 잠깐(15초 안) 다녀오면 그대로, 오래 있다 돌아오면 다시 불러온다
+  state.posts.push(makePost(4, { title: '다른 멤버의 새 글', mine: false }))
+  const away = ms => page.evaluate(async ms => {
+    const setState = s => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => s }); document.dispatchEvent(new Event('visibilitychange')) }
+    const realNow = Date.now
+    setState('hidden')
+    Date.now = () => realNow() + ms
+    setState('visible')
+  }, ms)
+  await away(3000)
+  await page.waitForTimeout(500)
+  assert.equal(await page.getByText('다른 멤버의 새 글').count(), 0)
+  await away(20000)
+  await page.getByText('다른 멤버의 새 글').waitFor()
+
+  // 실시간 연결이 다시 붙고(그동안 놓친 것) 새 공지 알림이 오면 바로 다시 불러온다
+  state.posts.push(makePost(5, { title: '이번 주 합주 공지', notice: true, mine: false }))
+  state.streamEvents = [['unread', { count: 1 }], ['notification', { id: 900, type: 'NOTICE', title: '새 공지', content: '이번 주 합주 공지', read: false, createdAt: '2026-10-16T12:30:00', redirectUrl: '/home?band=10' }]]
+  await page.getByText('이번 주 합주 공지', { exact: true }).first().waitFor({ timeout: 15000 })
+  assert.deepEqual(errors, [])
+})
+
+test('켜 둔 화면에서 다른 밴드 신호는 넘기고, 같은 밴드의 글이 바뀌었다는 신호면 바로 다시 불러온다', async t => {
+  const { page, state, errors } = await fixture(t, { posts: [makePost(2), makePost(3)] })
+  await page.goto(`${origin}/home?band=10`)
+  await page.locator('.community .post').filter({ hasText: '합주 이야기 3' }).waitFor()
+  const listCalls = () => state.requests.filter(r => r.method === 'GET' && r.path === '/api/v1/bands/10/posts').length
+
+  // 알림이 없는 일반 글 (#259): 다른 밴드 신호에는 다시 부르지 않는다
+  // (unread 없이 change만 보내서, 다시 붙을 때 놓친 것을 불러오는 #224 동작과 섞이지 않게 한다)
+  state.posts.push(makePost(4, { title: '알림 없는 일반 글', mine: false }))
+  const before = listCalls()
+  state.streamEvents = [['change', { topic: 'BAND_BOARD', bandId: 99 }]]
+  // 화면이 신호를 받아 갈 때까지 (연결 실패 뒤 다시 붙는 데 몇 초 걸린다)
+  for (let i = 0; state.streamEvents && i < 300; i++) await new Promise(resolve => setTimeout(resolve, 100))
+  assert.equal(state.streamEvents, null)
+  await page.waitForTimeout(1000)
+  assert.equal(listCalls(), before)
+  assert.equal(await page.getByText('알림 없는 일반 글').count(), 0)
+
+  // 같은 밴드 신호 → 바로. 연달아 온 신호는 한 번만 불러온다 (공지 목록 + 일반 목록 = 요청 2개)
+  state.streamEvents = [['change', { topic: 'BAND_BOARD', bandId: 10, postId: 4 }], ['change', { topic: 'BAND_BOARD', bandId: 10, postId: 4 }]]
+  await page.getByText('알림 없는 일반 글').waitFor({ timeout: 15000 })
+  await page.waitForTimeout(800)
+  assert.equal(listCalls() - before, 2)
+  assert.deepEqual(errors, [])
+})
+
+test('홈 밴드 탭을 끌어서 순서를 바꾸고, 휴대폰은 꾹 눌러서 끌고, 저장 실패면 되돌린다', async t => {
+  const { page, state, errors } = await fixture(t, { posts: [makePost(2)], bandOrder: [10, 11, 12] })
+  await page.goto(`${origin}/home?band=10`)
+  const tabs = page.locator('.band-tabs-left [data-tab-id]')
+  await page.waitForFunction(() => document.querySelectorAll('.band-tabs-left [data-tab-id]').length === 3)
+  const names = () => tabs.allTextContents().then(list => list.map(name => name.trim()))
+  assert.deepEqual(await names(), ['리듬 메이커스', '밴드 11', '밴드 12'])
+
+  // 마우스: 맨 오른쪽 탭을 맨 왼쪽으로 끌기. 고른 밴드는 그대로
+  const last = await tabs.nth(2).boundingBox()
+  const first = await tabs.nth(0).boundingBox()
+  // 고른(흰) 탭을 잡았을 때 모양: 아래 무대에 회색 그림자가 번지지 않게 (눈으로 보려고 저장). 조금만 움직였다 놓으면 순서는 그대로
+  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(first.x + first.width / 2 + 24, first.y + first.height / 2)
+  await page.locator('.band-tabs-left.dragging').waitFor()
+  assert.equal(await page.locator('.band-tabs-left button.held').evaluate(el => getComputedStyle(el).borderBottomColor), 'rgb(255, 255, 255)')
+  await page.screenshot({ path: fileURLToPath(new URL('../test-results/band-tab-held.png', import.meta.url)),
+    clip: { x: first.x - 10, y: first.y - 10, width: first.width + 60, height: first.height + 30 }, scale: "device" })
+  await page.mouse.up()
+  assert.deepEqual(state.bandOrder, [10, 11, 12])
+  await page.mouse.move(last.x + last.width / 2, last.y + last.height / 2)
+  await page.mouse.down()
+  for (let i = 1; i <= 10; i++) await page.mouse.move(last.x + last.width / 2 - (last.x - first.x + 10) * i / 10, last.y + last.height / 2)
+  await page.mouse.up()
+  await page.waitForFunction(() => document.querySelector('.band-tabs-left [data-tab-id]').textContent.includes('밴드 12'))
+  assert.deepEqual(state.bandOrder, [12, 10, 11])
+  assert.deepEqual(await names(), ['밴드 12', '리듬 메이커스', '밴드 11'])
+  assert.equal((await page.locator('.band-tabs-left button.active').textContent()).trim(), '리듬 메이커스')
+
+  // 그냥 누르면 지금처럼 탭 고르기 (끌기로 치지 않음)
+  const requestsBefore = state.requests.filter(r => r.path === '/api/v1/bands/me/order').length
+  await tabs.nth(1).click()
+  assert.equal(state.requests.filter(r => r.path === '/api/v1/bands/me/order').length, requestsBefore)
+
+  // 저장에 실패하면 원래 순서로 되돌리고 알려 준다
+  state.failOrder = true
+  const a = await tabs.nth(0).boundingBox()
+  const b = await tabs.nth(2).boundingBox()
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2)
+  await page.mouse.down()
+  for (let i = 1; i <= 10; i++) await page.mouse.move(a.x + a.width / 2 + (b.x + b.width - a.x) * i / 10, a.y + a.height / 2)
+  await page.mouse.up()
+  await page.getByText('순서를 저장하지 못했어요').waitFor()
+  assert.deepEqual(await names(), ['밴드 12', '리듬 메이커스', '밴드 11'])
+  state.failOrder = false
+
+  // 휴대폰: 꾹 누르고(0.35초) 끌기. 바로 밀면 끌기가 아니다
+  const cdp = await page.context().newCDPSession(page)
+  const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] })
+  const m = await tabs.nth(1).boundingBox()
+  const z = await tabs.nth(0).boundingBox()
+  const y = m.y + m.height / 2
+  await touch('touchStart', m.x + m.width / 2, y)
+  await touch('touchMove', z.x + 4, y)
+  await touch('touchEnd')
+  await page.waitForTimeout(300)
+  assert.deepEqual(await names(), ['밴드 12', '리듬 메이커스', '밴드 11'])
+  await touch('touchStart', m.x + m.width / 2, y)
+  await page.waitForTimeout(500)
+  for (let i = 1; i <= 8; i++) await touch('touchMove', m.x + m.width / 2 - (m.x + m.width / 2 - z.x + 6) * i / 8, y)
+  await touch('touchEnd')
+  await page.waitForFunction(() => document.querySelector('.band-tabs-left [data-tab-id]').textContent.includes('리듬'))
+  assert.deepEqual(state.bandOrder, [10, 12, 11])
+  assert.deepEqual(errors, [])
+})
+
+test('오류 알림은 열린 게시글 창 위에 떠서 누를 수 있고, 쓰던 댓글은 그대로, 바로 보이는 동작은 성공 알림 없음', async t => {
+  const { page, state, errors } = await fixture(t, { failComment: true })
+  await page.goto(`${origin}/home?band=10&post=2`)
+  await page.locator('.comment').first().waitFor()
+  const box = page.getByRole('textbox', { name: '댓글', exact: true })
+  await box.fill('다음 주에 봐요')
+  await page.getByRole('button', { name: '등록', exact: true }).click()
+  // 공통 알림 (#267): 빨간 알림이 열린 게시글 창(<dialog>)보다 위에 보인다
+  const toast = page.locator('.toast.error')
+  await toast.filter({ hasText: '댓글을 저장하지 못했어요' }).waitFor()
+  const top = await toast.evaluate(el => {
+    const r = el.getBoundingClientRect()
+    return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2))
+  })
+  assert.equal(top, true)
+  assert.equal(await box.inputValue(), '다음 주에 봐요')
+  await screenshot(page, 'toast-error-desktop')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await screenshot(page, 'toast-error-mobile')
+  await page.setViewportSize({ width: 1280, height: 960 })
+  // × 로 닫을 수 있고, 다시 실패하면 다시 뜬다
+  await toast.getByRole('button', { name: '알림 닫기' }).click()
+  await toast.waitFor({ state: 'detached' })
+  state.failComment = false
+  await page.getByRole('button', { name: '등록', exact: true }).click()
+  await page.locator('.comment-content').filter({ hasText: '다음 주에 봐요' }).waitFor()
+  // 결과가 화면에 바로 보이는 동작(댓글 달기)은 성공 알림을 띄우지 않는다
+  assert.equal(await page.locator('.toast').count(), 0)
+  assert.deepEqual(errors, [])
+})
+
+test('소셜 로그인은 주소의 한 번용 코드를 토큰으로 바꾸고, 토큰을 주소에 남기지 않는다', async t => {
+  const { page, state, errors } = await fixture(t)
+  await page.goto(`${origin}/oauth2/redirect?code=good`)
+  await page.waitForURL(/\/home$/)
+  assert.deepEqual(state.oauthCodes, ['good'])
+  assert.equal(await page.evaluate(() => localStorage.getItem('accessToken')), 'social-access')
+  assert.equal(await page.evaluate(() => localStorage.getItem('refreshToken')), 'social-refresh')
+  // 돌아온 주소는 방문 기록에서 바뀌어(replace) 뒤로 가기로 다시 열리지 않는다
+  assert.ok(!(await page.evaluate(() => location.href)).includes('code='))
+
+  // 시간이 지난 코드면 로그인 화면으로 보내고 알려 준다
+  await page.goto(`${origin}/oauth2/redirect?code=old`)
+  await page.locator('.toast.error').filter({ hasText: '로그인 시간이 지났어요' }).waitFor()
   assert.deepEqual(errors, [])
 })

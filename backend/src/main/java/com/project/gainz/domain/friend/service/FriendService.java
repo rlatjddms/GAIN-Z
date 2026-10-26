@@ -14,6 +14,7 @@ import com.project.gainz.domain.friend.entity.Friendship;
 import com.project.gainz.domain.friend.enums.FriendRelation;
 import com.project.gainz.domain.friend.enums.FriendshipStatus;
 import com.project.gainz.domain.friend.repository.FriendshipRepository;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.notification.enums.NotificationType;
 import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.entity.User;
@@ -137,7 +138,8 @@ public class FriendService {
 
         Friendship saved = friendshipRepository.save(Friendship.builder().requester(me).receiver(target).build());
         notificationService.notify(target, NotificationType.FRIEND_REQUEST, "친구",
-                me.getName() + " 님이 친구 신청을 보냈어요", FRIENDS_URL);
+                notificationService.nicknameOf(me) + " 님이 친구 신청을 보냈어요", FRIENDS_URL);
+        changed(userId, target.getId());
         return toRequestResponse(saved, target, charactersOf(List.of(target.getId())));
     }
 
@@ -182,7 +184,8 @@ public class FriendService {
 
         friendship.accept();
         notificationService.notify(requester, NotificationType.FRIEND_ACCEPT, "친구",
-                friendship.getReceiver().getName() + " 님이 친구 신청을 수락했어요", FRIENDS_URL);
+                notificationService.nicknameOf(friendship.getReceiver()) + " 님이 친구 신청을 수락했어요", FRIENDS_URL);
+        changed(userId, requester.getId());
         eventPublisher.publishEvent(RecordCheckEvent.of(userId, RecordMetric.FRIENDS));
         eventPublisher.publishEvent(RecordCheckEvent.of(requester.getId(), RecordMetric.FRIENDS));
         Character character = charactersOf(List.of(requester.getId())).get(requester.getId());
@@ -197,6 +200,7 @@ public class FriendService {
                 .filter(f -> f.involves(userId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.FRIEND_REQUEST_NOT_FOUND));
         friendshipRepository.delete(friendship);
+        changed(userId, friendship.other(userId).getId());
     }
 
     /* ---------- 친구 목록 ---------- */
@@ -218,6 +222,7 @@ public class FriendService {
     @Transactional
     public void removeFriend(Long userId, Long friendUserId) {
         friendshipRepository.delete(findFriendship(userId, friendUserId));
+        changed(userId, friendUserId);
     }
 
     // 두 사람이 친구인지 (공개 범위 '친구에게만' 판단용)
@@ -240,10 +245,17 @@ public class FriendService {
     // 회원 탈퇴: 친구·신청을 모두 지운다
     @Transactional
     public void removeAll(Long userId) {
-        friendshipRepository.deleteAll(friendshipRepository.findAllByUserId(userId));
+        List<Friendship> mine = friendshipRepository.findAllByUserId(userId);
+        friendshipRepository.deleteAll(mine);
+        notificationService.change(mine.stream().map(f -> f.other(userId).getId()).toList(), userId, LiveChange.friends());
     }
 
     /* ---------- 내부 ---------- */
+
+    // 친구·신청이 바뀌었다는 신호를 상대의 열린 화면으로 (#259)
+    private void changed(Long userId, Long otherUserId) {
+        notificationService.change(List.of(otherUserId), userId, LiveChange.friends());
+    }
 
     private Friendship findFriendship(Long userId, Long friendUserId) {
         return friendshipRepository.findAllBetween(userId, friendUserId).stream()

@@ -14,6 +14,9 @@
 
 <script setup>
 import AppLogo from '../AppLogo.vue'
+import { useWhitePage } from './useWhitePage'
+
+useWhitePage()
 
 defineProps({
   subtitle: { type: String, default: '' },
@@ -46,5 +49,10 @@ defineProps({
     background: #fff;
   }
   .auth-card { max-width: 360px; padding: 0; border: none; border-radius: 0; box-shadow: none; }
+  /* 로그인 화면과 같은 너비·로고·제목 크기 (#226) */
+  .auth-card { max-width: 280px; }
+  .brand { margin-bottom: 28px; }
+  .brand :deep(svg) { width: auto; height: 28px; }
+  .sub { font-size: 0.85rem; }
 }
 </style>

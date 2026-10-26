@@ -34,7 +34,7 @@ class BandBoardControllerTest {
 
     @BeforeEach void setup() {
         service = mock(BandBoardService.class);
-        User user = User.builder().name("테스트").build();
+        User user = User.builder().build();
         ReflectionTestUtils.setField(user, "id", 1L);
         UserPrincipal principal = UserPrincipal.create(user);
         mvc = MockMvcBuilders.standaloneSetup(new BandBoardController(service))
@@ -85,8 +85,9 @@ class BandBoardControllerTest {
         when(service.commentPage(1L, 10L, 20L, 2, 20)).thenReturn(new CommentPage(List.of(), 2, 3, 45, 50));
         mvc.perform(get("/api/v1/bands/10/posts/20/comments?page=2"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.commentCount").value(50));
-        when(service.comments(1L, 10L, 20L)).thenReturn(List.of());
-        mvc.perform(get("/api/v1/bands/10/posts/20/comments")).andExpect(status().isOk()).andExpect(jsonPath("$.data").isArray());
+        // page를 안 보내면 첫 쪽
+        when(service.commentPage(1L, 10L, 20L, 0, 20)).thenReturn(new CommentPage(List.of(), 0, 1, 2, 2));
+        mvc.perform(get("/api/v1/bands/10/posts/20/comments")).andExpect(status().isOk()).andExpect(jsonPath("$.data.number").value(0));
     }
 
     @Test void archiveStreamsAllFilesWithSafeDistinctNames() throws Exception {
@@ -106,12 +107,11 @@ class BandBoardControllerTest {
     }
 
     @Test void emptyAndTooLongPostAreRejectedBeforeService() throws Exception {
-        mvc.perform(post("/api/v1/bands/10/posts").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\" \",\"content\":\"본문\"}"))
-                .andExpect(status().isBadRequest());
-        mvc.perform(post("/api/v1/bands/10/posts").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"" + "가".repeat(101) + "\",\"content\":\"본문\"}"))
-                .andExpect(status().isBadRequest());
+        for (String title : new String[] {" ", "가".repeat(101)}) {
+            var post = new MockMultipartFile("post", "", "application/json",
+                    ("{\"title\":\"" + title + "\",\"content\":\"본문\"}").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            mvc.perform(multipart("/api/v1/bands/10/posts").file(post)).andExpect(status().isBadRequest());
+        }
         verifyNoInteractions(service);
     }
 
@@ -126,14 +126,6 @@ class BandBoardControllerTest {
         when(service.get(1L, 10L, 20L)).thenThrow(new BusinessException(ErrorCode.NOT_BAND_MEMBER));
         mvc.perform(get("/api/v1/bands/10/posts/20"))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.success").value(false));
-    }
-
-    @Test void multipartPutBindsOneFile() throws Exception {
-        var file = new MockMultipartFile("file", "연습.pdf", "application/pdf", "%PDF-1.7".getBytes());
-        mvc.perform(multipart("/api/v1/bands/10/posts/20/attachment").file(file).with(request -> {
-            request.setMethod("PUT"); return request;
-        })).andExpect(status().isOk());
-        verify(service).attach(eq(1L), eq(10L), eq(20L), any());
     }
 
     @Test void multipartSaveBindsNoticeAndMultipleFiles() throws Exception {

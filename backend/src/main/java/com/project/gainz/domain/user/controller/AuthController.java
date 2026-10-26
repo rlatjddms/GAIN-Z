@@ -2,6 +2,7 @@ package com.project.gainz.domain.user.controller;
 
 import com.project.gainz.domain.user.dto.request.EmailRequest;
 import com.project.gainz.domain.user.dto.request.LoginRequest;
+import com.project.gainz.domain.user.dto.request.OAuthCodeRequest;
 import com.project.gainz.domain.user.dto.request.PasswordResetConfirmRequest;
 import com.project.gainz.domain.user.dto.request.ReissueRequest;
 import com.project.gainz.domain.user.dto.request.SignupCodeVerifyRequest;
@@ -11,6 +12,7 @@ import com.project.gainz.domain.user.dto.response.SignupCodeVerifyResponse;
 import com.project.gainz.domain.user.dto.response.TokenResponse;
 import com.project.gainz.domain.user.service.AccountMailService;
 import com.project.gainz.domain.user.service.AuthService;
+import com.project.gainz.domain.user.service.OAuthLoginCodeService;
 import com.project.gainz.global.common.dto.ApiResponse;
 import com.project.gainz.global.security.principal.UserPrincipal;
 import jakarta.validation.Valid;
@@ -31,6 +33,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final AccountMailService accountMailService;
+    private final OAuthLoginCodeService oAuthLoginCodeService;
 
     // 회원가입
     @PostMapping("/signup")
@@ -57,6 +60,14 @@ public class AuthController {
     ) {
         TokenResponse tokenResponse = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success(tokenResponse));
+    }
+
+    // 소셜 로그인 한 번용 코드를 토큰으로 (#281)
+    @PostMapping("/oauth2/token")
+    public ResponseEntity<ApiResponse<TokenResponse>> exchangeOAuthCode(
+            @Valid @RequestBody OAuthCodeRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(oAuthLoginCodeService.exchange(request.code())));
     }
 
     // 토큰 재발급

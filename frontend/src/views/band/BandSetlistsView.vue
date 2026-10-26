@@ -4,29 +4,42 @@
     <p v-if="error" role="alert">{{ error }} <button class="btn" @click="loadBand">다시 불러오기</button></p>
     <p v-else-if="!band" class="muted">셋리스트를 불러오는 중…</p>
     <div v-else class="page">
-      <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
-      <p v-if="notice" class="status" role="status">{{ notice }}</p>
       <div class="workspace" :inert="busy" :aria-busy="busy">
-        <WsCard :title="`셋리스트 ${lists.length}`" class="sidebar">
+        <WsCard :title="`셋리스트 ${lists.length}`" class="sidebar" :class="{ collapsed: fold.collapsed.value }">
+            <!-- 휴대폰: 목록 접기·펼치기 (#254) -->
+            <template v-if="fold.narrow.value && lists.length" #actions>
+              <button class="text-btn fold" :aria-expanded="!fold.collapsed.value" @click="fold.toggle">{{ fold.collapsed.value ? '펼치기' : '접기' }}<ChevronDown class="chevron" :class="{ open: !fold.collapsed.value }" :size="15" :stroke-width="2.4" aria-hidden="true" /></button>
+            </template>
+            <button v-if="fold.collapsed.value" class="list-summary" @click="fold.toggle">
+              <strong>{{ selected?.title || '셋리스트를 골라 주세요' }}</strong><span>셋리스트 {{ lists.length }}개 보기</span>
+            </button>
+            <template v-else>
             <button class="btn add-list" :disabled="busy" @click="openCreate">+ 셋리스트 만들기</button>
+            <!-- 목록 검색 (#254): 셋리스트 이름이나 안의 곡 제목 -->
+            <label v-if="lists.length" class="list-search">
+              <Search :size="14" :stroke-width="2.4" aria-hidden="true" />
+              <input v-model="listQuery" type="search" placeholder="셋리스트·곡 이름 검색" aria-label="셋리스트 검색" maxlength="40">
+            </label>
             <div class="list-tools"><button class="chip" :class="{ on: favoritesOnly }" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly"><Star :size="14" :stroke-width="2.2" :fill="favoritesOnly ? 'currentColor' : 'none'" /> 즐겨찾기</button><button class="chip" :class="{ on: selecting }" @click="selecting = !selecting; checkedIds = []">{{ selecting ? '선택 취소' : '선택' }}</button></div>
             <div v-if="selecting" class="bulk-tools"><span>{{ checkedIds.length }}개 선택</span><button class="chip danger" :disabled="!checkedIds.length || busy" @click="askDelete(checkedIds)">선택 삭제</button></div>
-            <SmoothReorder v-if="visibleLists.length" :items="visibleLists" :disabled="busy || selecting || favoritesOnly" class="list-nav" @reorder="reorderLists">
+            <SmoothReorder v-if="visibleLists.length" :items="visibleLists" :disabled="busy || selecting || favoritesOnly || searchingLists" class="list-nav" @reorder="reorderLists">
               <template #default="{ item: list, start, move }">
                 <div class="list-entry" :class="{ active: selectedId === list.id }">
                   <input v-if="selecting" v-model="checkedIds" type="checkbox" :value="list.id" :aria-label="`${list.title} 선택`">
-                  <button v-else-if="!favoritesOnly" class="drag-handle list-handle" :disabled="busy" :aria-label="`${list.title} 셋리스트 순서 변경`" @pointerdown="start" @keydown.up.prevent="move(-1)" @keydown.down.prevent="move(1)">⠿</button>
+                  <button v-else-if="!favoritesOnly && !searchingLists" class="drag-handle list-handle" :disabled="busy" :aria-label="`${list.title} 셋리스트 순서 변경`" @pointerdown="start" @keydown.up.prevent="move(-1)" @keydown.down.prevent="move(1)">⠿</button>
                   <button class="list-link" :aria-pressed="selectedId === list.id" @click="selectList(list.id)"><strong>{{ list.title }}</strong><span>{{ list.songs.length }}곡</span></button>
+                  <button v-if="!selecting" class="rename" :disabled="busy" :aria-label="`${list.title} 이름 변경`" title="이름 변경" @click="openRename(list)"><Pencil :size="14" :stroke-width="2.2" /></button>
                   <button class="star" :class="{ on: list.favorite }" :disabled="busy" :aria-pressed="list.favorite" :aria-label="`${list.title} 즐겨찾기`" @click="toggleFavorite(list)"><Star :size="16" :stroke-width="2.2" :fill="list.favorite ? 'currentColor' : 'none'" /></button>
                 </div>
               </template>
             </SmoothReorder>
-            <p v-else class="muted">{{ favoritesOnly ? '즐겨찾기한 셋리스트가 없어요.' : '아직 셋리스트가 없어요.' }}</p>
+            <p v-else class="muted">{{ searchingLists ? `'${listQuery.trim()}' 셋리스트가 없어요.` : favoritesOnly ? '즐겨찾기한 셋리스트가 없어요.' : '아직 셋리스트가 없어요.' }}</p>
+            </template>
         </WsCard>
         <WsCard :title="current?.title || '합주할 곡'" class="detail">
           <template v-if="selected" #actions>
             <button class="btn" :disabled="busy" @click="addSong">+ 곡 추가</button>
-            <button class="btn" :disabled="busy" @click="openRename">이름 변경</button>
+            <button class="btn" :disabled="busy" @click="openRename(selected)">이름 변경</button>
             <button class="btn danger" :disabled="busy" @click="askDelete([selected.id])">삭제</button>
           </template>
           <template v-if="current">
@@ -45,7 +58,7 @@
                   </div>
                   <div class="song-collapse" :class="{ expanded: expandedIds.includes(song.id) }" :inert="!expandedIds.includes(song.id)"><div class="collapse-inner"><div :id="`song-${song.id}`" class="song-body">
                     <template v-if="drafts[song.id]">
-                      <div class="song-fields"><label>곡 제목<input v-model="song.title" maxlength="120" placeholder="곡 제목을 적어주세요" @keydown.enter.prevent="saveSong(song)"></label><label>아티스트<input v-model="song.artist" maxlength="120" placeholder="아티스트 이름을 적어주세요" @keydown.enter.prevent="saveSong(song)"></label></div>
+                      <div class="song-fields"><label>곡 제목<input v-model="song.title" maxlength="120" placeholder="곡 제목을 적어주세요" @keydown.enter.prevent="!$event.isComposing && saveSong(song)"></label><label>아티스트<input v-model="song.artist" maxlength="120" placeholder="아티스트 이름을 적어주세요" @keydown.enter.prevent="!$event.isComposing && saveSong(song)"></label></div>
                       <label class="sheet-field">보관함 악보 연결<select :value="song.sheetId ?? ''" :disabled="sheetsLoading" @change="linkSheet(song, $event.target.value)"><option value="">{{ sheetsLoading ? '악보를 불러오는 중…' : sheetsError || '연결하지 않음' }}</option><option v-for="sheet in sheetOptions(song)" :key="sheet.id" :value="sheet.sheetId">{{ sheet.title }}{{ sheet.artist ? ` · ${sheet.artist}` : '' }}</option></select></label>
                       <fieldset class="participants"><legend>함께 준비할 멤버 <span>{{ song.memberIds.length }}명</span></legend><div class="member-options"><button v-for="member in band.members" :key="member.memberId" type="button" class="member-option" :class="{ chosen: song.memberIds.includes(member.memberId) }" :aria-pressed="song.memberIds.includes(member.memberId)" @click="toggleMember(song, member.memberId)"><span>{{ member.character?.nickname || '멤버' }}</span><small>{{ partLabel(member.part) }}</small><Check v-if="song.memberIds.includes(member.memberId)" :size="13" :stroke-width="3" aria-hidden="true" /></button></div></fieldset>
                       <label class="memo">합주 메모<textarea v-model="song.memo" rows="2" maxlength="500" placeholder="합주 메모를 적어주세요"></textarea></label>
@@ -77,7 +90,8 @@
 </template>
 
 <script setup>
-import { ChevronRight, Star, Check, Mic } from 'lucide-vue-next'
+import { ChevronRight, ChevronDown, Star, Check, Mic, Pencil, Search } from 'lucide-vue-next'
+import { useCollapsibleList } from '../../components/band/useCollapsibleList'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import SubPageLayout from '../../components/workspace/SubPageLayout.vue'
@@ -92,14 +106,18 @@ import { addToWorkspace, getWorkspace } from '../../api/sheet'
 import { apiErrorMessage } from '../../api/practice'
 import { useBandStore } from '../../stores/band'
 import { useDialogStore } from '../../stores/dialog'
+import { useToastStore } from '../../stores/toast'
 import { INSTRUMENT_OPTIONS } from '../../constants/characterOptions'
 const route = useRoute()
 const router = useRouter()
 const dialog = useDialogStore()
+const toast = useToastStore()
 const store = useBandStore()
-const band = ref(null), error = ref(''), saveError = ref(''), notice = ref(''), busy = ref(false)
+const band = ref(null), error = ref(''), busy = ref(false)
 const lists = ref([]), selectedId = ref(null), drafts = ref({}), songOrder = ref([])
 const listTitle = ref(''), renaming = ref(false)
+// 이름을 바꿀 셋리스트 (목록에서 고르지 않은 셋리스트도 바꿀 수 있다, #233)
+const renameId = ref(null)
 const createDialog = ref(null), deleteDialog = ref(null), deleteIds = ref([])
 const expandedIds = ref([]), favoritesOnly = ref(false), selecting = ref(false), checkedIds = ref([])
 const sheets = ref(null), sheetsLoading = ref(false), sheetsError = ref('')
@@ -119,7 +137,15 @@ const current = computed(() => {
   return { ...selected.value, songs: [...songOrder.value.filter(id => byId.has(id)).map(id => byId.get(id)), ...songs.filter(song => !songOrder.value.includes(song.id))] }
 })
 const newSongCount = computed(() => Object.values(drafts.value).filter(draft => !selected.value?.songs.some(song => song.id === draft.id)).length)
-const visibleLists = computed(() => lists.value.filter(list => !favoritesOnly.value || list.favorite))
+// 셋리스트 이름이나 안의 곡 제목으로 거른다 (#254). 거르는 동안은 순서를 못 바꾼다
+const listQuery = ref('')
+const searchingLists = computed(() => !!listQuery.value.trim())
+const visibleLists = computed(() => {
+  const q = listQuery.value.trim().toLocaleLowerCase()
+  return lists.value.filter(list => (!favoritesOnly.value || list.favorite)
+    && (!q || list.title.toLocaleLowerCase().includes(q) || list.songs.some(song => (song.title || '').toLocaleLowerCase().includes(q))))
+})
+const fold = useCollapsibleList()
 const allExpanded = computed(() => current.value?.songs.length && current.value.songs.every(song => expandedIds.value.includes(song.id)))
 const cloneSong = song => ({ ...song, memberIds: [...song.memberIds], files: song.files.map(file => ({ ...file })) })
 const songJson = song => JSON.stringify([song.title, song.artist, song.memo, song.sheetId, song.memberIds, song.files.map(file => file.id)])
@@ -201,13 +227,13 @@ async function openFile(event, file) {
     const link = Object.assign(document.createElement('a'), { href: url, download: file.name })
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-  } catch (e) { saveError.value = apiErrorMessage(e, '첨부파일을 받지 못했어요.') }
+  } catch (e) { toast.error(apiErrorMessage(e, '첨부파일을 받지 못했어요.')) }
 }
 // 레이어 잼에서 넘어오면 그 곡이 든 셋리스트를 열고 곡을 펼쳐 보여 준다
 async function focusSong(itemId) {
   router.replace({ query: { ...route.query, item: undefined } })
   const list = lists.value.find(entry => entry.songs.some(song => song.id === itemId))
-  if (!list) { notice.value = '연결한 곡이 셋리스트에서 지워졌어요.'; return }
+  if (!list) { toast.error('연결한 곡이 셋리스트에서 지워졌어요.'); return }
   selectedId.value = list.id
   expandedIds.value = [itemId]
   focusedId.value = itemId
@@ -236,24 +262,27 @@ async function loadBand() {
 async function run(work, fallback = '저장하지 못했어요. 잠시 후 다시 시도해 주세요.') {
   if (busy.value) return false
   busy.value = true
-  saveError.value = ''
   try { await work(); return true }
-  catch (e) { saveError.value = apiErrorMessage(e, fallback); return false }
+  catch (e) { toast.error(apiErrorMessage(e, fallback)); return false }
   finally { busy.value = false }
 }
 async function discardAllowed() { return !dirty.value || dialog.confirm({ title: '저장하지 않은 곡이 있어요', text: '변경사항을 버릴까요?', okText: '버리기', danger: true }) }
 function resetEditor() { drafts.value = {}; songOrder.value = []; expandedIds.value = []; cleanupUrls() }
-async function selectList(id) { if (id === selectedId.value || busy.value || !await discardAllowed()) return; resetEditor(); selectedId.value = id; notice.value = saveError.value = '' }
+async function selectList(id) {
+  if (id === selectedId.value) { fold.collapseIfNarrow(); return }
+  if (busy.value || !await discardAllowed()) return
+  resetEditor(); selectedId.value = id
+  fold.collapseIfNarrow()
+}
 function addSong() {
   if (!selected.value || busy.value) return
   const song = { id: crypto.randomUUID(), title: '', artist: '', memo: '', sheetId: null, sheetTitle: '', workspaceItemId: null, memberIds: [], files: [] }
   songOrder.value = [...current.value.songs.map(item => item.id), song.id]
   drafts.value[song.id] = song
   expandedIds.value.push(song.id)
-  notice.value = saveError.value = ''
   loadSheets()
 }
-function editSong(song) { drafts.value[song.id] = cloneSong(song); if (!expandedIds.value.includes(song.id)) expandedIds.value.push(song.id); notice.value = saveError.value = ''; loadSheets() }
+function editSong(song) { drafts.value[song.id] = cloneSong(song); if (!expandedIds.value.includes(song.id)) expandedIds.value.push(song.id); loadSheets() }
 async function cancelSong(id) {
   const saved = selected.value.songs.find(song => song.id === id)
   const draft = drafts.value[id]
@@ -261,10 +290,10 @@ async function cancelSong(id) {
   if (changed && !await dialog.confirm({ title: '이 곡의 변경사항을 버릴까요?', text: '저장하지 않은 내용이 사라져요.', okText: '버리기', danger: true })) return
   delete drafts.value[id]
   if (!saved) { songOrder.value = songOrder.value.filter(item => item !== id); expandedIds.value = expandedIds.value.filter(item => item !== id) }
-  saveError.value = ''; cleanupUrls()
+  cleanupUrls()
 }
 async function saveSong(song) {
-  if (!song.title.trim()) { saveError.value = '곡 제목을 적어주세요.'; return }
+  if (!song.title.trim()) { toast.error('곡 제목을 적어주세요.'); return }
   const setlistId = selectedId.value
   const isNew = !selected.value.songs.some(item => item.id === song.id)
   const before = new Set(selected.value.songs.map(item => item.id))
@@ -284,7 +313,7 @@ async function saveSong(song) {
     delete drafts.value[song.id]
     replaceList(result)
     cleanupUrls()
-    notice.value = `${payload.title} 곡을 저장했어요.`
+    toast.success(`${payload.title} 곡을 저장했어요.`)
   })
 }
 async function removeSong(song) {
@@ -296,7 +325,7 @@ async function removeSong(song) {
   }, '곡을 삭제하지 못했어요.')
 }
 function openCreate() { renaming.value = false; listTitle.value = ''; createDialog.value.showModal() }
-function openRename() { renaming.value = true; listTitle.value = selected.value.title; createDialog.value.showModal() }
+function openRename(list) { renaming.value = true; renameId.value = list.id; listTitle.value = list.title; createDialog.value.showModal() }
 function closeOnBackdrop(event, dialog) {
   if (event.target !== dialog) return
   const r = dialog.getBoundingClientRect()
@@ -306,7 +335,7 @@ async function submitList() {
   const title = listTitle.value.trim()
   if (!title) return
   if (renaming.value) {
-    if (await run(async () => replaceList(await updateSetlist(bandId(), selectedId.value, { title })))) createDialog.value.close()
+    if (await run(async () => replaceList(await updateSetlist(bandId(), renameId.value, { title })))) createDialog.value.close()
     return
   }
   if (!await discardAllowed()) return
@@ -339,10 +368,9 @@ function toggleSong(id) { expandedIds.value = expandedIds.value.includes(id) ? e
 function toggleAllSongs() { expandedIds.value = allExpanded.value ? [] : current.value.songs.map(song => song.id) }
 function toggleMember(song, id) { song.memberIds = song.memberIds.includes(id) ? song.memberIds.filter(memberId => memberId !== id) : [...song.memberIds, id] }
 function attachFiles(song, event) {
-  saveError.value = ''
   for (const file of event.target.files) {
-    if (song.files.length >= BAND_ATTACHMENT_MAX_COUNT) { saveError.value = `첨부파일은 곡마다 ${BAND_ATTACHMENT_MAX_COUNT}개까지 올릴 수 있어요.`; break }
-    if (file.size > BAND_ATTACHMENT_MAX_BYTES) { saveError.value = `${file.name}: 10MB까지 첨부할 수 있어요.`; continue }
+    if (song.files.length >= BAND_ATTACHMENT_MAX_COUNT) { toast.error(`첨부파일은 곡마다 ${BAND_ATTACHMENT_MAX_COUNT}개까지 올릴 수 있어요.`); break }
+    if (file.size > BAND_ATTACHMENT_MAX_BYTES) { toast.error(`${file.name}: 10MB까지 첨부할 수 있어요.`); continue }
     song.files.push({ id: crypto.randomUUID(), name: file.name, size: file.size, blob: file, url: objectUrl(file), local: true })
   }
   event.target.value = ''
@@ -352,7 +380,7 @@ function beforeUnload(event) { if (dirty.value || busy.value) { event.preventDef
 onBeforeRouteLeave(() => !busy.value && discardAllowed())
 onBeforeRouteUpdate(() => !busy.value && discardAllowed())
 onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-watch(() => route.params.id, () => { resetEditor(); lists.value = []; selectedId.value = null; cleanupUrls(); checkedIds.value = []; saveError.value = notice.value = ''; createDialog.value?.close(); deleteDialog.value?.close(); sheetDialog.value?.close(); loadBand() }, { immediate: true })
+watch(() => route.params.id, () => { resetEditor(); lists.value = []; selectedId.value = null; cleanupUrls(); checkedIds.value = []; createDialog.value?.close(); deleteDialog.value?.close(); sheetDialog.value?.close(); loadBand() }, { immediate: true })
 onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', beforeUnload); urls.forEach(url => URL.revokeObjectURL(url)) })
 </script>
 
@@ -362,8 +390,6 @@ onBeforeUnmount(() => { request++; window.removeEventListener('beforeunload', be
 .page { display:flex; flex-direction:column; gap:16px; }
 .muted { color:var(--c-muted); font-size:.8rem; line-height:1.7; }
 .notice { margin:0; color:var(--c-muted); font-size:.75rem; line-height:1.6; }
-.status { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-primary-soft); color: var(--c-primary-text); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
-.save-error { margin: 0; padding: 10px 14px; border-radius: var(--radius-md); background: var(--c-danger-soft); color: var(--c-danger); font-size: 0.8rem; font-weight: 700; line-height: 1.6; }
 .workspace { display:grid; grid-template-columns:250px minmax(0,1fr); gap:20px; align-items:start; }
 .sidebar,.detail { min-width:0; }
 .sidebar :deep(.ws-card-head) { gap:4px; }
@@ -383,13 +409,22 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .list-link strong { font-size:.79rem; }
 .list-link span { color:var(--c-muted); font-size:.7rem; }
 .star { background:transparent; border:0; color:#ced4da; font-size:20px; cursor:pointer; padding:3px; }
+/* 목록 검색·접기 (#254). 검색칸도 label이라 이 화면의 label 규칙(세로 쌓기)을 가로로 되돌린다 */
+.list-search { display:flex; flex-direction:row; align-items:center; gap:7px; height:36px; padding:0 10px; margin-bottom:10px; border:1px solid var(--c-line); border-radius:10px; background:var(--c-bg); color:var(--c-faint); }
+.list-search:focus-within { border-color:var(--c-primary); background:#fff; }
+/* 아래 입력칸 공통 규칙(input:not(…))보다 우선하도록 .sidebar를 붙인다 */
+.sidebar .list-search input[type=search] { flex:1; width:auto; min-width:0; height:100%; padding:0; border:none; border-radius:0; outline:none; background:none; font:inherit; font-size:16px; line-height:normal; color:var(--c-text); }
+.fold { display:inline-flex; align-items:center; gap:3px; }
+.list-summary { width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--c-primary-line); border-radius:12px; background:var(--c-primary-soft); font:inherit; text-align:left; color:var(--c-primary-text); cursor:pointer; }
+.list-summary strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.82rem; }
+.list-summary span { flex:none; font-size:.72rem; font-weight:700; color:var(--c-muted); }
+.rename { flex:none; display:flex; padding:5px; border:0; border-radius:8px; background:transparent; color:var(--c-faint); cursor:pointer; }
+.rename:hover:not(:disabled) { color:var(--c-text-2); background:var(--c-line-soft); }
 .star.on { color:#fab005; }
 .summary { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; padding:10px 12px; background:var(--c-bg); border-radius:10px; color:var(--c-muted); font-size:.75rem; }
 .summary b { color:var(--c-text-2); }
 .summary em { margin-left:8px; color:var(--c-muted); font-size:.7rem; font-style:normal; }
 .empty { margin-top:16px; }
-.edit-toolbar { display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; margin-top:18px; }
-.title-field { flex:1; max-width:340px; min-width:160px; }
 .song-form,.song-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:480px; }
 .song-form { margin-top:16px; padding:16px; background:var(--c-bg); border-radius:12px; }
 label { display:flex; flex-direction:column; gap:7px; min-width:0; font-size:.75rem; font-weight:500; color:var(--c-muted); }
@@ -401,7 +436,6 @@ textarea { resize:vertical; min-height:64px; }
 select { width:100%; min-width:0; border:1px solid var(--c-line); padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; line-height:1.6; outline:none; }
 select:focus { border-color:var(--c-primary); }
 .sheet-link { border:0; background:transparent; padding:0; font-family:inherit; cursor:pointer; text-align:left; color: var(--c-primary-text); font-size:.8rem; font-weight:700; overflow-wrap:anywhere; }
-.form-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; grid-column:1 / -1; }
 .songs { margin-top:16px; }
 .song-card { border:1px solid var(--c-line); border-radius:12px; background:#fff; transition:border-color .3s, box-shadow .3s; }
 .song-card.focused { border-color:var(--c-primary); box-shadow:0 0 0 3px color-mix(in srgb, var(--c-primary) 12%, transparent); }
@@ -459,6 +493,9 @@ legend span { margin-left:6px; font-weight:400; }
 @media(prefers-reduced-motion:reduce) { .song-collapse,.chevron { transition:none; } }
 /* 휴대폰: 팝업은 아래에서 올라오는 시트로 (#124) */
 @media (max-width: 640px) {
+  /* 휴대폰: 만들기 버튼은 목록 아래로 (#233) */
+  .sidebar { display:flex; flex-direction:column; }
+  .add-list { order:1; margin:12px 0 0; }
   .setlist-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 }
 </style>

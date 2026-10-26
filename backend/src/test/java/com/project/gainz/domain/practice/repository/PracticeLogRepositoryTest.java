@@ -36,8 +36,8 @@ class PracticeLogRepositoryTest {
     @Autowired PracticeLogRepository logs;
 
     @Test void daySplitSumsTimerAndManualSeparatelyForThatDayOnly() {
-        User me = em.persist(User.builder().email("me@test.invalid").name("me").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
-        User other = em.persist(User.builder().email("other@test.invalid").name("other").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
+        User me = em.persist(User.builder().email("me@test.invalid").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
+        User other = em.persist(User.builder().email("other@test.invalid").provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build());
         LocalDate day = LocalDate.of(2026, 10, 19);
         log(me, day, 3600, 60, PracticeSource.TIMER);
         log(me, day, 1200, 20, PracticeSource.TIMER);

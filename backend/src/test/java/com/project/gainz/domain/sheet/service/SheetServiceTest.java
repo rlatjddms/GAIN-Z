@@ -343,8 +343,6 @@ class SheetServiceTest {
         when(sheetMusicRepository.findById(10L)).thenReturn(Optional.of(others));
         when(userWorkspaceRepository.existsByUserIdAndSheetMusicId(USER_ID, 10L)).thenReturn(false);
 
-        assertThatThrownBy(() -> sheetService.getSheet(USER_ID, 10L))
-                .extracting("errorCode").isEqualTo(ErrorCode.SHEET_NOT_FOUND);
         assertThatThrownBy(() -> sheetService.getPageFile(USER_ID, 10L, 1L))
                 .extracting("errorCode").isEqualTo(ErrorCode.SHEET_NOT_FOUND);
         verify(fileStorage, never()).load(any());
@@ -358,7 +356,6 @@ class SheetServiceTest {
         when(setlistItemRepository.existsLinkedForMember(10L, USER_ID)).thenReturn(true);
         when(userWorkspaceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        assertThat(sheetService.getSheet(USER_ID, 10L).id()).isEqualTo(10L);
         assertThat(sheetService.addToWorkspace(USER_ID, 10L).sheetId()).isEqualTo(10L);
     }
 
@@ -608,13 +605,6 @@ class SheetServiceTest {
         verify(userWorkspaceRepository).delete(item);
         verify(sheetMusicRepository, never()).delete(any());
         verify(fileStorage, never()).delete(any());
-    }
-
-    @Test
-    void 공용_악보_목록() {
-        when(sheetMusicRepository.findAllByOwnerIsNullOrderByTitleAsc()).thenReturn(Collections.emptyList());
-
-        assertThat(sheetService.getSharedSheets()).isEmpty();
     }
 
     /* ---------- 장 순서 바꾸기·내 악보로 복사 (#191) ---------- */

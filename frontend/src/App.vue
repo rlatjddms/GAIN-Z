@@ -6,6 +6,8 @@ import NotificationToasts from './components/NotificationToasts.vue'
 import RecordAcquiredModal from './components/RecordAcquiredModal.vue'
 import PracticeTimerGuard from './components/workspace/PracticeTimerGuard.vue'
 import AppDialog from './components/ui/AppDialog.vue'
+import AppToast from './components/ui/AppToast.vue'
+import UpdateBanner from './components/UpdateBanner.vue'
 
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
@@ -23,6 +25,8 @@ watch(() => authStore.isAuthenticated, (loggedIn) => {
   <RecordAcquiredModal v-if="authStore.isAuthenticated" />
   <PracticeTimerGuard v-if="authStore.isAuthenticated" />
   <AppDialog />
+  <AppToast />
+  <UpdateBanner />
 </template>
 
 
@@ -47,6 +51,10 @@ html, body {
   background-color: #f8f9fb;
   width: 100%;
   height: 100%;
+}
+/* 휴대폰에서 흰 화면인 페이지(로그인 등)는 바탕도 흰색 (#226, components/ui/useWhitePage.js) */
+@media (max-width: 640px) {
+  html.white-page, html.white-page body { background-color: #fff; }
 }
 
 #app {

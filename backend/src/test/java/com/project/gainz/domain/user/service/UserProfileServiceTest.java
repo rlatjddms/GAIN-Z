@@ -39,7 +39,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -63,11 +62,11 @@ class UserProfileServiceTest {
 
     /* ---------- 준비 ---------- */
 
+    // 캐릭터가 없으면 이메일 앞부분이 보이는 이름이라 name으로 이메일을 만든다 (#227)
     private User user(Long id, String name) {
         User user = User.builder()
-                .email("user" + id + "@example.com")
+                .email(name + "@example.com")
                 .password("pw")
-                .name(name)
                 .provider(SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER)
                 .build();
@@ -130,17 +129,19 @@ class UserProfileServiceTest {
 
     @Test
     void 못_보는_프로필은_이름_사진_관계만_주고_나머지는_숨긴다() {
-        target(ProfileVisibility.PRIVATE);
+        User target = target(ProfileVisibility.PRIVATE);
         when(friendService.relationOf(ME, TARGET)).thenReturn(FriendRelation.FRIEND);
+        when(characterRepository.findByUserId(TARGET)).thenReturn(Optional.of(character(target, "쿵쿵")));
 
         UserProfileResponse profile = userProfileService.getProfile(ME, TARGET);
 
+        // 이름은 캐릭터 닉네임 (#227), 캐릭터 자체는 숨긴다
+        assertThat(profile.name()).isEqualTo("쿵쿵");
         assertThat(profile.visible()).isFalse();
         assertThat(profile.profileMusic()).isNull();
         assertThat(profile.character()).isNull();
         assertThat(profile.dailyPractice()).isEmpty();
         assertThat(profile.bands()).isEmpty();
-        verify(characterRepository, never()).findByUserId(anyLong());
         verify(practiceLogRepository, never()).findDailyTotals(any(), any(), any());
     }
 

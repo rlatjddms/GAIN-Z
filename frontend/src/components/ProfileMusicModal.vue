@@ -20,12 +20,12 @@
                 aria-label="곡 검색"
                 :disabled="busy"
                 @input="term = $event.target.value"
-                @keydown.enter.prevent="runSearch"
+                @keydown.enter.prevent="!$event.isComposing && runSearch()"
               >
             </label>
             <p v-if="searching" class="search-note">찾는 중…</p>
             <p v-else-if="searchError" class="search-note bad">{{ searchError }}</p>
-            <p v-else-if="searched && !results.length" class="search-note">찾는 곡이 없어요. 아래에 직접 적어도 돼요.</p>
+            <p v-else-if="searched && !results.length" class="search-note">찾는 곡이 없어요. 아래 '직접 입력하기'로 적어도 돼요.</p>
             <ul v-if="results.length" class="results">
               <li v-for="r in results" :key="r.id">
                 <button type="button" class="result" :class="{ picked: isPicked(r) }" @click="pick(r)">
@@ -46,20 +46,27 @@
           </div>
 
           <form @submit.prevent="save">
-            <p class="manual-label">{{ artworkUrl ? '제목·가수는 고칠 수 있어요 (영어 제목을 한국어로 바꿔도 돼요)' : '직접 적기' }}</p>
-            <label class="field">
-              <span>곡 제목</span>
-              <input ref="titleInput" v-model="title" type="text" :maxlength="PROFILE_MUSIC_TITLE_MAX" placeholder="예) Hysteria" :disabled="busy">
-            </label>
-            <label class="field">
-              <span>아티스트</span>
-              <input v-model="artist" type="text" :maxlength="PROFILE_MUSIC_ARTIST_MAX" placeholder="예) Muse" :disabled="busy">
-            </label>
-            <label class="field">
-              <span>링크 <em>선택</em></span>
-              <input v-model="url" type="url" :maxlength="PROFILE_MUSIC_URL_MAX" placeholder="유튜브·스포티파이 링크" :disabled="busy">
-            </label>
-            <p v-if="url.trim() && !urlValid" class="hint bad">http:// 또는 https://로 시작하는 링크만 넣을 수 있어요.</p>
+            <!-- 검색이 먼저, 직접 적기는 접어 둔다 (#228). 고른 곡은 제목·가수를 고칠 때만 연다 -->
+            <button type="button" class="manual-toggle" :aria-expanded="manualOpen" :disabled="busy" @click="toggleManual">
+              {{ artworkUrl ? '제목·가수 고치기' : '직접 입력하기' }}
+              <ChevronDown class="chevron" :class="{ open: manualOpen }" :size="15" :stroke-width="2.4" aria-hidden="true" />
+            </button>
+            <div v-if="manualOpen" class="manual">
+              <p v-if="artworkUrl" class="manual-label">영어 제목을 한국어로 바꿔도 돼요</p>
+              <label class="field">
+                <span>곡 제목</span>
+                <input ref="titleInput" v-model="title" type="text" :maxlength="PROFILE_MUSIC_TITLE_MAX" placeholder="예) Hysteria" :disabled="busy">
+              </label>
+              <label class="field">
+                <span>아티스트</span>
+                <input v-model="artist" type="text" :maxlength="PROFILE_MUSIC_ARTIST_MAX" placeholder="예) Muse" :disabled="busy">
+              </label>
+              <label class="field">
+                <span>링크 <em>선택</em></span>
+                <input v-model="url" type="url" :maxlength="PROFILE_MUSIC_URL_MAX" placeholder="유튜브·스포티파이 링크" :disabled="busy">
+              </label>
+              <p v-if="url.trim() && !urlValid" class="hint bad">http:// 또는 https://로 시작하는 링크만 넣을 수 있어요.</p>
+            </div>
             <p v-if="error" class="error">{{ error }}</p>
 
             <div class="actions">
@@ -78,7 +85,7 @@
 <script setup>
 // 요즘 듣는 음악 등록·수정 팝업 (홈 음악 칩에서 연다). 저장하면 내 정보(authStore.profile)를 바로 바꾼다
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
-import { Music, Search, X } from 'lucide-vue-next'
+import { ChevronDown, Music, Search, X } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import PreviewButton from './PreviewButton.vue'
 import {
@@ -87,6 +94,9 @@ import {
 } from '../api/user'
 import { apiErrorMessage } from '../api/practice'
 import { useDialogStore } from '../stores/dialog'
+import { useToastStore } from '../stores/toast'
+
+const toast = useToastStore()
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -106,6 +116,14 @@ const busy = ref(false)
 const error = ref('')
 const titleInput = ref(null)
 const searchInput = ref(null)
+// 직접 입력 칸 열기 (검색으로 고른 곡이면 제목·가수 고치기)
+const manualOpen = ref(false)
+const toggleManual = async () => {
+  manualOpen.value = !manualOpen.value
+  if (!manualOpen.value) return
+  await nextTick()
+  titleInput.value?.focus()
+}
 
 const urlValid = computed(() => /^https?:\/\/\S+$/i.test(url.value.trim()))
 const valid = computed(() => title.value.trim() && artist.value.trim() && (!url.value.trim() || urlValid.value))
@@ -133,7 +151,8 @@ const runSearch = async () => {
     results.value = await searchSongs(q, signal)
     searched.value = true
   } catch (e) {
-    if (e.name === 'AbortError') return
+    // 새 검색으로 이전 요청을 끊은 것 (브라우저 fetch는 AbortError, 서버로 찾을 때 axios는 CanceledError)
+    if (e.name === 'AbortError' || e.name === 'CanceledError') return
     results.value = []
     searchError.value = '곡을 찾지 못했어요. 잠시 후 다시 해 보거나 아래에 직접 적어 주세요.'
   } finally {
@@ -160,6 +179,8 @@ watch(() => props.open, async (open) => {
   url.value = current.value?.url || ''
   artworkUrl.value = current.value?.artworkUrl || null
   previewUrl.value = current.value?.previewUrl || null
+  // 예전에 직접 적은 곡(커버 없음)이면 입력 칸을 열어 둔다
+  manualOpen.value = !!current.value && !current.value.artworkUrl
   term.value = ''
   results.value = []
   searched.value = false
@@ -169,12 +190,13 @@ watch(() => props.open, async (open) => {
   searchInput.value?.focus()
 })
 
-const run = async (action, fallback) => {
+const run = async (action, fallback, done) => {
   busy.value = true
   error.value = ''
   try {
     authStore.profile = await action()
     emit('close')
+    toast.success(done)
   } catch (e) {
     error.value = apiErrorMessage(e, fallback)
   } finally {
@@ -187,12 +209,12 @@ const save = () => {
   run(() => updateProfileMusic({
     title: title.value.trim(), artist: artist.value.trim(), url: url.value.trim() || null,
     artworkUrl: artworkUrl.value, previewUrl: previewUrl.value,
-  }), '음악을 저장하지 못했어요.')
+  }), '음악을 저장하지 못했어요.', '요즘 듣는 음악을 저장했어요')
 }
 
 const remove = async () => {
   if (busy.value || !await useDialogStore().confirm({ title: '요즘 듣는 음악을 지울까요?', okText: '지우기', danger: true })) return
-  run(() => deleteProfileMusic(), '음악을 지우지 못했어요.')
+  run(() => deleteProfileMusic(), '음악을 지우지 못했어요.', '요즘 듣는 음악을 지웠어요')
 }
 </script>
 
@@ -239,6 +261,14 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 }
 .unpick { flex: none; display: flex; padding: 6px; border: none; border-radius: 8px; background: none; color: var(--c-muted); cursor: pointer; }
 .unpick:hover { background: color-mix(in srgb, var(--c-primary) 12%, transparent); }
+.manual-toggle {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 2px; border: none; background: none;
+  font: inherit; font-size: 0.8rem; font-weight: 800; color: var(--c-text-2); cursor: pointer;
+}
+.manual-toggle:hover:not(:disabled) { color: var(--c-primary-text); }
+.chevron { transition: transform 0.2s; }
+.chevron.open { transform: rotate(180deg); }
+.manual { margin-top: 8px; }
 .manual-label { margin: 0 0 8px; font-size: 0.72rem; font-weight: 700; color: var(--c-faint); }
 
 .field { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }

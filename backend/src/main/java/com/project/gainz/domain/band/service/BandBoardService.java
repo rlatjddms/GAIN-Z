@@ -11,6 +11,7 @@ import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.BandPostRepository;
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.repository.CharacterRepository;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.notification.enums.NotificationType;
 import com.project.gainz.domain.notification.service.NotificationService;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
@@ -102,13 +103,6 @@ public class BandBoardService {
         return response(findPost(bandId, postId), userId);
     }
 
-    public Post create(Long userId, Long bandId, BandBoardRequest.Post request) {
-        BandMember me = requireMember(userId, bandId);
-        BandPost post = posts.save(new BandPost(me.getBand(), me.getUser(), request.title(), request.content()));
-        notifyPost(post, me, false, null);
-        return response(post, userId);
-    }
-
     // 본문·공지·첨부 변경을 한 트랜잭션으로 저장한다. 파일 오류가 나면 글도 롤백한다.
     public Post save(Long userId, Long bandId, Long postId, BandBoardRequest.Save request, List<MultipartFile> uploads) {
         BandMember me = requireMember(userId, bandId);
@@ -151,14 +145,7 @@ public class BandBoardService {
         if (request.notice() != null) post.changeNotice(request.notice(), request.noticeExpiresAt());
         if (postId == null) post = posts.save(post);
         notifyPost(post, me, wasNotice, oldContent);
-        return response(post, userId);
-    }
-
-    public Post update(Long userId, Long bandId, Long postId, BandBoardRequest.Post request) {
-        BandPost post = ownPost(userId, bandId, postId);
-        String oldContent = post.getContent();
-        post.update(request.title(), request.content());
-        notifyPost(post, requireMember(userId, bandId), true, oldContent);
+        changed(bandId, post.getId(), userId);
         return response(post, userId);
     }
 
@@ -167,10 +154,7 @@ public class BandBoardService {
         post.delete();
         cleanAfterCompletion(post.getFileUrl(), true);
         post.getFiles().forEach(f -> cleanAfterCompletion(f.getKey(), true));
-    }
-
-    public Post notice(Long userId, Long bandId, Long postId, boolean notice) {
-        return notice(userId, bandId, postId, notice, null);
+        changed(bandId, postId, userId);
     }
 
     public Post notice(Long userId, Long bandId, Long postId, boolean notice, Instant expiresAt) {
@@ -182,6 +166,7 @@ public class BandBoardService {
         if (!wasNotice && post.isNoticeActive(Instant.now())) {
             notifyNotice(post, userId, Set.of());
         }
+        changed(bandId, postId, userId);
         return response(post, userId);
     }
 
@@ -189,23 +174,6 @@ public class BandBoardService {
         if (notice && expiresAt != null && !expiresAt.isAfter(Instant.now())) {
             throw new BusinessException(ErrorCode.BAND_NOTICE_EXPIRY_INVALID);
         }
-    }
-
-    public Post attach(Long userId, Long bandId, Long postId, MultipartFile file) {
-        BandPost post = ownPost(userId, bandId, postId);
-        if (post.getFileUrl() == null && post.getFiles().size() >= MAX_ATTACHMENTS) throw new BusinessException(ErrorCode.BAND_FILE_LIMIT);
-        var stored = storage.store(file);
-        cleanAfterCompletion(stored.key(), false);
-        cleanAfterCompletion(post.getFileUrl(), true);
-        post.changeFile(stored.key(), stored.name(), stored.type());
-        return response(post, userId);
-    }
-
-    public Post removeAttachment(Long userId, Long bandId, Long postId) {
-        BandPost post = ownPost(userId, bandId, postId);
-        cleanAfterCompletion(post.getFileUrl(), true);
-        post.changeFile(null, null, null);
-        return response(post, userId);
     }
 
     public record AttachmentFile(Resource resource, String name, String type) {}
@@ -258,13 +226,6 @@ public class BandBoardService {
                 comments.countByPostIdAndContentDeletedFalse(postId));
     }
 
-    @Transactional(readOnly = true)
-    public List<Comment> comments(Long userId, Long bandId, Long postId) {
-        requireMember(userId, bandId);
-        findPost(bandId, postId);
-        return comments.findAllByPostIdOrderByCreatedAtAscIdAsc(postId).stream().map(c -> response(c, userId)).toList();
-    }
-
     public Comment addComment(Long userId, Long bandId, Long postId, BandBoardRequest.Comment request) {
         BandMember me = requireMember(userId, bandId);
         BandPost post = lockedPost(bandId, postId);
@@ -272,12 +233,14 @@ public class BandBoardService {
         if (parent != null && parent.getParent() != null) throw new BusinessException(ErrorCode.BAND_REPLY_DEPTH);
         BandComment saved = comments.save(new BandComment(post, me.getUser(), request.content(), parent));
         notifyComment(post, parent, me, request.content());
+        changed(bandId, postId, userId);
         return response(saved, userId);
     }
 
     public Comment updateComment(Long userId, Long bandId, Long postId, Long commentId, BandBoardRequest.Comment request) {
         BandComment comment = ownComment(userId, bandId, postId, commentId);
         comment.update(request.content());
+        changed(bandId, postId, userId);
         return response(comment, userId);
     }
 
@@ -285,9 +248,16 @@ public class BandBoardService {
         BandComment comment = ownComment(userId, bandId, postId, commentId);
         if (comments.existsByParentId(commentId)) comment.eraseContent();
         else comment.delete();
+        changed(bandId, postId, userId);
     }
 
     /* ---------- 알림 ---------- */
+
+    // 글·댓글·공지가 바뀌었다는 신호를 다른 멤버의 열린 화면으로 (#259)
+    private void changed(Long bandId, Long postId, Long actorId) {
+        List<Long> memberIds = activeUsers(bandId).stream().map(User::getId).toList();
+        notificationService.change(memberIds, actorId, LiveChange.bandBoard(bandId, postId));
+    }
 
     // 새로 불린 멤버에게 멘션, 공지가 새로 켜졌으면 나머지 멤버에게 공지 (한 사람에게 하나만)
     private void notifyPost(BandPost post, BandMember author, boolean wasNotice, String oldContent) {
@@ -295,7 +265,7 @@ public class BandBoardService {
         Set<Long> mentioned = BandMentions.mentionedUserIds(post.getContent(), nicknames);
         mentioned.removeAll(BandMentions.mentionedUserIds(oldContent, nicknames));
         mentioned.remove(author.getUser().getId());
-        String who = nicknames.getOrDefault(author.getUser().getId(), author.getUser().getName());
+        String who = nicknames.getOrDefault(author.getUser().getId(), author.getUser().nameWithoutCharacter());
         notificationService.notifyAll(usersWithIds(post.getBand().getId(), mentioned), author.getUser().getId(),
                 NotificationType.MENTION, post.getBand().getName(),
                 who + " 님이 글에서 나를 불렀어요: " + post.getTitle(), postUrl(post));
@@ -317,7 +287,7 @@ public class BandBoardService {
         Long actorId = me.getUser().getId();
         Long bandId = post.getBand().getId();
         Map<Long, String> nicknames = nicknamesOf(activeUsers(bandId));
-        String who = nicknames.getOrDefault(actorId, me.getUser().getName());
+        String who = nicknames.getOrDefault(actorId, me.getUser().nameWithoutCharacter());
         String excerpt = excerpt(content);
         String bandName = post.getBand().getName();
         String url = postUrl(post);
@@ -358,7 +328,7 @@ public class BandBoardService {
         Map<Long, String> byUser = characters.findAllByUserIdIn(users.stream().map(User::getId).toList()).stream()
                 .collect(Collectors.toMap(c -> c.getUser().getId(), Character::getNickname, (a, b) -> a));
         Map<Long, String> result = new LinkedHashMap<>();
-        users.forEach(u -> result.put(u.getId(), byUser.getOrDefault(u.getId(), u.getName())));
+        users.forEach(u -> result.put(u.getId(), byUser.getOrDefault(u.getId(), u.nameWithoutCharacter())));
         return result;
     }
 
@@ -413,7 +383,7 @@ public class BandBoardService {
 
     private Author author(User user) {
         String nickname = characters.findByUserId(user.getId()).map(c -> c.getNickname()).orElse("멤버");
-        return new Author(user.getId(), nickname, MyInfoResponse.from(user).profileImageUrl());
+        return new Author(user.getId(), nickname, MyInfoResponse.profileImageUrl(user));
     }
 
     private Post response(BandPost post, Long userId) {

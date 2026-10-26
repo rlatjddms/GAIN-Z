@@ -73,7 +73,7 @@ class RecordServiceTest {
 
     @BeforeEach
     void setUp() {
-        me = User.builder().email("me@example.com").password("pw").name("나")
+        me = User.builder().email("me@example.com").password("pw")
                 .provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).build();
         ReflectionTestUtils.setField(me, "id", ME);
         ReflectionTestUtils.setField(me, "createdAt", today.minusDays(20).atStartOfDay());

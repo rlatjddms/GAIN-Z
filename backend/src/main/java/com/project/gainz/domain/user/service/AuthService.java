@@ -43,7 +43,6 @@ public class AuthService {
         User user = User.builder()
                 .email(request.email())
                 .password(encodedPassword)
-                .name(request.name())
                 .provider(SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER)
                 .emailVerified(true)
@@ -86,7 +85,7 @@ public class AuthService {
     public TokenResponse reissue(ReissueRequest request) {
         String refreshTokenValue = request.refreshToken();
 
-        if (!jwtTokenProvider.validateToken(refreshTokenValue)) {
+        if (!jwtTokenProvider.validateRefreshToken(refreshTokenValue)) {
             throw new BusinessException(ErrorCode.INVALID_TOKEN);
         }
 

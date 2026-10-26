@@ -11,8 +11,8 @@
       <div class="content-wrapper">
 
         <template v-if="!isBandMode">
-          <CharacterStage :character="authStore.character">
-            <!-- 요즘 듣는 음악: 레벨·칭호 줄 왼쪽 끝. 누르면 등록·수정, 링크가 있으면 옆 아이콘으로 새 탭 -->
+          <CharacterStage :character="authStore.character" exp-info @exp-info="isExpGuideOpen = true">
+            <!-- 요즘 듣는 음악: 레벨·닉네임 줄 왼쪽 끝. 누르면 등록·수정, 링크가 있으면 옆 아이콘으로 새 탭 -->
             <template #head-start>
               <div class="music-chip" :class="{ empty: !myMusic }">
                 <button class="music-main" :title="myMusic ? '요즘 듣는 음악 바꾸기' : '요즘 듣는 음악 등록'" @click="isMusicOpen = true">
@@ -66,15 +66,20 @@
 
           <RecordsModal :open="isRecordsOpen" :focus-key="recordFocus" @close="closeRecords" />
           <ProfileMusicModal :open="isMusicOpen" @close="isMusicOpen = false" />
+          <ExpGuideModal :open="isExpGuideOpen" :character="authStore.character" @close="isExpGuideOpen = false" />
         </template>
 
         <template v-else>
           <nav class="band-nav">
             <div class="band-tabs-row">
-              <div class="band-tabs-left">
-                <button v-for="band in bandStore.bands" :key="band.id"
-                        :class="{ active: activeBand?.id === band.id }"
-                        @click="bandStore.selectedBandId = band.id">
+              <div ref="bandTabsRef" class="band-tabs-left" :class="{ dragging: !!tabDrag, settling: tabSettling }">
+                <button v-for="band in bandStore.bands" :key="band.id" :data-tab-id="band.id"
+                        :class="{ active: activeBand?.id === band.id, held: tabDrag?.id === band.id, movable: bandStore.bands.length > 1 }"
+                        :style="tabStyle(band.id)"
+                        :title="bandStore.bands.length > 1 ? '끌어서 순서 바꾸기' : null"
+                        @pointerdown="pressTab($event, band.id)"
+                        @contextmenu="tabDrag && $event.preventDefault()"
+                        @click="!tabWasDragged() && (bandStore.selectedBandId = band.id)">
                   <Crown v-if="band.myPosition === 'LEADER'" class="crown" :size="13" :stroke-width="2.4" aria-label="내가 리더" />{{ band.name }}
                 </button>
                 <button v-if="bandStore.loaded" class="add-band-tab"
@@ -119,7 +124,6 @@
                               :reorderable="canReorder" @reorder="onReorder" />
             </div>
             <p v-if="canReorder" class="scene-hint">캐릭터나 아래 이름표를 끌어서 자리를 바꿀 수 있어요.</p>
-            <p v-if="reorderError" class="scene-hint bad">{{ reorderError }}</p>
 
             <div ref="memberListRef" class="member-list"
                  :class="{ reorderable: canReorder, dragging: !!tagDrag, settling: tagSettling }">
@@ -134,7 +138,7 @@
             </div>
           </section>
 
-          <BandStartModal :open="isStartOpen" :initial-tab="startTab"
+          <BandStartModal :open="isStartOpen" :initial-tab="startTab" :initial-code="startCode"
                           :default-part="authStore.character?.instrumentType || 'GUITAR'"
                           @close="isStartOpen = false" @done="onBandStarted" />
 
@@ -168,6 +172,7 @@ import AppHeader from '../components/AppHeader.vue'
 import CharacterStage from '../components/CharacterStage.vue'
 import RecordsModal from '../components/workspace/RecordsModal.vue'
 import ProfileMusicModal from '../components/ProfileMusicModal.vue'
+import ExpGuideModal from '../components/workspace/ExpGuideModal.vue'
 import PreviewButton from '../components/PreviewButton.vue'
 import PracticeLogCard from '../components/workspace/PracticeLogCard.vue'
 import RecordIcon from '../components/workspace/RecordIcon.vue'
@@ -177,7 +182,10 @@ import BandStageScene from '../components/band/BandStageScene.vue'
 import BandStartModal from '../components/band/BandStartModal.vue'
 import BandCommunityPanel from '../components/band/BandCommunityPanel.vue'
 import { useBandStore } from '../stores/band'
-import { MAX_JOINED_BANDS, reorderMembers } from '../api/band'
+import { useToastStore } from '../stores/toast'
+import { useLiveRefresh } from '../composables/useLiveRefresh'
+import { MAX_JOINED_BANDS, reorderMembers, reorderMyBands } from '../api/band'
+import { useTabReorder } from '../components/band/useTabReorder'
 import { apiErrorMessage } from '../api/practice'
 import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
 
@@ -185,11 +193,14 @@ const router = useRouter()
 
 // 요즘 듣는 음악 (홈 칩을 눌러 팝업에서 등록)
 const isMusicOpen = ref(false)
+// 경험치 안내 (#237): 무대의 경험치 줄을 누르면
+const isExpGuideOpen = ref(false)
 const myMusic = computed(() => authStore.profile?.profileMusic || null)
 const myMusicUrl = computed(() => (/^https?:\/\//i.test(myMusic.value?.url || '') ? myMusic.value.url : null))
 const route = useRoute()
 const authStore = useAuthStore()
 const bandStore = useBandStore()
+const toast = useToastStore()
 // 게시글 링크를 직접 열어도 기존 BAND 화면과 상단 탭을 유지한다
 watch(() => route.query.band, (id) => {
   if (id && Number.isFinite(Number(id))) {
@@ -252,13 +263,27 @@ const activeBand = computed(() => bandStore.selectedBand)
 
 // BAND 탭을 열 때마다 내 밴드를 새로 불러온다 (설정 화면에서 바꾼 내용 반영)
 watch(isBandMode, (on) => { if (on) bandStore.fetchMyBands() }, { immediate: true })
+// 멤버가 들어오고 나간 것·밴드 이름·무대·파트 바꾼 것이 새로고침 없이 보이게 (#224, #259)
+useLiveRefresh(() => { if (isBandMode.value) return bandStore.fetchMyBands() }, {
+  types: ['BAND_JOIN', 'BAND_KICKED', 'BAND_LEADER', 'BAND_DISBAND', 'BAND_LEAVE'],
+  changes: c => c.topic === 'BAND',
+})
 
 const isStartOpen = ref(false)
 const startTab = ref('create')
-const openStart = (tab) => {
+const startCode = ref('')
+const openStart = (tab, code = '') => {
   startTab.value = tab
+  startCode.value = code
   isStartOpen.value = true
 }
+// 친구가 보낸 밴드 초대 알림(/home?join=코드, #229): BAND 탭에서 코드가 채워진 가입 창을 연다
+watch(() => route.query.join, (code) => {
+  if (!code) return
+  isBandMode.value = true
+  openStart('join', String(code))
+  router.replace({ query: { ...route.query, join: undefined } })
+}, { immediate: true })
 const onBandStarted = (band) => {
   isStartOpen.value = false
   bandStore.upsertBand(band, true)
@@ -266,20 +291,38 @@ const onBandStarted = (band) => {
 
 // 무대 자리 바꾸기 (리더만). 화면은 먼저 바꾸고, 실패하면 원래 순서로 되돌린다
 const canReorder = computed(() => activeBand.value?.myPosition === 'LEADER' && activeBand.value.members.length > 1)
-const reorderError = ref('')
 const onReorder = async (memberIds) => {
   const band = activeBand.value
   const before = band
   const byId = new Map(band.members.map((m) => [m.memberId, m]))
   bandStore.upsertBand({ ...band, members: memberIds.map((id) => byId.get(id)) })
-  reorderError.value = ''
   try {
     bandStore.upsertBand(await reorderMembers(band.id, memberIds))
   } catch (e) {
     bandStore.upsertBand(before)
-    reorderError.value = apiErrorMessage(e, '자리를 바꾸지 못했어요.')
+    toast.error(apiErrorMessage(e, '자리를 바꾸지 못했어요.'))
   }
 }
+
+// 밴드 탭 순서 바꾸기 (#266, 나한테만). 화면은 먼저 바꾸고, 실패하면 원래 순서로 되돌린다
+const bandTabsRef = ref(null)
+const onTabReorder = async (bandIds) => {
+  const before = bandStore.bands
+  const byId = new Map(before.map((b) => [b.id, b]))
+  bandStore.bands = bandIds.map((id) => byId.get(id))
+  try {
+    bandStore.bands = await reorderMyBands(bandIds)
+  } catch (e) {
+    bandStore.bands = before
+    toast.error(apiErrorMessage(e, '밴드 순서를 바꾸지 못했어요.'))
+  }
+}
+const { drag: tabDrag, settling: tabSettling, press: pressTab, tabStyle, wasDragged: tabWasDragged } = useTabReorder({
+  container: bandTabsRef,
+  ids: () => bandStore.bands.map((b) => b.id),
+  canReorder: () => bandStore.bands.length > 1,
+  onReorder: onTabReorder,
+})
 
 // 이름표 끌기: 캐릭터처럼 잡은 이름표는 손을 따라오고, 나머지는 비켜 준 자리로 미끄러진다.
 // 끄는 동안 DOM 순서는 그대로 두고 transform으로만 움직이며, 무대 캐릭터도 같은 순서로 미리 보여 준다
@@ -427,7 +470,7 @@ button::-moz-focus-inner { border: 0 !important; }
   outline: none;
 }
 .band-tabs-left button:active {
-  border-color: #dee2e6 !important;
+  border-top-color: #dee2e6 !important; border-left-color: #dee2e6 !important; border-right-color: #dee2e6 !important;
   top: 1px !important;
 }
 /* 선택된 탭: 흰색 배경, z-index를 높여 아래 테두리 덮기 */
@@ -484,6 +527,12 @@ button::-moz-focus-inner { border: 0 !important; }
 
 /* 밴드 전용 */
 .crown { margin-right: 4px; color: #f08c00; vertical-align: -1px; }
+/* 탭 끌기 (#266): 꾹 누를 때 글자 선택·길게 누르기 메뉴가 뜨지 않게 */
+.band-tabs-left button.movable { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.band-tabs-left.dragging button { transition: transform 0.18s cubic-bezier(.2,.8,.2,1); cursor: grabbing; }
+/* 잡은 탭: 아래는 무대와 이어지므로 그림자는 위·옆으로만 */
+.band-tabs-left.dragging button.held { transition: none; box-shadow: 0 -4px 12px rgba(23, 36, 59, 0.12); }
+.band-tabs-left.settling button { transition: none; }
 .band-tabs-left .add-band-tab { font-weight: 900; font-size: 1rem; padding: 5px 16px; color: var(--c-primary-text); }
 .band-tabs-left .add-band-tab:disabled { color: #ced4da; cursor: not-allowed; }
 
@@ -499,9 +548,9 @@ button::-moz-focus-inner { border: 0 !important; }
 .band-info h2 { margin: 0 0 4px; font-size: 1.4rem; font-weight: 800; }
 .band-info p { margin: 0; font-size: 0.82rem; color: var(--c-muted); }
 .band-tools { display: flex; gap: 6px; flex-wrap: wrap; }
-.band-scene { margin-top: 16px; border-radius: 18px; overflow: hidden; border: 1px solid var(--c-line-soft); }
+/* 무대는 카드 좌우 끝까지 (#232): 솔로 무대처럼 꽉 채워야 배경·캐릭터가 같은 크기로 보인다 (카드 안쪽 여백만큼 바깥으로) */
+.band-scene { margin: 16px -24px 0; overflow: hidden; border-top: 1px solid var(--c-line-soft); border-bottom: 1px solid var(--c-line-soft); }
 .scene-hint { margin: 8px 0 0; text-align: center; font-size: 0.72rem; color: var(--c-faint); font-weight: 600; }
-.scene-hint.bad { color: var(--c-danger); font-weight: 700; }
 
 .member-list { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .m-item { text-align: center; padding: 8px 12px; border-radius: 12px; background: var(--c-bg); min-width: 88px; }
@@ -582,6 +631,7 @@ button::-moz-focus-inner { border: 0 !important; }
   .footer-grid > :last-child { order: -1; }
   .stage { padding: 40px 16px; margin-bottom: 12px; }
   .band-room { padding: 16px; }
+  .band-scene { margin-left: -16px; margin-right: -16px; }
   .band-info h2 { font-size: 1.15rem; }
   .band-tabs-row { gap: 8px; }
   .band-tabs-left { overflow-x: auto; scrollbar-width: none; min-width: 0; }
@@ -597,7 +647,7 @@ button::-moz-focus-inner { border: 0 !important; }
   .card-btn:hover { transform: none; box-shadow: none; }
 }
 
-/* 넓은 화면: 음악은 레벨·칭호 줄 왼쪽 끝, 옷장은 경험치 줄 오른쪽 끝 (무대 위에 얹힘) */
+/* 넓은 화면: 음악은 레벨·닉네임 줄 왼쪽 끝, 옷장은 경험치 줄 오른쪽 끝 (무대 위에 얹힘) */
 .music-chip { top: 50%; left: 20px; transform: translateY(-50%); }
 .edit-char-btn { top: 50%; bottom: auto; right: 20px; transform: translateY(-50%); }
 /* 휴대폰: 둘 다 흰 바탕 줄 안. 음악은 줄 왼쪽 끝(남는 폭만큼 줄어듦), 옷장은 경험치 줄 오른쪽 끝 */

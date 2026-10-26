@@ -104,3 +104,10 @@ export function formatTime(seconds) {
   const minutes = Math.floor(total / 60)
   return `${minutes}:${(total % 60).toFixed(1).padStart(4, '0')}`
 }
+
+// 카운트인 중 지금 몇 번째 박인지(1부터) (#234). left: 반주가 시작하기까지 남은 초. 카운트인이 아니거나 첫 클릭 전이면 0
+export function countInBeatAt(left, bpm, countIn) {
+  if (!bpm || !countIn || left <= 0) return 0
+  const beat = countIn - Math.ceil(left / (60 / bpm) - 1e-6) + 1
+  return beat >= 1 && beat <= countIn ? beat : 0
+}

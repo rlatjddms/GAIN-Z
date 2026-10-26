@@ -27,6 +27,7 @@ import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.record.enums.RecordMetric;
 import com.project.gainz.domain.record.event.RecordCheckEvent;
 import org.junit.jupiter.api.Test;
@@ -71,11 +72,11 @@ class FriendServiceTest {
 
     /* ---------- 준비 ---------- */
 
+    // 캐릭터가 없으면 이메일 앞부분이 보이는 이름이라 name으로 이메일을 만든다 (#227)
     private User user(Long id, String name) {
         User user = User.builder()
-                .email("user" + id + "@example.com")
+                .email(name + "@example.com")
                 .password("pw")
-                .name(name)
                 .provider(SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER)
                 .build();
@@ -175,6 +176,7 @@ class FriendServiceTest {
             return saved;
         });
         when(characterRepository.findAllByUserIdIn(anyCollection())).thenReturn(List.of(character(other, "쿵쿵")));
+        when(notificationService.nicknameOf(me)).thenReturn("유저1");
 
         // 앞뒤 공백·소문자도 받는다
         FriendRequestResponse response = friendService.sendRequest(ME, new FriendRequestCreateRequest("  abcd2345 "));
@@ -186,7 +188,7 @@ class FriendServiceTest {
         assertThat(captor.getValue().getStatus()).isEqualTo(FriendshipStatus.PENDING);
         assertThat(response.requestId()).isEqualTo(50L);
         assertThat(response.user().userId()).isEqualTo(OTHER);
-        assertThat(response.user().name()).isEqualTo("드러머");
+        assertThat(response.user().name()).isEqualTo("쿵쿵");
         assertThat(response.user().character().nickname()).isEqualTo("쿵쿵");
         verify(notificationService).notify(other, NotificationType.FRIEND_REQUEST, "친구", "유저1 님이 친구 신청을 보냈어요", "/friends");
     }
@@ -295,6 +297,7 @@ class FriendServiceTest {
         Friendship request = friendship(7L, sender, me, false);
         when(friendshipRepository.findById(7L)).thenReturn(Optional.of(request));
         when(characterRepository.findAllByUserIdIn(anyCollection())).thenReturn(List.of());
+        when(notificationService.nicknameOf(me)).thenReturn("유저1");
 
         FriendResponse response = friendService.acceptRequest(ME, 7L);
 
@@ -378,9 +381,10 @@ class FriendServiceTest {
 
         List<FriendResponse> friends = friendService.getFriends(ME);
 
-        assertThat(friends).extracting(FriendResponse::name).containsExactly("가수", "베이시스트");
-        assertThat(friends.get(0).character().nickname()).isEqualTo("보컬왕");
-        assertThat(friends.get(1).character()).isNull();
+        // 캐릭터가 있으면 닉네임, 없으면 이메일 앞부분
+        assertThat(friends).extracting(FriendResponse::name).containsExactly("베이시스트", "보컬왕");
+        assertThat(friends.get(1).character().nickname()).isEqualTo("보컬왕");
+        assertThat(friends.get(0).character()).isNull();
         assertThat(friends).allMatch(f -> f.since() != null);
     }
 
@@ -431,7 +435,7 @@ class FriendServiceTest {
 
         List<BandMateResponse> mates = friendService.getBandMates(ME);
 
-        assertThat(mates).extracting(BandMateResponse::name).containsExactly("가보컬", "하드러머");
+        assertThat(mates).extracting(BandMateResponse::name).containsExactly("가보컬", "쿵쿵");
         assertThat(mates.get(0).bandNames()).containsExactly("둘째 밴드");
         assertThat(mates.get(1).bandNames()).containsExactly("첫 밴드", "둘째 밴드");
         assertThat(mates.get(1).character().nickname()).isEqualTo("쿵쿵");
@@ -540,5 +544,16 @@ class FriendServiceTest {
         friendService.removeAll(ME);
 
         verify(friendshipRepository).deleteAll(all);
+    }
+
+    // 신청을 거절·취소하면 (알림은 없지만) 상대의 친구 화면에 신호를 보낸다 (#259)
+    @Test
+    void 신청을_지우면_상대에게_친구_신호를_보낸다() {
+        Friendship received = friendship(7L, user(OTHER), user(ME), false);
+        when(friendshipRepository.findById(7L)).thenReturn(Optional.of(received));
+
+        friendService.deleteRequest(ME, 7L);
+
+        verify(notificationService).change(List.of(OTHER), ME, LiveChange.friends());
     }
 }

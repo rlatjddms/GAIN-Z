@@ -5,6 +5,7 @@ import com.project.gainz.domain.band.dto.request.BandCreateRequest;
 import com.project.gainz.domain.band.dto.request.BandJoinRequest;
 import com.project.gainz.domain.band.dto.request.BandLeaderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberOrderRequest;
+import com.project.gainz.domain.band.dto.request.BandOrderRequest;
 import com.project.gainz.domain.band.dto.request.BandMemberPartRequest;
 import com.project.gainz.domain.band.dto.request.BandStageRequest;
 import com.project.gainz.domain.band.dto.request.BandUpdateRequest;
@@ -30,6 +31,7 @@ import com.project.gainz.global.common.enums.InstrumentType;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.domain.notification.enums.NotificationType;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.record.enums.RecordMetric;
 import com.project.gainz.domain.record.event.RecordCheckEvent;
 import org.junit.jupiter.api.Test;
@@ -71,6 +73,7 @@ class BandServiceTest {
     @Mock private CharacterRepository characterRepository;
 
     @Mock private NotificationService notificationService;
+    @Mock private com.project.gainz.domain.friend.service.FriendService friendService;
     @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private BandService bandService;
 
@@ -80,7 +83,6 @@ class BandServiceTest {
         User user = User.builder()
                 .email("user" + id + "@example.com")
                 .password("pw")
-                .name("유저" + id)
                 .provider(SocialProvider.LOCAL)
                 .role(UserRole.ROLE_USER)
                 .build();
@@ -227,6 +229,50 @@ class BandServiceTest {
         });
     }
 
+    // 내가 들어간 밴드 3개 (밴드 id 10·11·12, 멤버 id 1·2·3 = 들어온 순서)
+    private List<BandMember> myThreeBands() {
+        User me = user(MEMBER_ID);
+        List<BandMember> mine = new ArrayList<>();
+        for (long i = 0; i < 3; i++) {
+            Band b = Band.builder().name("밴드 " + (10 + i)).leader(user(LEADER_ID)).inviteCode("CODE000" + i).build();
+            ReflectionTestUtils.setField(b, "id", 10 + i);
+            mine.add(member(1 + i, b, me, Position.MEMBER, InstrumentType.BASS));
+        }
+        when(bandMemberRepository.findAllByUserIdOrderByIdAsc(MEMBER_ID)).thenReturn(mine);
+        lenient().when(bandMemberRepository.findAllByBandIdInOrderByIdAsc(anyCollection())).thenReturn(mine);
+        lenient().when(characterRepository.findAllByUserIdIn(anyCollection())).thenReturn(List.of());
+        return mine;
+    }
+
+    @Test
+    void 내_밴드_목록은_내가_놓은_탭_순서대로_순서가_없는_밴드는_들어온_순서로_뒤에() {
+        List<BandMember> mine = myThreeBands();
+        mine.get(1).changeTabOrder(1);
+        mine.get(2).changeTabOrder(0);
+
+        assertThat(bandService.getMyBands(MEMBER_ID)).extracting(BandResponse::id).containsExactly(12L, 11L, 10L);
+    }
+
+    @Test
+    void 탭_순서를_바꾸면_그_순서로_저장하고_돌려준다() {
+        List<BandMember> mine = myThreeBands();
+
+        List<BandResponse> bands = bandService.reorderMyBands(MEMBER_ID, new BandOrderRequest(List.of(11L, 12L, 10L)));
+
+        assertThat(bands).extracting(BandResponse::id).containsExactly(11L, 12L, 10L);
+        assertThat(mine).extracting(BandMember::getTabOrder).containsExactly(2, 0, 1);
+    }
+
+    @Test
+    void 탭_순서는_내_밴드_전부를_한_번씩_보내야_한다() {
+        List<BandMember> mine = myThreeBands();
+
+        assertError(() -> bandService.reorderMyBands(MEMBER_ID, new BandOrderRequest(List.of(11L, 10L))), ErrorCode.INVALID_BAND_ORDER);
+        assertError(() -> bandService.reorderMyBands(MEMBER_ID, new BandOrderRequest(List.of(11L, 11L, 10L))), ErrorCode.INVALID_BAND_ORDER);
+        assertError(() -> bandService.reorderMyBands(MEMBER_ID, new BandOrderRequest(List.of(11L, 12L, 99L))), ErrorCode.INVALID_BAND_ORDER);
+        assertThat(mine).extracting(BandMember::getTabOrder).containsOnlyNulls();
+    }
+
     @Test
     void 밴드가_없으면_빈_목록이다() {
         when(bandMemberRepository.findAllByUserIdOrderByIdAsc(LEADER_ID)).thenReturn(List.of());
@@ -283,6 +329,69 @@ class BandServiceTest {
         verify(eventPublisher).publishEvent(RecordCheckEvent.of(OTHER_ID, RecordMetric.BANDS));
         verify(notificationService).notifyAll(eq(List.of(band.getLeader())), eq(OTHER_ID), eq(NotificationType.BAND_JOIN),
                 eq("락앤롤 베이비"), anyString(), eq("/bands/" + BAND_ID + "/settings"));
+    }
+
+    /* ---------- 친구에게 밴드 초대 (#229) ---------- */
+
+    @Test
+    void 멤버는_친구에게_초대_알림을_보내고_알림을_누르면_초대_코드_가입_창이_열린다() {
+        Fixture f = fixture();
+        User friend = user(OTHER_ID);
+        when(friendService.relationOf(MEMBER_ID, OTHER_ID)).thenReturn(com.project.gainz.domain.friend.enums.FriendRelation.FRIEND);
+        when(bandMemberRepository.findByBandIdAndUserId(BAND_ID, OTHER_ID)).thenReturn(Optional.empty());
+        when(userRepository.findById(OTHER_ID)).thenReturn(Optional.of(friend));
+        when(bandMemberRepository.findAllByBandIdOrderByIdAsc(BAND_ID)).thenReturn(f.all());
+        when(notificationService.nicknameOf(f.member().getUser())).thenReturn("기타왕");
+
+        bandService.inviteFriend(MEMBER_ID, BAND_ID, new com.project.gainz.domain.band.dto.request.BandInviteRequest(OTHER_ID));
+
+        verify(notificationService).notify(friend, NotificationType.BAND_INVITE, "락앤롤 베이비",
+                "기타왕 님이 밴드에 초대했어요. 눌러서 들어가 보세요", "/home?join=ABCD2345");
+    }
+
+    @Test
+    void 친구가_아니면_초대할_수_없다() {
+        fixture();
+        when(friendService.relationOf(MEMBER_ID, OTHER_ID)).thenReturn(com.project.gainz.domain.friend.enums.FriendRelation.SENT);
+
+        assertError(() -> bandService.inviteFriend(MEMBER_ID, BAND_ID, new com.project.gainz.domain.band.dto.request.BandInviteRequest(OTHER_ID)),
+                ErrorCode.BAND_INVITE_NOT_FRIEND);
+        verify(notificationService, never()).notify(any(), any(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void 이미_밴드에_있는_친구는_초대할_수_없다() {
+        Fixture f = fixture();
+        when(friendService.relationOf(LEADER_ID, MEMBER_ID)).thenReturn(com.project.gainz.domain.friend.enums.FriendRelation.FRIEND);
+
+        assertError(() -> bandService.inviteFriend(LEADER_ID, BAND_ID, new com.project.gainz.domain.band.dto.request.BandInviteRequest(MEMBER_ID)),
+                ErrorCode.BAND_INVITE_ALREADY_MEMBER);
+    }
+
+    @Test
+    void 인원이_찬_밴드로는_초대할_수_없다() {
+        Band band = band(user(LEADER_ID));
+        List<BandMember> full = new ArrayList<>();
+        full.add(member(100L, band, band.getLeader(), Position.LEADER, InstrumentType.GUITAR));
+        for (long i = 1; i < BandService.MAX_MEMBERS; i++) {
+            full.add(member(100L + i, band, user(100L + i), Position.MEMBER, InstrumentType.GUITAR));
+        }
+        when(bandMemberRepository.findByBandIdAndUserId(BAND_ID, LEADER_ID)).thenReturn(Optional.of(full.get(0)));
+        when(bandMemberRepository.findByBandIdAndUserId(BAND_ID, OTHER_ID)).thenReturn(Optional.empty());
+        when(bandMemberRepository.findAllByBandIdOrderByIdAsc(BAND_ID)).thenReturn(full);
+        when(friendService.relationOf(LEADER_ID, OTHER_ID)).thenReturn(com.project.gainz.domain.friend.enums.FriendRelation.FRIEND);
+
+        assertError(() -> bandService.inviteFriend(LEADER_ID, BAND_ID, new com.project.gainz.domain.band.dto.request.BandInviteRequest(OTHER_ID)),
+                ErrorCode.BAND_FULL);
+    }
+
+    @Test
+    void 밴드_멤버가_아니면_초대할_수_없다() {
+        when(bandMemberRepository.findByBandIdAndUserId(BAND_ID, OTHER_ID)).thenReturn(Optional.empty());
+        when(bandRepository.existsById(BAND_ID)).thenReturn(true);
+
+        assertError(() -> bandService.inviteFriend(OTHER_ID, BAND_ID, new com.project.gainz.domain.band.dto.request.BandInviteRequest(MEMBER_ID)),
+                ErrorCode.NOT_BAND_MEMBER);
     }
 
     @Test
@@ -623,5 +732,17 @@ class BandServiceTest {
         assertThat(f.band().getIsDeleted()).isFalse();
         verify(notificationService).notify(eq(f.leader().getUser()), eq(NotificationType.BAND_LEAVE), eq(f.band().getName()),
                 eq("드러머 님이 탈퇴해서 밴드를 나갔어요"), eq("/bands/" + BAND_ID + "/settings"));
+    }
+
+    // 내보낸 사람도 홈의 밴드 목록이 바뀌어야 하니 남은 멤버와 함께 신호를 받는다 (#259)
+    @Test
+    void 내보내면_남은_멤버와_내보낸_사람에게_밴드_신호를_보낸다() {
+        Fixture f = fixture();
+        when(bandMemberRepository.findByIdAndBandId(200L, BAND_ID)).thenReturn(Optional.of(f.member()));
+        membersAre(f.all());
+
+        bandService.removeMember(LEADER_ID, BAND_ID, 200L);
+
+        verify(notificationService).change(List.of(LEADER_ID, MEMBER_ID), LEADER_ID, LiveChange.band(BAND_ID));
     }
 }

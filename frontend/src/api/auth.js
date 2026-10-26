@@ -25,6 +25,13 @@ export async function resetPassword(token, newPassword) {
   await axiosInstance.post('/api/v1/auth/password-reset/confirm', { token, newPassword })
 }
 
+// 소셜 로그인을 마치고 받은 한 번용 코드(1분)를 토큰으로 바꾼다 (#281). 토큰을 주소에 싣지 않으려고
+// → { accessToken, refreshToken }
+export async function exchangeOAuthCode(code) {
+  const response = await axiosInstance.post('/api/v1/auth/oauth2/token', { code })
+  return response.data.data
+}
+
 // 백엔드 ErrorCode와 같은 값
 export const DUPLICATE_EMAIL = 'U001'
 // 인증 표가 없거나 30분이 지남 → 다시 인증

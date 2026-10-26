@@ -7,7 +7,6 @@ import com.project.gainz.domain.user.service.SocialAccountService;
 import com.project.gainz.domain.user.dto.request.PasswordChangeRequest;
 import com.project.gainz.domain.user.dto.request.ProfileMusicRequest;
 import com.project.gainz.domain.user.dto.request.ProfileVisibilityRequest;
-import com.project.gainz.domain.user.dto.request.UpdateNameRequest;
 import com.project.gainz.domain.user.dto.request.WithdrawRequest;
 import com.project.gainz.domain.user.dto.response.MyInfoResponse;
 import com.project.gainz.domain.user.dto.response.UserProfileResponse;
@@ -52,14 +51,6 @@ public class UserController {
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(ApiResponse.success(userService.getMyInfo(principal.getUserId())));
-    }
-
-    @PatchMapping("/me")
-    public ResponseEntity<ApiResponse<MyInfoResponse>> updateName(
-            @Valid @RequestBody UpdateNameRequest request,
-            @AuthenticationPrincipal UserPrincipal principal
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(userService.updateName(principal.getUserId(), request)));
     }
 
     // 요즘 듣는 음악 설정·지우기

@@ -20,30 +20,32 @@ spring:
         connection:
           handling_mode: DELAYED_ACQUISITION_AND_RELEASE_AFTER_TRANSACTION
 
-  # 악보 파일 올리기: 한 장 10MB (SheetFileStorage.MAX_FILE_BYTES와 같게), 한 번에 100MB
+  # 파일 올리기: 한 파일 30MB(잼 음원 BandAttachmentStorage.AUDIO_MAX_BYTES가 가장 큼), 한 번에 100MB.
+  # 종류별 한도(악보 10MB·첨부 10MB 등)는 각 저장소 코드에서 따로 확인한다
   servlet:
     multipart:
       max-file-size: 30MB
       max-request-size: 100MB
 
   # 소셜 로그인에서 비밀이 아닌 설정. client-id·client-secret은 secret/prod 프로필에서 넣는다
+  # 이메일만 받는다 (#227: 이름·닉네임은 받지 않음). 네이버는 scope가 아니라 개발자 센터의 제공 정보 설정을 따른다
   security:
     oauth2:
       client:
         registration:
           google:
-            scope: profile, email
+            scope: email
           kakao:
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             client-name: Kakao
-            scope: profile_nickname, account_email
+            scope: account_email
           naver:
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             client-name: Naver
-            scope: name, email
+            scope: email
         provider:
           kakao:
             authorization-uri: https://kauth.kakao.com/oauth/authorize

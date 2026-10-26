@@ -37,6 +37,9 @@ import { usePracticeTimerStore } from '../../stores/practiceTimer'
 import { usePracticeStore } from '../../stores/practice'
 import { apiErrorMessage } from '../../api/practice'
 import { durationText } from '../../constants/practice'
+import { useToastStore } from '../../stores/toast'
+
+const toast = useToastStore()
 
 // 확인 간격과 답을 기다리는 시간
 const CHECK_MS = 2 * 60 * 60 * 1000
@@ -80,6 +83,8 @@ const saveParts = async (parts) => {
   } catch (e) {
     timer.setPending(remaining)
     error.value = `기록을 저장하지 못했어요. 연습 화면에서 다시 저장할 수 있어요. ${apiErrorMessage(e)}`
+    // 멈추면 이 창이 닫혀서 위 문구가 안 보일 수 있으니 공통 알림으로도 (#267)
+    toast.error(error.value)
   } finally {
     saving.value = false
   }

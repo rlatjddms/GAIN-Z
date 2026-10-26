@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "node --test --test-concurrency=1 tests/jam-audio.test.mjs tests/band-jams.test.mjs tests/band-setlists.test.mjs tests/band-community.test.mjs",
     "test:community": "node --test tests/band-community.test.mjs",
     "test:setlists": "node --test tests/band-setlists.test.mjs",
     "test:jams": "node --test tests/jam-audio.test.mjs tests/band-jams.test.mjs"

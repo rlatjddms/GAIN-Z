@@ -50,17 +50,18 @@ class AccountMailServiceTest {
     @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private MailClient mailClient;
+    @Mock private com.project.gainz.domain.character.repository.CharacterRepository characterRepository;
 
     private AccountMailService service;
 
     @BeforeEach
     void setUp() {
-        service = new AccountMailService(userRepository, emailTokenRepository, signupEmailCodeRepository, refreshTokenRepository, passwordEncoder,
+        service = new AccountMailService(userRepository, characterRepository, emailTokenRepository, signupEmailCodeRepository, refreshTokenRepository, passwordEncoder,
                 mailClient, "https://gainz.example/");
     }
 
     private User user(Boolean verified, String password) {
-        User user = User.builder().email("me@test.invalid").name("나").password(password)
+        User user = User.builder().email("me@test.invalid").password(password)
                 .provider(SocialProvider.LOCAL).role(UserRole.ROLE_USER).emailVerified(verified).build();
         ReflectionTestUtils.setField(user, "id", 7L);
         return user;
@@ -234,7 +235,7 @@ class AccountMailServiceTest {
         when(userRepository.findByEmail("none@test.invalid")).thenReturn(Optional.empty());
         assertThat(service.requestPasswordReset("none@test.invalid").status()).isEqualTo("NOT_FOUND");
 
-        User social = User.builder().email("social@test.invalid").name("소셜").provider(SocialProvider.KAKAO)
+        User social = User.builder().email("social@test.invalid").provider(SocialProvider.KAKAO)
                 .role(UserRole.ROLE_USER).emailVerified(true).build();
         when(userRepository.findByEmail("social@test.invalid")).thenReturn(Optional.of(social));
         var result = service.requestPasswordReset("social@test.invalid");

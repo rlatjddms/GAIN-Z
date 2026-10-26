@@ -8,12 +8,17 @@ import listeningStage from '../assets/stages/listening.png'
 // 한쪽을 바꾸면 같이 바꾼다
 export const MAX_LEVEL = 30
 
+// 백엔드 ExpPolicy와 같은 규칙 (#237 경험치 안내): 연습 1분 = 1 EXP, 하루 300분까지, 직접 입력은 하루 30분까지
+// 한쪽을 바꾸면 같이 바꾼다
+export const EXP_PER_MINUTE = 1
+export const MAX_EXP_MINUTES_PER_DAY = 300
+export const MANUAL_EXP_MINUTES_PER_DAY = 30
+
 // 레벨 구간별 무대(배경) 및 캐릭터 연출 에셋
 export const LEVEL_TIERS = [
   {
     key: 'ROOKIE',
     floorY: 58,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
-    name: '방구석 락스타',
     minLevel: 1,
     maxLevel: 9,
     background: rookieStage,
@@ -27,7 +32,6 @@ export const LEVEL_TIERS = [
   {
     key: 'RISING',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
-    name: '동네 클럽 신예',
     minLevel: 10,
     maxLevel: 19,
     background: clubStage,
@@ -41,7 +45,6 @@ export const LEVEL_TIERS = [
   {
     key: 'PRO',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
-    name: '투어 뮤지션',
     minLevel: 20,
     maxLevel: 29,
     background: concertStage,
@@ -55,7 +58,6 @@ export const LEVEL_TIERS = [
   {
     key: 'LEGEND',
     floorY: 54,   // 무대 배경(208×72)에서 캐릭터 발이 닿는 줄
-    name: '전설의 락스타',
     minLevel: 30,
     maxLevel: 30,
     background: legendStage,
@@ -74,7 +76,6 @@ export const STAGE_BACKGROUNDS = [
   {
     key: 'LISTENING_ROOM',
     floorY: 58,
-    name: '리스닝 룸',
     background: listeningStage,
     accent: '#ae3ec9',
     accentSoft: '#f8f0fc',

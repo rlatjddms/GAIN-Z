@@ -2,6 +2,7 @@ package com.project.gainz.domain.notification.service;
 
 import com.project.gainz.domain.character.entity.Character;
 import com.project.gainz.domain.character.repository.CharacterRepository;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.notification.dto.response.NotificationResponse;
 import com.project.gainz.domain.notification.entity.Notification;
 import com.project.gainz.domain.notification.entity.NotificationOff;
@@ -32,6 +33,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -105,6 +107,27 @@ public class NotificationService {
         });
     }
 
+    // 알림 없이 "바뀌었다"는 신호만 (#259). 한 사람(actorId)은 이미 화면에 반영됐으니 빼고, 원래 일이 커밋된 뒤에 보낸다.
+    // DB에 남기지 않고 지금 연결된 화면에만 보낸다 (못 받은 화면은 다시 붙거나 돌아올 때 다시 불러온다)
+    public void change(Collection<Long> userIds, Long actorId, LiveChange change) {
+        Set<Long> targets = new LinkedHashSet<>();
+        for (Long id : userIds) {
+            if (id != null && !id.equals(actorId)) targets.add(id);
+        }
+        if (targets.isEmpty()) return;
+        Runnable send = () -> targets.forEach(id -> notificationStream.sendChange(id, change));
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            send.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                send.run();
+            }
+        });
+    }
+
     // 저장(커밋)된 알림만 받는 사람의 열린 화면으로
     private void push(List<Notification> saved) {
         if (saved == null) return;
@@ -119,10 +142,10 @@ public class NotificationService {
         return notificationStream.subscribe(userId, notificationRepository.countByReceiverIdAndIsReadFalse(userId));
     }
 
-    // 밴드 알림에 쓰는 이름 (밴드 화면처럼 캐릭터 닉네임, 없으면 계정 이름)
+    // 알림에 쓰는 이름 (캐릭터 닉네임, 없으면 User.nameWithoutCharacter)
     @Transactional(readOnly = true)
     public String nicknameOf(User user) {
-        return characterRepository.findByUserId(user.getId()).map(Character::getNickname).orElse(user.getName());
+        return characterRepository.findByUserId(user.getId()).map(Character::getNickname).orElseGet(user::nameWithoutCharacter);
     }
 
     /* ---------- 조회·읽음·지우기 ---------- */

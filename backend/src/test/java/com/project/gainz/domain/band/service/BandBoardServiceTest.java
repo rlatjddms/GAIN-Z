@@ -12,6 +12,7 @@ import com.project.gainz.domain.band.repository.BandMemberRepository;
 import com.project.gainz.domain.band.repository.BandPostRepository;
 import com.project.gainz.domain.character.repository.CharacterRepository;
 import com.project.gainz.domain.notification.service.NotificationService;
+import com.project.gainz.domain.notification.dto.response.LiveChange;
 import com.project.gainz.domain.user.entity.User;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
@@ -110,7 +111,7 @@ class BandBoardServiceTest {
     }
 
     private User user(long id) {
-        User user = User.builder().name("멤버").email(id + "@example.com").build();
+        User user = User.builder().email(id + "@example.com").build();
         ReflectionTestUtils.setField(user, "id", id);
         return user;
     }
@@ -286,7 +287,7 @@ class BandBoardServiceTest {
 
     @Test void nonMemberCannotReadOrWrite() {
         fails(() -> service.list(9L, 10L, 0, 12), ErrorCode.NOT_BAND_MEMBER);
-        fails(() -> service.create(9L, 10L, new BandBoardRequest.Post("제목", "내용")), ErrorCode.NOT_BAND_MEMBER);
+        fails(() -> service.save(9L, 10L, null, new BandBoardRequest.Save("제목", "내용", null, List.of()), List.of()), ErrorCode.NOT_BAND_MEMBER);
         verifyNoInteractions(posts, storage);
     }
 
@@ -310,7 +311,7 @@ class BandBoardServiceTest {
             ReflectionTestUtils.setField(saved, "id", 20L);
             return saved;
         });
-        var response = service.create(1L, 10L, new BandBoardRequest.Post(" 제목 ", " 본문 "));
+        var response = service.save(1L, 10L, null, new BandBoardRequest.Save(" 제목 ", " 본문 ", null, List.of()), List.of());
         assertThat(response.title()).isEqualTo("제목");
         assertThat(response.author().userId()).isEqualTo(1L);
         assertThat(response.mine()).isTrue();
@@ -321,20 +322,20 @@ class BandBoardServiceTest {
         BandMember leader = member(1, Position.LEADER);
         BandPost post = post(leader);
         ReflectionTestUtils.setField(post, "author", user(2));
-        fails(() -> service.update(1L, 10L, 20L, new BandBoardRequest.Post("변경", "내용")), ErrorCode.BAND_AUTHOR_ONLY);
+        fails(() -> service.save(1L, 10L, 20L, new BandBoardRequest.Save("변경", "내용", null, List.of()), List.of()), ErrorCode.BAND_AUTHOR_ONLY);
         fails(() -> service.delete(1L, 10L, 20L), ErrorCode.BAND_AUTHOR_ONLY);
     }
 
     @Test void memberCannotPinNotice() {
         member(1, Position.MEMBER);
-        fails(() -> service.notice(1L, 10L, 20L, true), ErrorCode.BAND_LEADER_ONLY);
+        fails(() -> service.notice(1L, 10L, 20L, true, null), ErrorCode.BAND_LEADER_ONLY);
     }
 
     @Test void leaderCanPinAndUnpinOtherAuthorsPost() {
         BandPost post = post(member(1, Position.LEADER));
         ReflectionTestUtils.setField(post, "author", user(2));
-        assertThat(service.notice(1L, 10L, 20L, true).notice()).isTrue();
-        assertThat(service.notice(1L, 10L, 20L, false).notice()).isFalse();
+        assertThat(service.notice(1L, 10L, 20L, true, null).notice()).isTrue();
+        assertThat(service.notice(1L, 10L, 20L, false, null).notice()).isFalse();
     }
 
     @Test void postInDifferentBandIsNotVisible() {
@@ -349,8 +350,8 @@ class BandBoardServiceTest {
         service.deleteComment(1L, 10L, 20L, 30L);
         assertThat(root.isContentDeleted()).isTrue();
         assertThat(root.getIsDeleted()).isFalse();
-        when(comments.findAllByPostIdOrderByCreatedAtAscIdAsc(20L)).thenReturn(List.of(root));
-        var response = service.comments(1L, 10L, 20L).get(0);
+        when(comments.findRootPage(eq(20L), any())).thenReturn(new PageImpl<>(List.of(root)));
+        var response = service.commentPage(1L, 10L, 20L, 0, 20).content().get(0);
         assertThat(response.author()).isNull();
         assertThat(response.mine()).isFalse();
         assertThat(response.content()).isEqualTo("삭제된 댓글");
@@ -387,28 +388,17 @@ class BandBoardServiceTest {
         verifyNoInteractions(storage);
     }
 
-    @Test void replacementCleansOldFileOnlyAfterCommit() {
-        BandPost post = post(member(1, Position.MEMBER));
-        post.changeFile("old", "old.png", "image/png");
-        var file = new MockMultipartFile("file", "new.png", "image/png", new byte[] {1});
-        when(storage.store(file)).thenReturn(new BandAttachmentStorage.StoredFile("new", "new.png", "image/png"));
-        TransactionSynchronizationManager.initSynchronization();
-        service.attach(1L, 10L, 20L, file);
-        verify(storage, never()).delete(anyString());
-        TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_COMMITTED));
-        verify(storage).delete("old");
-        verify(storage, never()).delete("new");
-    }
+    // 글·댓글이 바뀌면 같은 밴드의 (나간 사람 빼고) 멤버에게 신호를 보낸다. 한 사람은 NotificationService가 뺀다 (#259)
+    @Test void commentChangeIsSignalledToActiveBandMembers() {
+        BandMember me = member(1, Position.MEMBER);
+        BandMember other = BandMember.builder().band(me.getBand()).user(user(2)).position(Position.MEMBER).build();
+        BandMember left = BandMember.builder().band(me.getBand()).user(user(3)).position(Position.MEMBER).build();
+        left.delete();
+        comment(post(me), 30, null);
+        when(members.findAllByBandIdOrderByIdAsc(10L)).thenReturn(List.of(me, other, left));
 
-    @Test void attachmentRollbackCleansNewFileOnly() {
-        BandPost post = post(member(1, Position.MEMBER));
-        post.changeFile("old", "old.png", "image/png");
-        var file = new MockMultipartFile("file", "new.png", "image/png", new byte[] {1});
-        when(storage.store(file)).thenReturn(new BandAttachmentStorage.StoredFile("new", "new.png", "image/png"));
-        TransactionSynchronizationManager.initSynchronization();
-        service.attach(1L, 10L, 20L, file);
-        TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
-        verify(storage).delete("new");
-        verify(storage, never()).delete("old");
+        service.deleteComment(1L, 10L, 20L, 30L);
+
+        verify(notificationService).change(List.of(1L, 2L), 1L, LiveChange.bandBoard(10L, 20L));
     }
 }

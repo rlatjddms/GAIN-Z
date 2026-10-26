@@ -10,16 +10,6 @@
 
       <form class="signup-form" @submit.prevent="handleSignup">
         <div class="input-grid">
-          <div class="input-wrapper">
-            <input
-              v-model="formData.name"
-              type="text"
-              placeholder="이름"
-              class="gz-input"
-              required
-            />
-          </div>
-
           <!-- 이메일 인증 (#193): 인증하기 → 메일로 받은 6자리 코드 → 맞으면 비밀번호 칸이 열린다 -->
           <div class="input-wrapper">
             <div class="input-with-btn">
@@ -112,8 +102,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useDialogStore } from '../stores/dialog'
 import AppLogo from '../components/AppLogo.vue'
+import { useWhitePage } from '../components/ui/useWhitePage'
 import { useCooldown } from '../components/ui/useCooldown'
 import { sendSignupCode, verifySignupCode, retryAfterOf, DUPLICATE_EMAIL, EMAIL_NOT_VERIFIED, MAIL_RESEND_SECONDS } from '../api/auth'
+
+useWhitePage()
 
 const router = useRouter()
 const dialog = useDialogStore()
@@ -138,7 +131,6 @@ const pwValidationMessage = ref('')
 const isLoading = ref(false)
 
 const formData = ref({
-  name: '',
   email: '',
   password: '',
   passwordConfirm: ''
@@ -257,7 +249,6 @@ const pwConfirmMessage = computed(() => {
 // 전체 폼 유효성 체크
 const isFormValid = computed(() => {
   return (
-    formData.value.name &&
     emailVerified.value &&
     isPwValidPattern.value &&
     isPwMatched.value
@@ -272,7 +263,6 @@ const handleSignup = async () => {
 
   try {
     await authStore.signup(
-      formData.value.name,
       formData.value.email.trim(),
       formData.value.password,
       emailVerificationToken.value
@@ -281,7 +271,6 @@ const handleSignup = async () => {
     await dialog.alert({ title: 'GAIN-Z 가입을 축하해요!', text: '로그인하고 시작해 보세요.' })
     router.push('/')
   } catch (error) {
-    console.error(error)
     // 인증한 지 30분이 지났으면 다시 인증
     if (error.response?.data?.code === EMAIL_NOT_VERIFIED) {
       resetEmailVerify()
@@ -377,6 +366,11 @@ const handleSignup = async () => {
   .signup-card-container { max-width: 360px; padding: 0; border: none; border-radius: 0; box-shadow: none; }
 }
 @media (max-width: 640px) {
+  /* 로그인 화면과 같은 너비·로고·제목 크기 (#226) */
+  .signup-card-container { max-width: 280px; }
+  .brand-header { margin-bottom: 28px; }
+  .brand-logo :deep(svg) { width: auto; height: 28px; }
+  .brand-sub { font-size: 0.85rem; }
   .gz-input { padding: 12px 14px; }
   .signup-btn-main { padding: 12px; margin-top: 24px; }
 }

@@ -49,6 +49,12 @@ export async function reorderMembers(bandId, memberIds) {
   return response.data.data
 }
 
+// 홈 밴드 탭 순서 바꾸기 (나한테만, #266) bandIds: 내 밴드 전부를 왼쪽부터 → 내 밴드 목록 (그 순서로)
+export async function reorderMyBands(bandIds) {
+  const response = await axiosInstance.put('/api/v1/bands/me/order', { bandIds })
+  return response.data.data
+}
+
 // 밴드 없애기 (리더만)
 export async function deleteBand(bandId) {
   await axiosInstance.delete(`/api/v1/bands/${bandId}`)
@@ -64,6 +70,11 @@ export async function regenerateInviteCode(bandId) {
 export async function joinBand({ inviteCode, part }) {
   const response = await axiosInstance.post('/api/v1/bands/join', { inviteCode, part })
   return response.data.data
+}
+
+// 친구에게 밴드 초대 보내기 (#229). 친구는 알림을 눌러 초대 코드가 채워진 가입 창에서 파트를 골라 들어온다
+export async function inviteFriendToBand(bandId, userId) {
+  await axiosInstance.post(`/api/v1/bands/${bandId}/invitations`, { userId })
 }
 
 // 파트 바꾸기 (본인 또는 리더) → 밴드 상세

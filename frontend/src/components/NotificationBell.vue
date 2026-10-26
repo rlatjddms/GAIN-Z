@@ -56,6 +56,9 @@ import { useNotificationStore } from '../stores/notification'
 import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification } from '../api/notification'
 import { apiErrorMessage } from '../api/practice'
 import { agoText, groupByDate } from '../constants/notification'
+import { useToastStore } from '../stores/toast'
+
+const toast = useToastStore()
 
 // 미리보기는 최근 몇 개만 (나머지는 알림 페이지)
 const PREVIEW_SIZE = 8
@@ -110,7 +113,7 @@ const remove = async (n) => {
     items.value = items.value.filter((x) => x.id !== n.id)
     if (!n.read) store.setUnread(store.unreadCount - 1)
   } catch (e) {
-    error.value = apiErrorMessage(e, '알림을 지우지 못했어요.')
+    toast.error(apiErrorMessage(e, '알림을 지우지 못했어요.'))
   }
 }
 
@@ -121,7 +124,7 @@ const readAll = async () => {
     items.value.forEach((n) => { n.read = true })
     store.setUnread(0)
   } catch (e) {
-    error.value = apiErrorMessage(e, '알림을 읽음으로 바꾸지 못했어요.')
+    toast.error(apiErrorMessage(e, '알림을 읽음으로 바꾸지 못했어요.'))
   } finally {
     busy.value = false
   }
