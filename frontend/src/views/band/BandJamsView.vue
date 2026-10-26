@@ -155,7 +155,8 @@
       </div>
     </div>
 
-    <dialog ref="formDialog" class="jam-dialog" aria-labelledby="jam-form-title" @close="formError = ''">
+    <dialog ref="formDialog" class="jam-dialog" aria-labelledby="jam-form-title" @close="formError = ''" @click="!busy && closeOnBackdrop($event, formDialog)">
+      <ModalClose :disabled="busy" @close="formDialog.close()" />
       <form method="dialog" novalidate @submit.prevent="saveForm">
         <h3 id="jam-form-title">{{ form.id ? '잼 수정' : '새 잼' }}</h3>
         <fieldset class="song-picker">
@@ -189,7 +190,7 @@
       </form>
     </dialog>
 
-    <dialog ref="deleteDialog" class="jam-dialog" aria-labelledby="jam-delete-title">
+    <dialog ref="deleteDialog" class="jam-dialog" aria-labelledby="jam-delete-title" @click="!busy && closeOnBackdrop($event, deleteDialog)">
       <h3 id="jam-delete-title">{{ deleteTarget?.kind === 'bulk' ? `잼 ${deleteTarget.ids.length}개를 삭제할까요?` : deleteTarget?.kind === 'jam' ? '잼을 삭제할까요?' : '트랙을 삭제할까요?' }}</h3>
       <p class="muted">{{ deleteTarget?.kind === 'track' ? '올린 녹음 파일이 지워져요.' : '잼의 모든 트랙이 함께 지워져요.' }}</p>
       <div class="dialog-actions"><button class="btn" @click="deleteDialog.close()">취소</button><button class="btn danger solid" :disabled="busy" @click="confirmDelete">삭제</button></div>
@@ -218,6 +219,7 @@ import {
   JAM_MAX_TRACKS, JAM_OFFSET_MAX_MS, JAM_OFFSET_MIN_MS, JAM_TRACK_MAX_BYTES, JAM_VOLUME_MAX, LATENCY_MAX_MS,
   JAM_FILE_ACCEPT, audibleTracks, clamp, formatTime, recordedOffsetMs, recordingExtension, timelineLength,
 } from '../../audio/jamAudio'
+import ModalClose from '../../components/ui/ModalClose.vue'
 
 const LATENCY_KEY = 'gainz.jam.latencyMs'
 const route = useRoute()
@@ -567,6 +569,12 @@ async function saveForm() {
     toast.success('잼을 만들었어요. 첫 파트를 녹음해 보세요.')
   }
 }
+// 창 바깥(어두운 부분)을 누르면 닫는다 (#292, 셋리스트 창과 같게). 창 안을 누른 건 무시
+function closeOnBackdrop(event, dialog) {
+  if (event.target !== dialog) return
+  const r = dialog.getBoundingClientRect()
+  if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close()
+}
 function askDelete(target) { deleteTarget.value = target; deleteDialog.value.showModal() }
 async function toggleFavorite(item) {
   await run(async () => Object.assign(item, await setJamFavorite(bandId(), item.id, !item.favorite)), '즐겨찾기를 바꾸지 못했어요.')
@@ -724,7 +732,7 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 .rec-time { font-size:.78rem; color:var(--c-danger); font-weight:700; font-variant-numeric:tabular-nums; }
 .jam-dialog { width:min(420px, calc(100vw - 32px)); border:0; border-radius:var(--radius-xl); padding:24px; font-family:var(--font-sans); color:var(--c-text); box-shadow:var(--shadow-lg); }
 .jam-dialog::backdrop { background:rgba(15,23,42,.45); }
-.jam-dialog h3 { margin:0 0 14px; font-size:1rem; }
+.jam-dialog h3 { margin:0 0 14px; padding-right:40px; font-size:1rem; }
 .jam-dialog form { display:flex; flex-direction:column; gap:12px; }
 .jam-dialog label { display:flex; flex-direction:column; gap:6px; font-size:.75rem; color:var(--c-muted); }
 .jam-dialog input,.jam-dialog select { width:100%; border:1px solid var(--c-line); padding:8px 10px; border-radius:8px; background:#fff; color:#343a40; font-family:inherit; font-size:.8rem; outline:none; box-shadow:none; }

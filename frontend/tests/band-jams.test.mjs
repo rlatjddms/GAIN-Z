@@ -290,6 +290,11 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     assert.match(await page.getByRole('button', { name: '랍스타 베이스 솔로' }).getAttribute('title'), /^솔로: /)
 
     // 셋리스트 곡은 입력해야 찾은 곡만 몇 개 보여 준다. 고르면 이름이 채워진다. BPM 범위를 확인한다.
+    // 창 바깥을 누르면 닫히고 (#292), 다시 열어 이어 간다
+    await page.getByRole('button', { name: '잼 추가', exact: true }).click()
+    await page.getByRole('dialog').waitFor()
+    await page.mouse.click(5, 5)
+    await page.getByRole('dialog').waitFor({ state: 'hidden' })
     await page.getByRole('button', { name: '잼 추가', exact: true }).click()
     const dialog = page.getByRole('dialog')
     const search = dialog.getByLabel('셋리스트 곡 검색')

@@ -3,6 +3,7 @@
     <transition name="modal">
       <div v-if="result" class="backdrop" @click.self="emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-label="레벨 업">
+          <ModalClose @close="emit('close')" />
           <div class="badge">LEVEL UP!</div>
           <div class="level">Lv.{{ result.previousLevel }} → <strong>Lv.{{ result.currentLevel }}</strong></div>
           <p v-if="newTier" class="tier">{{ newTier.name }} 무대로 올라갔어요!</p>
@@ -51,6 +52,7 @@ import { outfitSpriteName } from '../../pixel/sprites'
 import { useAuthStore } from '../../stores/auth'
 import { getLevelTier } from '../../constants/levelTier'
 import { rewardsBetween, nextReward, rewardLabel, slotOf } from '../../constants/rewards'
+import ModalClose from '../ui/ModalClose.vue'
 
 const props = defineProps({ result: { type: Object, default: null } })
 const emit = defineEmits(['close'])
@@ -107,4 +109,7 @@ const goWardrobe = () => {
 @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
+/* 닫기 버튼 자리 (#292) */
+.modal { position: relative; }
+
 </style>

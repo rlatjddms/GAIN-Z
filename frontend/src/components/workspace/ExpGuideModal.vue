@@ -3,6 +3,7 @@
     <transition name="modal">
       <div v-if="open" class="backdrop" @click.self="emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="exp-guide-title">
+          <ModalClose @close="emit('close')" />
           <h2 id="exp-guide-title">경험치는 이렇게 쌓여요</h2>
           <p class="sub">경험치는 연습 시간으로만 올라요.</p>
 
@@ -52,6 +53,7 @@ import { CalendarCheck, Gift, Pencil, Timer, TrendingUp } from 'lucide-vue-next'
 import {
   MAX_LEVEL, EXP_PER_MINUTE, MAX_EXP_MINUTES_PER_DAY, MANUAL_EXP_MINUTES_PER_DAY, clampLevel, getRequiredExp,
 } from '../../constants/levelTier'
+import ModalClose from '../ui/ModalClose.vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -119,4 +121,8 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
 }
+/* 닫기 버튼 자리 (#292) */
+.modal { position: relative; }
+h2 { padding-right: 40px; }
+
 </style>

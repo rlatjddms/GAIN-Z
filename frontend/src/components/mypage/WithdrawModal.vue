@@ -3,6 +3,7 @@
     <transition name="modal">
       <div v-if="open" class="backdrop" @click.self="!saving && emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="withdraw-title">
+          <ModalClose :disabled="saving" @close="emit('close')" />
           <h2 id="withdraw-title">회원 탈퇴</h2>
           <p class="sub">탈퇴하면 되돌릴 수 없어요. 아래 내용을 꼭 확인해 주세요.</p>
 
@@ -49,6 +50,7 @@
 import { ref, computed, watch } from 'vue'
 import { withdraw } from '../../api/user'
 import { apiErrorMessage } from '../../api/practice'
+import ModalClose from '../ui/ModalClose.vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -142,4 +144,8 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; color: var(--c-dange
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
 }
+/* 닫기 버튼 자리 (#292) */
+.modal { position: relative; }
+h2 { padding-right: 40px; }
+
 </style>

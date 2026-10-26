@@ -3,7 +3,7 @@
     <transition name="modal">
       <div v-if="userId" class="backdrop" @click.self="!busy && emit('close')">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
-          <button class="close" :disabled="busy" aria-label="닫기" @click="emit('close')">×</button>
+          <ModalClose :disabled="busy" @close="emit('close')" />
 
           <p v-if="loadError" class="error">{{ loadError }}</p>
           <div v-else-if="!profile" class="loading">불러오는 중…</div>
@@ -85,6 +85,7 @@ import { getUserProfile } from '../api/user'
 import { sendFriendRequestToBandMate, acceptFriendRequest, getReceivedRequests } from '../api/friend'
 import { apiErrorMessage } from '../api/practice'
 import { INSTRUMENT_OPTIONS } from '../constants/characterOptions'
+import ModalClose from './ui/ModalClose.vue'
 
 const props = defineProps({
   // 볼 사람의 userId. null이면 닫힘
@@ -169,11 +170,6 @@ defineExpose({
 }
 /* 높이가 모자라도 무대·잔디가 찌그러지지 않고 팝업 안에서 스크롤 (#229) */
 .modal > * { flex-shrink: 0; }
-.close {
-  position: absolute; top: 14px; right: 16px; border: none; background: none; cursor: pointer;
-  font-size: 1.5rem; line-height: 1; color: var(--c-faint);
-}
-.close:hover:not(:disabled) { color: var(--c-text-2); }
 
 .head { display: flex; align-items: center; gap: 14px; padding-right: 28px; }
 .who { flex: 1; min-width: 0; }
