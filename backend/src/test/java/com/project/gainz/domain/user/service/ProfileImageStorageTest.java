@@ -3,6 +3,7 @@ package com.project.gainz.domain.user.service;
 import com.project.gainz.global.error.BusinessException;
 import com.project.gainz.global.error.ErrorCode;
 import com.project.gainz.global.storage.LocalFileStore;
+import com.project.gainz.global.storage.StorageQuota;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
@@ -10,6 +11,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -23,7 +25,7 @@ class ProfileImageStorageTest {
 
     @Test
     void PNG_사진을_저장하고_다시_읽는다() throws Exception {
-        ProfileImageStorage storage = new ProfileImageStorage(new LocalFileStore(tempDir.toString()));
+        ProfileImageStorage storage = new ProfileImageStorage(new LocalFileStore(tempDir.toString()), mock(StorageQuota.class));
 
         ProfileImageStorage.StoredImage stored = storage.store(new MockMultipartFile("file", "me.txt", "text/plain", PNG));
 
@@ -35,7 +37,7 @@ class ProfileImageStorageTest {
 
     @Test
     void PDF는_프로필_사진으로_올릴_수_없다() {
-        ProfileImageStorage storage = new ProfileImageStorage(new LocalFileStore(tempDir.toString()));
+        ProfileImageStorage storage = new ProfileImageStorage(new LocalFileStore(tempDir.toString()), mock(StorageQuota.class));
 
         assertThatThrownBy(() -> storage.store(new MockMultipartFile("file", "me.png", "image/png", PDF)))
                 .isInstanceOf(BusinessException.class)
@@ -44,7 +46,7 @@ class ProfileImageStorageTest {
 
     @Test
     void 빈_파일은_올릴_수_없다() {
-        ProfileImageStorage storage = new ProfileImageStorage(new LocalFileStore(tempDir.toString()));
+        ProfileImageStorage storage = new ProfileImageStorage(new LocalFileStore(tempDir.toString()), mock(StorageQuota.class));
 
         assertThatThrownBy(() -> storage.store(new MockMultipartFile("file", "me.png", "image/png", new byte[0])))
                 .isInstanceOf(BusinessException.class)
@@ -53,7 +55,7 @@ class ProfileImageStorageTest {
 
     @Test
     void 폴더_밖_경로는_읽지_않는다() {
-        ProfileImageStorage storage = new ProfileImageStorage(new LocalFileStore(tempDir.toString()));
+        ProfileImageStorage storage = new ProfileImageStorage(new LocalFileStore(tempDir.toString()), mock(StorageQuota.class));
 
         assertThatThrownBy(() -> storage.load("../secret.png"))
                 .isInstanceOf(BusinessException.class)
