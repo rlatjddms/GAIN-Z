@@ -197,6 +197,15 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     await page.getByRole('button', { name: '마이크 연결', exact: true }).click()
     await page.getByLabel('녹음 지연 보정').evaluate(el => { el.value = '50'; el.dispatchEvent(new Event('input', { bubbles: true })) })
     assert.equal(await page.evaluate(() => localStorage.getItem('gainz.jam.latencyMs')), '50')
+    // 누른 순간부터 화면에 보인 녹음 상태를 차례로 모은다 (#294: 카운트인 전에 '녹음 중'이 잠깐 보였다 사라지면 안 된다)
+    await page.evaluate(() => {
+      window.recStates = []
+      const read = () => {
+        const state = document.querySelector('.count-in')?.textContent.trim() || (document.querySelector('.rec-time') ? '녹음 중' : null)
+        if (state && window.recStates.at(-1) !== state) window.recStates.push(state)
+      }
+      new MutationObserver(read).observe(document.body, { subtree: true, childList: true, characterData: true })
+    })
     await page.getByRole('button', { name: '● 녹음 시작' }).click()
     // 카운트인 중에는 녹음 시작까지 남은 박이 4→3→2→1로 보이고, 끝나면 '녹음 중'으로 바뀐다 (#234, 120 BPM이라 박마다 0.5초)
     const beats = await page.evaluate(async () => {
@@ -212,6 +221,7 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     })
     assert.deepEqual(beats, ['4', '3', '2', '1'])
     await page.getByRole('status').filter({ hasText: '녹음 중' }).waitFor()
+    assert.deepEqual(await page.evaluate(() => window.recStates), ['4', '3', '2', '1', '녹음 중'])
     await page.waitForTimeout(3200)
     // 마우스를 올려도 녹음 버튼은 회색이 아니라 더 진한 빨간색이 된다.
     const stopButton = page.getByRole('button', { name: '■ 녹음 끝내기' })
