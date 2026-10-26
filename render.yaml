@@ -12,8 +12,8 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /api/v1/health
-    # main 에 머지되면 자동 배포
-    autoDeployTrigger: commit
+    # main 에 머지되면 자동 배포. 그 커밋의 GitHub 체크(CI, .github/workflows/ci.yml)가 모두 통과한 뒤에만 (#248)
+    autoDeployTrigger: checksPass
     envVars:
       # 백엔드가 이 포트로 뜬다 (Dockerfile HEALTHCHECK 와 같게)
       - key: PORT
