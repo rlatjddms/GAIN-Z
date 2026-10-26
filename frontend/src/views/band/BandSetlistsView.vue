@@ -482,8 +482,8 @@ legend span { margin-left:6px; font-weight:400; }
 .file-list small { color:var(--c-faint); margin-left:6px; }
 .remove-file,.close-btn { border:0; background:transparent; color:var(--c-muted); font-size:22px; cursor:pointer; min-width:28px; min-height:28px; }
 /* 팝업 닫기 버튼은 공통 모양으로 (#292, components/ui/ModalClose.vue와 같게) */
-.close-btn { flex:none; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border-radius:10px; background:var(--c-line-soft); font-size:20px; line-height:1; }
-.close-btn:hover { background:var(--c-line); color:var(--c-text); }
+.close-btn { flex:none; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border-radius:8px; background:none; font-size:22px; line-height:1; }
+.close-btn:hover { color:var(--c-text); }
 .setlist-dialog { width:calc(100% - 32px); max-width:400px; max-height:calc(100dvh - 48px); overflow-y:auto; padding:24px; border:0; border-radius:var(--radius-xl); color:var(--c-text); font-family:var(--font-sans); box-shadow:var(--shadow-lg); }
 .setlist-dialog::backdrop { background:rgba(15,23,42,.45); }
 .dialog-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }

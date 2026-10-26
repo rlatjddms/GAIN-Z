@@ -155,7 +155,7 @@
       </div>
     </div>
 
-    <dialog ref="formDialog" class="jam-dialog" aria-labelledby="jam-form-title" @close="formError = ''">
+    <dialog ref="formDialog" class="jam-dialog" aria-labelledby="jam-form-title" @close="formError = ''" @click="!busy && closeOnBackdrop($event, formDialog)">
       <ModalClose :disabled="busy" @close="formDialog.close()" />
       <form method="dialog" novalidate @submit.prevent="saveForm">
         <h3 id="jam-form-title">{{ form.id ? '잼 수정' : '새 잼' }}</h3>
@@ -190,7 +190,7 @@
       </form>
     </dialog>
 
-    <dialog ref="deleteDialog" class="jam-dialog" aria-labelledby="jam-delete-title">
+    <dialog ref="deleteDialog" class="jam-dialog" aria-labelledby="jam-delete-title" @click="!busy && closeOnBackdrop($event, deleteDialog)">
       <h3 id="jam-delete-title">{{ deleteTarget?.kind === 'bulk' ? `잼 ${deleteTarget.ids.length}개를 삭제할까요?` : deleteTarget?.kind === 'jam' ? '잼을 삭제할까요?' : '트랙을 삭제할까요?' }}</h3>
       <p class="muted">{{ deleteTarget?.kind === 'track' ? '올린 녹음 파일이 지워져요.' : '잼의 모든 트랙이 함께 지워져요.' }}</p>
       <div class="dialog-actions"><button class="btn" @click="deleteDialog.close()">취소</button><button class="btn danger solid" :disabled="busy" @click="confirmDelete">삭제</button></div>
@@ -568,6 +568,12 @@ async function saveForm() {
     await selectJam(result.id)
     toast.success('잼을 만들었어요. 첫 파트를 녹음해 보세요.')
   }
+}
+// 창 바깥(어두운 부분)을 누르면 닫는다 (#292, 셋리스트 창과 같게). 창 안을 누른 건 무시
+function closeOnBackdrop(event, dialog) {
+  if (event.target !== dialog) return
+  const r = dialog.getBoundingClientRect()
+  if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close()
 }
 function askDelete(target) { deleteTarget.value = target; deleteDialog.value.showModal() }
 async function toggleFavorite(item) {

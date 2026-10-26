@@ -15,7 +15,7 @@
           @input="text = $event.target.value"
         />
       </label>
-      <div class="date-wrap">
+      <div ref="dateWrap" class="date-wrap">
         <button type="button" class="date-btn" :class="{ on: from }" :aria-expanded="calendarOpen" @click="calendarOpen = !calendarOpen">
           <CalendarDays :size="15" :stroke-width="2.2" aria-hidden="true" />
           <span>{{ from ? rangeLabel : '날짜' }}</span>
@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { CalendarDays, Search, X } from 'lucide-vue-next'
 import DateRangeCalendar from '../ui/DateRangeCalendar.vue'
 
@@ -52,6 +52,13 @@ const emit = defineEmits(['search', 'close'])
 const text = ref(props.q)
 const input = ref(null)
 const calendarOpen = ref(false)
+// 달력 바깥을 누르면 닫는다 (#292, 연습 화면 달력과 같게)
+const dateWrap = ref(null)
+const onDocPointer = (e) => {
+  if (calendarOpen.value && dateWrap.value && !dateWrap.value.contains(e.target)) calendarOpen.value = false
+}
+onMounted(() => document.addEventListener('pointerdown', onDocPointer))
+onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointer))
 const active = computed(() => !!(props.q || props.from))
 
 watch(() => props.q, (v) => { text.value = v })
