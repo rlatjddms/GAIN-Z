@@ -1,14 +1,14 @@
 <template>
   <Teleport to="body">
-    <dialog ref="dialog" class="media-viewer" aria-label="첨부 미디어 상세보기" @cancel.prevent="$emit('close')" @keydown="keyboard">
-      <header><div><strong>{{ current.name }}</strong><span>{{ index + 1 }} / {{ items.length }}</span></div><button :disabled="!url || loading" @click="downloadCurrent"><BoardIcon name="download" />저장</button><button :disabled="downloading" @click="downloadAll"><BoardIcon name="download" />{{ downloading ? '준비 중…' : '전체 ZIP 저장' }}</button><button aria-label="미디어 닫기" @click="$emit('close')"><BoardIcon name="close" /></button></header>
+    <dialog ref="dialog" class="media-viewer" aria-label="첨부 미디어 상세보기" @cancel.prevent="close()" @keydown="keyboard">
+      <header><div><strong>{{ current.name }}</strong><span>{{ index + 1 }} / {{ items.length }}</span></div><button :disabled="!url || loading" @click="downloadCurrent"><BoardIcon name="download" />저장</button><button :disabled="downloading" @click="downloadAll"><BoardIcon name="download" />{{ downloading ? '준비 중…' : '전체 ZIP 저장' }}</button><button aria-label="미디어 닫기" @click="close()"><BoardIcon name="close" /></button></header>
       <p v-if="downloadError" class="error" role="alert">{{ downloadError }}</p>
       <div class="stage" :class="{ zoomed }" @touchstart.passive="touchStart" @touchend.passive="touchEnd">
         <button v-if="items.length > 1" class="previous" aria-label="이전 미디어" :disabled="index === 0" @click="move(-1)">‹</button>
         <p v-if="loading" role="status">불러오는 중…</p>
         <div v-else-if="error" role="alert">미디어를 불러오지 못했어요. <button @click="load">다시 시도</button></div>
         <button v-else-if="current.type.startsWith('image/')" class="image-button" :aria-label="zoomed ? '이미지 축소' : '이미지 확대'" :aria-pressed="zoomed" @click="zoomed = !zoomed"><img :src="url" :alt="current.name" @error="error = true"></button>
-        <video v-else :key="url" :src="url" controls playsinline :aria-label="current.name" @error="error = true" />
+        <video v-else ref="player" :key="url" :src="url" controls playsinline :aria-label="current.name" @loadedmetadata="resume" @error="error = true" />
         <button v-if="items.length > 1" class="next" aria-label="다음 미디어" :disabled="index === items.length - 1" @click="move(1)">›</button>
       </div>
       <footer><span>좌우 화살표 또는 밀어서 넘기기 · 사진을 누르면 확대</span><nav aria-label="첨부 미디어 선택"><button v-for="(item, i) in items" :key="item.id" :aria-label="`${i + 1}번째 ${item.name}`" :aria-current="index === i ? 'true' : undefined" @click="index = i">{{ i + 1 }}<BoardIcon :name="item.type.startsWith('image/') ? 'image' : 'play'" :size="14" /></button></nav></footer>
@@ -19,10 +19,14 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { loadBandAttachment, downloadBandArchive } from '../../api/bandBoard'
 import BoardIcon from './BoardIcon.vue'
-const props = defineProps({ items: Array, initialIndex: Number, bandId: Number, postId: Number })
-defineEmits(['close'])
+// startTime·autoplay: 처음 연 영상을 글에서 보던 위치부터 (재생 중이었으면 이어서) 튼다 (#319)
+const props = defineProps({ items: Array, initialIndex: Number, bandId: Number, postId: Number, startTime: { type: Number, default: 0 }, autoplay: Boolean })
+// close({ index, time }): 닫을 때 보던 영상의 위치를 글에 돌려준다
+const emit = defineEmits(['close'])
 const dialog = ref(null), index = ref(props.initialIndex || 0), url = ref(null), loading = ref(false), error = ref(false), zoomed = ref(false), downloading = ref(false), downloadError = ref('')
 const current = computed(() => props.items[index.value])
+const player = ref(null)
+let resumed = false
 const returnFocus = document.activeElement
 let sequence = 0, alive = true, touchX = 0, touchY = 0
 const downloads = []
@@ -36,6 +40,17 @@ async function load() {
   try { const next = await loadBandAttachment(current.value.url); if (seq !== sequence) URL.revokeObjectURL(next); else url.value = next }
   catch { if (seq === sequence) error.value = true }
   finally { if (seq === sequence) loading.value = false }
+}
+// 처음 연 영상만 글에서 넘겨받은 위치·재생 상태로 (다른 미디어로 넘기면 처음부터)
+function resume() {
+  if (resumed || index.value !== props.initialIndex || !player.value) return
+  resumed = true
+  if (props.startTime) player.value.currentTime = props.startTime
+  if (props.autoplay) player.value.play().catch(() => {})
+}
+function close() {
+  const video = player.value
+  emit('close', video ? { index: index.value, time: video.currentTime } : null)
 }
 function move(delta) { index.value = Math.max(0, Math.min(props.items.length - 1, index.value + delta)) }
 function keyboard(event) {
