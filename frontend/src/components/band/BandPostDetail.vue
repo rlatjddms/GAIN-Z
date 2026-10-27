@@ -20,7 +20,7 @@
         <div v-for="(item, index) in visuals" :key="item.id" class="gallery-item"><BandPostAttachment :attachment="item" hide-download expandable @expand="openViewer(index)" /><button v-if="item.type.startsWith('video/')" class="media-open" @click="openViewer(index)">크게 보기</button></div>
       </div>
       <div v-if="documents.length" class="document-list"><BandPostAttachment v-for="item in documents" :key="item.id" :attachment="item" /></div>
-      <BandMediaViewer v-if="viewerIndex !== null" :items="visuals" :initial-index="viewerIndex" :start-time="viewerStart.time" :autoplay="viewerStart.playing" :band-id="band.id" :post-id="post.id" @close="closeViewer" />
+      <BandMediaViewer v-if="viewerIndex !== null" :items="visuals" :initial-index="viewerIndex" :start-time="viewerStart.time" :autoplay="viewerStart.playing" :muted="viewerStart.muted" :volume="viewerStart.volume" :band-id="band.id" :post-id="post.id" @close="closeViewer" />
     </div>
 
     <section class="comments-section" aria-label="댓글">
@@ -85,20 +85,21 @@ const article = ref(null)
 const members = computed(() => mentionMembers(props.band))
 const viewerIndex = ref(null)
 const gallery = ref(null)
-const viewerStart = ref({ time: 0, playing: false })
+const viewerStart = ref({ time: 0, playing: false, muted: false, volume: 1 })
 // 글 안의 영상 (갤러리 순서대로)
 const galleryVideo = index => gallery.value?.querySelectorAll('.gallery-item')[index]?.querySelector('video')
 // 크게 보기를 열면 글 안의 영상은 멈추고, 큰 화면이 보던 위치에서 이어 재생한다 (#319. 둘이 같이 재생되지 않게)
+// 음소거·소리 크기도 그대로 넘긴다 (#321)
 function openViewer(index) {
   const video = galleryVideo(index)
-  viewerStart.value = { time: video?.currentTime || 0, playing: !!video && !video.paused }
+  viewerStart.value = { time: video?.currentTime || 0, playing: !!video && !video.paused, muted: !!video?.muted, volume: video?.volume ?? 1 }
   gallery.value?.querySelectorAll('video').forEach(item => item.pause())
   viewerIndex.value = index
 }
-// 닫으면 큰 화면에서 보던 영상의 위치를 글 안의 영상에 맞춘다 (멈춘 채로)
+// 닫으면 큰 화면에서 보던 영상의 위치·음소거·소리 크기를 글 안의 영상에 맞춘다 (멈춘 채로)
 function closeViewer(last) {
   const video = last && galleryVideo(last.index)
-  if (video && last.time != null) video.currentTime = last.time
+  if (video && last.time != null) Object.assign(video, { currentTime: last.time, muted: last.muted, volume: last.volume })
   viewerIndex.value = null
 }
 const expanded = ref(new Set())
