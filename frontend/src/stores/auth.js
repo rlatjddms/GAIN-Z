@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import axiosInstance from '../api/axios'
 import { getMyInfo } from '../api/user'
 import { useBandStore } from './band'
+import { COMMUNITY_CACHE_KEY } from '../components/band/communityCache'
 
 // Helper to decode JWT payloads
 function decodeJwt(token) {
@@ -130,6 +131,7 @@ export const useAuthStore = defineStore('auth', {
           storage.removeItem('refreshToken')
           storage.removeItem('userEmail')
           storage.removeItem('userName')
+          storage.removeItem(COMMUNITY_CACHE_KEY)
           if (email) {
             storage.removeItem(`hasCharacter_${email}`)
             storage.removeItem(`userCharacter_${email}`)

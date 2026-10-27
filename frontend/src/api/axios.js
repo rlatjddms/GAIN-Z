@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { COMMUNITY_CACHE_KEY } from '../components/band/communityCache'
 
 // 백엔드 주소. 배포 환경마다 다르므로 .env의 VITE_API_BASE_URL로 받는다 (#174).
 // 빈 문자열이면 프론트와 같은 도메인(상대 경로)으로 부른다. 안 정하면 로컬 백엔드
@@ -73,6 +74,7 @@ axiosInstance.interceptors.response.use(
             storage.removeItem('refreshToken')
             storage.removeItem('userEmail')
             storage.removeItem('userName')
+            storage.removeItem(COMMUNITY_CACHE_KEY)
           })
           window.location.href = '/'
           return Promise.reject(reissueError)
@@ -85,6 +87,7 @@ axiosInstance.interceptors.response.use(
           storage.removeItem('refreshToken')
           storage.removeItem('userEmail')
           storage.removeItem('userName')
+          storage.removeItem(COMMUNITY_CACHE_KEY)
         })
         window.location.href = '/'
       }
