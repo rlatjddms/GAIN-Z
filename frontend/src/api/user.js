@@ -69,12 +69,35 @@ export async function withdraw(password) {
 // 백엔드 ProfileImageStorage와 같은 제한
 export const PROFILE_IMAGE_ACCEPT = 'image/png,image/jpeg,image/webp'
 export const PROFILE_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
-export const MAX_PROFILE_IMAGE_MB = 5
+export const MAX_PROFILE_IMAGE_MB = 10
+
+// 프로필 사진은 작게 보이니 긴 변 1024px로 줄여서 올린다 (#262). 휴대폰 원본(몇 MB)도 수백 KB가 된다
+const PROFILE_IMAGE_EDGE = 1024
+
+// 줄일 필요가 없거나 브라우저가 못 줄이면 원본 그대로
+export async function shrinkImage(file, edge = PROFILE_IMAGE_EDGE) {
+  let image
+  try { image = await createImageBitmap(file) } catch { return file }
+  const scale = Math.min(1, edge / Math.max(image.width, image.height))
+  if (scale === 1 && file.size <= 512 * 1024) { image.close?.(); return file }
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(image.width * scale)
+  canvas.height = Math.round(image.height * scale)
+  const context = canvas.getContext('2d')
+  // JPEG는 투명을 못 담아서 흰 바탕을 깐다
+  context.fillStyle = '#fff'
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  context.drawImage(image, 0, 0, canvas.width, canvas.height)
+  image.close?.()
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85))
+  if (!blob || blob.size >= file.size) return file
+  return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
+}
 
 // 사진 바꾸기 → 내 정보 (getMyInfo와 같은 모양)
 export async function uploadProfileImage(file) {
   const form = new FormData()
-  form.append('file', file)
+  form.append('file', await shrinkImage(file))
   const response = await axiosInstance.put('/api/v1/users/me/profile-image', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })

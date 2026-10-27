@@ -1,6 +1,6 @@
 // 레이어 잼 계산 도우미 (브라우저 API 없이 동작해서 node 테스트에서도 쓴다). 근거: docs/layer-jam-research.md
 
-export const JAM_TRACK_MAX_BYTES = 30 * 1024 * 1024
+export const JAM_TRACK_MAX_BYTES = 50 * 1024 * 1024
 export const JAM_MAX_TRACKS = 8
 export const JAM_VOLUME_MAX = 150
 export const JAM_OFFSET_MIN_MS = -10000

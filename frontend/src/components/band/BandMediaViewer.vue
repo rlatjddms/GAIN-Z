@@ -45,7 +45,12 @@ function keyboard(event) {
 function touchStart(event) { touchX = event.changedTouches[0].clientX; touchY = event.changedTouches[0].clientY }
 function touchEnd(event) { const dx = event.changedTouches[0].clientX - touchX; const dy = event.changedTouches[0].clientY - touchY; if (!zoomed.value && event.target.tagName !== 'VIDEO' && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) move(dx < 0 ? 1 : -1) }
 function save(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; a.click() }
-function downloadCurrent() { if (url.value) save(url.value, current.value.name) }
+// 저장소 주소는 다른 출처라 <a download>가 안 먹어서 저장용 주소를 따로 받는다 (#262)
+async function downloadCurrent() {
+  downloadError.value = ''
+  try { save(await loadBandAttachment(current.value.url, true), current.value.name) }
+  catch { downloadError.value = '저장하지 못했어요. 다시 눌러 시도해 주세요.' }
+}
 async function downloadAll() {
   downloading.value = true; downloadError.value = ''
   try { const next = await downloadBandArchive(props.bandId, props.postId); if (!alive) { URL.revokeObjectURL(next); return }; downloads.push(next); save(next, `community-${props.postId}.zip`) }

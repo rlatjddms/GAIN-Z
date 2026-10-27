@@ -15,8 +15,7 @@
       <div class="file-row" :class="{ document: !isVisual }">
         <span v-if="!isVisual" class="document-icon"><BoardIcon name="file" :size="20" /></span>
         <span class="file-name">{{ attachment.name }}</span>
-        <a v-if="url" :href="url" :download="attachment.name" :aria-label="`${attachment.name} 다운로드`" @click.stop><BoardIcon name="download" :size="16" /></a>
-        <button v-else :disabled="loading" :aria-label="`${attachment.name} 다운로드`" @click.stop="download"><BoardIcon name="download" :size="16" /></button>
+        <button :disabled="saving" :aria-label="`${attachment.name} 다운로드`" @click.stop="download"><BoardIcon name="download" :size="16" /></button>
       </div>
       <p v-if="error && !isVisual" class="file-error">파일을 불러오지 못했어요. 다운로드를 눌러 다시 시도해 주세요.</p>
     </template>
@@ -32,6 +31,7 @@ defineEmits(['expand'])
 const url = ref(null)
 const loading = ref(false)
 const error = ref(false)
+const saving = ref(false)
 const isVisual = computed(() => /^(image|video)\//.test(props.attachment?.type || ''))
 let sequence = 0
 function release() { if (url.value) URL.revokeObjectURL(url.value); url.value = null }
@@ -47,13 +47,14 @@ async function load() {
   } catch { if (current === sequence) error.value = true }
   finally { if (current === sequence) loading.value = false }
 }
+// 저장소 주소는 다른 출처라 <a download>가 안 먹어서, 저장용(attachment) 주소를 따로 받아 연다 (#262)
 async function download() {
-  await load()
-  if (!url.value) return
-  const link = document.createElement('a')
-  link.href = url.value
-  link.download = props.attachment.name
-  link.click()
+  saving.value = true
+  try {
+    const link = await loadBandAttachment(props.attachment.url, true)
+    Object.assign(document.createElement('a'), { href: link, download: props.attachment.name }).click()
+  } catch { error.value = true }
+  finally { saving.value = false }
 }
 watch(() => props.attachment.url, () => {
   if (isVisual.value || props.attachment.type.startsWith('audio/')) load()

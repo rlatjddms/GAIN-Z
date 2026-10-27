@@ -1,4 +1,6 @@
 import api from './axios'
+import axios from 'axios'
+import { bandFileLink, uploadBandFile, UPLOAD_KIND } from './upload'
 
 const base = (bandId) => `/api/v1/bands/${bandId}/jams`
 const data = async (request) => (await request).data.data
@@ -17,17 +19,18 @@ export const deleteJam = (bandId, id) => api.delete(`${base(bandId)}/${id}`)
 export const setJamFavorite = (bandId, id, favorite) => data(api.patch(`${base(bandId)}/${id}/favorite`, { favorite }))
 
 // 녹음 올리기. track: { offsetMs, volume, durationMs } → 트랙
+// 파일은 저장소에 바로 올리고(onProgress 0~100) uploadId로 보낸다 (#262)
 export async function uploadJamTrack(bandId, jamId, track, file, onProgress) {
+  const uploadId = await uploadBandFile(bandId, UPLOAD_KIND.JAM_TRACK, file,
+    loaded => onProgress?.(Math.min(100, Math.round(loaded / (file.size || 1) * 100))))
   const form = new FormData()
-  form.append('track', new Blob([JSON.stringify(track)], { type: 'application/json' }))
-  form.append('file', file)
-  return data(api.post(`${base(bandId)}/${jamId}/tracks`, form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    onUploadProgress: e => e.total && onProgress?.(Math.round(e.loaded / e.total * 100)),
-  }))
+  form.append('track', new Blob([JSON.stringify({ ...track, uploadId })], { type: 'application/json' }))
+  return data(api.post(`${base(bandId)}/${jamId}/tracks`, form, { headers: { 'Content-Type': 'multipart/form-data' } }))
 }
 // 보낸 값(volume, offsetMs)만 바꾼다 → 트랙. 뮤트·솔로는 화면에서만 바꾼다
 export const updateJamTrack = (bandId, jamId, id, changes) => data(api.patch(`${base(bandId)}/${jamId}/tracks/${id}`, changes))
 export const deleteJamTrack = (bandId, jamId, id) => api.delete(`${base(bandId)}/${jamId}/tracks/${id}`)
-// 트랙 파일은 로그인 토큰이 필요해서 받아서 디코딩한다
-export const loadJamTrackFile = async (url) => (await api.get(url, { responseType: 'arraybuffer' })).data
+// 트랙 파일은 권한을 확인한 바로 받기 주소로 저장소에서 받아 디코딩한다 (#262. 토큰을 싣지 않음)
+export async function loadJamTrackFile(url) {
+  return (await axios.get(await bandFileLink(url), { responseType: 'arraybuffer' })).data
+}
