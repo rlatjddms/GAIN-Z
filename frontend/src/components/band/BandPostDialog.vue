@@ -3,7 +3,7 @@
     <dialog ref="dialog" class="post-dialog" aria-labelledby="community-dialog-title" @cancel.prevent="close" @click="onBackdrop">
       <header class="dialog-toolbar">
         <div class="dialog-context"><span>{{ band.name }}</span><h2 id="community-dialog-title">{{ mode === 'new' ? '새 글 작성' : mode === 'edit' ? (post?.mine ? '글 수정' : '공지 설정') : 'COMMUNITY' }}</h2></div>
-        <button v-if="mode !== 'detail'" class="publish" type="submit" form="community-post-form" :disabled="editorState.busy || !editorState.valid || loading">{{ editorState.busy ? '저장 중…' : mode === 'new' ? '등록하기' : '저장하기' }}<BoardIcon name="arrow" :size="15" /></button>
+        <button v-if="mode !== 'detail'" class="publish" type="submit" form="community-post-form" :disabled="editorState.busy || !editorState.valid || loading">{{ editorState.busy ? '저장 중…' : mode === 'new' ? '등록하기' : '저장하기' }}</button>
         <button type="button" class="close-button" aria-label="게시글 창 닫기" :disabled="busy" @click="close"><BoardIcon name="close" /></button>
       </header>
       <div ref="scrollBody" class="dialog-scroll">
@@ -91,8 +91,11 @@ watch(() => [props.mode, props.postId], load, { immediate: true })
 .dialog-context { flex: 1; min-width: 0; }
 .dialog-context > span { display: block; color: var(--c-muted); font-size: 10px; font-weight: 700; margin-bottom: 5px; }
 .dialog-context h2 { font-size: 14px; font-weight: 800; margin: 0; }
-.close-button { display: grid; place-items: center; width: 32px; height: 32px; border: none; border-radius: 9px; background: #f6f7f9; color: var(--c-muted); cursor: pointer; }
-.close-button:hover { background: #edf0f4; color: #212529; }
+/* 다른 팝업의 닫기(ModalClose, #300)처럼 바탕 칸 없이 X만 (#323) */
+.close-button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: none; border-radius: 8px; background: none; color: var(--c-muted); cursor: pointer; }
+.close-button:hover:not(:disabled) { color: var(--c-text); }
+.close-button:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+.close-button:disabled { opacity: 0.5; cursor: default; }
 .publish { display: flex; align-items: center; gap: 8px; background: var(--c-primary); color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
 .publish:hover { background: var(--c-primary-strong); }
 .publish:disabled { background: #edf0f6; color: var(--c-faint); cursor: default; }
