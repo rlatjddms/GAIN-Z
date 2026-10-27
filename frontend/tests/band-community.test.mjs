@@ -35,7 +35,9 @@ before(async () => {
 after(async () => { await browser?.close(); vite?.kill() })
 
 async function fixture(t, options = {}) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 960 }, timezoneId: options.timezoneId || 'Asia/Seoul', deviceScaleFactor: options.scale || 1 })
+  // mobile: 손가락 기기(터치, pointer: coarse)처럼 (#313)
+  const device = options.mobile ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: 1280, height: 960 } }
+  const context = await browser.newContext({ ...device, timezoneId: options.timezoneId || 'Asia/Seoul', deviceScaleFactor: options.scale || 1 })
   t.after(() => context.close())
   await context.addInitScript(() => localStorage.setItem('accessToken', 'ui-test-token'))
   const page = await context.newPage()
@@ -877,3 +879,35 @@ test('같은 화면 안의 이동은 기록에 쌓지 않고, 화면 위 뒤로 
   await page.goBack()
   assert.equal(page.url(), 'about:blank')
 })
+// #313: 팝업을 열 때 컴퓨터는 글자 칸을 바로 고르고, 휴대폰은 고르지 않는다 (키보드가 팝업을 가리지 않게).
+// 버튼 줄은 모든 팝업이 같은 모양(같은 너비, 휴대폰 44px)
+for (const mobile of [false, true]) {
+  test(`팝업 글자 칸 자동 선택과 버튼 줄 (${mobile ? '휴대폰' : '컴퓨터'})`, async t => {
+    const { page, errors } = await fixture(t, { mobile, music: { title: 'Hysteria', artist: 'Muse', url: null, artworkUrl: null, previewUrl: null } })
+    await page.goto(`${origin}/home`)
+    await page.getByRole('button', { name: /Hysteria/ }).click()
+    const dialog = page.getByRole('dialog', { name: '요즘 듣는 음악' })
+    await dialog.waitFor()
+    await page.waitForTimeout(200)
+    const focusedTag = await page.evaluate(() => document.activeElement?.tagName)
+    if (mobile) assert.notEqual(focusedTag, 'INPUT')
+    else assert.equal(focusedTag, 'INPUT')
+    const buttons = await dialog.locator('.dialog-actions .btn').evaluateAll(list => list.map(b => [Math.round(b.getBoundingClientRect().width), Math.round(b.getBoundingClientRect().height)]))
+    assert.equal(buttons.length, 2)
+    assert.equal(buttons[0][0], buttons[1][0])
+    assert.equal(buttons[0][1], mobile ? 44 : 40)
+    await screenshot(page, `popup-actions-${mobile ? 'mobile' : 'desktop'}`)
+    // 브라우저 <dialog>(셋리스트·잼 만들기 등)는 열 때 첫 칸을 저절로 고른다 → 휴대폰에서는 팝업 자체를 고르게
+    const nativeFocus = await page.evaluate(() => {
+      const native = document.createElement('dialog')
+      native.innerHTML = '<input aria-label="이름"><button>저장</button>'
+      document.body.append(native)
+      native.showModal()
+      const tag = document.activeElement?.tagName
+      native.close(); native.remove()
+      return tag
+    })
+    assert.equal(nativeFocus, mobile ? 'DIALOG' : 'INPUT')
+    assert.deepEqual(errors, [])
+  })
+}
