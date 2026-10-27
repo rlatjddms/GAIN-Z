@@ -804,3 +804,50 @@ test('팝업 오른쪽 위 X로 닫고, 요즘 듣는 음악은 곡 옆 X로 빼
   assert.ok(state.requests.some(r => r.method === 'DELETE' && r.path === '/api/v1/users/me/profile-music'))
   assert.deepEqual(errors, [])
 })
+
+// #315: 페이지를 새로 열 때(아이폰 홈 화면 앱은 오래 두면 새로 열린다) 빈 카드가 뜨던 문제
+async function watchSkeleton(page) {
+  await page.addInitScript(() => {
+    window.skeletonSeen = 0
+    document.addEventListener('DOMContentLoaded', () => new MutationObserver(() => {
+      if (document.querySelector('.community .skeleton')) window.skeletonSeen++
+    }).observe(document.body, { subtree: true, childList: true }))
+  })
+}
+const slowList = (page, ms) => page.route('http://localhost:8080/api/v1/bands/10/posts?**', async route => {
+  await new Promise(resolve => setTimeout(resolve, ms))
+  return route.fallback()
+})
+
+test('앱을 새로 열면 기기에 기억한 목록을 바로 보여 주고 빈 카드를 띄우지 않는다', async t => {
+  const { page, state, errors } = await fixture(t)
+  await page.goto(`${origin}/home?band=10`)
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
+  await watchSkeleton(page)
+  await slowList(page, 800)
+  state.posts.at(-1).title = '뒤에서 새로 불러온 제목'
+  await page.reload()
+  // 응답(0.8초)보다 먼저 기억한 목록이 보인다
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12, null, { timeout: 600 })
+  await page.locator('.community').getByText('뒤에서 새로 불러온 제목').waitFor()
+  assert.equal(await page.evaluate(() => window.skeletonSeen), 0)
+  // 로그인 토큰과 같은 곳(로그인 유지 → localStorage)에 기억한다
+  assert.ok(await page.evaluate(() => localStorage.getItem('gainz.communityCache')?.includes('뒤에서 새로 불러온 제목')))
+  assert.deepEqual(errors, [])
+})
+
+test('처음 여는 목록은 금방 오면 빈 카드 없이, 늦으면 빈 카드를 보여 준다', async t => {
+  const fast = await fixture(t)
+  await watchSkeleton(fast.page)
+  await fast.page.goto(`${origin}/home?band=10`)
+  await fast.page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
+  assert.equal(await fast.page.evaluate(() => window.skeletonSeen), 0)
+
+  const slow = await fixture(t)
+  await watchSkeleton(slow.page)
+  await slowList(slow.page, 900)
+  await slow.page.goto(`${origin}/home?band=10`)
+  await slow.page.locator('.community .skeleton').first().waitFor()
+  await slow.page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
+  assert.deepEqual([...fast.errors, ...slow.errors], [])
+})
