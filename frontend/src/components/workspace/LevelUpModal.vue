@@ -30,7 +30,7 @@
           </div>
           <p v-if="next" class="next">다음 보상: Lv.{{ next.level }} {{ next.rewards.map((r) => r.name).join(' · ') }}</p>
 
-          <div class="actions">
+          <div class="dialog-actions">
             <button v-if="rewards.length" class="btn ghost" @click="goWardrobe">옷장에서 입어 보기</button>
             <button class="btn primary" @click="emit('close')">확인</button>
           </div>
@@ -104,7 +104,6 @@ const goWardrobe = () => {
 .what small { font-size: 0.68rem; font-weight: 800; color: var(--c-faint); }
 .what b { font-size: 0.88rem; font-weight: 900; color: #343a40; }
 .next { margin: 10px 0 0; font-size: 0.72rem; font-weight: 700; color: var(--c-faint); }
-.actions { margin-top: 18px; display: flex; gap: 8px; }
 .btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
 @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }

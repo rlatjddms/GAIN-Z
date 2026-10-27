@@ -776,6 +776,6 @@ button:focus-visible,a:focus-visible { outline:2px solid var(--c-primary-line); 
 }
 /* 휴대폰: 팝업은 아래에서 올라오는 시트로 (#124) */
 @media (max-width: 640px) {
-  .jam-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .jam-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: var(--sheet-pad-bottom); }
 }
 </style>

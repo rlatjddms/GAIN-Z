@@ -7,6 +7,7 @@ import './styles/ui.css'
 import { useThemeStore } from './stores/theme'
 import { watchKeyboardInset } from './components/ui/keyboardInset'
 import { watchImeInput } from './components/ui/imeInput'
+import { watchDialogFocus } from './components/ui/dialogFocus'
 
 // 시작 화면을 걷어 내는 시각: 로고가 다 그려지고(약 1.75초) 잠깐 보인 뒤 (#291에서 1.3초 → 2.1초).
 // hideSplash()가 아래에서 바로 불리므로 그보다 위에 둔다 (const는 선언 전에 쓰면 오류)
@@ -20,6 +21,8 @@ app.use(pinia)
 watchKeyboardInset()
 // 한글 조합 중인 글자도 입력 칸 값으로 바로 (#263)
 watchImeInput()
+// 휴대폰에서 팝업을 열 때 글자 칸을 저절로 고르지 않게 (#313)
+watchDialogFocus()
 // 화면이 그려지기 전에 고른 테마 색을 적용 (깜빡임 방지)
 useThemeStore(pinia).init()
 app.use(router)

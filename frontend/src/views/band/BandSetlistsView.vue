@@ -503,6 +503,6 @@ legend span { margin-left:6px; font-weight:400; }
 @media (max-width: 640px) {
   /* 휴대폰: 만들기 버튼은 목록 아래로 (#233) */
   .sidebar { display:flex; flex-direction:column; }
-  .setlist-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .setlist-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: var(--sheet-pad-bottom); }
 }
 </style>

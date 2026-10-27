@@ -15,7 +15,7 @@
           <h2 id="record-acquired-title">{{ current.name }}</h2>
           <p class="desc">{{ current.description }}</p>
           <p class="condition">{{ current.condition }}</p>
-          <div class="actions">
+          <div class="dialog-actions">
             <button class="btn ghost" @click="showInCollection">도감에서 보기</button>
             <button class="btn primary" @click="next">{{ queue.length > 1 ? `다음 (${queue.length - 1})` : '확인' }}</button>
           </div>
@@ -108,7 +108,6 @@ const showInCollection = () => {
 h2 { position: relative; margin: 4px 0 8px; font-size: 1.3rem; font-weight: 900; }
 .desc { margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--c-text-2); line-height: 1.5; }
 .condition { margin: 6px 0 0; font-size: 0.75rem; font-weight: 700; color: var(--c-faint); }
-.actions { display: flex; gap: 8px; margin-top: 20px; }
 .btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
 @keyframes spin-in {
   from { transform: scale(0.4) rotate(-180deg); opacity: 0; }

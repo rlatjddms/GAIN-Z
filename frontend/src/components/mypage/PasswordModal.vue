@@ -26,7 +26,7 @@
 
             <p v-if="error" class="error">{{ error }}</p>
 
-            <div class="actions">
+            <div class="dialog-actions">
               <button type="button" class="btn" :disabled="saving" @click="emit('close')">취소</button>
               <button type="submit" class="btn primary" :disabled="saving || !valid">{{ saving ? '저장 중…' : creating ? '만들기' : '바꾸기' }}</button>
             </div>
@@ -114,7 +114,6 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 .hint.bad { color: #e8590c; }
 .error { margin: 12px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
-.actions { display: flex; gap: 8px; margin-top: 20px; }
 .btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
@@ -124,7 +123,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
   .modal {
     width: 100%; max-width: none; max-height: 92dvh;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-bottom: var(--sheet-pad-bottom);
   }
 }
 /* 닫기 버튼 자리 (#292) */

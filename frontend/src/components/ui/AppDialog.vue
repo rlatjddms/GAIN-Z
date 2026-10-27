@@ -63,6 +63,8 @@ function onBackdrop(event) {
 }
 .app-dialog::backdrop { background: rgba(15, 23, 42, 0.45); }
 .body { padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+/* 확인창은 .body의 gap이 이미 있어서 공용 버튼 줄 위 여백을 줄인다 */
+.body .dialog-actions { margin-top: 4px; }
 h2 { margin: 0; font-size: 1.05rem; font-weight: 900; line-height: 1.4; }
 .text { margin: 0; font-size: 0.85rem; font-weight: 600; line-height: 1.6; color: var(--c-muted); white-space: pre-line; }
 .input {
