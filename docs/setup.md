@@ -58,7 +58,7 @@ npm run dev
 | `gainz.frontend-url` | `http://localhost:5173` | 소셜 로그인이 끝나면 돌아갈 프론트 주소. CORS 기본 허용 출처 |
 | `gainz.allowed-origins` | `frontend-url` 하나 | CORS 허용 출처. 쉼표로 여러 개 |
 | `gainz.upload-dir` | `~/.gainz/uploads` | 올린 파일 저장 폴더 (`storage.type: local`일 때) |
-| `gainz.storage.type` | `local` | 올린 파일을 둘 곳. `local`(디스크) / `supabase`(Supabase Storage) |
+| `gainz.storage.type` | `local` | 올린 파일을 둘 곳. `local`(디스크) / `r2`(Cloudflare R2, 운영) / `supabase`(Supabase Storage, #262 전) |
 
 비밀값(DB·Redis·소셜 로그인 클라이언트·JWT 서명 키)은 로컬에서는 `application-secret.yml`, 운영에서는 환경 변수로 넣습니다. 소셜 로그인의 scope·provider 주소 같은 비밀 아닌 설정은 `application.yml`에 있습니다.
 
@@ -90,7 +90,7 @@ docker compose up -d --build
 
 ## 배포
 
-Render(백엔드) + Supabase(DB·파일) + Vercel(프론트)에 무료로 올립니다. 순서대로 따라 하는 방법은 [deploy.md](deploy.md)에 있습니다. 설정 파일은 `render.yaml`, `frontend/vercel.json`이고, 잠든 백엔드는 UptimeRobot이 5분마다 깨웁니다.
+Render(백엔드) + Supabase(DB) + Cloudflare R2(파일) + Vercel(프론트)에 무료로 올립니다. 순서대로 따라 하는 방법은 [deploy.md](deploy.md)에 있습니다. 설정 파일은 `render.yaml`, `frontend/vercel.json`이고, 잠든 백엔드는 UptimeRobot이 5분마다 깨웁니다.
 
 ## 운영 실행 (prod 프로필)
 
@@ -111,7 +111,7 @@ Render(백엔드) + Supabase(DB·파일) + Vercel(프론트)에 무료로 올립
 | `STORAGE_TYPE` | | 기본 `local`(`UPLOAD_DIR`). 디스크가 재배포 때 지워지는 곳(Render 등)에서는 `r2` (#262). `supabase`도 쓸 수 있다 |
 | `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | `r2`일 때 ✅ | Cloudflare R2 계정 ID·버킷·API 토큰 (docs/deploy.md 1-5). 버킷에 CORS와 `tmp/` 정리 규칙을 넣어 둔다 |
 | `STORAGE_QUOTA`, `STORAGE_QUOTA_WARN`, `STORAGE_ALERT_EMAIL` | | 저장소 전체 용량 한도(기본 9GB, 넘는 새 파일은 막음)와 경고 선(기본 8GB), 닿으면 메일 받을 주소 (#262) |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | `supabase`일 때 ✅ (`r2`일 때 넣으면 옛 파일을 R2로 옮김) | 프로젝트 주소(`https://<프로젝트>.supabase.co`)와 서버용 키(service_role 또는 `sb_secret_…`). 브라우저에 노출하지 않는다 |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | `supabase`일 때 ✅ (`r2`일 때 넣으면 Supabase Storage의 옛 파일을 R2로 옮김, 평소엔 비움) | 프로젝트 주소(`https://<프로젝트>.supabase.co`)와 서버용 키(service_role 또는 `sb_secret_…`). 브라우저에 노출하지 않는다 |
 | `SUPABASE_BUCKET` | | 비공개 버킷 이름 (기본 `uploads`). 미리 만들어 둔다 |
 | `MAIL_TYPE` | | 이메일 인증·비밀번호 찾기 메일 (#193). 기본 `log`(보내지 않고 로그에 코드·링크), 운영은 `brevo` |
 | `BREVO_API_KEY`, `MAIL_FROM` | `brevo`일 때 ✅ | Brevo API 키와 Brevo에서 인증한 보내는 사람 이메일. `MAIL_FROM_NAME`(기본 `GAIN-Z`) |
@@ -127,7 +127,7 @@ Render(백엔드) + Supabase(DB·파일) + Vercel(프론트)에 무료로 올립
 - 리버스 프록시(nginx 등) 뒤에서 `X-Forwarded-*` 헤더를 읽어 소셜 로그인 리다이렉트 URI의 `{baseUrl}`을 바깥 주소로 잡습니다. 프록시가 `X-Forwarded-Proto`, `X-Forwarded-Host`를 넘겨 줘야 합니다.
 - 소셜 로그인 콘솔에 운영 리다이렉트 URI `https://<백엔드 도메인>/login/oauth2/code/{google|kakao|naver}`를 등록해야 합니다.
 
-### Supabase (DB·파일)
+### Supabase (DB)
 
 - **DB**: Supabase 대시보드의 Connect → **Session pooler** 주소를 씁니다. 직접 연결(`db.<프로젝트>.supabase.co`)은 IPv6 전용이라 Render 같은 곳에서 안 붙을 수 있고, Transaction pooler(6543)는 JPA의 prepared statement와 맞지 않습니다.
   - `DB_URL=jdbc:postgresql://aws-0-<지역>.pooler.supabase.com:5432/postgres?sslmode=require`, `DB_USERNAME=postgres.<프로젝트 ref>`, `DB_PASSWORD=<DB 비밀번호>`
