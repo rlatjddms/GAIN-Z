@@ -8,7 +8,7 @@
 
     <main class="sub-body">
       <!-- 넓은 화면: 본문 위 뒤로 가기 (홈 포함). 휴대폰은 헤더 왼쪽 화살표로 -->
-      <router-link :to="backTo" class="back"><ArrowLeft :size="15" :stroke-width="2.4" /> {{ backLabel }}</router-link>
+      <a :href="router.resolve(backTo).href" class="back" @click.prevent="goBack(backTo)"><ArrowLeft :size="15" :stroke-width="2.4" /> {{ backLabel }}</a>
       <PageHeader v-if="title" :title="title" :name="name" :subtitle="subtitle" class="head">
         <template v-if="$slots.actions" #actions><slot name="actions" /></template>
         <template v-if="$slots.below" #below><slot name="below" /></template>
@@ -23,7 +23,12 @@
 // 뒤로 가기 (#124, #162): 넓은 화면은 본문 위에, 휴대폰은 헤더 왼쪽 화살표
 import { ArrowLeft } from 'lucide-vue-next'
 import AppHeader from '../AppHeader.vue'
+import { useRouter } from 'vue-router'
+import { useGoBack } from '../../composables/useGoBack'
 import PageHeader from '../ui/PageHeader.vue'
+
+const router = useRouter()
+const goBack = useGoBack()
 
 defineProps({
   // 헤더 가운데 표시 (SOLO 기능, 마이페이지 MY …)

@@ -126,18 +126,20 @@ const listQuery = () => ({
   ...(page.value > 0 ? { page: String(page.value + 1) } : {}),
 })
 const query = extra => ({ path: '/home', query: { band: props.band.id, ...listQuery(), ...extra } })
-const write = () => router.push(query({ compose: '1' }))
-const open = post => router.push(query({ post: post.id }))
-const edit = post => router.push(query({ post: post.id, edit: '1' }))
-const close = () => router.push(query({}))
+// 글 열기·닫기·쪽·검색 조건은 같은 화면 안이라 기록에 쌓지 않는다 (#314).
+// 쌓으면 아이폰에서 밀어서 뒤로가기를 할 때 열었던 글·넘긴 쪽을 하나씩 거꾸로 지나간다
+const write = () => router.replace(query({ compose: '1' }))
+const open = post => router.replace(query({ post: post.id }))
+const edit = post => router.replace(query({ post: post.id, edit: '1' }))
+const close = () => router.replace(query({}))
 async function saved(post) { await router.replace(query({ post: post.id })); await load() }
-async function toggleMine() { await router.push(query({ mine: mine.value ? undefined : '1', page: undefined })) }
+async function toggleMine() { await router.replace(query({ mine: mine.value ? undefined : '1', page: undefined })) }
 function goPage(p, scroll = true) {
-  router.push(query({ page: p > 0 ? String(p + 1) : undefined }))
+  router.replace(query({ page: p > 0 ? String(p + 1) : undefined }))
   if (scroll) panel.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 function search({ q, from, to }) {
-  router.push(query({ q: q || undefined, from: from || undefined, to: from ? to : undefined, page: undefined }))
+  router.replace(query({ q: q || undefined, from: from || undefined, to: from ? to : undefined, page: undefined }))
 }
 async function remove(post) {
   if (!await useDialogStore().confirm({ title: '게시글을 삭제할까요?', okText: '삭제', danger: true })) return

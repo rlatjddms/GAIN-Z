@@ -394,7 +394,7 @@ const handleSubmit = async () => {
     await axiosInstance.post('/api/v1/characters', payload)
     await authStore.fetchCharacter()
     toast.success('캐릭터를 만들었어요')
-    router.push('/home')
+    router.replace('/home')
   } catch (error) {
     if (error.response) {
       if (error.response.status === 409) {
@@ -402,7 +402,7 @@ const handleSubmit = async () => {
         if (responseData && responseData.code === 'C001') {
           await authStore.fetchCharacter()
           toast.success('이미 캐릭터가 있어서 합주실로 이동할게요')
-          router.push('/home')
+          router.replace('/home')
         } else if (responseData && responseData.message) {
           toast.error(`캐릭터를 만들지 못했어요. ${responseData.message}`)
         } else {
