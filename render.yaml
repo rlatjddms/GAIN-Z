@@ -52,13 +52,6 @@ services:
       # 저장 용량이 8GB(경고)·9GB(새 파일 막음)에 닿으면 이 주소로 메일 (StorageQuota). 한도는 STORAGE_QUOTA로 바꿀 수 있다
       - key: STORAGE_ALERT_EMAIL
         sync: false
-      # 아래 SUPABASE_*는 옛 파일을 R2로 옮기는 동안만 쓴다 (LegacyStorageMigration). 다 옮기면 Render에서 값을 지운다
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_KEY
-        sync: false
-      - key: SUPABASE_BUCKET
-        value: uploads
       # 메일 (#193): 이메일 인증·비밀번호 찾기. Render 무료는 SMTP를 막아서 Brevo HTTP API로 보낸다 (docs/deploy.md 6단계)
       - key: MAIL_TYPE
         value: brevo
