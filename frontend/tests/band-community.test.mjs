@@ -298,9 +298,12 @@ test('작성 중 사진·영상 미리보기, 공지와 여러 첨부 저장 및
   await page.getByRole('button', { name: '크게 보기', exact: true }).click()
   await page.waitForFunction(() => { const video = document.querySelector('.media-viewer video'); return video && !video.paused })
   assert.equal(await page.locator('.media-gallery video').evaluate(video => video.paused), true)
+  // #321: 글에서 켠 음소거가 큰 화면에도 그대로, 큰 화면에서 바꾼 소리 설정은 닫을 때 글 안의 영상에 돌려준다
+  assert.equal(await page.locator('.media-viewer video').evaluate(video => video.muted), true)
+  await page.locator('.media-viewer video').evaluate(video => { video.muted = false; video.volume = 0.4 })
   await page.getByRole('button', { name: '미디어 닫기' }).click()
   await page.locator('.media-viewer').waitFor({ state: 'detached' })
-  assert.equal(await page.locator('.media-gallery video').evaluate(video => video.paused), true)
+  assert.deepEqual(await page.locator('.media-gallery video').evaluate(video => [video.paused, video.muted, video.volume]), [true, false, 0.4])
   await page.locator('.author-row summary').click()
   await page.getByRole('button', { name: '글 수정', exact: true }).click()
   await page.getByRole('button', { name: '합주실.png 첨부 삭제' }).click()
