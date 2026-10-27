@@ -1,4 +1,5 @@
 import api from './axios'
+import { uploadBandFiles, UPLOAD_KIND } from './upload'
 
 const base = (bandId) => `/api/v1/bands/${bandId}/setlists`
 const data = async (request) => (await request).data.data
@@ -13,10 +14,11 @@ export const deleteSetlist = (bandId, id) => api.delete(`${base(bandId)}/${id}`)
 export const reorderSetlists = (bandId, ids) => data(api.put(`${base(bandId)}/order`, { ids }))
 
 // 곡 저장 (itemId가 없으면 추가). item: { title, artist, memo, sheetId, memberIds, keepAttachmentIds } → 셋리스트
-export async function saveSetlistItem(bandId, setlistId, itemId, item, files) {
+// 새 첨부는 먼저 저장소에 바로 올리고(onProgress 0~100) uploadIds로 보낸다 (#262)
+export async function saveSetlistItem(bandId, setlistId, itemId, item, files, onProgress) {
+  const uploadIds = files.length ? await uploadBandFiles(bandId, UPLOAD_KIND.SETLIST_FILE, files, onProgress) : []
   const form = new FormData()
-  form.append('item', new Blob([JSON.stringify(item)], { type: 'application/json' }))
-  files.forEach(file => form.append('files', file))
+  form.append('item', new Blob([JSON.stringify({ ...item, uploadIds })], { type: 'application/json' }))
   const url = `${base(bandId)}/${setlistId}/items${itemId ? `/${itemId}` : ''}`
   return data(api.request({ method: itemId ? 'put' : 'post', url, data: form, headers: { 'Content-Type': 'multipart/form-data' } }))
 }

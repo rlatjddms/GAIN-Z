@@ -124,7 +124,7 @@
               <div class="add-ways">
                 <div class="way">
                   <strong><FileUp :size="16" :stroke-width="2.2" /> 음원 파일 올리기</strong>
-                  <p class="hint">녹음 앱이나 녹음기로 따로 녹음한 MP3·WAV·M4A·OGG·WebM 파일을 30MB까지 올릴 수 있어요.</p>
+                  <p class="hint">녹음 앱이나 녹음기로 따로 녹음한 MP3·WAV·M4A·OGG·WebM 파일을 50MB까지 올릴 수 있어요.</p>
                   <label class="btn file-picker" :class="{ disabled: fileDisabled }">파일 고르기<input type="file" :accept="JAM_FILE_ACCEPT" :disabled="fileDisabled" aria-label="음원 파일 고르기" @change="pickFile"></label>
                 </div>
                 <div class="way">
@@ -486,7 +486,7 @@ async function pickFile(event) {
   event.target.value = ''
   if (!file) return
   if (take.value && !await dialog.confirm({ title: '이 파일로 바꿀까요?', text: '올리지 않은 트랙은 버려져요.', okText: '바꾸기', danger: true })) return
-  if (file.size > JAM_TRACK_MAX_BYTES) { toast.error('음원 파일은 30MB까지 올릴 수 있어요.'); return }
+  if (file.size > JAM_TRACK_MAX_BYTES) { toast.error('음원 파일은 50MB까지 올릴 수 있어요.'); return }
   stopPlayback()
   discardTake()
   try {
@@ -503,7 +503,7 @@ async function discardTake(ask = false) {
 }
 async function uploadTake() {
   const current = take.value
-  if (current.blob.size > JAM_TRACK_MAX_BYTES) { toast.error('녹음 파일이 30MB를 넘어요. 조금 짧게 녹음해 주세요.'); return }
+  if (current.blob.size > JAM_TRACK_MAX_BYTES) { toast.error('녹음 파일이 50MB를 넘어요. 조금 짧게 녹음해 주세요.'); return }
   stopPlayback()
   uploading.value = true
   uploadProgress.value = 0

@@ -12,7 +12,7 @@
     <MentionInput :members="members" id="post-content" v-model="draft.content" class="content-input" placeholder="합주 이야기, 연습 영상, 함께 나누고 싶은 소식을 적어 주세요." maxlength="10000" rows="7" required :readonly="noticeOnly" :disabled="saving" />
 
     <section class="attachments-section" aria-label="첨부 파일">
-      <div class="section-head"><span><BoardIcon name="attach" :size="17" /> 첨부 파일 <b>{{ retained.length + picked.length }}</b></span><small>최대 8개 · 파일당 10MB</small></div>
+      <div class="section-head"><span><BoardIcon name="attach" :size="17" /> 첨부 파일 <b>{{ retained.length + picked.length }}</b></span><small>최대 8개 · 파일당 200MB</small></div>
       <div v-if="retained.length || picked.length" class="file-grid">
         <div v-for="item in retained" :key="item.id" class="file-tile">
           <BandPostAttachment :attachment="item" tile />
@@ -112,7 +112,7 @@ function addFiles(files) {
     return
   }
   if (added.some(file => file.size > BAND_ATTACHMENT_MAX_BYTES || !BAND_ATTACHMENT_ACCEPT.split(',').includes(file.type))) {
-    fileError.value = '사진·영상·오디오·PDF 파일을 파일당 10MB까지 첨부할 수 있어요.'
+    fileError.value = '사진·영상·오디오·PDF 파일을 파일당 200MB까지 첨부할 수 있어요.'
     return
   }
   picked.value.push(...added.map(file => ({ key: ++key, file, url: URL.createObjectURL(file) })))
