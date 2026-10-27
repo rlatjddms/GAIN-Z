@@ -16,7 +16,7 @@ function sineWav(seconds, frequency, sampleRate = 22050) {
 
 // 레이어 잼 API를 메모리에서 흉내 낸다. 응답 모양은 백엔드 JamResponse와 같다.
 function createJamApi() {
-  const state = { nextId: 60, files: new Map(), patches: [], uploads: [], jams: [] }
+  const state = { nextId: 60, files: new Map(), patches: [], uploads: [], direct: new Map(), jams: [] }
   const id = () => state.nextId++
   const track = (props, body) => {
     const t = { id: id(), volume: 100, offsetMs: 0, createdAt: '2026-10-18T10:00:00', ...props }
@@ -36,12 +36,12 @@ function createJamApi() {
   const summary = jam => ({ id: jam.id, title: jam.title, bpm: jam.bpm, song: jam.song, trackCount: jam.tracks.length, creatorName: jam.creatorName })
   const find = jamId => state.jams.find(jam => jam.id === Number(jamId))
   const song = setlistItemId => setlistItemId === 31 ? { setlistItemId: 31, title: 'Hysteria' } : null
-  // multipart 본문에서 track JSON과 파일 바이트를 꺼낸다.
+  // multipart 본문의 track JSON. 파일은 브라우저가 저장소에 바로 올리고 uploadId만 온다 (#262)
   function multipart(buffer) {
     const text = buffer.toString('latin1')
-    const json = JSON.parse(Buffer.from(text.match(/name="track"[^\r]*\r\n(?:[^\r]+\r\n)*\r\n([\s\S]*?)\r\n--/)[1], 'latin1').toString('utf8'))
-    const file = text.match(/name="file"; filename="([^"]+)"\r\n(?:[^\r]+\r\n)*\r\n([\s\S]*?)\r\n--/)
-    return { json, name: Buffer.from(file[1], 'latin1').toString('utf8'), body: Buffer.from(file[2], 'latin1') }
+    const { uploadId, ...json } = JSON.parse(Buffer.from(text.match(/name="track"[^\r]*\r\n(?:[^\r]+\r\n)*\r\n([\s\S]*?)\r\n--/)[1], 'latin1').toString('utf8'))
+    const file = state.direct.get(uploadId)
+    return { json, name: file.name, body: file.bytes, kind: file.kind }
   }
   function handle(method, path, request) {
     let m
@@ -62,7 +62,16 @@ function createJamApi() {
       state.jams.unshift(jam)
       return view(jam)
     }
-    if ((m = path.match(/^\/api\/v1\/bands\/10\/jams\/(\d+)\/tracks\/(\d+)\/file$/))) return { raw: state.files.get(Number(m[2])) }
+    // 바로 올리기·받기 주소 (#262)
+    if (path === '/api/v1/bands/10/uploads') {
+      const body = request.postDataJSON()
+      const uploadId = `up-${id()}`
+      state.direct.set(uploadId, { name: body.name, kind: body.kind })
+      return { uploadId, url: `/api/v1/files/put-${uploadId}`, contentType: body.contentType }
+    }
+    if ((m = path.match(/^\/api\/v1\/files\/put-(.+)$/))) { state.direct.get(m[1]).bytes = request.postDataBuffer(); return {} }
+    if ((m = path.match(/^\/api\/v1\/bands\/10\/jams\/(\d+)\/tracks\/(\d+)\/file\/link$/))) return { url: `/api/v1/files/get-${m[2]}` }
+    if ((m = path.match(/^\/api\/v1\/files\/get-(\d+)$/))) return { raw: state.files.get(Number(m[1])) }
     if ((m = path.match(/^\/api\/v1\/bands\/10\/jams\/(\d+)\/tracks\/(\d+)$/))) {
       const jam = find(m[1])
       const t = jam.tracks.find(item => item.id === Number(m[2]))
@@ -245,6 +254,8 @@ test('레이어 잼 재생·믹서 저장·병합 내려받기·녹음 올리기
     assert.equal(upload.json.volume, 100)
     assert.ok(upload.json.durationMs > 900, `녹음 길이 ${upload.json.durationMs}`)
     assert.match(upload.name, /^layer-jam-\d+\.webm$/)
+    // 녹음은 잼 한도(JAM_TRACK)로 저장소에 바로 올린다 (#262)
+    assert.equal(upload.kind, 'JAM_TRACK')
     assert.equal(upload.body.subarray(0, 4).toString('hex'), '1a45dfa3')
     assert.equal(await tracks.count(), 3)
     assert.equal(await take.count(), 0)

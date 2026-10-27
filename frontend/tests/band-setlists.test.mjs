@@ -8,7 +8,7 @@ import { confirmAppDialog } from './appDialog.mjs'
 
 // 셋리스트 API를 메모리에서 흉내 낸다. 응답 모양은 백엔드 SetlistResponse와 같다.
 function createSetlistApi() {
-  const state = { lists: [], files: new Map(), nextId: 30, failNextSave: false, saves: 0, workspaceAdds: 0 }
+  const state = { lists: [], files: new Map(), uploads: new Map(), nextId: 30, failNextSave: false, saves: 0, workspaceAdds: 0 }
   const id = () => state.nextId++
   const view = list => ({ id: list.id, title: list.title, favorite: list.favorite, items: list.items.map(item => ({ ...item, attachments: item.attachments.map(a => ({ ...a, url: `/api/v1/bands/10/setlists/${list.id}/items/${item.id}/attachments/${a.id}` })) })) })
   const find = listId => state.lists.find(list => list.id === Number(listId))
@@ -25,12 +25,32 @@ function createSetlistApi() {
     if (!target) { target = { id: id(), attachments: [] }; list.items.push(target) }
     const kept = target.attachments.filter(a => item.keepAttachmentIds.includes(a.id))
     const added = files.map(file => { const key = `file-${id()}`; state.files.set(key, file.body); return { id: key, name: file.name, type: 'application/pdf' } })
+    // 브라우저가 바로 올린 첨부 (#262)
+    for (const uploadId of item.uploadIds || []) {
+      const upload = state.uploads.get(uploadId)
+      const key = `file-${id()}`
+      state.files.set(key, upload.bytes)
+      added.push({ id: key, name: upload.name, type: upload.type })
+    }
     const sheet = item.sheetId ? { sheetId: item.sheetId, title: 'Hysteria', artist: 'Muse', workspaceItemId: item.sheetId === 7 ? 70 : null } : null
     Object.assign(target, { title: item.title, artist: item.artist || null, memo: item.memo || null, sheet, memberIds: item.memberIds, attachments: [...kept, ...added] })
     return view(list)
   }
   function handle(method, path, request) {
     let m
+    // 바로 올리기·받기 주소 (#262). 받기 주소의 dl-은 저장(Content-Disposition: attachment)
+    if (path === '/api/v1/bands/10/uploads') {
+      const body = request.postDataJSON()
+      const uploadId = `up-${id()}`
+      state.uploads.set(uploadId, { name: body.name, type: body.contentType, kind: body.kind })
+      return { uploadId, url: `/api/v1/files/put-${uploadId}`, contentType: body.contentType }
+    }
+    if ((m = path.match(/^\/api\/v1\/files\/put-(.+)$/))) { state.uploads.get(m[1]).bytes = request.postDataBuffer(); return {} }
+    if ((m = path.match(/^\/api\/v1\/bands\/10\/setlists\/(\d+)\/items\/(\d+)\/attachments\/(.+)\/link$/))) {
+      const name = state.lists.flatMap(list => list.items).flatMap(item => item.attachments).find(a => a.id === m[3])?.name
+      return { url: `/api/v1/files/${request.url().includes('download=true') ? 'dl' : 'get'}-${m[3]}?name=${encodeURIComponent(name)}` }
+    }
+    if ((m = path.match(/^\/api\/v1\/files\/(get|dl)-(.+)$/))) return { raw: state.files.get(m[2]), name: m[1] === 'dl' ? new URL(request.url()).searchParams.get('name') : null }
     if ((m = path.match(/^\/api\/v1\/bands\/10\/setlists\/(\d+)\/items\/(\d+)\/attachments\/(.+)$/))) return { raw: state.files.get(m[3]) }
     // 보관함에 담으면 같은 악보를 쓰는 곡에 보관함 항목 id가 붙는다.
     if (path === '/api/v1/workspace/sheets' && method === 'POST') {
@@ -86,7 +106,7 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
       const character = { nickname: '신대방불꽃기타리스트', instrumentType: 'GUITAR', level: 1 }
       const path = new URL(request.url()).pathname
       let data = api.handle(request.method(), path, request)
-      if (data?.raw !== undefined) return route.fulfill({ headers, contentType: 'application/pdf', body: data.raw })
+      if (data?.raw !== undefined) return route.fulfill({ headers: { ...headers, ...(data.name ? { 'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(data.name)}` } : {}) }, contentType: 'application/pdf', body: data.raw })
       if (data?.status) return route.fulfill({ status: data.status, headers, contentType: 'application/json', body: JSON.stringify({ success: false, message: data.error }) })
       if (data === undefined) {
         data = path === '/api/v1/workspace/sheets' && request.method() === 'GET' ? [{ id: 70, sheetId: 7, title: 'Hysteria', artist: 'Muse' }]
@@ -149,6 +169,8 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
     const saved = api.state.lists[0].items[0]
     assert.deepEqual([saved.title, saved.artist, saved.memo, saved.sheet.sheetId, saved.memberIds, saved.attachments.map(a => a.name)], ['첫 곡', 'Muse', '후렴 반복', 7, [1], ['악보.pdf']])
     assert.equal(api.state.lists[0].items.length, 1)
+    // 첨부는 셋리스트 한도(SETLIST_FILE)로 저장소에 바로 올리고 uploadId로 저장한다 (#262)
+    assert.deepEqual([...api.state.uploads.values()].map(u => [u.kind, u.name, u.bytes?.toString()]).at(-1), ['SETLIST_FILE', '악보.pdf', '%PDF'])
     await songs.nth(1).getByRole('button', { name: '저장', exact: true }).click()
     await songs.nth(1).getByRole('button', { name: '둘째 곡 수정', exact: true }).waitFor()
     // 수정 취소는 확인 후 서버에 보내지 않는다.
@@ -187,7 +209,7 @@ test('셋리스트 생성·드래그·멤버 선택·악보 연결·보관함 �
     assert.equal(await songs.first().locator('.song-name strong').textContent(), '둘째 곡')
     await songs.nth(1).locator('.song-toggle').click()
     assert.match(await songs.nth(1).locator('.member-tag').textContent(), /신대방불꽃/)
-    // 서버 첨부는 로그인 요청으로 받아 저장한다.
+    // 서버 첨부는 권한을 확인한 저장 주소로 받는다 (#262)
     const [download] = await Promise.all([page.waitForEvent('download'), songs.nth(1).locator('.file-list a').first().click()])
     assert.equal(download.suggestedFilename(), '악보.pdf')
     // 연결한 악보는 내 보관함 항목의 악보 보기 화면으로 연다.

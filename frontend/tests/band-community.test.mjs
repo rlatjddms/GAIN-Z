@@ -46,7 +46,7 @@ async function fixture(t, options = {}) {
     posts: Array.from({ length: 15 }, (_, i) => makePost(i + 1)), comments: [
       { id: 100, parentId: null, content: '박자부터 맞춰 봐요', author, createdAt: '2026-10-16T12:10:00', mine: true, deleted: false },
       { id: 101, parentId: 100, content: '좋아요', author, createdAt: '2026-10-16T12:11:00', mine: true, deleted: false },
-    ], requests: [], media: new Map(), failSave: false, failList: false, leader: true, ...options,
+    ], requests: [], media: new Map(), uploads: new Map(), failSave: false, failList: false, leader: true, ...options,
   }
   await page.route('http://localhost:8080/**', async route => {
     const request = route.request()
@@ -65,12 +65,40 @@ async function fixture(t, options = {}) {
       const kept = (next.attachments || (next.attachment ? [next.attachment] : [])).filter(file => info.keepAttachmentIds.includes(file.id))
       for (const file of form.getAll('files')) {
         const id = 'file-' + state.media.size
-        state.media.set(id, { bytes: Buffer.from(await file.arrayBuffer()), type: file.type })
+        state.media.set(id, { bytes: Buffer.from(await file.arrayBuffer()), type: file.type, name: file.name })
         kept.push({ id, name: file.name, type: file.type, url: `/api/v1/bands/10/posts/${next.id}/attachments/${id}` })
+      }
+      // 브라우저가 바로 올린 첨부 (#262)
+      state.uploadIds = info.uploadIds || []
+      for (const uploadId of info.uploadIds || []) {
+        const upload = state.uploads.get(uploadId)
+        if (!upload?.bytes) return respond('올린 파일을 찾지 못했어요. 파일을 다시 올려 주세요.', 400)
+        const id = 'file-' + state.media.size
+        state.media.set(id, upload)
+        kept.push({ id, name: upload.name, type: upload.type, url: `/api/v1/bands/10/posts/${next.id}/attachments/${id}` })
       }
       Object.assign(next, { title: info.title, content: info.content, notice: info.notice ?? next.notice, noticeExpiresAt: info.notice ? info.noticeExpiresAt : null, attachments: kept, attachment: kept[0] || null })
       if (!existing) state.posts.push(next)
       return respond(next)
+    }
+    // 바로 올리기 (#262): 올릴 주소를 주고, 그 주소(서버 주소 모양)로 PUT 한 바이트를 기억한다
+    if (path === '/api/v1/bands/10/uploads') {
+      if (state.storageFull) return respond('저장 공간이 가득 차서 지금은 새 파일을 올릴 수 없어요.', 507)
+      const body = request.postDataJSON()
+      const uploadId = 'up-' + state.uploads.size
+      state.uploads.set(uploadId, { name: body.name, type: body.contentType, kind: body.kind })
+      return respond({ uploadId, url: `/api/v1/files/put-${uploadId}`, contentType: body.contentType })
+    }
+    if (path.startsWith('/api/v1/files/put-') && method === 'PUT') {
+      state.uploads.get(path.slice('/api/v1/files/put-'.length)).bytes = request.postDataBuffer()
+      return route.fulfill({ status: 200, headers })
+    }
+    // 받기 주소: get-은 화면에 띄우기, dl-은 저장 (Content-Disposition: attachment)
+    const served = path.match(/^\/api\/v1\/files\/(get|dl)-(.+)$/)
+    if (served) {
+      const media = served[2] === 'legacy' ? { bytes: photo, type: 'image/png', name: attachment.name } : state.media.get(served[2])
+      const disposition = served[1] === 'dl' ? { 'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(media.name)}` } : {}
+      return route.fulfill({ headers: { ...headers, ...disposition }, contentType: media.type, body: media.bytes })
     }
     if (path === '/api/v1/characters/me') return respond({ nickname: '리듬냥', instrumentType: 'GUITAR', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' })
     // 요즘 듣는 음악 (#292): state.music이 있으면 내 정보에 싣고, 지우면 비운다
@@ -128,6 +156,8 @@ async function fixture(t, options = {}) {
     }
     if (suffix === '/notice') { Object.assign(post, request.postDataJSON()); return respond(post) }
     if (suffix === '/attachments.zip') return route.fulfill({ headers, contentType: 'application/zip', body: Buffer.from('PK-test-archive') })
+    const link = suffix.match(/^\/attachments?(?:\/(.+))?\/link$/)
+    if (link) return respond({ url: `/api/v1/files/${url.searchParams.get('download') === 'true' ? 'dl' : 'get'}-${link[1] || 'legacy'}` })
     if (suffix.startsWith('/attachments/')) {
       const media = state.media.get(suffix.split('/').at(-1))
       return route.fulfill({ headers, contentType: media.type, body: media.bytes })
@@ -255,6 +285,11 @@ test('작성 중 사진·영상 미리보기, 공지와 여러 첨부 저장 및
   const created = state.posts.find(p => p.id === 50)
   assert.equal(created.notice, true)
   assert.equal(created.attachments.length, 2)
+  // 첨부는 저장소에 바로 올리고(서버로 multipart 파일을 보내지 않음) uploadId로 글을 저장한다 (#262)
+  assert.deepEqual([...state.uploads.values()].map(u => [u.kind, u.name, u.bytes.length > 0]), [['ATTACHMENT', '합주실.png', true], ['ATTACHMENT', '합주영상.webm', true]])
+  assert.deepEqual(state.uploadIds, ['up-0', 'up-1'])
+  // 화면의 사진·영상은 받기 주소(…/link)로 저장소에서 바로 불러온다
+  assert.match(await page.locator('.media-gallery video').getAttribute('src'), /\/api\/v1\/files\/get-file-/)
   await page.waitForFunction(() => document.querySelector('.media-gallery video')?.readyState >= 1)
   await page.locator('.media-gallery video').evaluate(async video => { await video.play(); video.pause() })
   await screenshot(page, 'community-detail-media')
@@ -401,8 +436,9 @@ test('내 글 필터는 전체 페이지에 적용하고 카드에서 바로 수
 })
 
 test('사진 확대·키보드 넘기기·개별/ZIP 저장·닫기와 모바일 표시', async t => {
-  const second = { ...attachment, id: 'second', name: '두번째.png' }
-  const { page, errors } = await fixture(t, { posts: [makePost(2, { attachments: [attachment, second] })] })
+  const second = { ...attachment, id: 'second', name: '두번째.png', url: '/api/v1/bands/10/posts/2/attachments/second' }
+  const media = new Map([['second', { bytes: photo, type: 'image/png', name: '두번째.png' }]])
+  const { page, errors } = await fixture(t, { posts: [makePost(2, { attachments: [attachment, second] })], media })
   await page.goto(`${origin}/home?band=10&post=2`)
   await page.getByRole('button', { name: '합주.png 크게 보기' }).click()
   await page.locator('.media-viewer img').waitFor()
