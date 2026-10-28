@@ -4,7 +4,7 @@ Claude Code와 팀원이 함께 따르는 규칙입니다. Claude는 세션을 �
 
 ## 프로젝트
 
-- `backend/`: Spring Boot (Java 17, JPA, MariaDB, Redis). 테스트는 `./gradlew test` (Mockito 단위 테스트, DB 불필요).
+- `backend/`: Spring Boot (Java 17, JPA, PostgreSQL(운영·docker-compose, 로컬은 MariaDB도 가능), Redis). 파일은 Cloudflare R2(로컬은 디스크). 테스트는 `./gradlew test` (Mockito 단위 테스트, DB 불필요).
 - `frontend/`: Vue 3 + Vite + Pinia. 빌드는 `npm run build`. 테스트는 `npm test` (Playwright 브라우저 테스트, 가짜 API 응답, 약 40초). 개발 모드 전용 미리보기 `/dev/sprites`.
 - `tools/dot-studio/`: 캐릭터 스프라이트 PNG 편집기. `node tools/dot-studio/server.cjs`.
 - 비밀값은 `backend/src/main/resources/application-secret.yml`에만 두고 커밋하지 않습니다 (`.gitignore`에 있음).
