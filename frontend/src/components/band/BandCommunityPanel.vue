@@ -1,7 +1,7 @@
 <template>
   <section ref="panel" class="community-panel">
     <BandCommunityFeed
-      :mine="mine" :notices="notices" :posts="posts" :total="total" :loading="loading && !shown"
+      :mine="mine" :notices="notices" :posts="posts" :total="total" :loading="slow && !shown"
       :searching="searching" :search-open="searchOpen"
       @open="open" @write="write" @mine="toggleMine" @edit="edit" @delete="remove" @search-toggle="searchOpen = !searchOpen"
     >
@@ -18,8 +18,11 @@
 <script>
 // 마지막으로 불러온 목록을 기억한다 (#233). 셋리스트 등에 다녀와 홈이 새로 그려질 때 빈 카드(불러오는 중) 대신
 // 기억한 글을 바로 보여 주고 뒤에서 새로 불러온다. 밴드·쪽·검색 조건마다 따로.
-// <script setup> 안에 두면 화면이 그려질 때마다 새로 만들어져서 파일 수준에 둔다
+// <script setup> 안에 두면 화면이 그려질 때마다 새로 만들어져서 파일 수준에 둔다.
+// 앱을 새로 열면 비므로 기기에 기억한 목록(communityCache, #315)으로 채운다
 const lastLoaded = new Map()
+// 빈 카드는 불러오기가 이만큼 넘게 걸릴 때만 (빠르면 깜빡이기만 해서, #315)
+const SKELETON_DELAY_MS = 300
 </script>
 
 <script setup>
@@ -28,6 +31,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { isActiveNotice } from '../../constants/bandBoard'
 import { useNoticeClock } from './useNoticeClock'
 import { listBandPosts, deleteBandPost } from '../../api/bandBoard'
+import { readCommunityCache, writeCommunityCache } from './communityCache'
+import { useAuthStore } from '../../stores/auth'
 import BandCommunityFeed from './BandCommunityFeed.vue'
 import BandBoardSearch from './BandBoardSearch.vue'
 import BandPostDialog from './BandPostDialog.vue'
@@ -59,6 +64,8 @@ const searchOpen = ref(false)
 
 const rows = ref([])
 const loading = ref(false)
+const slow = ref(false)
+let slowTimer = null
 // 이 밴드의 목록을 한 번이라도 보여 줬는지 (#295). 보여 준 뒤 다시 불러올 때는 빈 카드(불러오는 중)를 띄우지 않는다.
 // 글이 없거나 공지만 있는 밴드도 이미 보여 준 화면이 있으니까 (예전에는 일반 글 수로 판단해서 다시 불러올 때마다 깜빡였다)
 const shown = ref(false)
@@ -85,13 +92,16 @@ async function fetchNotices() {
   const rest = await Promise.all(Array.from({ length: Math.max(0, first.totalPages - 1) }, (_, i) => listBandPosts(props.band.id, { page: i + 1, size: 20, notice: true, mine: mine.value })))
   return [first, ...rest].flatMap(result => result.content)
 }
-const cacheKey = () => JSON.stringify([props.band.id, page.value, mine.value, filters.value])
+// 기기에 기억할 때 다른 계정 것과 섞이지 않게 로그인한 이메일도 넣는다
+const cacheKey = () => JSON.stringify([useAuthStore().userEmail, props.band.id, page.value, mine.value, filters.value])
 async function load() {
   const current = ++sequence
   const key = cacheKey()
-  const cached = lastLoaded.get(key)
+  const cached = lastLoaded.get(key) || readCommunityCache(key)
   if (cached) showList(cached)
   loading.value = true
+  clearTimeout(slowTimer)
+  slowTimer = setTimeout(() => { if (current === sequence && loading.value) slow.value = true }, SKELETON_DELAY_MS)
   error.value = ''
   try {
     // 검색 중에는 공지도 일반 글처럼 결과에 섞는다 (위에 따로 고정하지 않음)
@@ -103,10 +113,11 @@ async function load() {
     const list = { noticeRows: pinned, rows: result.content, regularTotal: result.totalElements, totalPages: result.totalPages }
     showList(list)
     lastLoaded.set(key, list)
+    writeCommunityCache(key, list)
     // 글이 지워져 쪽이 줄었으면 마지막 쪽으로
     if (result.totalPages > 0 && page.value >= result.totalPages) goPage(result.totalPages - 1, false)
   } catch (e) { if (current === sequence) error.value = e.response?.data?.message || '게시글을 불러오지 못했어요.' }
-  finally { if (current === sequence) loading.value = false }
+  finally { if (current === sequence) { loading.value = false; slow.value = false; clearTimeout(slowTimer) } }
 }
 const listQuery = () => ({
   ...(mine.value ? { mine: '1' } : {}),
