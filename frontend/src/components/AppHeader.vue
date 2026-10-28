@@ -3,9 +3,9 @@
     <div class="header-inner">
       <!-- 휴대폰의 하위 화면은 로고 대신 뒤로 가기 화살표 (앱처럼) -->
       <div class="header-left" :class="{ 'has-back': backTo }">
-        <router-link v-if="backTo" :to="backTo" class="header-back" :aria-label="`${backLabel}(으)로 돌아가기`">
+        <a v-if="backTo" :href="router.resolve(backTo).href" class="header-back" :aria-label="`${backLabel}(으)로 돌아가기`" @click.prevent="goBack(backTo)">
           <ChevronLeft :size="24" :stroke-width="2.4" />
-        </router-link>
+        </a>
         <router-link to="/home" class="logo" aria-label="GAIN-Z 홈"><AppLogo :pixel="3" /></router-link>
       </div>
 
@@ -53,6 +53,7 @@ import ProfileAvatar from './ProfileAvatar.vue'
 import AppLogo from './AppLogo.vue'
 import NotificationBell from './NotificationBell.vue'
 import { ChevronLeft } from 'lucide-vue-next'
+import { useGoBack } from '../composables/useGoBack'
 
 defineProps({
   // 하위 화면에서 돌아갈 곳. 있으면 휴대폰 헤더 왼쪽에 로고 대신 뒤로 가기 화살표
@@ -61,6 +62,7 @@ defineProps({
 })
 
 const router = useRouter()
+const goBack = useGoBack()
 const route = useRoute()
 const authStore = useAuthStore()
 

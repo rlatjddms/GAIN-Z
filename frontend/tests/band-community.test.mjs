@@ -851,3 +851,29 @@ test('처음 여는 목록은 금방 오면 빈 카드 없이, 늦으면 빈 카
   await slow.page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
   assert.deepEqual([...fast.errors, ...slow.errors], [])
 })
+
+// #314: 아이폰에서 밀어서 뒤로가기(= 브라우저 뒤로)가 지나온 글·쪽·화면을 하나씩 다 거꾸로 지나가던 문제
+test('같은 화면 안의 이동은 기록에 쌓지 않고, 화면 위 뒤로 버튼은 기록을 되돌린다', async t => {
+  const { page } = await fixture(t)
+  await page.goto(`${origin}/home?band=10`)
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
+  const start = await page.evaluate(() => history.length)
+  // 글 열고 닫기, 쪽 넘기기
+  await page.locator('.community .post').nth(2).click()
+  await page.locator('.post-title').waitFor()
+  await page.getByRole('button', { name: '게시글 창 닫기' }).click()
+  await page.locator('.post-dialog').waitFor({ state: 'detached' })
+  await page.getByRole('button', { name: '2', exact: true }).first().click()
+  await page.waitForURL(/page=2/)
+  // 셋리스트 → 뒤로 → 레이어 잼 → 뒤로
+  for (const name of ['BAND SETLIST', 'LAYER JAM']) {
+    await page.locator('.card-btn').filter({ hasText: name }).click()
+    await page.waitForURL(/\/bands\/10\/(setlists|jams)/)
+    await page.locator('a.back').click()
+    await page.waitForURL(/\/home\?band=10&page=2$/)
+  }
+  // 홈에서 한 번 뒤로 가면 홈에 들어오기 전(빈 페이지)으로 간다
+  assert.ok(await page.evaluate(() => history.length) <= start + 1)
+  await page.goBack()
+  assert.equal(page.url(), 'about:blank')
+})
