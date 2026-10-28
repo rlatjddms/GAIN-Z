@@ -29,6 +29,9 @@
   /* 모서리·그림자 */
   --radius-sm: 8px;
   --radius-md: 12px;
+  /* 휴대폰 아래에서 올라오는 팝업의 아래 여백 (#313). 아이폰 홈 막대 자리를 더하되, 24px에 그 높이를 통째로 더하지 않아
+     컴퓨터 미리보기와 크게 다르지 않게 한다 */
+  --sheet-pad-bottom: max(24px, calc(env(safe-area-inset-bottom) + 12px));
   --radius-lg: 20px;           /* 카드 */
   --radius-xl: 24px;           /* 팝업 */
   --radius-pill: 999px;

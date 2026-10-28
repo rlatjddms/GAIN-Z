@@ -35,7 +35,9 @@ before(async () => {
 after(async () => { await browser?.close(); vite?.kill() })
 
 async function fixture(t, options = {}) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 960 }, timezoneId: options.timezoneId || 'Asia/Seoul', deviceScaleFactor: options.scale || 1 })
+  // mobile: 손가락 기기(터치, pointer: coarse)처럼 (#313)
+  const device = options.mobile ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: 1280, height: 960 } }
+  const context = await browser.newContext({ ...device, timezoneId: options.timezoneId || 'Asia/Seoul', deviceScaleFactor: options.scale || 1 })
   t.after(() => context.close())
   await context.addInitScript(() => localStorage.setItem('accessToken', 'ui-test-token'))
   const page = await context.newPage()
@@ -46,7 +48,7 @@ async function fixture(t, options = {}) {
     posts: Array.from({ length: 15 }, (_, i) => makePost(i + 1)), comments: [
       { id: 100, parentId: null, content: '박자부터 맞춰 봐요', author, createdAt: '2026-10-16T12:10:00', mine: true, deleted: false },
       { id: 101, parentId: 100, content: '좋아요', author, createdAt: '2026-10-16T12:11:00', mine: true, deleted: false },
-    ], requests: [], media: new Map(), failSave: false, failList: false, leader: true, ...options,
+    ], requests: [], media: new Map(), uploads: new Map(), failSave: false, failList: false, leader: true, ...options,
   }
   await page.route('http://localhost:8080/**', async route => {
     const request = route.request()
@@ -65,12 +67,40 @@ async function fixture(t, options = {}) {
       const kept = (next.attachments || (next.attachment ? [next.attachment] : [])).filter(file => info.keepAttachmentIds.includes(file.id))
       for (const file of form.getAll('files')) {
         const id = 'file-' + state.media.size
-        state.media.set(id, { bytes: Buffer.from(await file.arrayBuffer()), type: file.type })
+        state.media.set(id, { bytes: Buffer.from(await file.arrayBuffer()), type: file.type, name: file.name })
         kept.push({ id, name: file.name, type: file.type, url: `/api/v1/bands/10/posts/${next.id}/attachments/${id}` })
+      }
+      // 브라우저가 바로 올린 첨부 (#262)
+      state.uploadIds = info.uploadIds || []
+      for (const uploadId of info.uploadIds || []) {
+        const upload = state.uploads.get(uploadId)
+        if (!upload?.bytes) return respond('올린 파일을 찾지 못했어요. 파일을 다시 올려 주세요.', 400)
+        const id = 'file-' + state.media.size
+        state.media.set(id, upload)
+        kept.push({ id, name: upload.name, type: upload.type, url: `/api/v1/bands/10/posts/${next.id}/attachments/${id}` })
       }
       Object.assign(next, { title: info.title, content: info.content, notice: info.notice ?? next.notice, noticeExpiresAt: info.notice ? info.noticeExpiresAt : null, attachments: kept, attachment: kept[0] || null })
       if (!existing) state.posts.push(next)
       return respond(next)
+    }
+    // 바로 올리기 (#262): 올릴 주소를 주고, 그 주소(서버 주소 모양)로 PUT 한 바이트를 기억한다
+    if (path === '/api/v1/bands/10/uploads') {
+      if (state.storageFull) return respond('저장 공간이 가득 차서 지금은 새 파일을 올릴 수 없어요.', 507)
+      const body = request.postDataJSON()
+      const uploadId = 'up-' + state.uploads.size
+      state.uploads.set(uploadId, { name: body.name, type: body.contentType, kind: body.kind })
+      return respond({ uploadId, url: `/api/v1/files/put-${uploadId}`, contentType: body.contentType })
+    }
+    if (path.startsWith('/api/v1/files/put-') && method === 'PUT') {
+      state.uploads.get(path.slice('/api/v1/files/put-'.length)).bytes = request.postDataBuffer()
+      return route.fulfill({ status: 200, headers })
+    }
+    // 받기 주소: get-은 화면에 띄우기, dl-은 저장 (Content-Disposition: attachment)
+    const served = path.match(/^\/api\/v1\/files\/(get|dl)-(.+)$/)
+    if (served) {
+      const media = served[2] === 'legacy' ? { bytes: photo, type: 'image/png', name: attachment.name } : state.media.get(served[2])
+      const disposition = served[1] === 'dl' ? { 'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(media.name)}` } : {}
+      return route.fulfill({ headers: { ...headers, ...disposition }, contentType: media.type, body: media.bytes })
     }
     if (path === '/api/v1/characters/me') return respond({ nickname: '리듬냥', instrumentType: 'GUITAR', level: 1, exp: 0, gender: 'MALE', hairStyle: 'SHORT', hairColor: '#333333', outfitColor: '#ffffff', instrumentColor: '#ff6600', currentOutfitSpriteKey: 'DEFAULT' })
     // 요즘 듣는 음악 (#292): state.music이 있으면 내 정보에 싣고, 지우면 비운다
@@ -128,6 +158,8 @@ async function fixture(t, options = {}) {
     }
     if (suffix === '/notice') { Object.assign(post, request.postDataJSON()); return respond(post) }
     if (suffix === '/attachments.zip') return route.fulfill({ headers, contentType: 'application/zip', body: Buffer.from('PK-test-archive') })
+    const link = suffix.match(/^\/attachments?(?:\/(.+))?\/link$/)
+    if (link) return respond({ url: `/api/v1/files/${url.searchParams.get('download') === 'true' ? 'dl' : 'get'}-${link[1] || 'legacy'}` })
     if (suffix.startsWith('/attachments/')) {
       const media = state.media.get(suffix.split('/').at(-1))
       return route.fulfill({ headers, contentType: media.type, body: media.bytes })
@@ -255,9 +287,25 @@ test('작성 중 사진·영상 미리보기, 공지와 여러 첨부 저장 및
   const created = state.posts.find(p => p.id === 50)
   assert.equal(created.notice, true)
   assert.equal(created.attachments.length, 2)
+  // 첨부는 저장소에 바로 올리고(서버로 multipart 파일을 보내지 않음) uploadId로 글을 저장한다 (#262)
+  assert.deepEqual([...state.uploads.values()].map(u => [u.kind, u.name, u.bytes.length > 0]), [['ATTACHMENT', '합주실.png', true], ['ATTACHMENT', '합주영상.webm', true]])
+  assert.deepEqual(state.uploadIds, ['up-0', 'up-1'])
+  // 화면의 사진·영상은 받기 주소(…/link)로 저장소에서 바로 불러온다
+  assert.match(await page.locator('.media-gallery video').getAttribute('src'), /\/api\/v1\/files\/get-file-/)
   await page.waitForFunction(() => document.querySelector('.media-gallery video')?.readyState >= 1)
   await page.locator('.media-gallery video').evaluate(async video => { await video.play(); video.pause() })
   await screenshot(page, 'community-detail-media')
+  // #319: 재생 중에 크게 보기를 누르면 글 안의 영상은 멈추고, 큰 화면이 이어서 재생한다 (둘이 같이 재생되지 않음)
+  await page.locator('.media-gallery video').evaluate(video => { video.muted = true; return video.play() })
+  await page.getByRole('button', { name: '크게 보기', exact: true }).click()
+  await page.waitForFunction(() => { const video = document.querySelector('.media-viewer video'); return video && !video.paused })
+  assert.equal(await page.locator('.media-gallery video').evaluate(video => video.paused), true)
+  // #321: 글에서 켠 음소거가 큰 화면에도 그대로, 큰 화면에서 바꾼 소리 설정은 닫을 때 글 안의 영상에 돌려준다
+  assert.equal(await page.locator('.media-viewer video').evaluate(video => video.muted), true)
+  await page.locator('.media-viewer video').evaluate(video => { video.muted = false; video.volume = 0.4 })
+  await page.getByRole('button', { name: '미디어 닫기' }).click()
+  await page.locator('.media-viewer').waitFor({ state: 'detached' })
+  assert.deepEqual(await page.locator('.media-gallery video').evaluate(video => [video.paused, video.muted, video.volume]), [true, false, 0.4])
   await page.locator('.author-row summary').click()
   await page.getByRole('button', { name: '글 수정', exact: true }).click()
   await page.getByRole('button', { name: '합주실.png 첨부 삭제' }).click()
@@ -401,8 +449,9 @@ test('내 글 필터는 전체 페이지에 적용하고 카드에서 바로 수
 })
 
 test('사진 확대·키보드 넘기기·개별/ZIP 저장·닫기와 모바일 표시', async t => {
-  const second = { ...attachment, id: 'second', name: '두번째.png' }
-  const { page, errors } = await fixture(t, { posts: [makePost(2, { attachments: [attachment, second] })] })
+  const second = { ...attachment, id: 'second', name: '두번째.png', url: '/api/v1/bands/10/posts/2/attachments/second' }
+  const media = new Map([['second', { bytes: photo, type: 'image/png', name: '두번째.png' }]])
+  const { page, errors } = await fixture(t, { posts: [makePost(2, { attachments: [attachment, second] })], media })
   await page.goto(`${origin}/home?band=10&post=2`)
   await page.getByRole('button', { name: '합주.png 크게 보기' }).click()
   await page.locator('.media-viewer img').waitFor()
@@ -757,3 +806,108 @@ test('팝업 오른쪽 위 X로 닫고, 요즘 듣는 음악은 곡 옆 X로 빼
   assert.ok(state.requests.some(r => r.method === 'DELETE' && r.path === '/api/v1/users/me/profile-music'))
   assert.deepEqual(errors, [])
 })
+
+// #315: 페이지를 새로 열 때(아이폰 홈 화면 앱은 오래 두면 새로 열린다) 빈 카드가 뜨던 문제
+async function watchSkeleton(page) {
+  await page.addInitScript(() => {
+    window.skeletonSeen = 0
+    document.addEventListener('DOMContentLoaded', () => new MutationObserver(() => {
+      if (document.querySelector('.community .skeleton')) window.skeletonSeen++
+    }).observe(document.body, { subtree: true, childList: true }))
+  })
+}
+const slowList = (page, ms) => page.route('http://localhost:8080/api/v1/bands/10/posts?**', async route => {
+  await new Promise(resolve => setTimeout(resolve, ms))
+  return route.fallback()
+})
+
+test('앱을 새로 열면 기기에 기억한 목록을 바로 보여 주고 빈 카드를 띄우지 않는다', async t => {
+  const { page, state, errors } = await fixture(t)
+  await page.goto(`${origin}/home?band=10`)
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
+  await watchSkeleton(page)
+  await slowList(page, 800)
+  state.posts.at(-1).title = '뒤에서 새로 불러온 제목'
+  await page.reload()
+  // 응답(0.8초)보다 먼저 기억한 목록이 보인다
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12, null, { timeout: 600 })
+  await page.locator('.community').getByText('뒤에서 새로 불러온 제목').waitFor()
+  assert.equal(await page.evaluate(() => window.skeletonSeen), 0)
+  // 로그인 토큰과 같은 곳(로그인 유지 → localStorage)에 기억한다
+  assert.ok(await page.evaluate(() => localStorage.getItem('gainz.communityCache')?.includes('뒤에서 새로 불러온 제목')))
+  assert.deepEqual(errors, [])
+})
+
+test('처음 여는 목록은 금방 오면 빈 카드 없이, 늦으면 빈 카드를 보여 준다', async t => {
+  const fast = await fixture(t)
+  await watchSkeleton(fast.page)
+  await fast.page.goto(`${origin}/home?band=10`)
+  await fast.page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
+  assert.equal(await fast.page.evaluate(() => window.skeletonSeen), 0)
+
+  const slow = await fixture(t)
+  await watchSkeleton(slow.page)
+  await slowList(slow.page, 900)
+  await slow.page.goto(`${origin}/home?band=10`)
+  await slow.page.locator('.community .skeleton').first().waitFor()
+  await slow.page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
+  assert.deepEqual([...fast.errors, ...slow.errors], [])
+})
+
+// #314: 아이폰에서 밀어서 뒤로가기(= 브라우저 뒤로)가 지나온 글·쪽·화면을 하나씩 다 거꾸로 지나가던 문제
+test('같은 화면 안의 이동은 기록에 쌓지 않고, 화면 위 뒤로 버튼은 기록을 되돌린다', async t => {
+  const { page } = await fixture(t)
+  await page.goto(`${origin}/home?band=10`)
+  await page.waitForFunction(() => document.querySelectorAll('.community .post:not(.skeleton)').length === 12)
+  const start = await page.evaluate(() => history.length)
+  // 글 열고 닫기, 쪽 넘기기
+  await page.locator('.community .post').nth(2).click()
+  await page.locator('.post-title').waitFor()
+  await page.getByRole('button', { name: '게시글 창 닫기' }).click()
+  await page.locator('.post-dialog').waitFor({ state: 'detached' })
+  await page.getByRole('button', { name: '2', exact: true }).first().click()
+  await page.waitForURL(/page=2/)
+  // 셋리스트 → 뒤로 → 레이어 잼 → 뒤로
+  for (const name of ['BAND SETLIST', 'LAYER JAM']) {
+    await page.locator('.card-btn').filter({ hasText: name }).click()
+    await page.waitForURL(/\/bands\/10\/(setlists|jams)/)
+    await page.locator('a.back').click()
+    await page.waitForURL(/\/home\?band=10&page=2$/)
+  }
+  // 홈에서 한 번 뒤로 가면 홈에 들어오기 전(빈 페이지)으로 간다
+  assert.ok(await page.evaluate(() => history.length) <= start + 1)
+  await page.goBack()
+  assert.equal(page.url(), 'about:blank')
+})
+// #313: 팝업을 열 때 컴퓨터는 글자 칸을 바로 고르고, 휴대폰은 고르지 않는다 (키보드가 팝업을 가리지 않게).
+// 버튼 줄은 모든 팝업이 같은 모양(같은 너비, 휴대폰 44px)
+for (const mobile of [false, true]) {
+  test(`팝업 글자 칸 자동 선택과 버튼 줄 (${mobile ? '휴대폰' : '컴퓨터'})`, async t => {
+    const { page, errors } = await fixture(t, { mobile, music: { title: 'Hysteria', artist: 'Muse', url: null, artworkUrl: null, previewUrl: null } })
+    await page.goto(`${origin}/home`)
+    await page.getByRole('button', { name: /Hysteria/ }).click()
+    const dialog = page.getByRole('dialog', { name: '요즘 듣는 음악' })
+    await dialog.waitFor()
+    await page.waitForTimeout(200)
+    const focusedTag = await page.evaluate(() => document.activeElement?.tagName)
+    if (mobile) assert.notEqual(focusedTag, 'INPUT')
+    else assert.equal(focusedTag, 'INPUT')
+    const buttons = await dialog.locator('.dialog-actions .btn').evaluateAll(list => list.map(b => [Math.round(b.getBoundingClientRect().width), Math.round(b.getBoundingClientRect().height)]))
+    assert.equal(buttons.length, 2)
+    assert.equal(buttons[0][0], buttons[1][0])
+    assert.equal(buttons[0][1], mobile ? 44 : 40)
+    await screenshot(page, `popup-actions-${mobile ? 'mobile' : 'desktop'}`)
+    // 브라우저 <dialog>(셋리스트·잼 만들기 등)는 열 때 첫 칸을 저절로 고른다 → 휴대폰에서는 팝업 자체를 고르게
+    const nativeFocus = await page.evaluate(() => {
+      const native = document.createElement('dialog')
+      native.innerHTML = '<input aria-label="이름"><button>저장</button>'
+      document.body.append(native)
+      native.showModal()
+      const tag = document.activeElement?.tagName
+      native.close(); native.remove()
+      return tag
+    })
+    assert.equal(nativeFocus, mobile ? 'DIALOG' : 'INPUT')
+    assert.deepEqual(errors, [])
+  })
+}

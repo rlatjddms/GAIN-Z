@@ -116,9 +116,10 @@ const handleLogin = async () => {
     const isFirstLogin = localStorage.getItem(firstLoginKey) === 'true'
     if (isFirstLogin) {
       localStorage.removeItem(firstLoginKey) // Clear the flag
-      router.push('/character-create')
+      router.replace('/character-create')
     } else {
-      router.push('/home')
+      // 로그인 화면은 기록에 남기지 않는다 (#314. 홈에서 밀어서 뒤로가기를 해도 로그인으로 돌아가지 않게)
+      router.replace('/home')
     }
   } catch (error) {
     if (error.response && error.response.data && error.response.data.message) {

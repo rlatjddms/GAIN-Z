@@ -230,7 +230,7 @@ const allDone = computed(() => store.records.length > 0 && store.records.every((
   .modal {
     width: 100%; max-width: none; max-height: 92dvh;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-bottom: var(--sheet-pad-bottom);
   }
 }
 </style>

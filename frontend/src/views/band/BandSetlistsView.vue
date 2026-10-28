@@ -52,7 +52,7 @@
                     <span class="number">{{ String(index + 1).padStart(2, '0') }}</span>
                     <button class="song-toggle" :aria-expanded="expandedIds.includes(song.id)" :aria-controls="`song-${song.id}`" @click="toggleSong(song.id)"><span class="song-name"><strong>{{ song.title || '새 곡' }}</strong><span>{{ drafts[song.id] ? '작성 중' : (song.artist || '아티스트 미입력') }}</span></span><svg class="chevron" :class="{ open: expandedIds.includes(song.id) }" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 9 7 7 7-7" /></svg></button>
                     <div class="song-actions">
-                      <template v-if="drafts[song.id]"><button class="text-btn" @click="cancelSong(song.id)">취소</button><button class="btn primary" @click="saveSong(song)">저장</button></template>
+                      <template v-if="drafts[song.id]"><button class="text-btn" @click="cancelSong(song.id)">취소</button><button class="btn primary" @click="saveSong(song)">{{ uploading?.id === song.id ? `올리는 중 ${uploading.percent}%` : '저장' }}</button></template>
                       <template v-else><button class="text-btn" :aria-label="`${song.title} 수정`" @click="editSong(song)">수정</button><button class="text-btn danger" :aria-label="`${song.title} 삭제`" @click="removeSong(song)">삭제</button></template>
                     </div>
                   </div>
@@ -99,7 +99,7 @@ import WsCard from '../../components/workspace/WsCard.vue'
 import EmptyState from '../../components/ui/EmptyState.vue'
 import SmoothReorder from '../../components/band/SmoothReorder.vue'
 import { getBand } from '../../api/band'
-import { BAND_ATTACHMENT_ACCEPT, BAND_ATTACHMENT_MAX_BYTES, BAND_ATTACHMENT_MAX_COUNT, loadBandAttachment } from '../../api/bandBoard'
+import { BAND_ATTACHMENT_ACCEPT, SETLIST_ATTACHMENT_MAX_BYTES, BAND_ATTACHMENT_MAX_COUNT, loadBandAttachment } from '../../api/bandBoard'
 import { listJams } from '../../api/jam'
 import { createSetlist, deleteSetlist, deleteSetlistItem, listSetlists, reorderSetlistItems, reorderSetlists, saveSetlistItem, updateSetlist } from '../../api/setlist'
 import { addToWorkspace, getWorkspace } from '../../api/sheet'
@@ -114,6 +114,8 @@ const dialog = useDialogStore()
 const toast = useToastStore()
 const store = useBandStore()
 const band = ref(null), error = ref(''), busy = ref(false)
+// 새 첨부를 올리는 동안 그 곡의 저장 버튼에 진행률 (#262) → { id, percent } | null
+const uploading = ref(null)
 const lists = ref([]), selectedId = ref(null), drafts = ref({}), songOrder = ref([])
 const listTitle = ref(''), renaming = ref(false)
 // 이름을 바꿀 셋리스트 (목록에서 고르지 않은 셋리스트도 바꿀 수 있다, #233)
@@ -218,15 +220,13 @@ function cleanupUrls() {
   const used = new Set(Object.values(drafts.value).flatMap(song => song.files.filter(file => file.local).map(file => file.url)))
   for (const url of urls) if (!used.has(url)) { URL.revokeObjectURL(url); urls.delete(url) }
 }
-// 서버 첨부는 로그인 토큰이 필요해서 받아서 저장한다.
+// 서버 첨부는 권한을 확인한 몇 분짜리 저장 주소를 받아 연다 (#262)
 async function openFile(event, file) {
   if (file.local) return
   event.preventDefault()
   try {
-    const url = await loadBandAttachment(`${file.url}?download=true`)
-    const link = Object.assign(document.createElement('a'), { href: url, download: file.name })
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    const url = await loadBandAttachment(file.url, true)
+    Object.assign(document.createElement('a'), { href: url, download: file.name }).click()
   } catch (e) { toast.error(apiErrorMessage(e, '첨부파일을 받지 못했어요.')) }
 }
 // 레이어 잼에서 넘어오면 그 곡이 든 셋리스트를 열고 곡을 펼쳐 보여 준다
@@ -300,7 +300,12 @@ async function saveSong(song) {
   const payload = { title: song.title.trim(), artist: song.artist.trim(), memo: song.memo, sheetId: song.sheetId, memberIds: song.memberIds, keepAttachmentIds: song.files.filter(file => file.remote).map(file => file.id) }
   // 이 곡만 저장하고, 다른 곡의 작성 중인 값은 그대로 둔다.
   await run(async () => {
-    let result = await saveSetlistItem(bandId(), setlistId, isNew ? null : song.id, payload, song.files.filter(file => file.local).map(file => file.blob))
+    const files = song.files.filter(file => file.local).map(file => file.blob)
+    if (files.length) uploading.value = { id: song.id, percent: 0 }
+    let result
+    try {
+      result = await saveSetlistItem(bandId(), setlistId, isNew ? null : song.id, payload, files, percent => { uploading.value = { id: song.id, percent } })
+    } finally { uploading.value = null }
     if (isNew) {
       const created = result.items.find(item => !before.has(item.id))
       songOrder.value = songOrder.value.map(id => id === song.id ? created.id : id)
@@ -370,7 +375,7 @@ function toggleMember(song, id) { song.memberIds = song.memberIds.includes(id) ?
 function attachFiles(song, event) {
   for (const file of event.target.files) {
     if (song.files.length >= BAND_ATTACHMENT_MAX_COUNT) { toast.error(`첨부파일은 곡마다 ${BAND_ATTACHMENT_MAX_COUNT}개까지 올릴 수 있어요.`); break }
-    if (file.size > BAND_ATTACHMENT_MAX_BYTES) { toast.error(`${file.name}: 10MB까지 첨부할 수 있어요.`); continue }
+    if (file.size > SETLIST_ATTACHMENT_MAX_BYTES) { toast.error(`${file.name}: 50MB까지 첨부할 수 있어요.`); continue }
     song.files.push({ id: crypto.randomUUID(), name: file.name, size: file.size, blob: file, url: objectUrl(file), local: true })
   }
   event.target.value = ''
@@ -498,6 +503,6 @@ legend span { margin-left:6px; font-weight:400; }
 @media (max-width: 640px) {
   /* 휴대폰: 만들기 버튼은 목록 아래로 (#233) */
   .sidebar { display:flex; flex-direction:column; }
-  .setlist-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .setlist-dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: var(--sheet-pad-bottom); }
 }
 </style>

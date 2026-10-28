@@ -30,9 +30,13 @@
 
 .btn.small { min-height: 28px; padding: 4px 10px; font-size: 0.75rem; border-radius: 10px; gap: 4px; }
 
-/* 팝업 아래 버튼 줄: 버튼이 같은 너비로 나뉘고 조금 크다 */
-.dialog-actions { display: flex; gap: 8px; margin-top: 4px; }
+/* 팝업 아래 버튼 줄 (#313: 모든 팝업이 같이 쓴다): 버튼이 같은 너비로 나뉘고 조금 크다.
+   순서는 왼쪽부터 보조(취소·닫기) → 주 버튼(저장·확인) */
+.dialog-actions { display: flex; gap: 8px; margin-top: 20px; }
 .dialog-actions .btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
+@media (pointer: coarse) { .dialog-actions .btn { min-height: 44px; } }
+/* 휴대폰에서 팝업 자체에 초점이 가도(글자 칸 대신, dialogFocus.js) 테두리를 그리지 않는다 */
+dialog:focus { outline: none; }
 
 /* 고르기 칸 (보기 전환·반복 방식·공개 범위 같은 2~4개 중 하나): 회색 바탕 안에서 고른 칸만 흰색 */
 .segment { display: inline-flex; gap: 2px; padding: 3px; background: var(--c-line-soft); border-radius: var(--radius-md); }

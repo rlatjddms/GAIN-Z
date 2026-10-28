@@ -33,6 +33,10 @@ GAIN-Z를 무료로 인터넷에 올리는 방법입니다 (#180, 실제 배포 
   - GitHub Actions CI(`.github/workflows/ci.yml`)가 PR과 `main`·`dev` push마다 백엔드 테스트, 프론트 빌드, 프론트 테스트를 돌립니다.
   - **Render**는 `autoDeployTrigger: checksPass`라서 그 커밋의 체크가 모두 통과한 뒤에만 배포합니다. Render 대시보드에서 바꿨다면 Settings → Build & Deploy → Auto-Deploy가 "After CI Checks Pass"인지 확인합니다.
   - **Vercel**은 CI를 기다리는 설정이 없어서, GitHub에서 막습니다. 저장소 Settings → Rules → Rulesets에서 `main`·`dev`에 "Require status checks to pass"(백엔드 테스트·프론트 빌드·프론트 테스트)를 켜면 CI가 실패한 PR은 머지할 수 없습니다.
+- **새 백엔드 API를 쓰는 프론트는 백엔드를 먼저 릴리스합니다** (#316). Vercel은 머지하자마자, Render는 CI가 끝난 뒤(몇 분~십몇 분)에 배포되고, Render 배포가 실패하면 이전 백엔드가 계속 돕니다. 그래서 같은 릴리스에 넣으면 "새 프론트 + 옛 백엔드"가 될 수 있습니다.
+  - 프론트만, 백엔드만 바뀌거나 프론트가 기존 API만 쓰면 한 번에 릴리스해도 됩니다.
+  - 새 API가 필요하면: 백엔드 릴리스 → Render Logs에 `Tomcat started`, 새 기능 확인 → 프론트 릴리스. 백엔드는 옛 프론트와도 동작하게 만듭니다 (예: #308은 기존 업로드 방식도 남김).
+  - 섞여서 문제가 생기면 Vercel → Deployments에서 이전 배포를 **Promote**(되돌리기)합니다.
 - Render는 `render.yaml`에 `branch: main`이 적혀 있어 따로 설정할 것이 없습니다. **Vercel은 기본 브랜치(`dev`)를 운영으로 배포하므로 3-5에서 `main`으로 바꿔야 합니다.**
 
 ## 주소 이름
@@ -42,7 +46,7 @@ Render·Vercel 주소는 모든 사용자가 같이 쓰는 이름 공간입니�
 - Render 백엔드 주소는 서비스 화면의 이름 바로 아래에 있습니다. 무료로는 바꿀 수 없습니다.
 - Vercel 주소는 Settings → **Domains**에서 비어 있는 `<이름>.vercel.app`을 추가해 무료로 바꿀 수 있습니다. 옛 주소는 새 주소로 Redirect 해 둡니다.
 
-## 1. Supabase (DB·파일)
+## 1. Supabase (DB)
 
 ### 1-1. 프로젝트 만들기
 
@@ -78,11 +82,13 @@ jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?user=po
 - 포트가 **5432**이고 호스트가 `pooler.supabase.com`이어야 합니다. Direct connection(`db.<ID>.supabase.co`)은 IPv6 전용이라 Render에서 안 붙고, Transaction pooler(6543)는 JPA와 맞지 않습니다.
 - 호스트(`aws-0-…`/`aws-1-…`)는 프로젝트마다 다르니 화면 값을 그대로 씁니다.
 
-### 1-3. 파일 버킷 (#262 전까지)
+### 1-3. 파일은 R2에
 
-올린 파일은 이제 [Cloudflare R2](#1-5-cloudflare-r2-파일)에 둡니다. 예전에 Supabase Storage `uploads` 버킷에 올린 파일은 R2로 옮길 때까지만 읽고, 새로 만들 필요는 없습니다.
+올린 파일은 [Cloudflare R2](#1-5-cloudflare-r2-파일)에 둡니다. Supabase Storage는 쓰지 않습니다. 예전(#262 전)에 Supabase Storage `uploads` 버킷에 있던 파일은 2026-10-27 릴리스(#312)에서 R2로 다 옮겼고, 버킷은 지워도 됩니다.
 
-### 1-4. 프로젝트 주소와 서버용 키
+### 1-4. 예전 파일을 다시 옮겨야 할 때만
+
+Supabase Storage에 남은 파일을 R2로 다시 옮기려면 아래 두 값을 Render에 잠깐 넣고 배포합니다. 서버가 켜질 때 R2에 없는 파일만 옮기고(`LegacyStorageMigration`), Logs에 `Supabase 파일 옮기기 끝`이 나오면 다시 지웁니다. 평소에는 넣지 않습니다.
 
 | Render 키 | 어디서 |
 | --- | --- |
@@ -92,8 +98,6 @@ jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?user=po
 서버용 키는 DB·파일 전체에 접근할 수 있습니다. Render 환경 변수에만 넣고 Vercel·레포·채팅에는 넣지 않습니다.
 
 테이블은 백엔드가 처음 뜰 때 만듭니다 (Table Editor에 29개).
-
-`SUPABASE_URL`·`SUPABASE_SERVICE_KEY`는 R2로 다 옮긴 뒤(1-5의 7번) 지워도 됩니다.
 
 ### 1-5. Cloudflare R2 (파일)
 
@@ -132,9 +136,7 @@ jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?user=po
    | `STORAGE_ALERT_EMAIL` | 저장 공간 알림을 받을 내 이메일 (아래 "용량 한도") |
 
    비밀 키는 Render 환경 변수(운영)와 로컬 `application-secret.yml`(개발)에만 넣습니다. 레포·이슈·채팅에는 넣지 않습니다 (공개 레포).
-7. 배포가 끝나면 Logs에 `Supabase 파일 옮기기 끝: 이번에 N개 옮김`이 나옵니다. 그다음부터 `SUPABASE_URL`·`SUPABASE_SERVICE_KEY`를 지워도 됩니다 (Supabase의 원본 파일은 그대로 남아 있으니, 확인한 뒤 버킷을 지워도 됩니다). `…개 실패`가 나오면 다음 배포·재시작 때 남은 것만 다시 옮깁니다
-
-**새로 릴리스할 때 순서**: 6번 값을 먼저 넣고 `STORAGE_TYPE`은 그대로 둡니다. `main`에 R2 코드가 들어가기 전에 `STORAGE_TYPE=r2`가 되면 옛 서버가 R2를 몰라서 배포가 실패합니다. 릴리스가 배포되면 `render.yaml`대로 `r2`가 되고, 안 바뀌었으면 그때 직접 `r2`로 바꿉니다.
+7. 배포가 끝나면 Logs의 `Tomcat started`를 확인하고, 사이트에서 파일을 올리고 다시 열어 봅니다. 버킷에 `sheets/`·`band/`·`profiles/`가 생깁니다
 
 **용량 한도**: Cloudflare에는 "무료 범위를 넘으면 멈춤" 설정이 없어서, 넘으면 등록한 결제 수단으로 청구됩니다. 그래서 서버가 직접 막습니다 (`StorageQuota`).
 
@@ -167,7 +169,6 @@ gainz:
    | --- | --- |
    | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | 1-2 |
    | `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | 1-5 |
-   | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | 1-4 (옛 파일을 R2로 옮길 때만) |
    | `FRONTEND_URL` | Vercel 사이트 주소 (끝에 `/` 없이). 아직 모르면 임시로 넣고 3-6에서 고칩니다 |
    | `GOOGLE_CLIENT_ID` 등 6개 | 로컬 `application-secret.yml`에 쓰던 소셜 로그인 값 |
 
