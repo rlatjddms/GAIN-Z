@@ -25,7 +25,7 @@
           <p class="note">직접 입력한 시간은 하루 30분까지만 경험치로 쳐요. 줄이면 직접 입력분부터 빠지고, 줄어든 만큼 경험치가 빠져요 (레벨은 그대로예요).</p>
           <p v-if="error" class="error">{{ error }}</p>
 
-          <div class="actions">
+          <div class="dialog-actions">
             <button class="btn" :disabled="saving" @click="emit('close')">취소</button>
             <button class="btn primary" :disabled="saving || !valid" @click="submit">{{ saving ? '저장 중…' : '저장' }}</button>
           </div>
@@ -112,7 +112,6 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 .note { margin: 14px 0 0; font-size: 0.75rem; color: var(--c-faint); line-height: 1.5; }
 .error { margin: 8px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
-.actions { display: flex; gap: 8px; margin-top: 18px; }
 .btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
@@ -122,7 +121,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
   .modal {
     width: 100%; max-width: none; max-height: 92dvh;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-bottom: var(--sheet-pad-bottom);
   }
 }
 .quick .btn { flex: 1; min-height: 30px; font-size: 0.75rem; }

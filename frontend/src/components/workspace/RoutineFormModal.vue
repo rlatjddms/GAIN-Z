@@ -55,7 +55,7 @@
           <p v-if="invalidReason" class="help warn">{{ invalidReason }}</p>
           <p v-if="error" class="error">{{ error }}</p>
 
-          <div class="actions">
+          <div class="dialog-actions">
             <button v-if="routine" type="button" class="btn danger" :disabled="saving" @click="stop">그만하기</button>
             <button type="button" class="btn" :disabled="saving" @click="emit('close')">취소</button>
             <button type="submit" class="btn primary" :disabled="saving || !!invalidReason">{{ saving ? '저장 중…' : '저장' }}</button>
@@ -67,6 +67,7 @@
 </template>
 
 <script setup>
+import { focusOnDesktop } from '../ui/dialogFocus'
 import { reactive, ref, computed, watch, nextTick } from 'vue'
 import { createRoutine, updateRoutine, deleteRoutine } from '../../api/routine'
 import { apiErrorMessage } from '../../api/practice'
@@ -101,7 +102,8 @@ watch(() => props.open, async (v) => {
   error.value = ''
   saving.value = false
   await nextTick()
-  nameInput.value?.focus()
+  // 휴대폰에서는 키보드가 팝업을 가려서 고르지 않는다 (#313)
+  focusOnDesktop(nameInput.value)
 })
 
 const toggleDay = (key) => {
@@ -198,7 +200,6 @@ h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
 .help.warn { color: #f08c00; font-weight: 700; }
 .error { margin: 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
 
-.actions { display: flex; gap: 8px; margin-top: 4px; }
 .btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
 .btn.danger { flex: none; }
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
@@ -209,7 +210,7 @@ h2 { margin: 0 0 2px; font-size: 1.05rem; font-weight: 900; }
   .modal {
     width: 100%; max-width: none; max-height: 92dvh;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-bottom: var(--sheet-pad-bottom);
   }
 }
 /* 닫기 버튼 자리 (#292) */

@@ -72,7 +72,7 @@
             </div>
             <p v-if="error" class="error">{{ error }}</p>
 
-            <div class="actions">
+            <div class="dialog-actions">
               <button type="button" class="btn" :disabled="busy" @click="emit('close')">취소</button>
               <button type="submit" class="btn primary" :disabled="busy || !(valid || cleared)">{{ busy ? '저장 중…' : '저장' }}</button>
             </div>
@@ -84,6 +84,7 @@
 </template>
 
 <script setup>
+import { focusOnDesktop } from './ui/dialogFocus'
 // 요즘 듣는 음악 등록·수정 팝업 (홈 음악 칩에서 연다). 저장하면 내 정보(authStore.profile)를 바로 바꾼다
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { ChevronDown, Music, Search, X } from 'lucide-vue-next'
@@ -198,7 +199,8 @@ watch(() => props.open, async (open) => {
   searchError.value = ''
   error.value = ''
   await nextTick()
-  searchInput.value?.focus()
+  // 휴대폰에서는 키보드가 팝업을 가려서 고르지 않는다 (#313)
+  focusOnDesktop(searchInput.value)
 })
 
 const run = async (action, fallback, done) => {
@@ -295,7 +297,6 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 .hint { margin: 6px 0 0; font-size: 0.72rem; font-weight: 700; line-height: 1.5; }
 .hint.bad { color: #e8590c; }
 .error { margin: 12px 0 0; font-size: 0.8rem; font-weight: 700; line-height: 1.5; color: var(--c-danger); }
-.actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
@@ -305,7 +306,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
   .modal {
     width: 100%; max-width: none; max-height: 92dvh;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-bottom: var(--sheet-pad-bottom);
   }
   .field input { font-size: 16px; }
 }

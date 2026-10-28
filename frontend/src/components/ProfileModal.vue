@@ -217,7 +217,7 @@ h3 { margin: 0 0 14px; font-size: 0.85rem; font-weight: 800; color: var(--c-text
   .modal {
     width: 100%; max-width: none; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-bottom: var(--sheet-pad-bottom);
   }
 }
 </style>

@@ -35,7 +35,7 @@
             </li>
           </ul>
 
-          <div class="actions">
+          <div class="dialog-actions">
             <button type="button" class="btn" @click="emit('close')">닫기</button>
             <button type="button" class="btn primary" @click="goPractice">연습하러 가기</button>
           </div>
@@ -108,7 +108,6 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
 .rules div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .rules strong { font-size: 0.86rem; font-weight: 800; }
 .rules span { font-size: 0.76rem; line-height: 1.5; color: var(--c-muted); }
-.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
@@ -118,7 +117,7 @@ h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 900; }
   .modal {
     width: 100%; max-width: none; max-height: 92dvh;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-bottom: var(--sheet-pad-bottom);
   }
 }
 /* 닫기 버튼 자리 (#292) */
