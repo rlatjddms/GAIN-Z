@@ -3,8 +3,9 @@
 // - 페이지 이동: 네트워크 먼저, 안 되면 저장해 둔 첫 화면(index.html)
 // - 빌드 파일(/assets/…, 이름에 해시가 붙음)과 아이콘: 캐시 먼저, 없으면 받아서 저장
 // 캐시 내용을 바꾸면 VERSION을 올린다 (예전 캐시는 activate에서 지운다)
-const VERSION = 'gainz-v2'
+const VERSION = 'gainz-v3'
 // v2 (#194): 아이콘을 바꿔서 예전 캐시를 버린다
+// v3 (#331): 아이콘 모서리 투명한 곳을 채워서 예전 캐시를 버린다
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png']
 
 self.addEventListener('install', (event) => {
