@@ -47,8 +47,8 @@
 | --- | --- |
 | Backend | Java 17, Spring Boot 3, Spring Security (JWT, OAuth2), JPA, Swagger, JUnit·Mockito |
 | Frontend | Vue 3, Vite, Pinia, Vue Router, Axios, pdf.js, PWA |
-| DB·Storage | PostgreSQL(운영), MariaDB(로컬 선택), Redis, Supabase Storage |
-| Infra | Docker Compose, Render, Vercel, Supabase, UptimeRobot |
+| DB·Storage | PostgreSQL(운영), MariaDB(로컬 선택), Redis, Cloudflare R2 |
+| Infra | Docker Compose, Render, Vercel, Supabase, Cloudflare R2, Brevo(메일), UptimeRobot, GitHub Actions |
 | 협업 | GitHub 이슈·PR, Claude Code |
 
 ## 아키텍처
@@ -58,16 +58,19 @@
   → Vercel (Vue 3 프론트)
   → Render (Spring Boot 백엔드)
       ├─ Supabase PostgreSQL ........ 데이터
-      ├─ Supabase Storage ........... 악보 · 녹음 · 프로필 파일
-      └─ Render Key Value (Redis) ... 리프레시 토큰
+      ├─ Cloudflare R2 .............. 악보 · 녹음 · 첨부 · 프로필 파일
+      ├─ Render Key Value (Redis) ... 리프레시 토큰, 소셜 로그인 코드, 업로드 임시 기록
+      └─ Brevo ...................... 가입 인증 · 비밀번호 재설정 · 저장 용량 알림 메일
 
+브라우저 ⇄ Cloudflare R2 (서버가 내준 몇 분짜리 서명 주소로 파일을 바로 올리고 받기)
 UptimeRobot → 5분마다 백엔드 호출 (무료 플랜 서버 휴면 방지)
+GitHub Actions → PR마다 백엔드 테스트 · 프론트 빌드 · 프론트 테스트 (통과해야 머지·배포)
 ```
 
 - **구조**: 8개 도메인(user, character, practice, sheet, band, friend, notification, record)을 controller / service / repository로 나누고, 공통 응답과 예외 규약을 적용했습니다.
 - **인증**: JWT 액세스 토큰과 Redis 리프레시 토큰, 구글·카카오·네이버 OAuth2 소셜 로그인.
-- **파일 저장소**: 설정값 하나(`gainz.storage.type`)로 로컬 디스크와 Supabase Storage를 바꿀 수 있습니다.
-- **배포**: Render + Supabase + Vercel 무료 플랜 조합. 로컬에서는 Docker Compose로 전체 환경을 한 번에 띄웁니다.
+- **파일 저장소**: 설정값 하나(`gainz.storage.type`)로 로컬 디스크와 Cloudflare R2를 바꿀 수 있습니다. 서버는 로그인·권한만 확인하고 서명 주소를 내주며, 큰 영상도 Render를 거치지 않고 브라우저가 R2와 직접 주고받습니다. 전체 용량이 무료 범위(10GB)를 넘지 않게 9GB에서 새 파일을 막고 8GB부터 메일로 알립니다.
+- **배포**: Render + Supabase + Cloudflare R2 + Vercel 무료 플랜 조합. 로컬에서는 Docker Compose로 전체 환경을 한 번에 띄웁니다.
 
 ## AI 협업 방식
 
@@ -85,7 +88,7 @@ UptimeRobot → 5분마다 백엔드 호출 (무료 플랜 서버 휴면 방지)
 
 ## 문서
 
-- [배포 가이드](docs/deploy.md): Render + Supabase + Vercel 무료 배포
+- [배포 가이드](docs/deploy.md): Render + Supabase + Cloudflare R2 + Vercel 무료 배포
 - [레이어 잼 조사](docs/layer-jam-research.md): 비동기 합주 녹음·싱크·병합 방식 비교
 - [모바일 대응 방식](docs/mobile-strategy.md): 반응형 웹 → PWA → 웹 푸시
 - [마디 악보 데이터 포맷](docs/note-data-format.md): 타브·코드 악보 JSON 구조
